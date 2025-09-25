@@ -13,10 +13,13 @@
   "description": "",
   "dependencies": {
     "@types/pg": "^8.15.5",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
+    "joi": "^18.0.1",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "typeorm": "^0.3.26"
   },
