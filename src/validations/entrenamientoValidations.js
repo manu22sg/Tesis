@@ -7,7 +7,6 @@ const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
 
 
 // Schema para fecha (desde hoy hacia adelante)
@@ -17,7 +16,7 @@ const fechaEntrenamientoSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    const fecha = parseDateLocal(value); // <- antes: new Date(value)
+    const fecha = parseDateLocal(value); 
     fecha.setHours(0, 0, 0, 0);
 
     const diaSemana = fecha.getDay(); // 0=Dom, 1=Lun, ... 6=Sáb
@@ -92,7 +91,7 @@ export const crearEntrenamientoBody = Joi.object({
       'string.max': 'La descripción no puede exceder 500 caracteres'
     })
 }).custom((value, helpers) => {
-  validaHorario(value, helpers);
+  validaHorario(value, helpers,HORARIO_FUNCIONAMIENTO);
   return value;
 });
 
@@ -196,7 +195,7 @@ export const actualizarEntrenamientoBody = Joi.object({
 .with('horaFin', 'horaInicio')
 .custom((value, helpers) => {
   if (value.horaInicio && value.horaFin) {
-    validaHorario(value, helpers);
+    validaHorario(value, helpers,HORARIO_FUNCIONAMIENTO);
   }
   return value;
 });
@@ -299,7 +298,7 @@ export const crearEntrenamientosRecurrentesBody = Joi.object({
     });
   }
 
-  validaHorario(value, helpers);
+  validaHorario(value, helpers,HORARIO_FUNCIONAMIENTO);
 
   return value;
 
