@@ -18,20 +18,17 @@ export async function crearReserva(datosReserva, usuarioId) {
   try {
     const { canchaId, fecha, horaInicio, horaFin, motivo, participantes } = datosReserva;
 
-    // 1) Verificar disponibilidad dentro de ESTA transacción (misma snapshot)
     const [ok, errDisp] = await verificarDisponibilidadEspecificaTx(
       queryRunner.manager,
       canchaId, fecha, horaInicio, horaFin
     );
     if (!ok) return [null, errDisp];
 
-    // ✅ prepara repos ahora (los usarás varias veces)
     const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
     const usuarioRepo = queryRunner.manager.getRepository(UsuarioSchema);
     const partRepo    = queryRunner.manager.getRepository(ParticipanteReservaSchema);
     const histRepo    = queryRunner.manager.getRepository(HistorialReservaSchema);
 
-    // 1.2) Doble-chequeo con lock (sin agregados, Postgres no permite FOR SHARE con COUNT)
     const conflicto = await reservaRepo.createQueryBuilder('r')
       .setLock('pessimistic_read') // o 'pessimistic_write' si prefieres
       .select('r.id')
@@ -48,11 +45,9 @@ export async function crearReserva(datosReserva, usuarioId) {
       return [null, 'Ya existe una reserva en ese horario'];
     }
 
-    // 2) Usuario que reserva
     const usuarioQueReserva = await usuarioRepo.findOne({ where: { id: usuarioId } });
     if (!usuarioQueReserva) return [null, 'Usuario no encontrado'];
 
-    // 3) Participantes (agrega al usuario si no está, exige 12 exactos, sin repetidos)
     const participantesCompletos = Array.isArray(participantes) ? [...participantes] : [];
     if (!participantesCompletos.includes(usuarioQueReserva.rut)) {
       participantesCompletos.unshift(usuarioQueReserva.rut);
@@ -92,7 +87,6 @@ export async function crearReserva(datosReserva, usuarioId) {
     try {
       reservaGuardada = await reservaRepo.save(nuevaReserva);
     } catch (e) {
-      // Captura UNIQUE (uq_reserva_bloque_exact). Postgres: 23505, MySQL: ER_DUP_ENTRY/1062
       if (e?.code === '23505' || e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062) {
         await queryRunner.rollbackTransaction();
         return [null, 'Ya existe una reserva en ese horario'];
@@ -100,7 +94,6 @@ export async function crearReserva(datosReserva, usuarioId) {
       throw e;
     }
 
-    // 5) Participantes
     const participantesParaGuardar = usuariosExistentes.map(u => partRepo.create({
       reservaId: reservaGuardada.id,
       usuarioId: u.id,
@@ -109,7 +102,6 @@ export async function crearReserva(datosReserva, usuarioId) {
     }));
     await partRepo.save(participantesParaGuardar);
 
-    // 6) Historial
     await histRepo.save(histRepo.create({
       reservaId: reservaGuardada.id,
       accion: 'creada',
@@ -117,10 +109,8 @@ export async function crearReserva(datosReserva, usuarioId) {
       usuarioId
     }));
 
-    // 7) Confirmar transacción
     await queryRunner.commitTransaction();
 
-    // 8) Traer reserva completa (relaciones)
     const reservaCompleta = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
       where: { id: reservaGuardada.id },
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario']
@@ -241,9 +231,7 @@ export async function obtenerTodasLasReservas(filtros = {}) {
   }
 }
 
-/**
- * Obtener reserva por ID
- */
+
 export async function obtenerReservaPorId(id) {
   try {
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
@@ -275,7 +263,6 @@ function hayConflictoHorario(a, b) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-// ✅ Versión TRANSACCIONAL
 export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fechaISO, horaInicio, horaFin) {
   try {
     const fecha = toISODate(fechaISO);

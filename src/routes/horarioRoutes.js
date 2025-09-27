@@ -14,9 +14,9 @@ import {
 import { Router } from 'express';
 
 const router = Router();
-
-router.post("/disponibilidad/fecha", validate(disponibilidadPorFechaBody), getDisponibilidadPorFecha);
-router.post("/disponibilidad/rango", validate(disponibilidadPorRangoBody), getDisponibilidadPorRango);
-router.post("/disponibilidad/verificar", validate(verificarEspecificaBody), getVerificarDisponibilidad);
+ //Rutas de Horarios para obtener disponibilidad y verificar horarios
+router.post("/disponibilidad/fecha", authenticateToken, validate(disponibilidadPorFechaBody), getDisponibilidadPorFecha);
+router.post("/disponibilidad/rango", authenticateToken, validate(disponibilidadPorRangoBody), getDisponibilidadPorRango);
+router.post("/disponibilidad/verificar", authenticateToken, validate(verificarEspecificaBody), getVerificarDisponibilidad);
 
 export default router;

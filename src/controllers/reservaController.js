@@ -6,15 +6,12 @@ import {
 } from '../services/reservaServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
-/**
- * POST /api/reservas - Crear nueva reserva
- */
+
 export async function postCrearReserva(req, res) {
   try {
     const datosReserva = req.body;
     const usuarioId = req.user?.id; // Viene del middleware de autenticación
 
-    // Por ahora, para testing sin autenticación, usar un ID fijo
     const userId = usuarioId || 1; // Cambiar cuando tengas auth
 
     const [reserva, err] = await crearReserva(datosReserva, userId);
@@ -45,16 +42,14 @@ export async function postCrearReserva(req, res) {
   }
 }
 
-/**
- * GET /api/reservas - Obtener reservas del usuario autenticado
- */
+
 export async function getReservasUsuario(req, res) {
   try {
     const filtros = req.body;
     const usuarioId = req.user?.id; // Viene del middleware de autenticación
     
-    // Para testing sin auth, usar ID fijo
-    const userId = usuarioId; // Cambiar cuando tengas auth
+    
+    const userId = usuarioId; 
 
     const [result, err] = await obtenerReservasUsuario(userId, filtros);
 
@@ -76,9 +71,7 @@ export async function getReservasUsuario(req, res) {
   }
 }
 
-/**
- * GET /api/reservas/todas - Obtener todas las reservas (solo entrenadores)
- */
+
 export async function getTodasLasReservas(req, res) {
   try {
     const filtros = req.body;
@@ -103,9 +96,7 @@ export async function getTodasLasReservas(req, res) {
   }
 }
 
-/**
- * POST /api/reservas/detalle - Obtener reserva específica por ID
- */
+
 export async function getReservaPorId(req, res) {
   try {
     const { id } = req.body;

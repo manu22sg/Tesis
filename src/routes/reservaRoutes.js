@@ -50,7 +50,7 @@ router.post('/',
  * }
  */
 router.get('/',
-  // authenticateToken,
+   authenticateToken,
   validate(obtenerReservasUsuarioBody),
   getReservasUsuario
 );
@@ -68,8 +68,8 @@ router.get('/',
  * }
  */
 router.get('/todas',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(obtenerTodasReservasBody),
   getTodasLasReservas
 );
@@ -81,9 +81,11 @@ router.get('/todas',
  * Body: { "id": 123 }
  */
 router.post('/detalle',
-  // authenticateToken,
+   authenticateToken,
   validate(obtenerReservaPorIdBody),
   getReservaPorId
 );
 
+
+//falta poder borrar reservas usuario 
 export default router;

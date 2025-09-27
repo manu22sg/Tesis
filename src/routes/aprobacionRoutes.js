@@ -32,8 +32,8 @@ const router = Router();
  * }
  */
 router.get('/pendientes',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(obtenerReservasPendientesBody),
   getReservasPendientes
 );

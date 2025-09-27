@@ -1,11 +1,9 @@
-// validations/aprobacionValidations.js
 import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const ESTADOS_RESERVA = ['pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada'];
 
-// === Schemas ===
 
 // PATCH /api/reservas/aprobar - Aprobar reserva
 export const aprobarReservaBody = Joi.object({

@@ -19,7 +19,7 @@ const CanchaSchema = new EntitySchema({
     },
     capacidadMaxima: {
       type: "int",
-      default: 12, // Máximo 12 jugadores como mencionaste
+     "nullable": false,
     },
     estado: {
       type: "varchar",

@@ -1,4 +1,3 @@
-// controllers/canchaController.js
 import { 
   crearCancha, 
   obtenerCanchas, 
@@ -66,7 +65,7 @@ export async function getCanchas(req, res) {
  */
 export async function getCanchaPorId(req, res) {
   try {
-    const { id } = req.body; // Cambio: ahora viene del body
+    const { id } = req.body; 
 
     const [cancha, err] = await obtenerCanchaPorId(id);
 

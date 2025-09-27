@@ -8,14 +8,11 @@ import { In } from 'typeorm';
 
 const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 90 };
 
-// ===== Helpers de fecha/hora (SIN usar toISOString para no romper por TZ)
 const DATE_YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
 
 function toISODateSafe(input) {
-  // Si ya viene como 'YYYY-MM-DD', úsalo tal cual
   if (typeof input === 'string' && DATE_YYYY_MM_DD.test(input)) return input;
 
-  // Si viene Date u otro string, formateamos en local sin toISOString()
   const d = new Date(input);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');

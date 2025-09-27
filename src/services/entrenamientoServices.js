@@ -2,6 +2,8 @@ import { AppDataSource } from '../config/config.db.js';
 import HorarioBloqueadoSchema from '../entity/HorarioBloqueado.js';
 import CanchaSchema from '../entity/Cancha.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
+import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
+
 
 /**
  * Crear un nuevo entrenamiento (horario bloqueado)
@@ -261,16 +263,19 @@ export async function crearEntrenamientosRecurrentes(datosRecurrentes) {
     const entrenamientosCreados = [];
     const errores = [];
 
-    // Convertir fechas
-    const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
+    // Fechas en LOCAL
+    const inicio = parseDateLocal(fechaInicio);
+    const fin = parseDateLocal(fechaFin);
 
+    // Iteración día a día sin saltos de huso
     for (let fecha = new Date(inicio); fecha <= fin; fecha.setDate(fecha.getDate() + 1)) {
-      const diaSemana = fecha.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
-      
-      if (diasSemana.includes(diaSemana)) {
-        const fechaStr = fecha.toISOString().split('T')[0];
-        
+      const diaSemana = fecha.getDay(); // 0=domingo ... 6=sábado
+
+      if (diasSemana.includes(diaSemana)) { // tus días vienen como 1,3,5 (lun,mié,vie) → OK
+        const fechaStr = formatYMD(fecha); // <- antes: toISOString().split('T')[0]
+
+        // Asegúrate de tener importada/definida esta función:
+        // const [entrenamiento, error] = await crearEntrenamiento({ ... });
         const [entrenamiento, error] = await crearEntrenamiento({
           canchaId,
           fecha: fechaStr,
@@ -302,6 +307,7 @@ export async function crearEntrenamientosRecurrentes(datosRecurrentes) {
   }
 }
 
+
 // Helper functions
 function hayConflictoHorario(horario1, horario2) {
   const toMinutes = (time) => {
@@ -318,6 +324,6 @@ function hayConflictoHorario(horario1, horario2) {
 }
 
 function obtenerNombreDia(diaSemana) {
-  const nombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const nombres = [ 'Domingo','Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes','Sabado' ];
   return nombres[diaSemana];
 }

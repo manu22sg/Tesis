@@ -1,5 +1,7 @@
 import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
+import { parseDateLocal} from '../utils/dateLocal.js';
+import validaHorario from '../utils/validaHorario.js';
 
 const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 90 };
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -7,30 +9,38 @@ const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
 
+
 // Schema para fecha (desde hoy hacia adelante)
 const fechaEntrenamientoSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
   .custom((value, helpers) => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    const fecha = new Date(value);
+
+    const fecha = parseDateLocal(value); // <- antes: new Date(value)
     fecha.setHours(0, 0, 0, 0);
+
+    const diaSemana = fecha.getDay(); // 0=Dom, 1=Lun, ... 6=Sáb
 
     if (Number.isNaN(fecha.getTime())) {
       return helpers.error('any.invalid', { message: 'Fecha inválida' });
     }
-    
+    if (diaSemana === 0 || diaSemana === 6) {
+      return helpers.error('any.invalid', { 
+        message: 'Solo se pueden crear entrenamientos de lunes a viernes' 
+      });
+    }
     if (fecha < hoy) {
       return helpers.error('any.invalid', { 
         message: 'No se pueden crear entrenamientos en fechas pasadas' 
       });
     }
-    
     return value;
   })
   .messages({
     'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD (ej: 2025-09-24)',
   });
+
 
 // Schema para hora
 const horaSchema = Joi.string().pattern(TIME_HH_MM)
@@ -82,38 +92,7 @@ export const crearEntrenamientoBody = Joi.object({
       'string.max': 'La descripción no puede exceder 500 caracteres'
     })
 }).custom((value, helpers) => {
-  // Validar horarios de funcionamiento
-  const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
-  const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);
-  const i = toMin(value.horaInicio);
-  const f = toMin(value.horaFin);
-
-  if (i < minInicio || f > minFin) {
-    return helpers.error('any.invalid', {
-      message: `Horario fuera del funcionamiento (${HORARIO_FUNCIONAMIENTO.inicio} - ${HORARIO_FUNCIONAMIENTO.fin})`
-    });
-  }
-  
-  if (f <= i) {
-    return helpers.error('any.invalid', {
-      message: 'La hora fin debe ser mayor a la hora inicio'
-    });
-  }
-
-  // Validar duración mínima (30 min) y máxima (3 horas)
-  const duracion = f - i;
-  if (duracion < 30) {
-    return helpers.error('any.invalid', {
-      message: 'El entrenamiento debe durar al menos 30 minutos'
-    });
-  }
-  
-  if (duracion > 180) {
-    return helpers.error('any.invalid', {
-      message: 'El entrenamiento no puede durar más de 3 horas'
-    });
-  }
-  
+  validaHorario(value, helpers);
   return value;
 });
 
@@ -177,68 +156,49 @@ export const obtenerEntrenamientoPorIdBody = Joi.object({
 
 // PATCH /api/entrenamientos - Actualizar entrenamiento
 export const actualizarEntrenamientoBody = Joi.object({
-  id: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .messages({
-      'number.base': 'El ID debe ser un número',
-      'number.integer': 'El ID debe ser un número entero',
-      'number.positive': 'El ID debe ser mayor a 0',
-      'any.required': 'El ID es requerido'
-    }),
+  id: Joi.number().integer().positive().required().messages({
+    'number.base': 'El ID debe ser un número',
+    'number.integer': 'El ID debe ser un número entero',
+    'number.positive': 'El ID debe ser mayor a 0',
+    'any.required': 'El ID es requerido'
+  }),
 
-  canchaId: Joi.number()
-    .integer()
-    .positive()
-    .optional()
-    .messages({
-      'number.base': 'canchaId debe ser un número',
-      'number.integer': 'canchaId debe ser un número entero',
-      'number.positive': 'canchaId debe ser mayor a 0'
-    }),
+  canchaId: Joi.number().integer().positive().optional().messages({
+    'number.base': 'canchaId debe ser un número',
+    'number.integer': 'canchaId debe ser un número entero',
+    'number.positive': 'canchaId debe ser mayor a 0'
+  }),
 
-  fecha: Joi.string()
-    .pattern(DATE_YYYY_MM_DD)
-    .optional()
-    .messages({
-      'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD'
-    }),
+  fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional().messages({
+    'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD'
+  }),
 
-  horaInicio: Joi.string()
-    .pattern(TIME_HH_MM)
-    .optional()
-    .messages({
-      'string.pattern.base': 'La hora debe tener formato HH:mm'
-    }),
+  horaInicio: Joi.string().pattern(TIME_HH_MM).optional().messages({
+    'string.pattern.base': 'La hora debe tener formato HH:mm'
+  }),
 
-  horaFin: Joi.string()
-    .pattern(TIME_HH_MM)
-    .optional()
-    .messages({
-      'string.pattern.base': 'La hora debe tener formato HH:mm'
-    }),
+  horaFin: Joi.string().pattern(TIME_HH_MM).optional().messages({
+    'string.pattern.base': 'La hora debe tener formato HH:mm'
+  }),
 
-  motivo: Joi.string()
-    .trim()
-    .min(5)
-    .max(100)
-    .optional()
-    .messages({
-      'string.base': 'El motivo debe ser texto',
-      'string.min': 'El motivo debe tener al menos 5 caracteres',
-      'string.max': 'El motivo no puede exceder 100 caracteres'
-    }),
+  motivo: Joi.string().trim().min(5).max(100).optional().messages({
+    'string.base': 'El motivo debe ser texto',
+    'string.min': 'El motivo debe tener al menos 5 caracteres',
+    'string.max': 'El motivo no puede exceder 100 caracteres'
+  }),
 
-  descripcion: Joi.string()
-    .trim()
-    .max(500)
-    .optional()
-    .allow('')
-    .messages({
-      'string.base': 'La descripción debe ser texto',
-      'string.max': 'La descripción no puede exceder 500 caracteres'
-    })
+  descripcion: Joi.string().trim().max(500).optional().allow('').messages({
+    'string.base': 'La descripción debe ser texto',
+    'string.max': 'La descripción no puede exceder 500 caracteres'
+  })
+})
+.with('horaInicio', 'horaFin')
+.with('horaFin', 'horaInicio')
+.custom((value, helpers) => {
+  if (value.horaInicio && value.horaFin) {
+    validaHorario(value, helpers);
+  }
+  return value;
 });
 
 // DELETE /api/entrenamientos/eliminar - Eliminar entrenamiento
@@ -279,19 +239,19 @@ export const crearEntrenamientosRecurrentesBody = Joi.object({
     }),
 
   diasSemana: Joi.array()
-    .items(Joi.number().integer().min(0).max(6))
+    .items(Joi.number().integer().min(1).max(5))
     .min(1)
-    .max(7)
+    .max(5)
     .unique()
     .required()
     .messages({
       'array.base': 'Los días de la semana deben ser un array',
       'array.min': 'Debe seleccionar al menos un día de la semana',
-      'array.max': 'No puede seleccionar más de 7 días',
+      'array.max': 'No puede seleccionar más de 5 días',
       'array.unique': 'No se pueden repetir días de la semana',
-      'number.base': 'Los días deben ser números (0=domingo, 1=lunes, ..., 6=sábado)',
-      'number.min': 'Los días deben ser entre 0 y 6',
-      'number.max': 'Los días deben ser entre 0 y 6',
+      'number.base': 'Los días deben ser números (1=lunes, ..., 5=viernes)',
+      'number.min': 'Los días deben ser entre 1 y 5',
+      'number.max': 'Los días deben ser entre 1 y 5',
       'any.required': 'Los días de la semana son requeridos'
     }),
 
@@ -322,9 +282,9 @@ export const crearEntrenamientosRecurrentesBody = Joi.object({
     })
 }).custom((value, helpers) => {
   // Validar que fechaFin sea mayor a fechaInicio
-  const inicio = new Date(value.fechaInicio);
-  const fin = new Date(value.fechaFin);
-  
+  const inicio = parseDateLocal(value.fechaInicio);
+  const fin = parseDateLocal(value.fechaFin);
+
   if (fin <= inicio) {
     return helpers.error('any.invalid', {
       message: 'La fecha fin debe ser mayor a la fecha inicio'
@@ -339,7 +299,10 @@ export const crearEntrenamientosRecurrentesBody = Joi.object({
     });
   }
 
+  validaHorario(value, helpers);
+
   return value;
+
 });
 
 // === Middleware de validación ===

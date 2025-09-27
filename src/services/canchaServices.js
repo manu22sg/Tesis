@@ -23,10 +23,10 @@ export async function crearCancha(datosCancha) {
     const nuevaCancha = canchaRepository.create({
       nombre: datosCancha.nombre,
       descripcion: datosCancha.descripcion || null,
-      capacidadMaxima: datosCancha.capacidadMaxima || 12,
+      capacidadMaxima: datosCancha.capacidadMaxima ,
       estado: datosCancha.estado || 'disponible'
     });
-
+      
     const canchaGuardada = await canchaRepository.save(nuevaCancha);
     return [canchaGuardada, null];
 

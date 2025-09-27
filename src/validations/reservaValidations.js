@@ -5,7 +5,7 @@ const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 
 const ANTICIPACION_MAXIMA_DIAS = 14;
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const RUT_PATTERN = /^\d{7,8}-[\dkK]$/;
+const RUT_PATTERN = /^\d{7,8}-[\dK]$/;
 
 const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
 const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
@@ -17,7 +17,7 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Schema para fechas de reserva (desde mañana)
+// Schema para fechas de reserva (desde mañana) - solo días laborales
 const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
   .custom((value, helpers) => {
@@ -32,6 +32,14 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
 
     if (Number.isNaN(fecha.getTime())) {
       return helpers.error('any.invalid', { message: 'Fecha inválida' });
+    }
+    
+    // Validar días laborales (lunes a viernes)
+    const diaSemana = fecha.getDay();
+    if (diaSemana === 0 || diaSemana === 6) {
+      return helpers.error('any.invalid', { 
+        message: 'Solo se pueden hacer reservas de lunes a viernes' 
+      });
     }
     
     if (fecha < mañana) {
@@ -56,8 +64,7 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
 const rutSchema = Joi.string().pattern(RUT_PATTERN)
   .required()
   .messages({
-    'string.pattern.base': 'RUT debe tener formato XX.XXX.XXX-X (ej: 12.345.678-9)'
-  });
+'string.pattern.base': 'RUT debe tener formato XXXXXXXX-X (ej: 20694718-7)'  });
 
 // Schema para hora
 const horaSchema = Joi.string().pattern(TIME_HH_MM)

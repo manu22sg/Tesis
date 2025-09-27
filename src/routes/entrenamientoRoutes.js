@@ -18,7 +18,7 @@ import {
   validate
 } from '../validations/entrenamientoValidations.js';
 
-// import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
+ import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -36,8 +36,8 @@ const router = Router();
  * }
  */
 router.post('/',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(crearEntrenamientoBody),
   postCrearEntrenamiento
 );
@@ -54,8 +54,8 @@ router.post('/',
  * }
  */
 router.get('/',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(obtenerEntrenamientosBody),
   getEntrenamientos
 );
@@ -67,8 +67,8 @@ router.get('/',
  * Body: { "id": 123 }
  */
 router.post('/detalle',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+  requireRole(['entrenador', 'superadmin']),
   validate(obtenerEntrenamientoPorIdBody),
   getEntrenamientoPorId
 );
@@ -87,8 +87,8 @@ router.post('/detalle',
  * }
  */
 router.patch('/',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(actualizarEntrenamientoBody),
   patchActualizarEntrenamiento
 );
@@ -100,8 +100,8 @@ router.patch('/',
  * Body: { "id": 123 }
  */
 router.delete('/eliminar',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(eliminarEntrenamientoBody),
   deleteEntrenamiento
 );
@@ -122,8 +122,8 @@ router.delete('/eliminar',
  * }
  */
 router.post('/recurrente',
-  // authenticateToken,
-  // requireRole(['entrenador', 'superadmin']),
+   authenticateToken,
+   requireRole(['entrenador', 'superadmin']),
   validate(crearEntrenamientosRecurrentesBody),
   postCrearEntrenamientosRecurrentes
 );

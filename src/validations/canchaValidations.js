@@ -34,13 +34,13 @@ export const crearCanchaBody = Joi.object({
     .integer()
     .min(2)
     .max(30)
-    .optional()
-    .default(12)
+    .required()
     .messages({
       'number.base': 'La capacidad debe ser un número',
       'number.integer': 'La capacidad debe ser un número entero',
       'number.min': 'La capacidad mínima es 2 jugadores',
-      'number.max': 'La capacidad máxima es 30 jugadores'
+      'number.max': 'La capacidad máxima es 30 jugadores',
+      'any.required': 'La capacidad es requerida'
     }),
 
   estado: Joi.string()
