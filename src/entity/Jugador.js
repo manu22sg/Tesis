@@ -11,6 +11,7 @@ const JugadorSchema = new EntitySchema({
     },
     usuarioId: {
       type: "int",
+      unique: true, // cada usuario solo puede ser jugador una vez
     },
     carrera: {
       type: "varchar",
@@ -39,16 +40,19 @@ const JugadorSchema = new EntitySchema({
       type: "timestamp",
       createDate: true,
     },
+    fechaActualizacion: {
+       type: "timestamp", updateDate: true },
   },
   relations: {
+    // relación uno a uno con Usuario
     usuario: {
       type: "one-to-one",
       target: "Usuario",
-      joinColumn: {
-        name: "usuarioId",
-      },
+      joinColumn: { name: "usuarioId" },
       onDelete: "CASCADE",
     },
+
+    // todas tus relaciones one-to-many
     asistencias: {
       type: "one-to-many",
       target: "Asistencia",
@@ -74,26 +78,19 @@ const JugadorSchema = new EntitySchema({
       target: "AlineacionJugador",
       inverseSide: "jugador",
     },
-    grupos: {
-      type: "many-to-many",
-      target: "GrupoJugador",
-      joinTable: {
-        name: "jugador_grupo",
-        joinColumn: {
-          name: "jugador_id",
-          referencedColumnName: "id",
-        },
-        inverseJoinColumn: {
-          name: "grupo_id",
-          referencedColumnName: "id",
-        },
-      },
+
+    // 🔥 ahora la relación con grupos se hace vía JugadorGrupo
+    jugadorGrupos: {
+      type: "one-to-many",
+      target: "JugadorGrupo",
+      inverseSide: "jugador",
     },
   },
   indices: [
     {
       name: "idx_jugadores_usuario_id",
       columns: ["usuarioId"],
+      unique: true,
     },
     {
       name: "idx_jugadores_estado",
@@ -101,4 +98,5 @@ const JugadorSchema = new EntitySchema({
     },
   ],
 });
+
 export default JugadorSchema;

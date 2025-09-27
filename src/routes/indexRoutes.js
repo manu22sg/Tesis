@@ -5,6 +5,8 @@ import canchasRoutes from "./canchaRoutes.js";
 import reservaRoutes from "./reservaRoutes.js";
 import aprobacionRoutes from "./aprobacionRoutes.js";
 import entrenamientoRoutes from "./entrenamientoRoutes.js";
+import jugadorRoutes from "./jugadorRoutes.js";
+import grupoJugadorRoutes from "./GrupoJugadorRoutes.js";
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -13,4 +15,6 @@ router.use("/canchas", canchasRoutes);
 router.use("/reservas", reservaRoutes);
 router.use("/aprobacion", aprobacionRoutes);
 router.use("/entrenamientos", entrenamientoRoutes);
+router.use("/jugadores", jugadorRoutes);
+router.use("/grupos", grupoJugadorRoutes);
 export default router;

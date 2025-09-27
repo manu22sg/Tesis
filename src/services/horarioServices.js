@@ -1,4 +1,3 @@
-// services/horarioServices.js
 import { AppDataSource } from '../config/config.db.js';
 import CanchaSchema from '../entity/Cancha.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';

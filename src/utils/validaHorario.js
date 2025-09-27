@@ -1,7 +1,7 @@
 const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
 
 export default function validaHorario({ horaInicio, horaFin }, helpers, cfg) {
-  const { inicio, fin, duracionBloque } = cfg;   
+  const { inicio, fin, duracionBloque } = cfg; // { inicio: '09:00', fin: '15:00', duracionBloque: 90 }   
   const i = toMin(horaInicio), f = toMin(horaFin);
   const minInicio = toMin(inicio), minFin = toMin(fin);
 

@@ -13,7 +13,7 @@ const PORT = 3000;
 
 await connectDB();
   await createUsers();
-  console.log("✅ Configuración inicial completada");
+  console.log("Configuración inicial completada");
 app.use(express.json());
 app.use(cookieParser());    
 
