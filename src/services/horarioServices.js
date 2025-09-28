@@ -1,11 +1,12 @@
 import { AppDataSource } from '../config/config.db.js';
 import CanchaSchema from '../entity/Cancha.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
-import HorarioBloqueadoSchema from '../entity/HorarioBloqueado.js';
+import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
+
 import { In } from 'typeorm';
 
 
-const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 90 };
+const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '16:00', duracionBloque: 90 };
 
 const DATE_YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -59,11 +60,11 @@ function hayConflictoHorario(b1, b2) {
 // ---------- Services
 export async function obtenerDisponibilidadPorFecha(fechaISO) {
   try {
-    const fecha = toISODateSafe(fechaISO); // <- sin TZ
+    const fecha = toISODateSafe(fechaISO); // YYYY-MM-DD (local, sin TZ)
 
-    const canchaRepository = AppDataSource.getRepository(CanchaSchema);
-    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
-    const horarioBloqueadoRepository = AppDataSource.getRepository(HorarioBloqueadoSchema);
+    const canchaRepository          = AppDataSource.getRepository(CanchaSchema);
+    const reservaRepository         = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepository          = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
     const canchas = await canchaRepository.find({ where: { estado: 'disponible' } });
     if (!canchas.length) return [[], 'No hay canchas disponibles'];
@@ -73,15 +74,18 @@ export async function obtenerDisponibilidadPorFecha(fechaISO) {
     for (const cancha of canchas) {
       const bloquesHorarios = generarBloquesHorarios();
 
-      const horariosBloqueados = await horarioBloqueadoRepository.find({
+     
+      // Reservas activas (pendiente/aprobada)
+      const reservasExistentes = await reservaRepository.find({
+        where: { canchaId: cancha.id, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
+      });
+
+      // Sesiones de entrenamiento
+      const sesiones = await sesionRepository.find({
         where: { canchaId: cancha.id, fecha }
       });
 
-      const reservasExistentes = await reservaRepository.find({
-        where: { canchaId: cancha.id, fechaSolicitud: fecha, estado: In['pendiente', 'aprobada'] }
-      });
-
-      // Bloqueos
+      // Marcar conflictos: bloqueos
       for (const b of horariosBloqueados) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, b)) {
@@ -91,12 +95,22 @@ export async function obtenerDisponibilidadPorFecha(fechaISO) {
         }
       }
 
-      // Reservas
+      // Marcar conflictos: reservas
       for (const r of reservasExistentes) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, r)) {
             blk.disponible = false;
             blk.motivo = 'Ya reservado';
+          }
+        }
+      }
+
+      // Marcar conflictos: sesiones
+      for (const s of sesiones) {
+        for (const blk of bloquesHorarios) {
+          if (hayConflictoHorario(blk, s)) {
+            blk.disponible = false;
+            blk.motivo = 'Sesión de entrenamiento';
           }
         }
       }
@@ -119,6 +133,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function obtenerDisponibilidadPorRango(fechaInicioISO, fechaFinISO) {
   try {
@@ -145,25 +160,26 @@ export async function obtenerDisponibilidadPorRango(fechaInicioISO, fechaFinISO)
 
 export async function verificarDisponibilidadEspecifica(canchaId, fechaISO, horaInicio, horaFin) {
   try {
-    const fecha = toISODateSafe(fechaISO); // <- sin TZ
+    
+    const fecha = toISODateSafe(fechaISO); // 'YYYY-MM-DD' sin TZ
 
-    const canchaRepository = AppDataSource.getRepository(CanchaSchema);
-    const horarioBloqueadoRepository = AppDataSource.getRepository(HorarioBloqueadoSchema);
+    const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    // Cancha debe existir y estar disponible
+    // 1) Cancha debe existir y estar disponible
     const cancha = await canchaRepository.findOne({ where: { id: canchaId, estado: 'disponible' } });
     if (!cancha) return [false, 'Cancha inexistente o no disponible'];
 
-    // Choques con bloqueos
-    const bloqueos = await horarioBloqueadoRepository.find({ where: { canchaId, fecha } });
-    for (const b of bloqueos) {
-      if (hayConflictoHorario({ horaInicio, horaFin }, b)) {
-        return [false, `Conflicto con ${b.tipoBloqueo}: ${b.motivo}`];
+    // 2) Choques con sesiones de entrenamiento (bloquean igual que una reserva)
+    const sesiones = await sesionRepository.find({ where: { canchaId, fecha } });
+    for (const s of sesiones) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
+        return [false, 'Ya existe una sesión de entrenamiento en ese horario'];
       }
     }
 
-    // Choques con reservas activas
+    // 3) Choques con reservas activas (pendiente/aprobada)
     const reservas = await reservaRepository.find({
       where: { canchaId, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
     });

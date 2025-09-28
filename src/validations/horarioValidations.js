@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
 
-export const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '15:00', duracionBloque: 90 };
+export const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '16:00', duracionBloque: 90 };
 export const ANTICIPACION_MAXIMA_DIAS = 14;
 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;

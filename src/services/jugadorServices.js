@@ -159,73 +159,47 @@ export async function asignarJugadorAGrupo(jugadorId, grupoId) {
     const jugadorRepository = AppDataSource.getRepository(JugadorSchema);
     const grupoRepository = AppDataSource.getRepository(GrupoJugadorSchema);
     const jugadorGrupoRepository = AppDataSource.getRepository(JugadorGrupoSchema);
-    
-    // 1. Verificar que el jugador existe
-    const jugador = await jugadorRepository.findOne({
-      where: { id: jugadorId }
-    });
 
-    if (!jugador) {
-      return [null, 'Jugador no encontrado'];
+    const jugador = await jugadorRepository.findOne({ where: { id: jugadorId } });
+    if (!jugador) return [null, "Jugador no encontrado"];
+
+    const grupo = await grupoRepository.findOne({ where: { id: grupoId } });
+    if (!grupo) return [null, "Grupo no encontrado"];
+
+    // (opcional) más eficiente que save()
+    try {
+      await jugadorGrupoRepository.insert({ jugadorId, grupoId });
+    } catch (e) {
+      if (e?.code === "23505" || e?.code === "ER_DUP_ENTRY") {
+        return [null, "El jugador ya está asignado a este grupo"]; // 409
+      }
+      throw e;
     }
 
-    // 2. Verificar que el grupo existe
-    const grupo = await grupoRepository.findOne({
-      where: { id: grupoId }
-    });
-
-    if (!grupo) {
-      return [null, 'Grupo no encontrado'];
-    }
-
-    // 3. Verificar si ya existe la relación
-    const existeRelacion = await jugadorGrupoRepository.findOne({
-      where: { jugadorId, grupoId }
-    });
-
-    if (existeRelacion) {
-      return [null, 'El jugador ya está asignado a este grupo'];
-    }
-
-    // 4. Crear la relación
-    const jugadorGrupo = jugadorGrupoRepository.create({ jugadorId, grupoId });
-    const relacionGuardada = await jugadorGrupoRepository.save(jugadorGrupo);
-
-    // 5. Obtener la relación completa con los datos del jugador y grupo
     const relacionCompleta = await jugadorGrupoRepository.findOne({
       where: { jugadorId, grupoId },
-      relations: ['jugador', 'jugador.usuario', 'grupo']
+      relations: ["jugador", "jugador.usuario", "grupo"]
     });
 
     return [relacionCompleta, null];
   } catch (error) {
-    console.error('Error asignando jugador a grupo:', error);
-    
-    if (error.code === '23503') {
-      return [null, 'El jugador o grupo especificado no existe'];
-    }
-    
-    return [null, 'Error al asignar jugador a grupo'];
+    console.error("Error asignando jugador a grupo:", error);
+    if (error?.code === "23503") return [null, "El jugador o grupo especificado no existe"];
+    return [null, "Error al asignar jugador a grupo"];
   }
 }
-
 
 export async function removerJugadorDeGrupo(jugadorId, grupoId) {
   try {
     const jugadorGrupoRepository = AppDataSource.getRepository(JugadorGrupoSchema);
-    
-    const relacion = await jugadorGrupoRepository.findOne({
-      where: { jugadorId, grupoId }
-    });
 
-    if (!relacion) {
-      return [null, 'El jugador no está asignado a este grupo'];
-    }
+    const relacion = await jugadorGrupoRepository.findOne({ where: { jugadorId, grupoId } });
+    if (!relacion) return [null, "El jugador no está asignado a este grupo"];
 
     await jugadorGrupoRepository.remove(relacion);
-    return ['Jugador removido del grupo correctamente', null];
+    return ["ok", null];
   } catch (error) {
-    console.error('Error removiendo jugador del grupo:', error);
-    return [null, 'Error al remover jugador del grupo'];
+    console.error("Error removiendo jugador del grupo:", error);
+    return [null, "Error al remover jugador del grupo"];
   }
 }

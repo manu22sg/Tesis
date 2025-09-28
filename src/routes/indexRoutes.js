@@ -7,6 +7,9 @@ import aprobacionRoutes from "./aprobacionRoutes.js";
 import entrenamientoRoutes from "./entrenamientoRoutes.js";
 import jugadorRoutes from "./jugadorRoutes.js";
 import grupoJugadorRoutes from "./GrupoJugadorRoutes.js";
+import sesionRoutes from "./sesionRoutes.js";
+import asistenciaRoutes from "./asistenciaRoutes.js";
+import sesionTokenRoutes from "./sesionTokenRoutes.js";
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -17,4 +20,7 @@ router.use("/aprobacion", aprobacionRoutes);
 router.use("/entrenamientos", entrenamientoRoutes);
 router.use("/jugadores", jugadorRoutes);
 router.use("/grupos", grupoJugadorRoutes);
+router.use("/sesion", sesionRoutes);
+router.use("/asistencia", asistenciaRoutes);
+router.use("/sesionToken", sesionTokenRoutes);
 export default router;
