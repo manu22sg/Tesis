@@ -19,7 +19,7 @@ const CanchaSchema = new EntitySchema({
     },
     capacidadMaxima: {
       type: "int",
-     "nullable": false,
+      nullable: false,
     },
     estado: {
       type: "varchar",
@@ -41,10 +41,11 @@ const CanchaSchema = new EntitySchema({
       target: "ReservaCancha",
       inverseSide: "cancha",
     },
-    horariosBloquedos: {
+    
+    sesiones: {
       type: "one-to-many",
-      target: "HorarioBloqueado",
-      inverseSide: "cancha",
+      target: "SesionEntrenamiento",
+      inverseSide: "cancha",   
     },
   },
   indices: [

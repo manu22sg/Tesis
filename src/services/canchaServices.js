@@ -2,6 +2,17 @@
 import { AppDataSource } from '../config/config.db.js';
 import CanchaSchema from '../entity/Cancha.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
+import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
+import { In, MoreThanOrEqual } from 'typeorm';
+
+
+const hoyYMD = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 /**
  * Crear una nueva cancha
@@ -114,29 +125,48 @@ export async function obtenerCanchaPorId(id) {
  */
 export async function actualizarCancha(id, datosActualizacion) {
   try {
-    const canchaRepository = AppDataSource.getRepository(CanchaSchema);
+    const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
+    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    // Verificar que la cancha existe
-    const cancha = await canchaRepository.findOne({
-      where: { id }
-    });
+    // 1) Verificar que la cancha existe
+    const cancha = await canchaRepository.findOne({ where: { id } });
+    if (!cancha) return [null, 'Cancha no encontrada'];
 
-    if (!cancha) {
-      return [null, 'Cancha no encontrada'];
-    }
-
-    // Si se quiere cambiar el nombre, verificar que no esté en uso
+    // 2) Si se quiere cambiar el nombre, verificar que no esté en uso por otra
     if (datosActualizacion.nombre && datosActualizacion.nombre !== cancha.nombre) {
       const canchaConNombre = await canchaRepository.findOne({
         where: { nombre: datosActualizacion.nombre }
       });
+      if (canchaConNombre) return [null, 'Ya existe una cancha con ese nombre'];
+    }
 
-      if (canchaConNombre) {
-        return [null, 'Ya existe una cancha con ese nombre'];
+    // 3) Endurecer cambio de estado: si va a mantenimiento o fuera_servicio, no permitir si hay:
+    
+    if (
+      datosActualizacion.estado &&
+      datosActualizacion.estado !== cancha.estado &&
+      ['mantenimiento', 'fuera_servicio'].includes(datosActualizacion.estado)
+    ) {
+      // reservas activas
+      const reservasActivas = await reservaRepository.count({
+        where: { canchaId: id, estado: In(['pendiente', 'aprobada']) }
+      });
+      if (reservasActivas > 0) {
+        return [null, 'No se puede cambiar el estado: la cancha tiene reservas activas'];
+      }
+
+      // sesiones futuras (incluye hoy)
+      const hoy = hoyYMD();
+      const sesionesFuturas = await sesionRepository.count({
+        where: { canchaId: id, fecha: MoreThanOrEqual(hoy) }
+      });
+      if (sesionesFuturas > 0) {
+        return [null, 'No se puede cambiar el estado: la cancha tiene sesiones de entrenamiento programadas'];
       }
     }
 
-    // Actualizar campos
+    // 4) Actualizar campos permitidos
     Object.keys(datosActualizacion).forEach(key => {
       if (datosActualizacion[key] !== undefined) {
         cancha[key] = datosActualizacion[key];
@@ -151,40 +181,39 @@ export async function actualizarCancha(id, datosActualizacion) {
     return [null, 'Error interno del servidor'];
   }
 }
-
 /**
  * Eliminar una cancha (cambiar estado a fuera_servicio)
  */
 export async function eliminarCancha(id) {
   try {
-    const canchaRepository = AppDataSource.getRepository(CanchaSchema);
+    const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    // Verificar que la cancha existe
-    const cancha = await canchaRepository.findOne({
-      where: { id }
-    });
+    // 1) Verificar que la cancha existe
+    const cancha = await canchaRepository.findOne({ where: { id } });
+    if (!cancha) return [null, 'Cancha no encontrada'];
 
-    if (!cancha) {
-      return [null, 'Cancha no encontrada'];
-    }
-
-    // Verificar que no tenga reservas activas (pendientes o aprobadas)
+    // 2) Bloquear si tiene reservas activas (pendiente/aprobada)
     const reservasActivas = await reservaRepository.count({
-      where: {
-        canchaId: id,
-        estado: ['pendiente', 'aprobada']
-      }
+      where: { canchaId: id, estado: In(['pendiente', 'aprobada']) } // cambiar lo de pendiente si es necesario
     });
-
     if (reservasActivas > 0) {
       return [null, 'No se puede eliminar la cancha porque tiene reservas activas'];
     }
 
-    // Cambiar estado a fuera_servicio en lugar de eliminar físicamente
+    // 3) Bloquear si tiene sesiones de entrenamiento programadas (desde hoy en adelante)
+    const hoy = hoyYMD();
+    const sesionesFuturas = await sesionRepository.count({
+      where: { canchaId: id, fecha: MoreThanOrEqual(hoy) }
+    });
+    if (sesionesFuturas > 0) {
+      return [null, 'No se puede eliminar la cancha porque tiene sesiones de entrenamiento programadas'];
+    }
+
+    // 4) Soft-delete: poner fuera de servicio
     cancha.estado = 'fuera_servicio';
     const canchaEliminada = await canchaRepository.save(cancha);
-
     return [canchaEliminada, null];
 
   } catch (error) {
@@ -192,6 +221,7 @@ export async function eliminarCancha(id) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 /**
  * Reactivar una cancha (cambiar de fuera_servicio a disponible)

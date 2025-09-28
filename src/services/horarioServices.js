@@ -60,13 +60,13 @@ function hayConflictoHorario(b1, b2) {
 // ---------- Services
 export async function obtenerDisponibilidadPorFecha(fechaISO) {
   try {
-    const fecha = toISODateSafe(fechaISO); // YYYY-MM-DD (local, sin TZ)
+    const fecha = toISODateSafe(fechaISO);
 
-    const canchaRepository          = AppDataSource.getRepository(CanchaSchema);
-    const reservaRepository         = AppDataSource.getRepository(ReservaCanchaSchema);
-    const sesionRepository          = AppDataSource.getRepository(SesionEntrenamientoSchema);
+    const canchaRepo  = AppDataSource.getRepository(CanchaSchema);
+    const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepo  = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    const canchas = await canchaRepository.find({ where: { estado: 'disponible' } });
+    const canchas = await canchaRepo.find({ where: { estado: 'disponible' } });
     if (!canchas.length) return [[], 'No hay canchas disponibles'];
 
     const disponibilidadPorCancha = [];
@@ -74,29 +74,18 @@ export async function obtenerDisponibilidadPorFecha(fechaISO) {
     for (const cancha of canchas) {
       const bloquesHorarios = generarBloquesHorarios();
 
-     
       // Reservas activas (pendiente/aprobada)
-      const reservasExistentes = await reservaRepository.find({
+      const reservas = await reservaRepo.find({
         where: { canchaId: cancha.id, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
       });
 
       // Sesiones de entrenamiento
-      const sesiones = await sesionRepository.find({
+      const sesiones = await sesionRepo.find({
         where: { canchaId: cancha.id, fecha }
       });
 
-      // Marcar conflictos: bloqueos
-      for (const b of horariosBloqueados) {
-        for (const blk of bloquesHorarios) {
-          if (hayConflictoHorario(blk, b)) {
-            blk.disponible = false;
-            blk.motivo = `${b.tipoBloqueo}: ${b.motivo}`;
-          }
-        }
-      }
-
       // Marcar conflictos: reservas
-      for (const r of reservasExistentes) {
+      for (const r of reservas) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, r)) {
             blk.disponible = false;
@@ -133,6 +122,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 
 export async function obtenerDisponibilidadPorRango(fechaInicioISO, fechaFinISO) {
