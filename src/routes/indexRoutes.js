@@ -9,6 +9,9 @@ import grupoJugadorRoutes from "./GrupoJugadorRoutes.js";
 import sesionRoutes from "./sesionRoutes.js";
 import asistenciaRoutes from "./asistenciaRoutes.js";
 import sesionTokenRoutes from "./sesionTokenRoutes.js";
+import evaluacionRoutes from "./evaluacionRoutes.js";
+import lesionRoutes from "./lesionRoutes.js";
+
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -21,4 +24,6 @@ router.use("/grupos", grupoJugadorRoutes);
 router.use("/sesion", sesionRoutes);
 router.use("/asistencia", asistenciaRoutes);
 router.use("/sesionToken", sesionTokenRoutes);
+router.use("/evaluacion", evaluacionRoutes);
+router.use("/lesion", lesionRoutes);
 export default router;
