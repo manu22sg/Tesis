@@ -13,7 +13,7 @@ const ReservaCanchaSchema = new EntitySchema({
       type: "int",
     },
     canchaId: {
-      type: "int", // ← AGREGAR ESTO
+      type: "int", 
     },
     fechaSolicitud: {
       type: "date",

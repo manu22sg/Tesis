@@ -11,7 +11,10 @@ import asistenciaRoutes from "./asistenciaRoutes.js";
 import sesionTokenRoutes from "./sesionTokenRoutes.js";
 import evaluacionRoutes from "./evaluacionRoutes.js";
 import lesionRoutes from "./lesionRoutes.js";
-
+import campeonatoRoutes from "./campeonatoRoutes.js";
+import equipoRoutes from "./equipoRoutes.js";
+import partidoRoutes from "./partidoRoutes.js";
+import estadisticaRoutes from "./estadisticaRoutes.js";
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -26,4 +29,8 @@ router.use("/asistencia", asistenciaRoutes);
 router.use("/sesionToken", sesionTokenRoutes);
 router.use("/evaluacion", evaluacionRoutes);
 router.use("/lesion", lesionRoutes);
+router.use("/campeonato", campeonatoRoutes);
+router.use("/equipo", equipoRoutes);
+router.use("/estadistica", estadisticaRoutes);
+router.use("/partido", partidoRoutes);
 export default router;
