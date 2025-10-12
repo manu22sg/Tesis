@@ -45,6 +45,11 @@ const UsuarioSchema = new EntitySchema({
     },
   },
   relations: {
+    jugadoresCampeonato: {
+  type: "one-to-many",
+  target: "JugadorCampeonato",
+  inverseSide: "usuario",
+},
     jugador: {
       type: "one-to-one",
       target: "Jugador",

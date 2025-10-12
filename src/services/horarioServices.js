@@ -57,7 +57,7 @@ function hayConflictoHorario(b1, b2) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-// ---------- Services
+//  Services
 export async function obtenerDisponibilidadPorFecha(fechaISO) {
   try {
     const fecha = toISODateSafe(fechaISO);

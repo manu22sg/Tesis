@@ -14,9 +14,9 @@ router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']
 router.get('/mias', 
   authenticateToken, 
   requireRole('estudiante'), 
-  attachJugadorId,                     // asegura req.user.jugadorId
+  attachJugadorId,                     //  req.user.jugadorId
   validarQuery(obtenerLesionesQuery),  // pagina, limite, desde, hasta (opcional)
-  getLesiones                          // este controller ya inyecta jugadorId si rol === estudiante
+  getLesiones                       
 );
 
 // Lesiones de un jugador específico (para entrenadores)

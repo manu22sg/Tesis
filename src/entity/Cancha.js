@@ -36,6 +36,11 @@ const CanchaSchema = new EntitySchema({
     },
   },
   relations: {
+    partidosCampeonato: {
+  type: "one-to-many",
+  target: "PartidoCampeonato",
+  inverseSide: "cancha",
+},
     reservas: {
       type: "one-to-many",
       target: "ReservaCancha",

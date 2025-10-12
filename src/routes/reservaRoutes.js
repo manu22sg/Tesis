@@ -27,14 +27,14 @@ router.post('/',
   postCrearReserva
 );
 
-// GET /api/reservas?estado=&page=&limit=
+// GET /api/reservas
 router.get('/',
   authenticateToken,
   validateQuery(obtenerReservasUsuarioQuery),
   getReservasUsuario
 );
 
-// GET /api/reservas/todas?estado=&fecha=&canchaId=&page=&limit=
+// GET /api/reservas/
 router.get('/todas',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),

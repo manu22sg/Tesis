@@ -31,7 +31,7 @@ export async function marcarAsistencia({ sesionId, jugadorId, token, estado, lat
 
     try {
       const guardado = await asistenciaRepo.save(nuevo);
-      // opcional: traer con relaciones si quieres
+      // opcional: traer con relaciones 
       return [guardado, null, 201];
     } catch (e) {
       // UNIQUE violation (jugadorId, sesionId)

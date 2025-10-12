@@ -22,9 +22,7 @@ import { authenticateToken, requireRole } from '../middleware/authMiddleware.js'
 
 const router = Router();
 
-/**
- * POST /api/sesion
- */
+// POST /api/sesion
 router.post('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -32,9 +30,7 @@ router.post('/',
   postCrearSesion
 );
 
-/**
- * GET /api/sesion
- */
+ // GET /api/sesion
 router.get('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -42,9 +38,9 @@ router.get('/',
   getSesiones
 );
 
-/**
- * POST /api/sesion/detalle
- */
+
+ // POST /api/sesion/detalle
+ 
 router.post('/detalle',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -52,9 +48,9 @@ router.post('/detalle',
   getSesionPorId
 );
 
-/**
- * PATCH /api/sesiones
- */
+
+ // PATCH /api/sesiones
+ 
 router.patch('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -62,9 +58,7 @@ router.patch('/',
   patchActualizarSesion
 );
 
-/**
- * DELETE /api/sesion/eliminar
- */
+ // DELETE /api/sesion/eliminar
 router.delete('/eliminar',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -72,9 +66,7 @@ router.delete('/eliminar',
   deleteSesion
 );
 
-/**
- * POST /api/sesion/recurrente
- */
+ // POST /api/sesion/recurrente
 router.post('/recurrente',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),

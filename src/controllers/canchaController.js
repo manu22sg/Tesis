@@ -8,9 +8,9 @@ import {
 } from '../services/canchaServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
-/**
- * POST /api/canchas - Crear nueva cancha
- */
+
+  //POST /api/canchas - Crear nueva cancha
+ 
 export async function postCrearCancha(req, res) {
   try {
     const datosCancha = req.body;
@@ -32,9 +32,9 @@ export async function postCrearCancha(req, res) {
   }
 }
 
-/**
- * GET /api/canchas - Obtener todas las canchas
- */
+
+  //GET /api/canchas - Obtener todas las canchas
+ 
 export async function getCanchas(req, res) {
   try {
     const filtros = req.body; // Filtros y parámetros de paginación
@@ -60,9 +60,9 @@ export async function getCanchas(req, res) {
 }
 
 
-/**
- * POST /api/canchas/detalle - Obtener cancha por ID
- */
+
+ // POST /api/canchas/detalle - Obtener cancha por ID
+ 
 export async function getCanchaPorId(req, res) {
   try {
     const { id } = req.body; 
@@ -84,10 +84,10 @@ export async function getCanchaPorId(req, res) {
   }
 }
 
-/**
- * PUT /api/canchas - Actualizar cancha
- */
-export async function putActualizarCancha(req, res) {
+
+ // Patch /api/canchas - Actualizar cancha
+ 
+export async function patchActualizarCancha(req, res) {
   try {
     const { id, ...datosActualizacion } = req.body; 
 
@@ -111,9 +111,9 @@ export async function putActualizarCancha(req, res) {
   }
 }
 
-/**
- * DELETE /api/canchas/eliminar - Eliminar cancha
- */
+
+ // DELETE /api/canchas/eliminar - Eliminar cancha
+
 export async function deleteCancha(req, res) {
   try {
     const { id } = req.body; // Cambio: ID viene del body
@@ -138,9 +138,9 @@ export async function deleteCancha(req, res) {
   }
 }
 
-/**
- * PATCH /api/canchas/reactivar - Reactivar cancha
- */
+
+ // PATCH /api/canchas/reactivar - Reactivar cancha
+ 
 export async function patchReactivarCancha(req, res) {
   try {
     const { id } = req.body; // Cambio: ID viene del body

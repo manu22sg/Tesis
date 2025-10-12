@@ -19,10 +19,11 @@ router.get(
   getMisEvaluaciones
 );
 
-// Listar / Detalle: entrenador/superadmin; si abres a estudiantes, en controller ya se filtra por su jugadorId
+// Listar / Detalle: entrenador/superadmin
 router.get('/', authenticateToken, requireRole(['entrenador','superadmin']), validarQuery(obtenerEvaluacionesQuery), getEvaluaciones);
 router.get('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), getEvaluacionPorId);
 
+// Listar por jugador — entrenador/superadmin pueden ver de cualquier jugador 
 router.get(
   '/jugador/:id',
   authenticateToken,

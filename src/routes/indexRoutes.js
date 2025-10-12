@@ -11,7 +11,12 @@ import asistenciaRoutes from "./asistenciaRoutes.js";
 import sesionTokenRoutes from "./sesionTokenRoutes.js";
 import evaluacionRoutes from "./evaluacionRoutes.js";
 import lesionRoutes from "./lesionRoutes.js";
-
+import estadisticaRoutes from "./estadisticaRoutes.js";
+import alineacionRoutes from "./alineacionRoutes.js";
+import campeonatoRoutes from "./campeonatoRoutes.js";
+import equipoRoutes from "./equipoRoutes.js";
+import partidoRoutes from "./partidoRoutes.js";
+import estadisticaCampeonatoRoutes from "./estadisticaCampeonatoRoutes.js";
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -26,4 +31,10 @@ router.use("/asistencia", asistenciaRoutes);
 router.use("/sesionToken", sesionTokenRoutes);
 router.use("/evaluacion", evaluacionRoutes);
 router.use("/lesion", lesionRoutes);
+router.use("/estadistica", estadisticaRoutes);
+router.use("/alineacion", alineacionRoutes);
+router.use("/campeonato", campeonatoRoutes);
+router.use("/equipo", equipoRoutes);
+router.use("/partido", partidoRoutes);
+router.use("/estadisticaCampeonato", estadisticaCampeonatoRoutes);
 export default router;

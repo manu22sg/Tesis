@@ -6,9 +6,7 @@ import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
 import ReservaCanchaSchema  from '../entity/ReservaCancha.js';
 import CanchaSchema from '../entity/Cancha.js';
 import { In } from 'typeorm';
-/**
- * Crear una nueva Sesión de Entrenamiento
- */
+// Crear una nueva Sesión de Entrenamiento
 export async function crearSesion(datos) {
   try {
     const sesionRepo  = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -92,9 +90,7 @@ export async function crearSesion(datos) {
 
 
 
-/**
- * Listar sesiones con filtros y paginación
- */
+ // Listar sesiones con filtros y paginación
 export async function obtenerSesiones(filtros = {}) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -134,9 +130,7 @@ export async function obtenerSesiones(filtros = {}) {
   }
 }
 
-/**
- * Obtener sesión por ID (incluye grupo y bloques/entrenamientos de sesión)
- */
+ // Obtener sesión por ID (incluye grupo y bloques/entrenamientos de sesión)
 export async function obtenerSesionPorId(id) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -154,9 +148,7 @@ export async function obtenerSesionPorId(id) {
   }
 }
 
-/**
- * Actualizar sesión
- */
+ // Actualizar sesión
 export async function actualizarSesion(id, datos) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -231,9 +223,7 @@ export async function actualizarSesion(id, datos) {
   }
 }
 
-/**
- * Eliminar sesión
- */
+ // Eliminar sesión
 export async function eliminarSesion(id) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -248,9 +238,7 @@ export async function eliminarSesion(id) {
   }
 }
 
-/**
- * Crear sesiones recurrentes (ej: Lunes y Miércoles)
- */
+ // Crear sesiones recurrentes (ej: Lunes y Miércoles)
 export async function crearSesionesRecurrentes(datos) {
   try {
     const { grupoId, canchaId, fechaInicio, fechaFin, diasSemana, horaInicio, horaFin, tipoSesion, objetivos } = datos;

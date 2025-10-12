@@ -7,9 +7,7 @@ import UsuarioSchema from '../entity/Usuario.js';
 import CanchaSchema from '../entity/Cancha.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js'; // ⬅ usar sesiones reales
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
-/**
- * Crear una nueva reserva con participantes
- */
+ //Crear una nueva reserva con participantes
 export async function crearReserva(datosReserva, usuarioId) {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();

@@ -7,16 +7,14 @@ import {
 } from '../services/aprobacionServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
-/**
- * PATCH /api/reservas/aprobar - Aprobar una reserva
- */
+
+// PATCH /api/reservas/aprobar - Aprobar una reserva
+ 
 export async function patchAprobarReserva(req, res) {
   try {
     const { id, observacion } = req.body;
     const entrenadorId = req.user?.id; // Viene del middleware de autenticación
-    
-    // Para testing sin auth, usar ID fijo
-    const userId = entrenadorId || 1; // Cambiar cuando tengas auth
+    const userId = entrenadorId;
 
     const [reserva, err] = await aprobarReserva(id, userId, observacion);
 
@@ -40,9 +38,9 @@ export async function patchAprobarReserva(req, res) {
   }
 }
 
-/**
- * PATCH /api/reservas/rechazar - Rechazar una reserva
- */
+
+ // PATCH /api/reservas/rechazar - Rechazar una reserva
+ 
 export async function patchRechazarReserva(req, res) {
   try {
     const { id, motivoRechazo } = req.body;
@@ -73,9 +71,9 @@ export async function patchRechazarReserva(req, res) {
   }
 }
 
-/**
- * GET /api/reservas/pendientes - Obtener reservas pendientes de aprobación
- */
+
+ //GET /api/reservas/pendientes - Obtener reservas pendientes de aprobación
+ 
 export async function getReservasPendientes(req, res) {
   try {
     const filtros = req.body;
@@ -100,9 +98,9 @@ export async function getReservasPendientes(req, res) {
   }
 }
 
-/**
- * PATCH /api/reservas/cambiar-estado - Cambiar estado de reserva (función genérica)
- */
+
+//  PATCH /api/reservas/cambiar-estado - Cambiar estado de reserva (función genérica)
+ 
 export async function patchCambiarEstadoReserva(req, res) {
   try {
     const { id, nuevoEstado, observacion } = req.body;
@@ -135,9 +133,7 @@ export async function patchCambiarEstadoReserva(req, res) {
   }
 }
 
-/**
- * POST /api/reservas/estadisticas - Obtener estadísticas para dashboard
- */
+ // POST /api/reservas/estadisticas - Obtener estadísticas para dashboard
 export async function getEstadisticasReservas(req, res) {
   try {
     const [estadisticas, err] = await obtenerEstadisticasReservas();

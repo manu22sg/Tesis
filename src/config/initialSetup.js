@@ -24,10 +24,10 @@ async function createUsers() {
     const superadminPassword = generateRandomPassword();
 
     // Mostrar contraseñas en consola
-    console.log("🔑 CONTRASEÑAS GENERADAS1:");
+    console.log(" CONTRASEÑAS GENERADAS1:");
     console.log(`   Entrenador (alex@ubiobio.cl): ${entrenadorPassword}`);
     console.log(`   Superadmin (superadmin@ubiobio.cl): ${superadminPassword}`);
-    console.log("   ⚠️  GUARDA ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
+    console.log("     GUARDA ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
     console.log("");
 
     await Promise.all([

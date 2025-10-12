@@ -3,7 +3,7 @@ import {
   postCrearCancha,
   getCanchas,
   getCanchaPorId,
-  putActualizarCancha,
+  patchActualizarCancha,
   deleteCancha,
   patchReactivarCancha
 } from '../controllers/canchaController.js';
@@ -44,7 +44,7 @@ router.patch('/',
   authenticateToken,
    requireRole(['entrenador', 'superadmin']),
   validate(actualizarCanchaBody),
-  putActualizarCancha
+  patchActualizarCancha
 );
 
 // desactivar una cancha (solo para entrenadores y superadmin)

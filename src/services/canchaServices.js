@@ -14,9 +14,7 @@ const hoyYMD = () => {
   return `${y}-${m}-${day}`;
 };
 
-/**
- * Crear una nueva cancha
- */
+ // Crear una nueva cancha
 export async function crearCancha(datosCancha) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
@@ -47,9 +45,7 @@ export async function crearCancha(datosCancha) {
   }
 }
 
-/**
- * Obtener todas las canchas con paginación
- */
+ // Obtener todas las canchas con paginación
 export async function obtenerCanchas(filtros = {}) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
@@ -97,9 +93,7 @@ export async function obtenerCanchas(filtros = {}) {
   }
 }
 
-/**
- * Obtener una cancha por ID
- */
+ // Obtener una cancha por ID
 export async function obtenerCanchaPorId(id) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
@@ -120,9 +114,7 @@ export async function obtenerCanchaPorId(id) {
   }
 }
 
-/**
- * Actualizar una cancha
- */
+ //Actualizar una cancha
 export async function actualizarCancha(id, datosActualizacion) {
   try {
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
@@ -181,9 +173,7 @@ export async function actualizarCancha(id, datosActualizacion) {
     return [null, 'Error interno del servidor'];
   }
 }
-/**
- * Eliminar una cancha (cambiar estado a fuera_servicio)
- */
+// Eliminar una cancha (cambiar estado a fuera_servicio)
 export async function eliminarCancha(id) {
   try {
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
@@ -223,9 +213,7 @@ export async function eliminarCancha(id) {
 }
 
 
-/**
- * Reactivar una cancha (cambiar de fuera_servicio a disponible)
- */
+ // Reactivar una cancha (cambiar de fuera_servicio a disponible)
 export async function reactivarCancha(id) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);

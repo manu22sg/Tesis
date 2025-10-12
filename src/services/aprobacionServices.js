@@ -3,9 +3,9 @@ import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import HistorialReservaSchema from '../entity/HistorialReserva.js';
 import UsuarioSchema from '../entity/Usuario.js';
 
-/**
- * Aprobar una reserva
- */
+
+ // Aprobar una reserva
+ 
 export async function aprobarReserva(reservaId, entrenadorId, observacion = null) {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
@@ -61,9 +61,7 @@ export async function aprobarReserva(reservaId, entrenadorId, observacion = null
   }
 }
 
-/**
- * Rechazar una reserva
- */
+ // Rechazar una reserva
 export async function rechazarReserva(reservaId, entrenadorId, motivoRechazo) {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
@@ -119,9 +117,7 @@ export async function rechazarReserva(reservaId, entrenadorId, motivoRechazo) {
   }
 }
 
-/**
- * Obtener reservas pendientes de aprobación
- */
+ // Obtener reservas pendientes de aprobación
 export async function obtenerReservasPendientes(filtros = {}) {
   try {
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
@@ -171,9 +167,7 @@ export async function obtenerReservasPendientes(filtros = {}) {
   }
 }
 
-/**
- * Cambiar estado de una reserva (función genérica)
- */
+ // Cambiar estado de una reserva (función genérica)
 export async function cambiarEstadoReserva(reservaId, nuevoEstado, entrenadorId, observacion = null) {
   const estadosValidos = ['pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada'];
   
@@ -253,9 +247,7 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-/**
- * Obtener estadísticas de reservas para el dashboard del entrenador
- */
+ // Obtener estadísticas de reservas para el dashboard del entrenador
 
 export async function obtenerEstadisticasReservas() {
   try {
