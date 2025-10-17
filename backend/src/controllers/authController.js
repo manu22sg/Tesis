@@ -1,5 +1,4 @@
-// controllers/authController.js
-import { registerService, loginService, findUserById, verifyToken } from '../services/authServices.js';
+import { registerService, loginService, findUserById, verifyToken,findUsersByRuts, buscarUsuariosPorTermino  } from '../services/authServices.js';
 import { success, error, conflict, unauthorized, forbidden, notFound } from '../utils/responseHandler.js';
 
 export async function register(req, res) {
@@ -70,12 +69,13 @@ export async function login(req, res) {
     }
 
     // Configurar cookie con el token
-    res.cookie('token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
-    });
+ res.cookie('token', result.token, {
+  httpOnly: true,
+  secure: false,       // true en producción con HTTPS
+  sameSite: 'lax',
+  path: '/',
+  maxAge: 24 * 60 * 60 * 1000
+});
 
     return success(
       res,
@@ -96,7 +96,12 @@ export async function login(req, res) {
 export async function logout(req, res) {
   try {
     // Limpiar cookie
-    res.clearCookie('token');
+ res.clearCookie('token', {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: false,
+  path: '/',
+});
 
     return success(
       res,
@@ -136,6 +141,7 @@ export async function getProfile(req, res) {
 export async function verifyTokenController(req, res) {
   try {
     // Si llegamos hasta aquí, el token es válido (gracias al middleware)
+
     return success(
       res,
       {
@@ -147,5 +153,89 @@ export async function verifyTokenController(req, res) {
   } catch (error) {
     console.error('Error verificando token:', error);
     return error(res, 'Error verificando token', 500);
+  }
+}
+
+
+export async function buscarUsuariosPorRuts(req, res) {
+  try {
+    const { ruts } = req.body;
+    
+    if (!Array.isArray(ruts) || ruts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar un array de RUTs'
+      });
+    }
+
+
+    const [users, error] = await findUsersByRuts(ruts);
+    
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: error
+      });
+    }
+
+    // Crear un mapa de RUT -> Usuario (con guion como clave)
+    const usuariosPorRut = {};
+    users.forEach(user => {
+      usuariosPorRut[user.rut] = {
+        id: user.id,
+        rut: user.rut,
+        nombre: user.nombre,
+        email: user.email
+      };
+    });
+
+
+    return success(res, usuariosPorRut, 'Usuarios encontrados');
+  } catch (error) {
+    console.error('Error buscando usuarios:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al buscar usuarios'
+    });
+  }
+}
+  
+export async function buscarUsuarios(req, res) {
+  try {
+    const { termino } = req.query;
+    
+    if (!termino || termino.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'El término de búsqueda debe tener al menos 2 caracteres'
+      });
+    }
+
+
+    const [users, error] = await buscarUsuariosPorTermino(termino);
+    
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: error
+      });
+    }
+
+    const resultados = users.map(user => ({
+      value: user.rut,
+      label: `${user.rut} - ${user.nombre}`,
+      rut: user.rut,
+      nombre: user.nombre,
+      email: user.email
+    }));
+
+
+    return success(res, resultados, 'Usuarios encontrados');
+  } catch (error) {
+    console.error('Error buscando usuarios:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al buscar usuarios'
+    });
   }
 }

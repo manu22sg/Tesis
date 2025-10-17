@@ -1,8 +1,7 @@
+// services/root.services.js
 import axios from 'axios';
-import cookies from 'js-cookie';
 
-const API_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000/api'; // Default to local development URL if not set in environment variables
-
+const API_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000/api'; 
 
 const instance = axios.create({
   baseURL: API_URL,
@@ -12,17 +11,20 @@ const instance = axios.create({
   withCredentials: true,
 });
 
-instance.interceptors.request.use(
-  (config) => {
-    const token = cookies.get('token', { path: '/' });
-    if(token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// Interceptor de respuesta mejorado
+instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const url = error.config?.url;
+    
+    // NO mostrar error 401 en logout o verify (es esperado cuando no hay sesión)
+    if (status === 401 && !url?.includes('/logout') && !url?.includes('/verify')) {
+      console.error('❌ No autenticado - sesión expirada');
     }
-    return config;
-  },
-  (error) => Promise.reject(error)
+    
+    return Promise.reject(error);
+  }
 );
-
-
 
 export default instance;

@@ -1,18 +1,30 @@
+// services/sesionEntrenamiento.services.js
 import { AppDataSource } from '../config/config.db.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import GrupoJugadorSchema from '../entity/GrupoJugador.js';
 import EntrenamientoSesionSchema from '../entity/EntrenamientoSesion.js';
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
-import ReservaCanchaSchema  from '../entity/ReservaCancha.js';
+import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import CanchaSchema from '../entity/Cancha.js';
+import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; // ✅ AGREGAR
 import { In } from 'typeorm';
+
+// ✅ Helper para detectar conflictos horarios
+function hayConflictoHorario(a, b) {
+  const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const i1 = toMin(a.horaInicio), f1 = toMin(a.horaFin);
+  const i2 = toMin(b.horaInicio), f2 = toMin(b.horaFin);
+  return !(f1 <= i2 || f2 <= i1);
+}
+
 // Crear una nueva Sesión de Entrenamiento
 export async function crearSesion(datos) {
   try {
-    const sesionRepo  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const grupoRepo   = AppDataSource.getRepository(GrupoJugadorSchema);
-    const canchaRepo  = AppDataSource.getRepository(CanchaSchema);
+    const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
+    const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
+    const canchaRepo = AppDataSource.getRepository(CanchaSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema);
 
     const { canchaId, grupoId, fecha, horaInicio, horaFin, tipoSesion, objetivos } = datos;
 
@@ -59,7 +71,17 @@ export async function crearSesion(datos) {
       }
     }
 
-    // 6) Crear sesión (sin token)
+    // 6) Conflicto con partidos de campeonato (programado/en_juego)
+    const partidos = await partidoRepo.find({
+      where: { canchaId, fecha: fechaLocal, estado: In(['programado', 'en_juego']) }
+    });
+    for (const p of partidos) {
+      if (hayConflictoHorario(nuevaVentana, p)) {
+        return [null, `Ya existe un partido de campeonato en ese horario (ID: ${p.id}). Debe reprogramar el partido primero.`];
+      }
+    }
+
+    // 7) Crear sesión (sin token)
     const sesion = sesionRepo.create({
       canchaId,
       grupoId: grupoId || null,
@@ -75,7 +97,7 @@ export async function crearSesion(datos) {
 
     const guardada = await sesionRepo.save(sesion);
 
-    // 7) Devolver con relaciones útiles
+    // 8) Devolver con relaciones útiles
     const completa = await sesionRepo.findOne({
       where: { id: guardada.id },
       relations: ['grupo', 'cancha'],
@@ -88,9 +110,7 @@ export async function crearSesion(datos) {
   }
 }
 
-
-
- // Listar sesiones con filtros y paginación
+// Listar sesiones con filtros y paginación
 export async function obtenerSesiones(filtros = {}) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -106,7 +126,7 @@ export async function obtenerSesiones(filtros = {}) {
 
     const [sesiones, total] = await sesionRepo.findAndCount({
       where,
-      relations: ['grupo'],
+      relations: ['grupo', 'cancha'],
       order: { fecha: 'ASC', horaInicio: 'ASC' },
       skip, take: limit,
     });
@@ -130,14 +150,14 @@ export async function obtenerSesiones(filtros = {}) {
   }
 }
 
- // Obtener sesión por ID (incluye grupo y bloques/entrenamientos de sesión)
+// Obtener sesión por ID (incluye grupo y bloques/entrenamientos de sesión)
 export async function obtenerSesionPorId(id) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
     const sesion = await sesionRepo.findOne({
       where: { id },
-      relations: ['grupo', 'entrenamientos'],
+      relations: ['grupo', 'cancha', 'entrenamientos'],
     });
 
     if (!sesion) return [null, 'Sesión no encontrada'];
@@ -148,12 +168,13 @@ export async function obtenerSesionPorId(id) {
   }
 }
 
- // Actualizar sesión
+// Actualizar sesión
 export async function actualizarSesion(id, datos) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
 
     const sesion = await sesionRepo.findOne({ where: { id } });
     if (!sesion) return [null, 'Sesión no encontrada'];
@@ -197,14 +218,23 @@ export async function actualizarSesion(id, datos) {
       }
     }
 
-    // Validar conflicto con reservas aprobadas
+    // Validar conflicto con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId: nuevaCanchaId, fechaSolicitud: nuevaFecha, estado: In(['pendiente', 'aprobada'])  }
+      where: { canchaId: nuevaCanchaId, fechaSolicitud: nuevaFecha, estado: In(['pendiente', 'aprobada']) }
     });
-
     for (const r of reservas) {
       if (hayConflictoHorario(nuevaSesionHorario, r)) {
-        return [null, `Conflicto con reserva aprobada ID: ${r.id}. Cancele la reserva primero.`];
+        return [null, `Conflicto con reserva (${r.estado}) ID: ${r.id}. Debe gestionar la reserva primero.`];
+      }
+    }
+
+    // ✅ Validar conflicto con partidos de campeonato
+    const partidos = await partidoRepo.find({
+      where: { canchaId: nuevaCanchaId, fecha: nuevaFecha, estado: In(['programado', 'en_juego']) }
+    });
+    for (const p of partidos) {
+      if (hayConflictoHorario(nuevaSesionHorario, p)) {
+        return [null, `Conflicto con partido de campeonato ID: ${p.id}. Debe reprogramar el partido primero.`];
       }
     }
 
@@ -223,7 +253,7 @@ export async function actualizarSesion(id, datos) {
   }
 }
 
- // Eliminar sesión
+// Eliminar sesión
 export async function eliminarSesion(id) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -238,7 +268,7 @@ export async function eliminarSesion(id) {
   }
 }
 
- // Crear sesiones recurrentes (ej: Lunes y Miércoles)
+// Crear sesiones recurrentes (ej: Lunes y Miércoles)
 export async function crearSesionesRecurrentes(datos) {
   try {
     const { grupoId, canchaId, fechaInicio, fechaFin, diasSemana, horaInicio, horaFin, tipoSesion, objetivos } = datos;
@@ -246,6 +276,7 @@ export async function crearSesionesRecurrentes(datos) {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
 
     // Validar grupo si corresponde
     if (grupoId) {
@@ -287,17 +318,27 @@ export async function crearSesionesRecurrentes(datos) {
           }
         }
 
-        // 3. Validar conflicto con reservas aprobadas
+        // 3. Validar conflicto con reservas pendientes/aprobadas
         const reservas = await reservaRepo.find({
-          where: { canchaId, fechaSolicitud: fechaStr, estado: 'aprobada' }
+          where: { canchaId, fechaSolicitud: fechaStr, estado: In(['pendiente', 'aprobada']) }
         });
         conflicto = reservas.some(r => hayConflictoHorario(nueva, r));
         if (conflicto) {
-          errores.push({ fecha: fechaStr, error: 'Conflicto con reserva aprobada' });
+          errores.push({ fecha: fechaStr, error: 'Conflicto con reserva pendiente/aprobada' });
           continue;
         }
 
-        // 4. Crear sesión
+        // ✅ 4. Validar conflicto con partidos de campeonato
+        const partidos = await partidoRepo.find({
+          where: { canchaId, fecha: fechaStr, estado: In(['programado', 'en_juego']) }
+        });
+        conflicto = partidos.some(p => hayConflictoHorario(nueva, p));
+        if (conflicto) {
+          errores.push({ fecha: fechaStr, error: 'Conflicto con partido de campeonato' });
+          continue;
+        }
+
+        // 5. Crear sesión
         const sesion = sesionRepo.create({
           grupoId: grupoId || null,
           canchaId,
@@ -325,13 +366,4 @@ export async function crearSesionesRecurrentes(datos) {
     console.error('Error creando sesiones recurrentes:', error);
     return [null, 'Error interno del servidor'];
   }
-}
-
-
-// Helpers
-function hayConflictoHorario(a, b) {
-  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-  const i1 = toMin(a.horaInicio), f1 = toMin(a.horaFin);
-  const i2 = toMin(b.horaInicio), f2 = toMin(b.horaFin);
-  return !(f1 <= i2 || f2 <= i1);
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, logout, getProfile, verifyTokenController } from '../controllers/authController.js';
+import { register, login, logout, getProfile, verifyTokenController,buscarUsuariosPorRuts, buscarUsuarios } from '../controllers/authController.js';
 import { validateRegistration, validateLogin } from '../middleware/validationMiddleware.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
@@ -16,9 +16,7 @@ router.post('/login',
   login
 );
 
-// Rutas protegidas (requieren autenticación)
 router.post('/logout',
-  authenticateToken,
   logout
 );
 
@@ -27,9 +25,9 @@ router.get('/profile',
   getProfile
 );
 
-router.get('/verify-token',
-  authenticateToken,
-  verifyTokenController
-);
+router.get('/verify', authenticateToken, verifyTokenController);
 
+router.post('/buscar-usuarios', authenticateToken, buscarUsuariosPorRuts);
+
+router.get('/buscar-usuarios', authenticateToken, buscarUsuarios);
 export default router;

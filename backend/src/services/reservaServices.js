@@ -1,3 +1,4 @@
+// services/reserva.services.js
 import { AppDataSource } from '../config/config.db.js';
 import { In } from 'typeorm';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
@@ -5,122 +6,11 @@ import ParticipanteReservaSchema from '../entity/ParticipanteReserva.js';
 import HistorialReservaSchema from '../entity/HistorialReserva.js';
 import UsuarioSchema from '../entity/Usuario.js';
 import CanchaSchema from '../entity/Cancha.js';
-import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js'; // ⬅ usar sesiones reales
+import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
+import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; // 
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
- //Crear una nueva reserva con participantes
-export async function crearReserva(datosReserva, usuarioId) {
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
 
-  try {
-    const { canchaId, fecha, horaInicio, horaFin, motivo, participantes } = datosReserva;
-
-    // disponibilidad verificando: cancha -> sesiones -> reservas
-    const [ok, errDisp] = await verificarDisponibilidadEspecificaTx(
-      queryRunner.manager, canchaId, fecha, horaInicio, horaFin
-    );
-    if (!ok) return [null, errDisp];
-
-    const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
-    const usuarioRepo = queryRunner.manager.getRepository(UsuarioSchema);
-    const partRepo    = queryRunner.manager.getRepository(ParticipanteReservaSchema);
-    const histRepo    = queryRunner.manager.getRepository(HistorialReservaSchema);
-
-    // lock + último chequeo contra reservas pendientes/aprobadas
-    const conflicto = await reservaRepo.createQueryBuilder('r')
-      .setLock('pessimistic_read')
-      .select('r.id')
-      .where('r."canchaId" = :canchaId', { canchaId })
-      .andWhere('r."fechaSolicitud" = :fecha', { fecha })
-      .andWhere('r."estado" IN (:...estados)', { estados: ['pendiente', 'aprobada'] })
-      .andWhere('NOT (r."horaFin" <= :inicio OR r."horaInicio" >= :fin)', {
-        inicio: horaInicio, fin: horaFin
-      })
-      .limit(1)
-      .getOne();
-
-    if (conflicto) return [null, 'Ya existe una reserva en ese horario'];
-
-    const usuarioQueReserva = await usuarioRepo.findOne({ where: { id: usuarioId } });
-    if (!usuarioQueReserva) return [null, 'Usuario no encontrado'];
-
-    const participantesCompletos = Array.isArray(participantes) ? [...participantes] : [];
-    if (!participantesCompletos.includes(usuarioQueReserva.rut)) {
-      participantesCompletos.unshift(usuarioQueReserva.rut);
-    }
-    if (participantesCompletos.length !== 12) {
-      return [null, `Se requieren exactamente 12 participantes. Tienes ${participantesCompletos.length} participantes.`];
-    }
-    const rutUnicos = new Set(participantesCompletos);
-    if (rutUnicos.size !== participantesCompletos.length) {
-      return [null, 'No se pueden repetir participantes en la reserva'];
-    }
-
-    const usuariosExistentes = await usuarioRepo.find({
-      where: participantesCompletos.map(rut => ({ rut }))
-    });
-    if (usuariosExistentes.length !== 12) {
-      const rutsExist = usuariosExistentes.map(u => u.rut);
-      const rutsNo = participantesCompletos.filter(rut => !rutsExist.includes(rut));
-      return [null, `Los siguientes RUT no están registrados en el sistema: ${rutsNo.join(', ')}`];
-    }
-
-    // 4) Crear reserva
-    const nuevaReserva = reservaRepo.create({
-      usuarioId,
-      canchaId,
-      fechaSolicitud: fecha,   // 'YYYY-MM-DD'
-      horaInicio,              // 'HH:mm'
-      horaFin,                 // 'HH:mm'
-      motivo: motivo || null,
-      estado: 'pendiente',
-      confirmado: false
-    });
-
-    let reservaGuardada;
-    try {
-      reservaGuardada = await reservaRepo.save(nuevaReserva);
-    } catch (e) {
-      if (e?.code === '23505' || e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062) {
-        await queryRunner.rollbackTransaction();
-        return [null, 'Ya existe una reserva en ese horario'];
-      }
-      throw e;
-    }
-
-    const participantesParaGuardar = usuariosExistentes.map(u => partRepo.create({
-      reservaId: reservaGuardada.id,
-      usuarioId: u.id,
-      rut: u.rut,
-      nombreOpcional: u.nombre
-    }));
-    await partRepo.save(participantesParaGuardar);
-
-    await histRepo.save(histRepo.create({
-      reservaId: reservaGuardada.id,
-      accion: 'creada',
-      observacion: `Reserva creada con ${participantesCompletos.length} participantes`,
-      usuarioId
-    }));
-
-    await queryRunner.commitTransaction();
-
-    const reservaCompleta = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
-      where: { id: reservaGuardada.id },
-      relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario']
-    });
-
-    return [reservaCompleta, null];
-
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    console.error('Error creando reserva:', error);
-    return [null, 'Error interno del servidor'];
-  } finally {
-    await queryRunner.release();
-  }
-}
+// Crear una nueva reserva con participantes
 
 /**
  * Obtener reservas del usuario con filtros y paginación
@@ -232,38 +122,50 @@ function hayConflictoHorario(a, b) {
 }
 
 /**
- * Verifica disponibilidad de cancha contra:
+ * ACTUALIZADO: Verifica disponibilidad de cancha contra:
  *  - Cancha disponible
  *  - Sesiones de entrenamiento (misma cancha/fecha)
  *  - Reservas pendientes/aprobadas
+ *  - Partidos de campeonato (programado/en_juego) NUEVO
  */
 export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fechaISO, horaInicio, horaFin) {
   try {
     const fecha = formatYMD(parseDateLocal(fechaISO));
-    
 
     const canchaRepo  = manager.getRepository(CanchaSchema);
     const sesionRepo  = manager.getRepository(SesionEntrenamientoSchema);
     const reservaRepo = manager.getRepository(ReservaCanchaSchema);
+    const partidoRepo = manager.getRepository(PartidoCampeonatoSchema); //  AGREGAR
 
+    //  Cancha debe existir y estar disponible
     const cancha = await canchaRepo.findOne({ where: { id: canchaId, estado: 'disponible' } });
     if (!cancha) return [false, 'Cancha inexistente o no disponible'];
 
-    // 1) Conflictos con sesiones (misma cancha + fecha)
+    // Conflictos con sesiones de entrenamiento
     const sesiones = await sesionRepo.find({ where: { canchaId, fecha } });
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión de entrenamiento (id: ${s.id})`];
+        return [false, `Conflicto con sesión de entrenamiento (ID: ${s.id})`];
       }
     }
 
-    // 2) Conflictos con reservas pendientes/aprobadas (usar In)
+    //  Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
       where: { canchaId, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-        return [false, 'Ya existe una reserva en ese horario'];
+        return [false, `Ya existe una reserva (${r.estado}) en ese horario`];
+      }
+    }
+
+    // Conflictos con partidos de campeonato 
+    const partidos = await partidoRepo.find({
+      where: { canchaId, fecha, estado: In(['programado', 'en_juego']) }
+    });
+    for (const p of partidos) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+        return [false, `Ya existe un partido de campeonato en ese horario (ID: ${p.id})`];
       }
     }
 
@@ -271,5 +173,150 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
   } catch (e) {
     console.error('verificarDisponibilidadEspecificaTx:', e);
     return [false, 'Error interno del servidor'];
+  }
+}
+
+export async function crearReserva(datosReserva, usuarioId) {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const { canchaId, fecha, horaInicio, horaFin, motivo, participantes } = datosReserva;
+
+    //  1. Obtener la cancha primero para validar capacidad
+    const canchaRepo = queryRunner.manager.getRepository(CanchaSchema);
+    const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
+    
+    if (!cancha) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Cancha no encontrada'];
+    }
+
+    const capacidadMaxima = cancha.capacidadMaxima;
+    console.log(`Cancha "${cancha.nombre}" - Capacidad máxima: ${capacidadMaxima}`);
+
+    // Verificar disponibilidad
+    const [ok, errDisp] = await verificarDisponibilidadEspecificaTx(
+      queryRunner.manager, canchaId, fecha, horaInicio, horaFin
+    );
+    if (!ok) {
+      await queryRunner.rollbackTransaction();
+      return [null, errDisp];
+    }
+
+    const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
+    const usuarioRepo = queryRunner.manager.getRepository(UsuarioSchema);
+    const partRepo    = queryRunner.manager.getRepository(ParticipanteReservaSchema);
+    const histRepo    = queryRunner.manager.getRepository(HistorialReservaSchema);
+
+    // Lock + último chequeo contra reservas pendientes/aprobadas
+    const conflicto = await reservaRepo.createQueryBuilder('r')
+      .setLock('pessimistic_read')
+      .select('r.id')
+      .where('r."canchaId" = :canchaId', { canchaId })
+      .andWhere('r."fechaSolicitud" = :fecha', { fecha })
+      .andWhere('r."estado" IN (:...estados)', { estados: ['pendiente', 'aprobada'] })
+      .andWhere('NOT (r."horaFin" <= :inicio OR r."horaInicio" >= :fin)', {
+        inicio: horaInicio, fin: horaFin
+      })
+      .limit(1)
+      .getOne();
+
+    if (conflicto) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Ya existe una reserva en ese horario'];
+    }
+
+    const usuarioQueReserva = await usuarioRepo.findOne({ where: { id: usuarioId } });
+    if (!usuarioQueReserva) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Usuario no encontrado'];
+    }
+
+    // 2. Agregar el solicitante a la lista de participantes si no está
+    const participantesCompletos = Array.isArray(participantes) ? [...participantes] : [];
+    if (!participantesCompletos.includes(usuarioQueReserva.rut)) {
+      participantesCompletos.unshift(usuarioQueReserva.rut);
+    }
+
+    // 3. Validar que el número de participantes coincida con la capacidad de la cancha
+    if (participantesCompletos.length !== capacidadMaxima) {
+      await queryRunner.rollbackTransaction();
+      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tienes ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
+    }
+
+    // 4. Validar que no haya RUTs duplicados
+    const rutUnicos = new Set(participantesCompletos);
+    if (rutUnicos.size !== participantesCompletos.length) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'No se pueden repetir participantes en la reserva'];
+    }
+
+    //  5. Verificar que todos los RUTs existan en el sistema
+    const usuariosExistentes = await usuarioRepo.find({
+      where: participantesCompletos.map(rut => ({ rut }))
+    });
+    
+    if (usuariosExistentes.length !== capacidadMaxima) {
+      const rutsExist = usuariosExistentes.map(u => u.rut);
+      const rutsNo = participantesCompletos.filter(rut => !rutsExist.includes(rut));
+      await queryRunner.rollbackTransaction();
+      return [null, `Los siguientes RUT no están registrados en el sistema: ${rutsNo.join(', ')}`];
+    }
+
+    // Crear reserva
+    const nuevaReserva = reservaRepo.create({
+      usuarioId,
+      canchaId,
+      fechaSolicitud: fecha,
+      horaInicio,
+      horaFin,
+      motivo: motivo || null,
+      estado: 'pendiente',
+      confirmado: false
+    });
+
+    let reservaGuardada;
+    try {
+      reservaGuardada = await reservaRepo.save(nuevaReserva);
+    } catch (e) {
+      if (e?.code === '23505' || e?.code === 'ER_DUP_ENTRY' || e?.errno === 1062) {
+        await queryRunner.rollbackTransaction();
+        return [null, 'Ya existe una reserva en ese horario'];
+      }
+      throw e;
+    }
+
+    const participantesParaGuardar = usuariosExistentes.map(u => partRepo.create({
+      reservaId: reservaGuardada.id,
+      usuarioId: u.id,
+      rut: u.rut,
+      nombreOpcional: u.nombre
+    }));
+    await partRepo.save(participantesParaGuardar);
+
+    await histRepo.save(histRepo.create({
+      reservaId: reservaGuardada.id,
+      accion: 'creada',
+      observacion: `Reserva creada con ${participantesCompletos.length} participantes`,
+      usuarioId
+    }));
+
+    await queryRunner.commitTransaction();
+
+    const reservaCompleta = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
+      where: { id: reservaGuardada.id },
+      relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario']
+    });
+
+    return [reservaCompleta, null];
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    console.error('Error creando reserva:', error);
+    return [null, 'Error interno del servidor'];
+  } finally {
+    await queryRunner.release();
   }
 }

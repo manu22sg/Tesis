@@ -11,11 +11,12 @@ export const crearEvaluacionBody = Joi.object({
   tecnica: Joi.number().integer().min(1).max(10).optional().allow(null),
   tactica: Joi.number().integer().min(1).max(10).optional().allow(null),
   actitudinal: Joi.number().integer().min(1).max(10).optional().allow(null),
+  fisica: Joi.number().integer().min(1).max(10).optional().allow(null),
   observaciones: Joi.string().trim().max(2000).optional().allow(''),
 }).custom((v, h) => {
   // al menos uno de los tres aspectos si no hay observaciones
   if (
-    (v.tecnica ?? v.tactica ?? v.actitudinal) == null &&
+    (v.tecnica ?? v.tactica ?? v.actitudinal ?? v.fisica) == null &&
     (!v.observaciones || !v.observaciones.trim())
   ) {
     return h.error('any.invalid', { message: 'Debe evaluar al menos un aspecto o escribir observaciones' });
@@ -28,6 +29,7 @@ export const actualizarEvaluacionBody = Joi.object({
   tecnica: Joi.number().integer().min(1).max(10).optional().allow(null),
   tactica: Joi.number().integer().min(1).max(10).optional().allow(null),
   actitudinal: Joi.number().integer().min(1).max(10).optional().allow(null),
+  fisica: Joi.number().integer().min(1).max(10).optional().allow(null),
   observaciones: Joi.string().trim().max(2000).optional().allow(''),
 }).min(1).messages({ 'object.min': 'Debe enviar al menos un campo para actualizar' });
 

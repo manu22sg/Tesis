@@ -1,4 +1,3 @@
-// controllers/reservaController.js
 import {
   crearReserva,
   obtenerReservasUsuario,
@@ -34,8 +33,14 @@ export async function postCrearReserva(req, res) {
 
 export async function getReservasUsuario(req, res) {
   try {
-    const filtros = req.query;          // ⬅️ query
-    const usuarioId = req.user?.id;
+    const filtros = {
+      estado: req.query.estado,           // ?estado=pendiente
+      page: parseInt(req.query.page),     // ?page=2
+      limit: parseInt(req.query.limit)    // ?limit=20
+    };
+
+    const usuarioId = req.user?.id; // Del token JWT
+
     const [result, err] = await obtenerReservasUsuario(usuarioId, filtros);
     if (err) return error(res, err, 500);
 
@@ -53,7 +58,14 @@ export async function getReservasUsuario(req, res) {
 
 export async function getTodasLasReservas(req, res) {
   try {
-    const filtros = req.query;          // ⬅️ query
+    const filtros = {
+      estado: req.query.estado,               // ?estado=aprobada
+      fecha: req.query.fecha,                 // ?fecha=2025-10-20
+      canchaId: parseInt(req.query.canchaId), // ?canchaId=5
+      page: parseInt(req.query.page),         // ?page=1
+      limit: parseInt(req.query.limit)        // ?limit=10
+    };
+
     const [result, err] = await obtenerTodasLasReservas(filtros);
     if (err) return error(res, err, 500);
 
@@ -68,6 +80,7 @@ export async function getTodasLasReservas(req, res) {
     return error(res, 'Error interno del servidor', 500);
   }
 }
+
 
 export async function getReservaPorId(req, res) {
   try {

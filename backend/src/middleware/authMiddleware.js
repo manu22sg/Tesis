@@ -1,4 +1,3 @@
-// authMiddleware.js
 import { findUserById, verifyToken } from '../services/authServices.js';
 import { unauthorized, forbidden, error as sendError } from '../utils/responseHandler.js';
 import { AppDataSource } from '../config/config.db.js';
@@ -6,23 +5,26 @@ import JugadorSchema from '../entity/Jugador.js';
 
 export async function authenticateToken(req, res, next) {
   try {
+
+
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const cookieToken = req.cookies?.token;
+    const token = authHeader?.split(' ')[1] || cookieToken; // ahora lee ambos casos
+
     if (!token) return unauthorized(res, 'Token de acceso requerido');
 
     const decoded = verifyToken(token);
-
     const [user, findErr] = await findUserById(decoded.id);
     if (findErr) return sendError(res, 'Error verificando usuario', 500);
     if (!user) return unauthorized(res, 'Usuario no encontrado');
     if (user.estado !== 'activo') return forbidden(res, 'Usuario inactivo');
 
-    // Normaliza rol a minúsculas
     req.user = {
       id: user.id,
       email: user.email,
       rol: (user.rol || '').toLowerCase(),
       nombre: user.nombre,
+      rut: user.rut
     };
 
     next();
@@ -33,6 +35,7 @@ export async function authenticateToken(req, res, next) {
     return sendError(res, 'Error en la autenticación', 500);
   }
 }
+
 
 export function requireRole(roles) {
   return (req, res, next) => {

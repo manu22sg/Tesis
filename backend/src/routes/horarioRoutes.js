@@ -1,22 +1,20 @@
-import {
-  getDisponibilidadPorFecha,
-  getDisponibilidadPorRango,
-  getVerificarDisponibilidad
-} from '../controllers/horarioController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
-import {
-  validate,
-  disponibilidadPorFechaBody,
-  disponibilidadPorRangoBody,
-  verificarEspecificaBody
-} from '../validations/horarioValidations.js';
-    
+// horario.routes.js
 import { Router } from 'express';
+import { 
+  getDisponibilidadPorFecha, 
+  getDisponibilidadPorRango,
+  verificarDisponibilidad 
+} from '../controllers/horarioController.js';
 
 const router = Router();
- //Rutas de Horarios para obtener disponibilidad y verificar horarios
-router.post("/disponibilidad/fecha", authenticateToken, validate(disponibilidadPorFechaBody), getDisponibilidadPorFecha);
-router.post("/disponibilidad/rango", authenticateToken, validate(disponibilidadPorRangoBody), getDisponibilidadPorRango);
-router.post("/disponibilidad/verificar", authenticateToken, validate(verificarEspecificaBody), getVerificarDisponibilidad);
+
+// GET /api/horarios/disponibilidad?fecha=2025-10-14&page=1&limit=5
+router.get('/disponibilidad', getDisponibilidadPorFecha);
+
+// GET /api/horarios/disponibilidad/rango?fechaInicio=...&fechaFin=...&page=1&limit=10
+router.get('/disponibilidad/rango', getDisponibilidadPorRango);
+
+// GET /api/horarios/verificar?canchaId=1&fecha=...&horaInicio=...&horaFin=...
+router.get('/verificar', verificarDisponibilidad);
 
 export default router;

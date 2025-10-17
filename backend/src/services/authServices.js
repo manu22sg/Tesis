@@ -47,16 +47,22 @@ export async function findUserByEmail(email) {
     return [null, 'Error interno del servidor'];
   }
 }
-
-export async function findUserByRut(rut) {
+export async function findUsersByRuts(ruts) {
   try {
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
-    const user = await userRepository.findOne({ 
-      where: { rut } 
-    });
-    return [user, null];
+    
+    
+    const users = await userRepository
+      .createQueryBuilder('usuario')
+      .select(['usuario.id', 'usuario.rut', 'usuario.nombre', 'usuario.email'])
+      .where('usuario.rut IN (:...ruts)', { ruts })
+      .andWhere('usuario.estado = :estado', { estado: 'activo' })
+      .andWhere('usuario.rol IN (:...roles)', { roles: ['academico', 'estudiante'] }) 
+      .getMany();
+    
+    return [users, null];
   } catch (error) {
-    console.error('Error buscando usuario por RUT:', error);
+    console.error('Error buscando usuarios por RUTs:', error);
     return [null, 'Error interno del servidor'];
   }
 }
@@ -170,6 +176,30 @@ export async function loginService(loginData) {
 
   } catch (error) {
     console.error('Error en login:', error);
+    return [null, 'Error interno del servidor'];
+  }
+}
+
+export async function buscarUsuariosPorTermino(termino) {
+  try {
+    const userRepository = AppDataSource.getRepository(UsuarioSchema);
+    
+    const terminoLimpio = termino.trim();
+    
+    const users = await userRepository
+      .createQueryBuilder('usuario')
+      .select(['usuario.id', 'usuario.rut', 'usuario.nombre', 'usuario.email', 'usuario.rol'])
+      .where('usuario.rut LIKE :terminoRut', { terminoRut: `%${terminoLimpio}%` })
+      .orWhere('LOWER(usuario.nombre) LIKE LOWER(:terminoNombre)', { terminoNombre: `%${terminoLimpio}%` })
+      .andWhere('usuario.estado = :estado', { estado: 'activo' })
+      .andWhere('usuario.rol IN (:...roles)', { roles: ['academico', 'estudiante'] })
+      .orderBy('usuario.nombre', 'ASC')
+      .limit(20) 
+      .getMany();
+    
+    return [users, null];
+  } catch (error) {
+    console.error('Error buscando usuarios por término:', error);
     return [null, 'Error interno del servidor'];
   }
 }

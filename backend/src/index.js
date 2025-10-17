@@ -14,8 +14,18 @@ const PORT = 3000;
 await connectDB();
   await createUsers();
   console.log("Configuración inicial completada");
+
+  
+app.use(cors({
+  origin: "http://localhost:5173", // especifica el origen exacto
+  credentials: true,               // permite envío de cookies
+}));
+app.use(cookieParser()); 
 app.use(express.json());
-app.use(cookieParser());    
+app.use(express.urlencoded({ extended: true }));
+
+   
+
 
 app.get('/', (req, res) => {
   console.log('¡Alguien visitó la página!');
