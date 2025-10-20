@@ -1,4 +1,3 @@
-// services/sesionEntrenamiento.services.js
 import { AppDataSource } from '../config/config.db.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import GrupoJugadorSchema from '../entity/GrupoJugador.js';
@@ -6,10 +5,9 @@ import EntrenamientoSesionSchema from '../entity/EntrenamientoSesion.js';
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import CanchaSchema from '../entity/Cancha.js';
-import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; // ✅ AGREGAR
+import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; 
 import { In } from 'typeorm';
 
-// ✅ Helper para detectar conflictos horarios
 function hayConflictoHorario(a, b) {
   const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const i1 = toMin(a.horaInicio), f1 = toMin(a.horaFin);
@@ -115,32 +113,74 @@ export async function obtenerSesiones(filtros = {}) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    const page = Math.max(1, filtros.page || 1);
+    const page  = Math.max(1, filtros.page || 1);
     const limit = Math.min(50, Math.max(1, filtros.limit || 10));
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
-    const where = {};
-    if (filtros.fecha) where.fecha = filtros.fecha;
-    if (filtros.grupoId) where.grupoId = filtros.grupoId;
-    if (filtros.tipoSesion) where.tipoSesion = filtros.tipoSesion;
+    const q     = (filtros.q || '').trim().toLowerCase();
+    const fecha = filtros.fecha ? formatYMD(parseDateLocal(filtros.fecha)) : null;
+    const canchaId = filtros.canchaId ? parseInt(filtros.canchaId) : null;
+    const grupoId = filtros.grupoId ? parseInt(filtros.grupoId) : null;
+    const tipoSesion = filtros.tipoSesion ? filtros.tipoSesion.trim() : null;
 
-    const [sesiones, total] = await sesionRepo.findAndCount({
-      where,
-      relations: ['grupo', 'cancha'],
-      order: { fecha: 'ASC', horaInicio: 'ASC' },
-      skip, take: limit,
-    });
+    const qb = sesionRepo
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.grupo', 'g')
+      .leftJoinAndSelect('s.cancha', 'c')
+      .orderBy('s.fecha', 'ASC')
+      .addOrderBy('s.horaInicio', 'ASC')
+      .skip(skip)
+      .take(limit);
 
-    const totalPages = Math.ceil(total / limit);
+    // Búsqueda general por texto
+    if (q) {
+      qb.andWhere(`(LOWER(s.tipoSesion) LIKE :q OR LOWER(g.nombre) LIKE :q OR LOWER(c.nombre) LIKE :q)`, { q: `%${q}%` });
+    }
+
+    // Filtro por fecha
+    if (fecha) {
+      qb.andWhere(`s.fecha = :fecha`, { fecha });
+    }
+
+    // Filtro por cancha
+    if (canchaId) {
+      qb.andWhere(`s.canchaId = :canchaId`, { canchaId });
+    }
+
+    // Filtro por grupo
+    if (grupoId) {
+      qb.andWhere(`s.grupoId = :grupoId`, { grupoId });
+    }
+
+    // Filtro por tipo de sesión
+    if (tipoSesion) {
+      qb.andWhere(`LOWER(s.tipoSesion) = :tipoSesion`, { tipoSesion: tipoSesion.toLowerCase() });
+    }
+
+    const horaInicio = filtros.horaInicio ? filtros.horaInicio.trim() : null;
+const horaFin = filtros.horaFin ? filtros.horaFin.trim() : null;
+
+// Lógica de solapamiento de horarios
+if (horaInicio && horaFin) {
+  qb.andWhere(
+    `(
+      (s.horaInicio >= :horaInicio AND s.horaInicio < :horaFin) OR 
+      (s.horaFin > :horaInicio AND s.horaFin <= :horaFin) OR 
+      (s.horaInicio <= :horaInicio AND s.horaFin >= :horaFin)
+    )`,
+    { horaInicio, horaFin }
+  );
+}
+
+    const [sesiones, total] = await qb.getManyAndCount();
+
     const pagination = {
       currentPage: page,
-      totalPages,
-      totalItems: total,
       itemsPerPage: limit,
-      hasNext: page < totalPages,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
       hasPrev: page > 1,
-      nextPage: page < totalPages ? page + 1 : null,
-      prevPage: page > 1 ? page - 1 : null,
     };
 
     return [{ sesiones, pagination }, null];
@@ -149,6 +189,8 @@ export async function obtenerSesiones(filtros = {}) {
     return [null, 'Error interno del servidor'];
   }
 }
+
+
 
 // Obtener sesión por ID (incluye grupo y bloques/entrenamientos de sesión)
 export async function obtenerSesionPorId(id) {
@@ -174,7 +216,7 @@ export async function actualizarSesion(id, datos) {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
-    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); 
 
     const sesion = await sesionRepo.findOne({ where: { id } });
     if (!sesion) return [null, 'Sesión no encontrada'];
@@ -228,7 +270,7 @@ export async function actualizarSesion(id, datos) {
       }
     }
 
-    // ✅ Validar conflicto con partidos de campeonato
+    //  Validar conflicto con partidos de campeonato
     const partidos = await partidoRepo.find({
       where: { canchaId: nuevaCanchaId, fecha: nuevaFecha, estado: In(['programado', 'en_juego']) }
     });
@@ -253,7 +295,6 @@ export async function actualizarSesion(id, datos) {
   }
 }
 
-// Eliminar sesión
 export async function eliminarSesion(id) {
   try {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
@@ -276,8 +317,7 @@ export async function crearSesionesRecurrentes(datos) {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
-    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
-
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); 
     // Validar grupo si corresponde
     if (grupoId) {
       const grupo = await grupoRepo.findOne({ where: { id: grupoId } });
@@ -328,7 +368,7 @@ export async function crearSesionesRecurrentes(datos) {
           continue;
         }
 
-        // ✅ 4. Validar conflicto con partidos de campeonato
+        // 4. Validar conflicto con partidos de campeonato
         const partidos = await partidoRepo.find({
           where: { canchaId, fecha: fechaStr, estado: In(['programado', 'en_juego']) }
         });

@@ -6,4 +6,4 @@ export const activarTokenSchema = Joi.object({
   tokenLength: Joi.number().integer().min(4).max(20).default(6),
 });
 
-export const desactivarTokenSchema = Joi.object({}); // sin body
+export const desactivarTokenSchema = Joi.object({});

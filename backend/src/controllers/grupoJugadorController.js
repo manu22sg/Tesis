@@ -38,7 +38,6 @@ export async function eliminarGrupoController(req, res) {
   return success(res, ok, "Grupo eliminado correctamente");
 }
 
-/*
 export async function obtenerMiembrosDeGrupoController(req, res) {
   const grupoId = parseInt(req.params.id);
   const { pagina, limite, estado, carrera, anioIngreso } = req.query;
@@ -50,4 +49,3 @@ export async function obtenerMiembrosDeGrupoController(req, res) {
   return success(res, resultado, "Miembros obtenidos correctamente");
 }
 
-*/

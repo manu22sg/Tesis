@@ -185,7 +185,8 @@ export async function buscarUsuariosPorRuts(req, res) {
         id: user.id,
         rut: user.rut,
         nombre: user.nombre,
-        email: user.email
+        email: user.email,
+        rol: user.rol
       };
     });
 
@@ -225,8 +226,10 @@ export async function buscarUsuarios(req, res) {
       value: user.rut,
       label: `${user.rut} - ${user.nombre}`,
       rut: user.rut,
+      id: user.id,
       nombre: user.nombre,
-      email: user.email
+      email: user.email,
+      rol: user.rol
     }));
 
 

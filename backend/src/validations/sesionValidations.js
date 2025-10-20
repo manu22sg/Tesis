@@ -3,7 +3,7 @@ import { validationError } from '../utils/responseHandler.js';
 import { parseDateLocal } from '../utils/dateLocal.js';
 import validaHorario from '../utils/validaHorario.js';
 
-const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '16:00' };
+const HORARIO_FUNCIONAMIENTO = { inicio: '08:00', fin: '16:00' };
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -26,12 +26,11 @@ const fechaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   })
   .messages({ 'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD' });
 
-
 const horaSchema = Joi.string().pattern(TIME_HH_MM)
   .required()
   .messages({ 'string.pattern.base': 'La hora debe tener formato HH:mm' });
 
-// POST /api/sesiones
+// POST /api/sesion
 export const crearSesionBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),  
   grupoId: Joi.number().integer().positive().optional(),
@@ -45,24 +44,27 @@ export const crearSesionBody = Joi.object({
   return res === true ? v : res;   
 });
 
-
-// GET /api/sesiones
-export const obtenerSesionesBody = Joi.object({
-  fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional(),
+// GET /api/sesion - ✅ QUERY PARAMS (corregido)
+export const obtenerSesionesQuery = Joi.object({
+  q: Joi.string().trim().max(100).optional(),  // ✅ AGREGAR búsqueda general
+  fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional()
+    .messages({ 'string.pattern.base': 'fecha debe estar en formato YYYY-MM-DD' }),
   canchaId: Joi.number().integer().positive().optional(),   
   grupoId: Joi.number().integer().positive().optional(),
   tipoSesion: Joi.string().trim().max(50).optional(),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(50).default(10),
+  horaInicio: Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+horaFin: Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+
 });
 
-
-// POST /api/sesiones/detalle
+// POST /api/sesion/detalle
 export const obtenerSesionPorIdBody = Joi.object({
   id: Joi.number().integer().positive().required(),
 });
 
-// PATCH /api/sesiones
+// PATCH /api/sesion
 export const actualizarSesionBody = Joi.object({
   id: Joi.number().integer().positive().required(),
   canchaId: Joi.number().integer().positive().optional(),    
@@ -82,12 +84,12 @@ export const actualizarSesionBody = Joi.object({
   return v;
 });
 
-// DELETE /api/sesiones/eliminar
+// DELETE /api/sesion/eliminar
 export const eliminarSesionBody = Joi.object({
   id: Joi.number().integer().positive().required(),
 });
 
-// POST /api/sesiones/recurrente
+// POST /api/sesion/recurrente
 export const crearSesionesRecurrentesBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),   
   grupoId: Joi.number().integer().positive().optional(),
@@ -111,10 +113,12 @@ export const crearSesionesRecurrentesBody = Joi.object({
   return res === true ? v : res;
 });
 
-
-
+// ✅ Middleware para validar BODY
 export const validate = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  const { error, value } = schema.validate(req.body, { 
+    abortEarly: false, 
+    stripUnknown: true 
+  });
   if (error) {
     const errores = error.details.reduce((acc, d) => {
       acc[d.path.join('.')] = d.context?.message || d.message;
@@ -122,5 +126,32 @@ export const validate = (schema) => (req, res, next) => {
     }, {});
     return validationError(res, errores);
   }
-  req.body = value; next();
+  req.body = value; 
+  next();
 };
+
+// ✅ Middleware para validar QUERY PARAMS
+export function validateQuery(schema) {
+  return (req, res, next) => {
+    const { error, value } = schema.validate(req.query, {
+      abortEarly: false,
+      stripUnknown: true,
+      convert: true // Convierte strings a números automáticamente
+    });
+
+    if (error) {
+      const errores = error.details.reduce((acc, d) => {
+        acc[d.path.join('.')] = d.context?.message || d.message;
+        return acc;
+      }, {});
+      return validationError(res, errores);
+    }
+
+    // ✅ NO reasignar req.query, copiar los valores validados individualmente
+    Object.keys(value).forEach(key => {
+      req.query[key] = value[key];
+    });
+    
+    next();
+  };
+}

@@ -13,8 +13,15 @@ export async function postCrearSesion(req, res) {
   try {
     const [sesion, err] = await crearSesion(req.body);
     if (err) {
-      if (err.includes('Grupo no encontrado')) return error(res, err, 400);
-      if (err.includes('Ya existe') || err.includes('Conflicto')) return conflict(res, err);
+      if (err.includes('Cancha no encontrada') || err.includes('Grupo no encontrado')) {
+        return error(res, err, 400);
+      }
+      if (err.includes('Ya existe') || 
+          err.includes('Conflicto') || 
+          err.includes('Hay una reserva') ||
+          err.includes('partido de campeonato')) {
+        return conflict(res, err);
+      }
       return error(res, err, 500);
     }
     return success(res, sesion, 'Sesión creada exitosamente', 201);
@@ -27,7 +34,19 @@ export async function postCrearSesion(req, res) {
 /** GET /api/sesiones */
 export async function getSesiones(req, res) {
   try {
-    const [result, err] = await obtenerSesiones(req.body);
+   const filtros = {
+  q: req.query.q || '',
+  fecha: req.query.fecha || null,           // ✅ FECHA
+  canchaId: req.query.canchaId || null,     // ✅ CANCHA
+  grupoId: req.query.grupoId || null,       // ✅ GRUPO
+  tipoSesion: req.query.tipoSesion || null, 
+  horaInicio: req.query.horaInicio || null,
+  horaFin: req.query.horaFin || null,
+  page: req.query.page,
+  limit: req.query.limit
+};
+
+    const [result, err] = await obtenerSesiones(filtros);
     if (err) return error(res, err, 500);
 
     const { sesiones, pagination } = result;
@@ -65,7 +84,12 @@ export async function patchActualizarSesion(req, res) {
     const [sesion, err] = await actualizarSesion(id, rest);
     if (err) {
       if (err === 'Sesión no encontrada') return notFound(res, err);
-      if (err.includes('Conflicto') || err.includes('Grupo no encontrado')) return conflict(res, err);
+      if (err.includes('Conflicto') || 
+          err.includes('Grupo no encontrado') ||
+          err.includes('partido de campeonato') ||
+          err.includes('reserva')) {
+        return conflict(res, err);
+      }
       return error(res, err, 500);
     }
     return success(res, sesion, 'Sesión actualizada exitosamente');

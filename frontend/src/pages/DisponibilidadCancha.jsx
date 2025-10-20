@@ -27,7 +27,6 @@ export default function DisponibilidadCancha() {
   const [filtroCapacidad, setFiltroCapacidad] = useState(null);
   const [filtrosActivos, setFiltrosActivos] = useState(false);
 
-  // ✅ SOLO UN useEffect: Consultar cuando cambia la fecha
   useEffect(() => {
     handleBuscar(1, pagination.pageSize);
   }, [fecha]); // Eliminar el otro useEffect
@@ -207,7 +206,6 @@ export default function DisponibilidadCancha() {
             </Button>
           </div>
 
-          {/* 🔹 Filtros de búsqueda */}
           <Card 
             type="inner" 
             title={
@@ -259,7 +257,6 @@ export default function DisponibilidadCancha() {
             </Space>
           </Card>
 
-          {/* 🔹 Resultados */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
               <Spin size="large" />

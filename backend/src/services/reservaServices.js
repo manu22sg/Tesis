@@ -121,13 +121,7 @@ function hayConflictoHorario(a, b) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-/**
- * ACTUALIZADO: Verifica disponibilidad de cancha contra:
- *  - Cancha disponible
- *  - Sesiones de entrenamiento (misma cancha/fecha)
- *  - Reservas pendientes/aprobadas
- *  - Partidos de campeonato (programado/en_juego) NUEVO
- */
+
 export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fechaISO, horaInicio, horaFin) {
   try {
     const fecha = formatYMD(parseDateLocal(fechaISO));

@@ -61,7 +61,7 @@ export async function buscarUsuarios(termino) {
   try {
     if (!termino || termino.length < 2) return [];
     
-   // console.log(" Buscando usuarios con término:", termino);
+    console.log(" Buscando usuarios con término:", termino);
     const { data } = await api.get("/auth/buscar-usuarios", {
       params: { termino }
     });

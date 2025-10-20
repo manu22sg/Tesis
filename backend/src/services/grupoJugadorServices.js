@@ -36,7 +36,7 @@ export async function obtenerGrupoPorId(id) {
     const repo = AppDataSource.getRepository(GrupoJugadorSchema);
     const grupo = await repo.findOne({
       where: { id },
-      relations: ["jugadorGrupos", "jugadorGrupos.jugador"],
+      relations: ["jugadorGrupos", "jugadorGrupos.jugador", "jugadorGrupos.jugador.usuario"],
     });
 
     if (!grupo) return [null, "Grupo no encontrado"];
@@ -79,7 +79,7 @@ export async function eliminarGrupo(id) {
 }
 
 
-/*
+
 export async function obtenerMiembrosDeGrupo(grupoId, pagina = 1, limite = 10, filtros = {}) {
   try {
     const repo = AppDataSource.getRepository(JugadorGrupoSchema);
@@ -127,4 +127,4 @@ export async function obtenerMiembrosDeGrupo(grupoId, pagina = 1, limite = 10, f
     return [null, "Error al listar miembros del grupo"];
   }
 }
-*/
+

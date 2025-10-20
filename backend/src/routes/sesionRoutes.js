@@ -10,19 +10,19 @@ import {
 
 import {
   crearSesionBody,
-  obtenerSesionesBody,
+  obtenerSesionesQuery,        // ✅ Query
   obtenerSesionPorIdBody,
   actualizarSesionBody,
   eliminarSesionBody,
   crearSesionesRecurrentesBody,
-  validate
+  validate,
+  validateQuery                 // ✅ Importar
 } from '../validations/sesionValidations.js';
 
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-// POST /api/sesion
 router.post('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -30,17 +30,14 @@ router.post('/',
   postCrearSesion
 );
 
- // GET /api/sesion
+// ✅ GET usa validateQuery
 router.get('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
-  validate(obtenerSesionesBody),
+  validateQuery(obtenerSesionesQuery),  
   getSesiones
 );
 
-
- // POST /api/sesion/detalle
- 
 router.post('/detalle',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -48,9 +45,6 @@ router.post('/detalle',
   getSesionPorId
 );
 
-
- // PATCH /api/sesiones
- 
 router.patch('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -58,7 +52,6 @@ router.patch('/',
   patchActualizarSesion
 );
 
- // DELETE /api/sesion/eliminar
 router.delete('/eliminar',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
@@ -66,14 +59,11 @@ router.delete('/eliminar',
   deleteSesion
 );
 
- // POST /api/sesion/recurrente
 router.post('/recurrente',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
   validate(crearSesionesRecurrentesBody),
   postSesionesRecurrentes
 );
-
-
 
 export default router;

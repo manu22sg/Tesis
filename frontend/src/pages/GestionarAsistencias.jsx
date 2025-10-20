@@ -1,0 +1,423 @@
+import { useState, useEffect } from 'react';
+import {
+  Card,
+  Table,
+  Tag,
+  Button,
+  Space,
+  message,
+  Empty,
+  Tooltip,
+  Modal,
+  Select,
+  Popconfirm,
+  Typography,
+  Pagination,
+  Spin
+} from 'antd';
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  QuestionCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ReloadOutlined,
+  EnvironmentOutlined
+} from '@ant-design/icons';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  listarAsistenciasDeSesion,
+  actualizarAsistencia,
+  eliminarAsistencia
+} from '../services/asistencia.services.js';
+import { obtenerSesionPorId } from '../services/sesion.services.js';
+import dayjs from 'dayjs';
+
+const { Title, Text } = Typography;
+
+const ESTADOS = {
+  presente: { label: 'Presente', color: 'success', icon: <CheckCircleOutlined /> },
+  ausente: { label: 'Ausente', color: 'error', icon: <CloseCircleOutlined /> },
+  justificado: { label: 'Justificado', color: 'warning', icon: <QuestionCircleOutlined /> },
+};
+
+export default function GestionarAsistencias() {
+  const { sesionId } = useParams();
+  const navigate = useNavigate();
+
+  const [asistencias, setAsistencias] = useState([]);
+  const [sesion, setSesion] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingSesion, setLoadingSesion] = useState(true);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
+  const [editModal, setEditModal] = useState(false);
+  const [asistenciaEdit, setAsistenciaEdit] = useState(null);
+  const [nuevoEstado, setNuevoEstado] = useState('');
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Cargar información de la sesión
+  useEffect(() => {
+    const cargarSesion = async () => {
+      try {
+        setLoadingSesion(true);
+        const data = await obtenerSesionPorId(parseInt(sesionId));
+        setSesion(data);
+      } catch (error) {
+        console.error('Error cargando sesión:', error);
+        message.error('Error al cargar la información de la sesión');
+      } finally {
+        setLoadingSesion(false);
+      }
+    };
+
+    if (sesionId) {
+      cargarSesion();
+    }
+  }, [sesionId]);
+
+  const cargarAsistencias = async (page = 1, pageSize = 10) => {
+    try {
+      setLoading(true);
+      const data = await listarAsistenciasDeSesion(parseInt(sesionId), {
+        pagina: page,
+        limite: pageSize
+      });
+
+      setAsistencias(data.asistencias || []);
+      setPagination({
+        current: data.pagina,
+        pageSize: data.limite,
+        total: data.total,
+        totalPages: data.totalPaginas
+      });
+    } catch (error) {
+      console.error('Error cargando asistencias:', error);
+      message.error('Error al cargar las asistencias');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sesionId) {
+      cargarAsistencias(1, 10);
+    }
+  }, [sesionId]);
+
+  const abrirModalEditar = (asistencia) => {
+    setAsistenciaEdit(asistencia);
+    setNuevoEstado(asistencia.estado);
+    setEditModal(true);
+  };
+
+  const handleActualizar = async () => {
+    try {
+      setLoadingEdit(true);
+      await actualizarAsistencia(asistenciaEdit.id, {
+        estado: nuevoEstado,
+        origen: 'entrenador'
+      });
+
+      message.success('Asistencia actualizada correctamente');
+      setEditModal(false);
+      cargarAsistencias(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error actualizando asistencia:', error);
+      message.error(error.response?.data?.message || 'Error al actualizar la asistencia');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  const handleEliminar = async (asistenciaId) => {
+    try {
+      await eliminarAsistencia(asistenciaId);
+      message.success('Asistencia eliminada correctamente');
+      cargarAsistencias(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error eliminando asistencia:', error);
+      message.error(error.response?.data?.message || 'Error al eliminar la asistencia');
+    }
+  };
+
+  const handlePageChange = (page, pageSize) => {
+    cargarAsistencias(page, pageSize);
+  };
+
+  const columns = [
+    {
+      title: 'Jugador',
+      key: 'jugador',
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>
+            {record.jugador?.usuario?.nombre || 'Sin nombre'}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            RUT: {record.jugador?.usuario?.rut || 'Sin RUT'}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Estado',
+      dataIndex: 'estado',
+      key: 'estado',
+      render: (estado) => {
+        const config = ESTADOS[estado] || ESTADOS.presente;
+        return (
+          <Tag color={config.color} icon={config.icon}>
+            {config.label}
+          </Tag>
+        );
+      },
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Origen',
+      dataIndex: 'origen',
+      key: 'origen',
+      render: (origen) => (
+        <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
+          {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+        </Tag>
+      ),
+      align: 'center',
+      width: 120,
+    },
+    {
+      title: 'Ubicación',
+      key: 'ubicacion',
+      render: (_, record) => (
+        record.latitud && record.longitud ? (
+          <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
+            <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+          </Tooltip>
+        ) : (
+          <Text type="secondary">—</Text>
+        )
+      ),
+      align: 'center',
+      width: 100,
+    },
+    {
+      title: 'Fecha Registro',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY HH:mm') : '—',
+      width: 150,
+    },
+    {
+      title: 'Acciones',
+      key: 'acciones',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Editar estado">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => abrirModalEditar(record)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="¿Eliminar esta asistencia?"
+            description="Esta acción no se puede deshacer"
+            onConfirm={() => handleEliminar(record.id)}
+            okText="Sí, eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Eliminar">
+              <Button type="link" danger icon={<DeleteOutlined />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+      align: 'center',
+      width: 120,
+    },
+  ];
+
+  // Calcular estadísticas
+  const estadisticas = {
+    presente: asistencias.filter(a => a.estado === 'presente').length,
+    ausente: asistencias.filter(a => a.estado === 'ausente').length,
+    justificado: asistencias.filter(a => a.estado === 'justificado').length,
+  };
+
+  if (loadingSesion) {
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 120 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+      {/* Información de la sesión */}
+      {sesion && (
+        <Card style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <Title level={4} style={{ marginBottom: 4 }}>
+                {sesion.tipoSesion}
+              </Title>
+              <Space size="large" wrap>
+                <Text type="secondary">
+                  📅 {dayjs(sesion.fecha).format('DD/MM/YYYY')}
+                </Text>
+                <Text type="secondary">
+                  🕐 {sesion.horaInicio} - {sesion.horaFin}
+                </Text>
+                <Text type="secondary">
+                  🏟️ {sesion.cancha?.nombre || 'Sin cancha'}
+                </Text>
+                {sesion.grupo && (
+                  <Text type="secondary">
+                    👥 {sesion.grupo.nombre}
+                  </Text>
+                )}
+              </Space>
+            </div>
+            <Button onClick={() => navigate('/sesiones')}>
+              Volver a Sesiones
+            </Button>
+          </div>
+
+          {/* Estadísticas */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+            gap: 16, 
+            marginTop: 24,
+            padding: 16,
+            background: '#f5f5f5',
+            borderRadius: 8
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#52c41a' }}>
+                {estadisticas.presente}
+              </div>
+              <Text type="secondary">Presentes</Text>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ff4d4f' }}>
+                {estadisticas.ausente}
+              </div>
+              <Text type="secondary">Ausentes</Text>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#faad14' }}>
+                {estadisticas.justificado}
+              </div>
+              <Text type="secondary">Justificados</Text>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}>
+                {pagination.total}
+              </div>
+              <Text type="secondary">Total</Text>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Tabla de asistencias */}
+      <Card
+        title="Lista de Asistencias"
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => cargarAsistencias(pagination.current, pagination.pageSize)}
+          >
+            Actualizar
+          </Button>
+        }
+      >
+        <Table
+          columns={columns}
+          dataSource={asistencias}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          locale={{
+            emptyText: (
+              <Empty description="No hay asistencias registradas para esta sesión">
+                <Text type="secondary">
+                  Los jugadores deben marcar su asistencia usando el token activo
+                </Text>
+              </Empty>
+            ),
+          }}
+        />
+
+        {asistencias.length > 0 && (
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onChange={handlePageChange}
+              onShowSizeChange={handlePageChange}
+              showSizeChanger
+              showTotal={(total) => `Total: ${total} asistencias`}
+              pageSizeOptions={['5', '10', '20', '50']}
+            />
+          </div>
+        )}
+      </Card>
+
+      {/* Modal Editar Estado */}
+      <Modal
+        title="Editar Estado de Asistencia"
+        open={editModal}
+        onCancel={() => setEditModal(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setEditModal(false)}>
+            Cancelar
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loadingEdit}
+            onClick={handleActualizar}
+          >
+            Actualizar
+          </Button>,
+        ]}
+      >
+        {asistenciaEdit && (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Jugador: </Text>
+              <Text>{asistenciaEdit.jugador?.usuario?.nombre || 'Sin nombre'}</Text>
+            </div>
+            
+            <div>
+              <Text strong>Nuevo Estado:</Text>
+              <Select
+                value={nuevoEstado}
+                onChange={setNuevoEstado}
+                style={{ width: '100%', marginTop: 8 }}
+                size="large"
+              >
+                <Select.Option value="presente">
+                  <Tag color="success" icon={<CheckCircleOutlined />}>Presente</Tag>
+                </Select.Option>
+                <Select.Option value="ausente">
+                  <Tag color="error" icon={<CloseCircleOutlined />}>Ausente</Tag>
+                </Select.Option>
+                <Select.Option value="justificado">
+                  <Tag color="warning" icon={<QuestionCircleOutlined />}>Justificado</Tag>
+                </Select.Option>
+              </Select>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
