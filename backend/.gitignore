@@ -12,3 +12,5 @@ yarn-error.log*
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+.vscode/
