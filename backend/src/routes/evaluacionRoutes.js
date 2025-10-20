@@ -7,7 +7,8 @@ const router = Router();
 
 // Entrenador/superadmin crean y modifican
 router.post('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(crearEvaluacionBody), postCrearEvaluacion);
-router.patch('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(actualizarEvaluacionBody), patchEvaluacion);
+router.patch('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema),
+validarBody(actualizarEvaluacionBody), patchEvaluacion);
 router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), deleteEvaluacion);
 
 router.get(

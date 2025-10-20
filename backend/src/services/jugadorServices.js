@@ -55,11 +55,18 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
     const queryBuilder = jugadorRepository
       .createQueryBuilder("jugador")
       .leftJoinAndSelect("jugador.usuario", "usuario")
-      //  ahora se hace join a la tabla intermedia y luego al grupo
       .leftJoinAndSelect("jugador.jugadorGrupos", "jugadorGrupos")
       .leftJoinAndSelect("jugadorGrupos.grupo", "grupo");
 
-    // Aplicar filtros dinámicos
+    // 🔍 Nuevo: búsqueda general por nombre o RUT
+    if (filtros.q) {
+      queryBuilder.andWhere(
+        "(usuario.nombre LIKE :q OR usuario.rut LIKE :q)",
+        { q: `%${filtros.q}%` }
+      );
+    }
+
+    // Filtros adicionales (ya los tienes)
     if (filtros.estado) {
       queryBuilder.andWhere("jugador.estado = :estado", { estado: filtros.estado });
     }
@@ -89,6 +96,7 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
     return [null, "Error al obtener jugadores"];
   }
 }
+
 
 
 export async function obtenerJugadorPorId(id) {

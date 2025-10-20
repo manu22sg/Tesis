@@ -66,9 +66,15 @@ export async function actualizarEvaluacion(id, data) {
     const repo = AppDataSource.getRepository(EvaluacionSchema);
     const row = await repo.findOne({ where: { id } });
     if (!row) return [null,'Evaluación no encontrada'];
+
     Object.assign(row, data);
     const saved = await repo.save(row);
-    const completo = await repo.findOne({ where:{ id:saved.id }, relations:['jugador','sesion'] });
+
+    const completo = await repo.findOne({
+      where: { id: saved.id },
+      relations: ['jugador', 'sesion'],
+    });
+
     return [completo, null];
   } catch (e) {
     console.error('Error actualizando evaluación:', e);

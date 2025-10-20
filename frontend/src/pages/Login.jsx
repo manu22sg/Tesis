@@ -13,7 +13,6 @@ export default function Login() {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      console.log('📋 Intentando login...');
       const user = await loginRequest(values);
       
       if (user) {

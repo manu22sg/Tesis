@@ -22,7 +22,7 @@ import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
-
+import MainLayout from '../components/MainLayout.jsx';
 dayjs.locale('es');
 
 const { TextArea } = Input;
@@ -34,7 +34,7 @@ export default function ReservaNueva() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [canchaSeleccionada, setCanchaSeleccionada] = useState(null);
-  const { user } = useAuth();
+  const { usuario } = useAuth();
   const [participantes, setParticipantes] = useState([]);
   const [participantesInfo, setParticipantesInfo] = useState({});
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
@@ -47,17 +47,17 @@ export default function ReservaNueva() {
 
   // Agregar automáticamente al usuario que reserva
   useEffect(() => {
-    if (user && user.rut && !participantes.includes(user.rut)) {
-      setParticipantes([user.rut]);
+    if (usuario && usuario.rut && !participantes.includes(usuario.rut)) {
+      setParticipantes([usuario.rut]);
       setParticipantesInfo({
-        [user.rut]: {
-          rut: user.rut,
-          nombre: user.nombre,
-          email: user.email
+        [usuario.rut]: {
+          rut: usuario.rut,
+          nombre: usuario.nombre,
+          email: usuario.email
         }
       });
     }
-  }, [user]);
+  }, [usuario]);
 
   useEffect(() => {
     const cargarCanchas = async () => {
@@ -198,8 +198,8 @@ export default function ReservaNueva() {
 
       // Agregar el RUT del usuario que reserva si no está en la lista
       const participantesCompletos = [...participantes];
-      if (user && user.rut && !participantesCompletos.includes(user.rut)) {
-        participantesCompletos.unshift(user.rut);
+      if (usuario && usuario.rut && !participantesCompletos.includes(usuario.rut)) {
+        participantesCompletos.unshift(usuario.rut);
       }
 
       const data = {
@@ -274,6 +274,7 @@ export default function ReservaNueva() {
   const participantesRestantes = capacidadMaxima - participantes.length;
 
   return (
+    <MainLayout>
     <ConfigProvider locale={locale}>
       <div
         style={{
@@ -286,13 +287,13 @@ export default function ReservaNueva() {
         }}
       >
         <Card title="Nueva Reserva de Cancha" style={{ width: 600, borderRadius: 12 }}>
-          {user && (
+          {usuario && (
             <Alert
               message={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <UserOutlined />
                   <span>
-                    <strong>Solicitante:</strong> {user.nombre} ({user.rut || 'Sin RUT'})
+                    <strong>Solicitante:</strong> {usuario.nombre} ({usuario.rut || 'Sin RUT'})
                   </span>
                 </div>
               }
@@ -446,7 +447,7 @@ export default function ReservaNueva() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {participantes.map((rut, index) => {
                     const info = participantesInfo[rut];
-                    const esSolicitante = user && user.rut === rut;
+                    const esSolicitante = usuario && usuario.rut === rut;
 
                     return (
                       <span 
@@ -497,5 +498,6 @@ export default function ReservaNueva() {
         </Card>
       </div>
     </ConfigProvider>
+    </MainLayout>
   );
 }

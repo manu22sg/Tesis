@@ -33,7 +33,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
 import { removerJugadorDeGrupo, asignarJugadorAGrupo, obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones, eliminarSesion } from '../services/sesion.services.js';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -412,6 +412,7 @@ export default function GrupoMiembros() {
   }
 
   return (
+    <MainLayout>
     <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Card>
         {/* Header */}
@@ -696,5 +697,6 @@ export default function GrupoMiembros() {
         </div>
       </Modal>
     </div>
+    </MainLayout>
   );
 }

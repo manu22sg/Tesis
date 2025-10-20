@@ -28,7 +28,7 @@ import {
   removerJugadorDeGrupo
 } from '../services/jugador.services.js';
 import { obtenerGrupos } from '../services/grupo.services.js';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -200,6 +200,7 @@ setGruposDisponibles(disponibles);
   const gruposActuales = jugador.jugadorGrupos || [];
 
   return (
+    <MainLayout>
     <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Card>
         {/* Header con info del jugador */}
@@ -365,5 +366,6 @@ setGruposDisponibles(disponibles);
         </div>
       </Modal>
     </div>
+    </MainLayout>
   );
 }

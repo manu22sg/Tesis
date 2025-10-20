@@ -19,12 +19,13 @@ export async function getEvaluacionPorId(req,res){
   if (err) return notFound(res, err);
   return success(res, data, 'Evaluación encontrada');
 }
-export async function patchEvaluacion(req,res){
-  const { id, ...payload } = req.body;
-  const [data, err] = await actualizarEvaluacion(id, payload);
-  if (err) return error(res, err, err.includes('no encontrada')?404:400);
+export async function patchEvaluacion(req, res) {
+  const id = parseInt(req.params.id);
+  const [data, err] = await actualizarEvaluacion(id, req.body);
+  if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, data, 'Evaluación actualizada');
 }
+
 export async function deleteEvaluacion(req,res){
   const [ok, err] = await eliminarEvaluacion(parseInt(req.params.id));
   if (err) return error(res, err, err.includes('no encontrada')?404:400);

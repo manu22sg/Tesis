@@ -29,7 +29,7 @@ router.use("/grupos", grupoJugadorRoutes);
 router.use("/sesion", sesionRoutes);
 router.use("/asistencia", asistenciaRoutes);
 router.use("/sesionToken", sesionTokenRoutes);
-router.use("/evaluacion", evaluacionRoutes);
+router.use("/evaluaciones", evaluacionRoutes);
 router.use("/lesion", lesionRoutes);
 router.use("/estadistica", estadisticaRoutes);
 router.use("/alineacion", alineacionRoutes);

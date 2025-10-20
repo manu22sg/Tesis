@@ -33,7 +33,7 @@ import {
   obtenerJugadorPorId,
   eliminarJugador
 } from '../services/jugador.services.js';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Text } = Typography;
 const { Option } = Select;
 
@@ -269,6 +269,7 @@ export default function Jugadores() {
   ];
 
   return (
+    <MainLayout>
     <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Card
         title={
@@ -512,5 +513,6 @@ export default function Jugadores() {
         ) : null}
       </Modal>
     </div>
+    </MainLayout>
   );
 }

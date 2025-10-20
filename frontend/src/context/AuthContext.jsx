@@ -4,12 +4,11 @@ import { verifyToken, logoutRequest } from "../services/auth.services.js";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Verificar token al cargar la app
   useEffect(() => {
-    //console.log("Verificando sesión existente...");
     checkAuth();
   }, []);
 
@@ -17,45 +16,41 @@ export function AuthProvider({ children }) {
     try {
       const userData = await verifyToken();
       if (userData) {
-        //console.log(" Sesión válida:", userData);
-        setUser(userData);
+        setUsuario(userData);
       } else {
-        //console.log(" No hay sesión activa");
-        setUser(null);
+        setUsuario(null);
       }
     } catch (error) {
-      console.error(" Error verificando sesión:", error);
-      setUser(null);
+      console.error("❌ Error verificando sesión:", error);
+      setUsuario(null);
     } finally {
       setLoading(false);
     }
   };
 
   const login = (userData) => {
-    //console.log(" Usuario logueado:", userData);
-    setUser(userData);
+    setUsuario(userData);
   };
 
   const logout = async () => {
     try {
       await logoutRequest();
-      //console.log("Logout completado");
     } catch (error) {
-      console.warn(" Error en logout (ignorado):", error.message);
+      console.warn("⚠️ Error en logout (ignorado):", error.message);
     } finally {
       // SIEMPRE limpiar el usuario, incluso si hay error
-      setUser(null);
+      setUsuario(null);
     }
   };
 
   return (
     <AuthContext.Provider 
       value={{ 
-        user, 
+        usuario,           
         loading, 
         login, 
         logout, 
-        isAuthenticated: !!user,
+        isAuthenticated: !!usuario,  
         checkAuth
       }}
     >

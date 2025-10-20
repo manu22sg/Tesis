@@ -27,6 +27,10 @@ const EvaluacionSchema = new EntitySchema({
       type: "int",
       nullable: true,
     },
+    fisica: {
+      type: "int",
+      nullable: true,
+    },
     observaciones: {
       type: "text",
       nullable: true,

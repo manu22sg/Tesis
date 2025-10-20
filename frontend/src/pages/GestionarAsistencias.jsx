@@ -32,7 +32,7 @@ import {
 } from '../services/asistencia.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Title, Text } = Typography;
 
 const ESTADOS = {
@@ -256,6 +256,7 @@ export default function GestionarAsistencias() {
   }
 
   return (
+    <MainLayout>
     <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       {/* Información de la sesión */}
       {sesion && (
@@ -419,5 +420,6 @@ export default function GestionarAsistencias() {
         )}
       </Modal>
     </div>
+    </MainLayout>
   );
 }

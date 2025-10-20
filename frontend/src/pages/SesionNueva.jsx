@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import locale from 'antd/locale/es_ES';
-
+import MainLayout from '../components/MainLayout.jsx';
 // Servicios
 import { crearSesion } from '../services/sesion.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
@@ -145,18 +145,20 @@ export default function SesionNueva() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 120 }}>
-        <Spin size="large" />
-      </div>
+      <MainLayout>
+        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+          <Spin size="large" />
+        </div>
+      </MainLayout>
     );
   }
 
   return (
-    <ConfigProvider locale={locale}> 
-      <div style={{ minHeight: '100vh', padding: '2rem', background: '#f5f5f5' }}>
+    <MainLayout>
+      <ConfigProvider locale={locale}> 
         <Card
           title="Nueva Sesión de Entrenamiento"
-          style={{ maxWidth: 650, margin: '0 auto', borderRadius: 10 }}
+          style={{ maxWidth: 650, margin: '0 auto' }}
         >
           <Form layout="vertical" form={form} onFinish={onFinish}>
             {/* 🔸 Cancha */}
@@ -198,7 +200,6 @@ export default function SesionNueva() {
                 disabledDate={(current) => {
                   if (!current) return true;
                   const day = current.day();
-                  // Deshabilitar sábados (6) y domingos (0)
                   return day === 0 || day === 6;
                 }}
                 classNames={{ popup: 'hide-weekends' }}
@@ -274,7 +275,7 @@ export default function SesionNueva() {
             </Form.Item>
           </Form>
         </Card>
-      </div>
-    </ConfigProvider>
+      </ConfigProvider>
+    </MainLayout>
   );
 }

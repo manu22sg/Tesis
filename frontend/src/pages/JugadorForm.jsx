@@ -19,7 +19,7 @@ import {
   actualizarJugador
 } from '../services/jugador.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Option } = Select;
 
 export default function JugadorForm() {
@@ -192,6 +192,7 @@ export default function JugadorForm() {
   }
 
   return (
+    <MainLayout>
     <div style={{ 
       minHeight: '100vh', 
       padding: '2rem', 
@@ -385,5 +386,6 @@ export default function JugadorForm() {
         </Form>
       </Card>
     </div>
+  </MainLayout>
   );
 }

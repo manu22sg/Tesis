@@ -24,7 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { obtenerMisReservas, obtenerReservaPorId } from '../services/reserva.services.js';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
-
+import MainLayout from '../components/MainLayout.jsx';
 dayjs.locale('es');
 
 const estadoConfig = {
@@ -181,6 +181,7 @@ export default function MisReservas() {
   ];
 
   return (
+    <MainLayout>
     <div style={{ padding: '24px', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Card
         title={
@@ -356,5 +357,6 @@ export default function MisReservas() {
         ) : null}
       </Modal>
     </div>
+    </MainLayout>
   );
 }

@@ -4,6 +4,7 @@ import api from './root.services.js';
 export const crearEvaluacion = async (data) => {
   try {
     const response = await api.post('/evaluaciones', data);
+    
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -14,7 +15,8 @@ export const crearEvaluacion = async (data) => {
 export const obtenerEvaluaciones = async (params = {}) => {
   try {
     const response = await api.get('/evaluaciones', { params });
-    return response.data;
+    console.log('Respuesta de obtenerEvaluaciones:', response.data);
+    return response.data.data;
   } catch (error) {
     throw error.response?.data || error;
   }
@@ -31,14 +33,10 @@ export const obtenerEvaluacionPorId = async (id) => {
 };
 
 
-export const actualizarEvaluacion = async (id, data) => {
-  try {
-    const response = await api.patch('/evaluaciones', { id, ...data });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+export async function actualizarEvaluacion({ id, ...payload }) {
+  const response = await api.patch(`/evaluaciones/${id}`, payload);
+  return response.data.data;
+}
 
 
 export const eliminarEvaluacion = async (id) => {

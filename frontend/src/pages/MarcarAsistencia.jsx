@@ -16,7 +16,7 @@ import {
   EnvironmentOutlined
 } from '@ant-design/icons';
 import { marcarAsistencia } from '../services/asistencia.services.js';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Title, Text } = Typography;
 
 export default function MarcarAsistencia() {
@@ -99,6 +99,7 @@ export default function MarcarAsistencia() {
 
   if (success) {
     return (
+      
       <div style={{ 
         minHeight: '100vh', 
         display: 'flex', 
@@ -132,6 +133,7 @@ export default function MarcarAsistencia() {
   }
 
   return (
+    <MainLayout>
     <div style={{ 
       minHeight: '100vh',
       padding: '2rem',
@@ -243,5 +245,6 @@ export default function MarcarAsistencia() {
         </div>
       </Card>
     </div>
+    </MainLayout>
   );
 }

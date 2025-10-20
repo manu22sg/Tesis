@@ -6,6 +6,7 @@ import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { useNavigate } from 'react-router-dom';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
+import MainLayout from '../components/MainLayout';
 
 dayjs.locale('es');
 
@@ -29,7 +30,7 @@ export default function DisponibilidadCancha() {
 
   useEffect(() => {
     handleBuscar(1, pagination.pageSize);
-  }, [fecha]); // Eliminar el otro useEffect
+  }, [fecha]);
 
   // 🔹 Aplicar filtros automáticamente cuando cambien
   useEffect(() => {
@@ -82,14 +83,12 @@ export default function DisponibilidadCancha() {
   const aplicarFiltros = (data = disponibilidad) => {
     let resultado = [...data];
 
-    // Filtrar por nombre
     if (filtroNombre) {
       resultado = resultado.filter(c => 
         c.cancha.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
       );
     }
 
-    // Filtrar por capacidad
     if (filtroCapacidad) {
       resultado = resultado.filter(c => {
         if (filtroCapacidad === 'pequena') return c.cancha.capacidadMaxima <= 8;
@@ -114,25 +113,20 @@ export default function DisponibilidadCancha() {
     handleBuscar(page, pageSize);
   };
 
-  // Opciones de capacidad
   const opcionesCapacidad = [
     { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
     { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
     { label: 'Grande (>15 jugadores)', value: 'grande' },
   ];
 
+  // No usar breadcrumb para páginas simples
+
   return (
-    <ConfigProvider locale={locale}>
-      <div
-        style={{
-          minHeight: '100vh',
-          padding: '2rem',
-          backgroundColor: '#f5f5f5',
-        }}
-      >
+    <MainLayout>
+      <ConfigProvider locale={locale}>
         <Card
           title="Disponibilidad de Canchas"
-          style={{ maxWidth: 1000, margin: '0 auto' }}
+          style={{ border: 'none' }}
         >
           {/* 🔹 Barra superior: fecha y botón de reserva */}
           <div
@@ -149,7 +143,6 @@ export default function DisponibilidadCancha() {
               <Button
                 onClick={() => {
                   let nuevaFecha = fecha.subtract(1, 'day');
-                  // Saltar sábado y domingo al retroceder
                   if (nuevaFecha.day() === 0) nuevaFecha = nuevaFecha.subtract(2, 'day');
                   if (nuevaFecha.day() === 6) nuevaFecha = nuevaFecha.subtract(1, 'day');
                   setFecha(nuevaFecha);
@@ -174,7 +167,6 @@ export default function DisponibilidadCancha() {
               <Button
                 onClick={() => {
                   let nuevaFecha = fecha.add(1, 'day');
-                  // Saltar sábado y domingo al avanzar
                   if (nuevaFecha.day() === 6) nuevaFecha = nuevaFecha.add(2, 'day');
                   if (nuevaFecha.day() === 0) nuevaFecha = nuevaFecha.add(1, 'day');
                   setFecha(nuevaFecha);
@@ -330,7 +322,7 @@ export default function DisponibilidadCancha() {
             }
           `}
         </style>
-      </div>
-    </ConfigProvider>
+      </ConfigProvider>
+    </MainLayout>
   );
 }

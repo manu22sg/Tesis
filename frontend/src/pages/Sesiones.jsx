@@ -21,7 +21,7 @@ import {
 import dayjs from 'dayjs';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
-
+import MainLayout from '../components/MainLayout.jsx';
 const { Text, Paragraph } = Typography;
 dayjs.locale('es');
 
@@ -351,6 +351,7 @@ export default function Sesiones() {
   }, []);
 
   return (
+    <MainLayout>
     <ConfigProvider locale={locale}>
       <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
         <Card
@@ -612,5 +613,6 @@ export default function Sesiones() {
         </Modal>
       </div>
     </ConfigProvider>
+    </MainLayout>
   );
 }

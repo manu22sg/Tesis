@@ -9,12 +9,13 @@ import {
   Button,
   message,
   Spin,
-  ConfigProvider,
+  ConfigProvider,Breadcrumb
 } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
+import MainLayout from '../components/MainLayout.jsx';
 
 // Servicios
 import { obtenerSesionPorId, actualizarSesion } from '../services/sesion.services.js';
@@ -102,7 +103,6 @@ export default function EditarSesion() {
         horaFin: values.horaFin.format('HH:mm'),
       };
 
-      // ✅ El backend ya valida correctamente con s.id !== id
       await actualizarSesion(Number(id), payload);
       message.success('Sesión actualizada correctamente');
       navigate('/sesiones');
@@ -149,6 +149,7 @@ export default function EditarSesion() {
   }
 
   return (
+    <MainLayout >
     <ConfigProvider locale={locale}>
       <div style={{ minHeight: '100vh', padding: '2rem', background: '#f5f5f5' }}>
         <Card
@@ -271,5 +272,6 @@ export default function EditarSesion() {
         </Card>
       </div>
     </ConfigProvider>
+    </MainLayout>
   );
 }

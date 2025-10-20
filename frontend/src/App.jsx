@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ConfigProvider, theme, Button } from 'antd';
 import { ubbLightTheme, ubbDarkTheme } from './theme';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DisponibilidadCancha from './pages/DisponibilidadCancha';
@@ -18,9 +18,198 @@ import JugadorForm from './pages/JugadorForm';
 import JugadorGrupos from './pages/JugadorGrupos';
 import Grupos from './pages/Grupo';
 import GrupoMiembros from './pages/GrupoMiembros';
+import Evaluaciones from './pages/Evaluaciones.jsx';
+import NotFound from './pages/NotFound';
+import AprobarReservasPage from './pages/AprobarReservasPage.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
+// Componente para manejar la redirección de la raíz
+function RootRedirect() {
+  const { usuario } = useAuth();
+  
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <Navigate to="/dashboard" replace />;
+}
 
-import { AuthProvider } from './context/AuthContext.jsx';  
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Redirección de raíz */}
+      <Route path="/" element={<RootRedirect />} />
+      
+      {/* Login - público */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Dashboard - Todos los usuarios autenticados */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Disponibilidad de Canchas - Todos los usuarios */}
+      <Route
+        path="/canchas"
+        element={
+          <ProtectedRoute>
+            <DisponibilidadCancha />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ========== RESERVAS - Solo Estudiantes y Académicos ========== */}
+      <Route
+        path="/reservas/nueva"
+        element={
+          <ProtectedRoute roles={['estudiante', 'academico']}>
+            <ReservaNueva />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/reservas/mis-reservas"
+        element={
+          <ProtectedRoute roles={['estudiante', 'academico']}>
+            <MisReservas />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ========== SESIONES - Entrenador y SuperAdmin ========== */}
+      <Route
+        path="/sesiones"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <Sesiones />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/aprobar-reservas"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <AprobarReservasPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/sesiones/editar/:id"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <EditarSesion />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/sesiones/nueva"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <SesionNueva />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ========== ASISTENCIAS ========== */}
+      {/* Marcar Asistencia - Solo Estudiantes */}
+      <Route
+        path="/marcar-asistencia"
+        element={
+          <ProtectedRoute roles={['estudiante']}>
+            <MarcarAsistencia />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Gestionar Asistencias - Entrenador y SuperAdmin */}
+      <Route
+        path="/sesiones/:sesionId/asistencias"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <GestionarAsistencias />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ========== JUGADORES - Entrenador y Admin ========== */}
+      <Route 
+        path="/jugadores" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <Jugadores />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/jugadores/nuevo" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <JugadorForm />
+          </ProtectedRoute>
+        }   
+      />
+      
+      <Route 
+        path="/jugadores/editar/:id" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <JugadorForm />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/jugadores/:id/grupos" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <JugadorGrupos />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* ========== GRUPOS - Entrenador y Admin ========== */}
+      <Route 
+        path="/grupos" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <Grupos />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/grupos/:id/miembros" 
+        element={
+          <ProtectedRoute roles={['entrenador', 'admin']}>
+            <GrupoMiembros />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* ========== EVALUACIONES ========== */}
+      <Route
+        path="/evaluaciones"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin', 'estudiante']}>
+            <Evaluaciones />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Página 404 - Debe estar al final */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -43,134 +232,7 @@ export default function App() {
             </Button>
           </div>
 
-          <Routes>
-            <Route path="/login" element={<Login />} />
-
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/canchas"
-              element={
-                <ProtectedRoute>
-                  <DisponibilidadCancha />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/reservas/nueva"
-              element={
-                <ProtectedRoute>
-                  <ReservaNueva />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="/reservas/mis-reservas"
-              element={
-                <ProtectedRoute>
-                  <MisReservas />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sesiones"
-              element={
-                <ProtectedRoute>
-                  <Sesiones />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sesiones/editar/:id"
-              element={
-                <ProtectedRoute>
-                  <EditarSesion />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sesiones/nueva"
-              element={
-                <ProtectedRoute>
-                  <SesionNueva />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/marcar-asistencia"
-              element={
-                <ProtectedRoute>
-                  <MarcarAsistencia />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sesiones/:sesionId/asistencias"
-              element={
-                <ProtectedRoute>
-                  <GestionarAsistencias />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/jugadores" 
-              element={
-               <ProtectedRoute roles={['entrenador', 'admin']}>
-                <Jugadores />
-              </ProtectedRoute>
-             } 
-            />
-      <Route 
-      path="/jugadores/nuevo" 
-      element={
-        <ProtectedRoute roles={['entrenador', 'admin']}>
-        <JugadorForm />
-         </ProtectedRoute>
-          }   
-          />
-          <Route 
-            path="/jugadores/editar/:id" 
-            element={
-            <ProtectedRoute roles={['entrenador', 'admin']}>
-              <JugadorForm />
-            </ProtectedRoute>
-          } 
-          />
-
-          <Route 
-          path="/jugadores/:id/grupos" 
-           element={
-            <ProtectedRoute roles={['entrenador', 'admin']}>
-                <JugadorGrupos />
-              </ProtectedRoute>
-          } 
-          />
-          <Route 
-          path="/grupos" 
-           element={
-            <ProtectedRoute roles={['entrenador', 'admin']}>
-                <Grupos />
-              </ProtectedRoute>
-       } 
-        />
-        <Route 
-          path="/grupos/:id/miembros" 
-          element={
-            <ProtectedRoute roles={['entrenador', 'admin']}>
-              <GrupoMiembros />
-            </ProtectedRoute>
-          } 
-        />
-          </Routes>
+          <AppRoutes />
         </AuthProvider>
       </Router>
     </ConfigProvider>
