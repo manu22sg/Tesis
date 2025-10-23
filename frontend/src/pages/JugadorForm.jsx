@@ -91,7 +91,7 @@ export default function JugadorForm() {
 
       setBuscandoSugerencias(true);
       try {
-        const resultados = await buscarUsuarios(valorBusqueda);
+        const resultados = await buscarUsuarios(valorBusqueda, { roles: ['estudiante'] });
         console.log('✅ Resultados de búsqueda:', resultados);
         
         // Formatear opciones para el AutoComplete

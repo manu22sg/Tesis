@@ -76,7 +76,13 @@ export async function patchRechazarReserva(req, res) {
  
 export async function getReservasPendientes(req, res) {
   try {
-    const filtros = req.body;
+    const filtros = {
+      estado: req.query.estado || undefined,
+      fecha: req.query.fecha || undefined,
+      canchaId: req.query.canchaId ? parseInt(req.query.canchaId) : undefined,
+      page: req.query.page ? parseInt(req.query.page) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit) : 10
+    };
 
     const [result, err] = await obtenerReservasPendientes(filtros);
 
@@ -87,8 +93,8 @@ export async function getReservasPendientes(req, res) {
     const { reservas, pagination } = result;
 
     const mensaje = reservas.length > 0 ? 
-      `${reservas.length} reserva(s) pendiente(s) - Página ${pagination.currentPage} de ${pagination.totalPages}` : 
-      'No hay reservas pendientes de aprobación';
+      `${reservas.length} reserva(s) - Página ${pagination.currentPage} de ${pagination.totalPages}` : 
+      'No hay reservas';
 
     return success(res, { reservas, pagination }, mensaje);
 

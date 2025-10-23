@@ -12,15 +12,26 @@ export const crearEvaluacion = async (data) => {
 };
 
 
-export const obtenerEvaluaciones = async (params = {}) => {
-  try {
-    const response = await api.get('/evaluaciones', { params });
-    console.log('Respuesta de obtenerEvaluaciones:', response.data);
-    return response.data.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+export async function obtenerEvaluaciones(filtros = {}) {
+  const params = {};
+  
+  if (filtros.page) params.page = filtros.page;
+  if (filtros.limit) params.limit = filtros.limit;
+  if (filtros.q) params.q = filtros.q; 
+  if (filtros.jugadorId) params.jugadorId = filtros.jugadorId;
+  if (filtros.sesionId) params.sesionId = filtros.sesionId;
+  if (filtros.desde) params.desde = filtros.desde;
+  if (filtros.hasta) params.hasta = filtros.hasta;
+
+  const res = await api.get('/evaluaciones', { params });
+  
+  return {
+    evaluaciones: res.data.data?.evaluaciones || [],
+    pagination: res.data.data?.pagination || {}
+  };
+}
+
+
 
 
 export const obtenerEvaluacionPorId = async (id) => {
@@ -49,20 +60,43 @@ export const eliminarEvaluacion = async (id) => {
 };
 
 
-export const obtenerEvaluacionesPorJugador = async (jugadorId, params = {}) => {
+export const obtenerEvaluacionesPorJugador = async (jugadorId, filtros = {}) => {
   try {
+    const params = {};
+    
+    if (filtros.page) params.page = filtros.page;
+    if (filtros.limit) params.limit = filtros.limit;
+    if (filtros.sesionId) params.sesionId = filtros.sesionId;
+    if (filtros.desde) params.desde = filtros.desde;
+    if (filtros.hasta) params.hasta = filtros.hasta;
+
     const response = await api.get(`/evaluaciones/jugador/${jugadorId}`, { params });
-    return response.data;
+    
+    return {
+      evaluaciones: response.data.data?.evaluaciones || [],
+      pagination: response.data.data?.pagination || {}
+    };
   } catch (error) {
     throw error.response?.data || error;
   }
 };
 
-
-export const obtenerMisEvaluaciones = async (params = {}) => {
+export const obtenerMisEvaluaciones = async (filtros = {}) => {
   try {
+    const params = {};
+    
+    if (filtros.page) params.page = filtros.page;
+    if (filtros.limit) params.limit = filtros.limit;
+    if (filtros.sesionId) params.sesionId = filtros.sesionId;
+    if (filtros.desde) params.desde = filtros.desde;
+    if (filtros.hasta) params.hasta = filtros.hasta;
+
     const response = await api.get('/evaluaciones/mias', { params });
-    return response.data;
+    
+    return {
+      evaluaciones: response.data.data?.evaluaciones || [],
+      pagination: response.data.data?.pagination || {}
+    };
   } catch (error) {
     throw error.response?.data || error;
   }

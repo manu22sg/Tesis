@@ -53,27 +53,24 @@ export default function JugadorGrupos() {
     setLoading(true);
     
     const jugadorData = await obtenerJugadorPorId(parseInt(id));
-  //  console.log('Jugador cargado:', jugadorData);
-  //  console.log('Grupos del jugador:', jugadorData.jugadorGrupos);
     setJugador(jugadorData);
 
     const gruposData = await obtenerGrupos({ limit: 100 });
-  //  console.log('Respuesta completa de grupos:', gruposData);
-
-// Obtener el array de grupos correctamente
-const todosLosGrupos = gruposData.grupos || gruposData || [];
-//console.log('Array de grupos procesado:', todosLosGrupos);
-
-// Filtrar grupos a los que NO pertenece el jugador
-const gruposIds = (jugadorData.jugadorGrupos || []).map(jg => jg.grupo?.id).filter(Boolean);
-//console.log('IDs de grupos a excluir:', gruposIds);
-
-const disponibles = Array.isArray(todosLosGrupos) 
-  ? todosLosGrupos.filter(g => g && g.id && !gruposIds.includes(g.id))
-  : [];
-
-//console.log('Grupos disponibles finales:', disponibles);
-setGruposDisponibles(disponibles);
+    
+    // CORRECCIÓN: Acceder correctamente a la estructura anidada
+    const todosLosGrupos = gruposData?.data?.grupos || gruposData?.grupos || [];
+   
+    
+    // Filtrar grupos a los que NO pertenece el jugador
+    const gruposIds = (jugadorData.jugadorGrupos || []).map(jg => jg.grupo?.id).filter(Boolean);
+    
+    const disponibles = Array.isArray(todosLosGrupos) 
+      ? todosLosGrupos.filter(g => g && g.id && !gruposIds.includes(g.id))
+      : [];
+    
+ 
+    
+    setGruposDisponibles(disponibles);
   } catch (error) {
     console.error('Error cargando datos:', error);
     message.error('Error al cargar los datos');
@@ -81,6 +78,7 @@ setGruposDisponibles(disponibles);
     setLoading(false);
   }
 };
+
 
   const handleAgregarGrupo = async () => {
     if (!grupoSeleccionado) {

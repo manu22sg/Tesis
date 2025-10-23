@@ -28,26 +28,53 @@ export async function crearEvaluacion(data) {
   }
 }
 
-export async function obtenerEvaluaciones({ pagina=1, limite=10, jugadorId, sesionId }) {
+export async function obtenerEvaluaciones({ page = 1, limit = 10, jugadorId, sesionId, desde, hasta, q }) {
   try {
     const repo = AppDataSource.getRepository(EvaluacionSchema);
     const qb = repo.createQueryBuilder('e')
-      .leftJoinAndSelect('e.jugador','jugador')
-      .leftJoinAndSelect('e.sesion','sesion')
-      .orderBy('e.fechaRegistro','DESC')
-      .skip((pagina-1)*limite)
-      .take(limite);
+      .leftJoinAndSelect('e.jugador', 'jugador')
+      .leftJoinAndSelect('jugador.usuario', 'usuario')  // 🔥 JOIN con usuario para obtener nombre
+      .leftJoinAndSelect('e.sesion', 'sesion')
+      .orderBy('e.fechaRegistro', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    // 🔍 Búsqueda por nombre de jugador
+    if (q) {
+      const busqueda = q.trim().toLowerCase();
+      qb.andWhere('LOWER(usuario.nombre) LIKE :q', { q: `%${busqueda}%` });
+    }
 
     if (jugadorId) qb.andWhere('e.jugadorId = :jugadorId', { jugadorId });
     if (sesionId) qb.andWhere('e.sesionId = :sesionId', { sesionId });
+    
+    // Filtros de fecha
+    if (desde) {
+      qb.andWhere('sesion.fecha >= :desde', { desde });
+    }
+    if (hasta) {
+      qb.andWhere('sesion.fecha <= :hasta', { hasta });
+    }
 
-    const [rows, total] = await qb.getManyAndCount();
-    return [{ evaluaciones: rows, total, pagina, totalPaginas: Math.ceil(total/limite) }, null];
+    const [evaluaciones, totalItems] = await qb.getManyAndCount();
+    
+    // Estructura de paginación estandarizada
+    return [{
+      evaluaciones,
+      pagination: {
+        currentPage: page,
+        pageSize: limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit)
+      }
+    }, null];
   } catch (e) {
     console.error('Error listando evaluaciones:', e);
     return [null, 'Error interno del servidor'];
   }
 }
+
+
 
 export async function obtenerEvaluacionPorId(id) {
   try {

@@ -1,10 +1,22 @@
 import api from './root.services.js';
 
 // Obtener todos los grupos
-export async function obtenerGrupos() {
-  const res = await api.get('/grupos');
-  return res.data.data || [];
-}
+export const obtenerGrupos = async (filtros = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filtros.nombre) params.append('nombre', filtros.nombre);
+    if (filtros.page) params.append('page', filtros.page);
+    if (filtros.limit) params.append('limit', filtros.limit);
+
+    const response = await api.get(`/grupos?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || 'Error al obtener grupos';
+    console.error('Error en obtenerGrupos:', error.response?.data || error);
+    throw errorMsg;
+  }
+};
+
 
 // Crear grupo
 export async function crearGrupo(datos) {

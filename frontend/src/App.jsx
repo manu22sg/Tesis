@@ -21,6 +21,9 @@ import GrupoMiembros from './pages/GrupoMiembros';
 import Evaluaciones from './pages/Evaluaciones.jsx';
 import NotFound from './pages/NotFound';
 import AprobarReservasPage from './pages/AprobarReservasPage.jsx';
+import GestionCanchas from './pages/GestionarCanchas.jsx';
+import MisEvaluaciones from './pages/MisEvaluaciones';
+
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -62,6 +65,15 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/gestion-canchas"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <GestionCanchas />
+          </ProtectedRoute>
+        }
+      />
+      
 
       {/* ========== RESERVAS - Solo Estudiantes y Académicos ========== */}
       <Route
@@ -73,6 +85,17 @@ function AppRoutes() {
         }
       />
       
+
+      {/* Mis Evaluaciones - Solo Estudiantes  */}
+      <Route
+        path="/mis-evaluaciones"
+        element={
+          <ProtectedRoute roles={['estudiante']}>
+            <MisEvaluaciones />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/reservas/mis-reservas"
         element={
@@ -86,7 +109,7 @@ function AppRoutes() {
       <Route
         path="/sesiones"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <Sesiones />
           </ProtectedRoute>
         }
@@ -199,7 +222,7 @@ function AppRoutes() {
       <Route
         path="/evaluaciones"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin', 'estudiante']}>
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
             <Evaluaciones />
           </ProtectedRoute>
         }
@@ -223,13 +246,13 @@ export default function App() {
             style={{
               position: 'fixed',
               top: 16,
-              right: 16,
+              left: 800,
               zIndex: 1000,
             }}
           >
-            <Button type="primary" onClick={toggleTheme}>
+           {/* <Button type="primary" onClick={toggleTheme}>
               {darkMode ? 'Modo Claro ☀️' : 'Modo Oscuro 🌙'}
-            </Button>
+            </Button> */}
           </div>
 
           <AppRoutes />

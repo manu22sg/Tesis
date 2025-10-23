@@ -40,8 +40,8 @@ export default function SesionNueva() {
         setLoading(true);
 
         // Obtener canchas disponibles
-        const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
-        const listaCanchas = (canchasRes || []).map((c) => ({
+           const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
+        const listaCanchas = (canchasRes?.canchas || []).map((c) => ({
           label: c.nombre,
           value: c.id,
           capacidad: c.capacidadMaxima,
@@ -50,12 +50,13 @@ export default function SesionNueva() {
         setCanchas(listaCanchas);
 
         // Obtener grupos
-        const gruposRes = await obtenerGrupos();
-        const listaGrupos = (gruposRes || []).map((g) => ({
+        const gruposRes = await obtenerGrupos({ limit: 100 });
+        const listaGrupos = (gruposRes?.data?.grupos || []).map((g) => ({
           label: g.nombre,
           value: g.id,
         }));
         setGrupos(listaGrupos);
+
       } catch (err) {
         console.error('Error cargando datos iniciales:', err);
         message.error('Error al cargar canchas o grupos');
@@ -161,7 +162,7 @@ export default function SesionNueva() {
           style={{ maxWidth: 650, margin: '0 auto' }}
         >
           <Form layout="vertical" form={form} onFinish={onFinish}>
-            {/* 🔸 Cancha */}
+            {/* Cancha */}
             <Form.Item
               name="canchaId"
               label="Cancha"
@@ -176,7 +177,7 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Grupo */}
+            {/*  Grupo */}
             <Form.Item name="grupoId" label="Grupo (opcional)">
               <Select
                 allowClear
@@ -188,7 +189,7 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Fecha - Solo días de semana */}
+            {/*  Fecha - Solo días de semana */}
             <Form.Item
               name="fecha"
               label="Fecha"
@@ -206,7 +207,6 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Hora Inicio - Horario laboral 8:00 - 14:30 */}
             <Form.Item
               name="horaInicio"
               label="Hora de inicio"
@@ -226,7 +226,6 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Hora Fin - Horario laboral 8:00 - 14:30 */}
             <Form.Item
               name="horaFin"
               label="Hora de fin"
@@ -246,7 +245,6 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Tipo */}
             <Form.Item
               name="tipoSesion"
               label="Tipo de sesión"
@@ -259,12 +257,12 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/* 🔸 Objetivos */}
+            {/*  Objetivos */}
             <Form.Item name="objetivos" label="Objetivos (opcional)">
               <Input.TextArea rows={3} placeholder="Describe los objetivos de la sesión" />
             </Form.Item>
 
-            {/* 🔸 Botones */}
+            {/*  Botones */}
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <Button onClick={() => navigate(-1)}>Cancelar</Button>

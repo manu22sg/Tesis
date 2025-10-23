@@ -12,22 +12,18 @@ export const obtenerEstadisticas = async () => {
 };
 
 // Obtener reservas pendientes
-export const obtenerReservasPendientes = async (filtros = {}) => {
-  try {
-    const body = {
-      fecha: filtros.fecha,
-      canchaId: filtros.canchaId,
-      page: filtros.page || 1,
-      limit: filtros.limit || 10
-    };
-    console.log('Cuerpo de la solicitud de reservas pendientes:', body);
-    const response = await api.get('/aprobacion/pendientes', { data: body });
-    return [response.data, null];
-  } catch (error) {
-    console.error('Error obteniendo reservas pendientes:', error);
-    return [null, error.response?.data?.message || 'Error al obtener reservas'];
-  }
-};
+export async function obtenerReservasPendientes(filtros = {}) {
+  const params = {};
+  
+  if (filtros.fecha) params.fecha = filtros.fecha;
+  if (filtros.canchaId) params.canchaId = filtros.canchaId;
+  if (filtros.estado) params.estado = filtros.estado;
+  if (filtros.page) params.page = filtros.page;
+  if (filtros.limit) params.limit = filtros.limit;
+
+  const res = await api.get('/aprobacion/pendientes', { params });
+  return [res.data, null];
+}
 
 // Aprobar una reserva
 export const aprobarReserva = async (reservaId, observacion = null) => {

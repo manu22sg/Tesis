@@ -57,14 +57,20 @@ export async function buscarUsuariosPorRuts(ruts) {
   }
 }
 
-export async function buscarUsuarios(termino) {
+export async function buscarUsuarios(termino, opciones = {}) {
   try {
     if (!termino || termino.length < 2) return [];
+
+    // console.log("🔍 Buscando usuarios con término:", termino, "opciones:", opciones);
+
+    const params = { termino };
     
-    console.log(" Buscando usuarios con término:", termino);
-    const { data } = await api.get("/auth/buscar-usuarios", {
-      params: { termino }
-    });
+    // Agregar roles si se especifican
+    if (opciones.roles && opciones.roles.length > 0) {
+      params.roles = JSON.stringify(opciones.roles);
+    }
+    
+    const { data } = await api.get("/auth/buscar-usuarios", { params });
     return data.data || [];
   } catch (error) {
     console.error(" Error buscando usuarios:", error);

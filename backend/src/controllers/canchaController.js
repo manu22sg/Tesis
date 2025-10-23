@@ -23,7 +23,7 @@ export async function postCrearCancha(req, res) {
   }
 }
 
-// ✅ GET /api/canchas - Obtener todas las canchas
+//  GET /api/canchas - Obtener todas las canchas
 export async function getCanchas(req, res) {
   try {
     const filtros = {
@@ -40,12 +40,21 @@ export async function getCanchas(req, res) {
       ? `${canchas.length} cancha(s) — Página ${pagination.currentPage}/${pagination.totalPages}`
       : 'No se encontraron canchas';
 
-    return success(res, { canchas, pagination }, msg);
+  
+    return res.status(200).json({
+      success: true,
+      message: msg,
+      data: {
+        canchas,
+        pagination
+      }
+    });
   } catch (e) {
     console.error('getCanchas:', e);
     return error(res, 'Error interno del servidor', 500);
   }
 }
+
 
 // POST /api/canchas/detalle - Obtener cancha por ID
 export async function getCanchaPorId(req, res) {

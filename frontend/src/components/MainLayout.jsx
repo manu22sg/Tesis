@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, theme, Avatar, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   CalendarOutlined,
@@ -9,10 +9,10 @@ import {
   FieldTimeOutlined,
   CheckCircleOutlined,
   LogoutOutlined,
-  HomeOutlined,
   PlusOutlined,
   EyeOutlined,
   ScheduleOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -30,30 +30,32 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const token = theme.useToken().token;
   const [collapsed, setCollapsed] = useState(false);
 
-  // Determinar rol
+  // 🔐 Determinar rol
   const rol = (usuario?.rol?.nombre || usuario?.rol || '').toLowerCase();
-  let userRole;
-  
-  if (rol === 'superadmin') {
-    userRole = 'superadmin';
-  } else if (rol === 'entrenador') {
-    userRole = 'entrenador';
-  } else if (rol === 'academico') {
-    userRole = 'academico';
-  } else if (rol === 'estudiante') {
-    userRole = 'estudiante';
-  } else {
-    userRole = 'estudiante'; // default
-  }
+  const userRole =
+    rol === 'superadmin'
+      ? 'superadmin'
+      : rol === 'entrenador'
+      ? 'entrenador'
+      : rol === 'academico'
+      ? 'academico'
+      : 'estudiante';
 
-  // Menús según rol
+  // 🏋️ Menús según rol
   const entrenadorItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-    getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
+
+    // ✅ Canchas con submenú
+    getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
+      getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
+      getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
+    ]),
+
     getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
+    getItem('Aprobar Reservas', 'aprobar-reservas', <CheckCircleOutlined />),
     getItem('Jugadores', 'jugadores', <UserOutlined />),
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
@@ -61,7 +63,13 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   const superAdminItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-    getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
+
+    // ✅ También para superadmin
+    getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
+      getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
+      getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
+    ]),
+
     getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
@@ -73,13 +81,13 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   const estudianteItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-    getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
+    getItem('Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
       getItem('Mis Reservas', 'reservas-mis', <ScheduleOutlined />),
     ]),
     getItem('Marcar Asistencia', 'marcar-asistencia', <CheckCircleOutlined />),
-    getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
+    getItem('Mis Evaluaciones', 'mis-evaluaciones', <TrophyOutlined />),
   ];
 
   const academicoItems = [
@@ -91,48 +99,62 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     ]),
   ];
 
-  // Mapeo de rutas a keys
+  // 🗺️ Rutas ↔ keys
   const pathToKey = {
     '/dashboard': 'dashboard',
+
+    // 🏟️ Canchas nuevas
+    '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
+
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
+    '/aprobar-reservas': 'aprobar-reservas',
     '/sesiones': 'sesiones',
     '/sesiones/nueva': 'sesiones-nueva',
     '/marcar-asistencia': 'marcar-asistencia',
     '/jugadores': 'jugadores',
     '/grupos': 'grupos',
     '/evaluaciones': 'evaluaciones',
+    '/mis-evaluaciones': 'mis-evaluaciones',
   };
 
   const selectedKey = selectedKeyOverride ?? (pathToKey[location.pathname] || 'dashboard');
 
-  // Control de apertura de submenús
+  // 🔓 Control submenús abiertos
   const [openKeys, setOpenKeys] = useState(() => {
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
     if (location.pathname.startsWith('/reservas')) return ['sub_reservas'];
+    if (location.pathname.startsWith('/canchas')) return ['sub_canchas'];
     return [];
   });
 
-  // Click handler
+  // 🔀 Click handler
   const onMenuClick = ({ key }) => {
     const keyToPath = {
-      'dashboard': '/dashboard',
-      'canchas': '/canchas',
+      dashboard: '/dashboard',
+
+      // 🏟️ Canchas
+      'canchas-gestion': '/gestion-canchas',
+      'canchas-ver': '/canchas',
+
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
-      'sesiones': '/sesiones',
+      'aprobar-reservas': '/aprobar-reservas',
+      sesiones: '/sesiones',
       'sesiones-nueva': '/sesiones/nueva',
       'marcar-asistencia': '/marcar-asistencia',
-      'jugadores': '/jugadores',
-      'grupos': '/grupos',
-      'evaluaciones': '/evaluaciones',
+      jugadores: '/jugadores',
+      grupos: '/grupos',
+      evaluaciones: '/evaluaciones',
+      'mis-evaluaciones': '/mis-evaluaciones',
     };
 
     const route = keyToPath[key];
     if (route) navigate(route);
   };
 
+  // 🧩 Items por rol
   const itemsByRole = {
     superadmin: superAdminItems,
     entrenador: entrenadorItems,
@@ -140,7 +162,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     academico: academicoItems,
   };
 
-  // Menú dropdown del usuario
+  // 👤 Menú usuario
   const userMenuItems = [
     {
       key: 'profile',
@@ -148,9 +170,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       label: usuario?.nombre || 'Usuario',
       disabled: true,
     },
-    {
-      type: 'divider',
-    },
+    { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -189,8 +209,9 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             padding: '0 16px',
           }}
         >
-          {collapsed ? '⚽' : '🏀 Sistema Deportivo'}
+          {collapsed ? '⚽' : '⚽ Sistema Deportivo'}
         </div>
+
         <Menu
           theme="dark"
           mode="inline"

@@ -4,6 +4,7 @@ import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout';
@@ -12,6 +13,7 @@ dayjs.locale('es');
 
 export default function DisponibilidadCancha() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [fecha, setFecha] = useState(dayjs());
   const [loading, setLoading] = useState(false);
   const [disponibilidad, setDisponibilidad] = useState([]);
@@ -27,6 +29,9 @@ export default function DisponibilidadCancha() {
   const [filtroNombre, setFiltroNombre] = useState('');
   const [filtroCapacidad, setFiltroCapacidad] = useState(null);
   const [filtrosActivos, setFiltrosActivos] = useState(false);
+
+  // 🔹 Verificar si el usuario puede reservar
+  const puedeReservar = usuario && (usuario.rol === 'estudiante' || usuario.rol === 'academico');
 
   useEffect(() => {
     handleBuscar(1, pagination.pageSize);
@@ -119,8 +124,6 @@ export default function DisponibilidadCancha() {
     { label: 'Grande (>15 jugadores)', value: 'grande' },
   ];
 
-  // No usar breadcrumb para páginas simples
-
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
@@ -185,17 +188,20 @@ export default function DisponibilidadCancha() {
               </Button>
             </div>
 
-            <Button
-              type="default"
-              style={{
-                borderColor: '#014898',
-                color: '#014898',
-                fontWeight: 500,
-              }}
-              onClick={() => navigate('/reservas/nueva')}
-            >
-              Reservar cancha
-            </Button>
+            {/* 🔹 Solo mostrar botón de reserva a estudiantes y académicos */}
+            {puedeReservar && (
+              <Button
+                type="default"
+                style={{
+                  borderColor: '#014898',
+                  color: '#014898',
+                  fontWeight: 500,
+                }}
+                onClick={() => navigate('/reservas/nueva')}
+              >
+                Reservar cancha
+              </Button>
+            )}
           </div>
 
           <Card 

@@ -126,7 +126,12 @@ export async function obtenerReservasPendientes(filtros = {}) {
     const limit = Math.min(50, Math.max(1, filtros.limit || 10));
     const skip = (page - 1) * limit;
 
-    let whereConditions = { estado: 'pendiente' };
+    let whereConditions = {};
+
+    // 🔹 Filtro por estado (opcional)
+    if (filtros.estado) {
+      whereConditions.estado = filtros.estado;
+    }
 
     // Filtros opcionales
     if (filtros.fecha) {
@@ -140,7 +145,10 @@ export async function obtenerReservasPendientes(filtros = {}) {
     const queryOptions = {
       where: whereConditions,
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario'],
-      order: { fechaCreacion: 'ASC' }, // Las más antiguas primero
+      order: { 
+        fechaSolicitud: 'DESC',  // ⭐ Más recientes primero
+        horaInicio: 'ASC'        // ⭐ Luego por hora
+      },
       skip,
       take: limit
     };
@@ -162,10 +170,12 @@ export async function obtenerReservasPendientes(filtros = {}) {
     return [{ reservas, pagination: paginationMeta }, null];
 
   } catch (error) {
-    console.error('Error obteniendo reservas pendientes:', error);
+    console.error('Error obteniendo reservas:', error);
     return [null, 'Error interno del servidor'];
   }
 }
+
+
 
  // Cambiar estado de una reserva (función genérica)
 export async function cambiarEstadoReserva(reservaId, nuevoEstado, entrenadorId, observacion = null) {

@@ -71,8 +71,10 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
       queryBuilder.andWhere("jugador.estado = :estado", { estado: filtros.estado });
     }
     if (filtros.carrera) {
-      queryBuilder.andWhere("jugador.carrera LIKE :carrera", { carrera: `%${filtros.carrera}%` });
-    }
+  queryBuilder.andWhere("LOWER(jugador.carrera) LIKE LOWER(:carrera)", { 
+    carrera: `%${filtros.carrera}%` 
+  });
+}
     if (filtros.anioIngreso) {
       queryBuilder.andWhere("jugador.anioIngreso = :anioIngreso", { anioIngreso: filtros.anioIngreso });
     }

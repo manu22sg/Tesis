@@ -179,22 +179,38 @@ export async function loginService(loginData) {
     return [null, 'Error interno del servidor'];
   }
 }
-
-export async function buscarUsuariosPorTermino(termino) {
+export async function buscarUsuariosPorTermino(termino, opciones = {}) {
   try {
-    const userRepository = AppDataSource.getRepository(UsuarioSchema);
+    const {
+      roles = null, // null = no filtrar por roles, array = filtrar roles específicos
+      estado = 'activo',
+      limite = 20
+    } = opciones;
     
+    const userRepository = AppDataSource.getRepository(UsuarioSchema);
     const terminoLimpio = termino.trim();
     
-    const users = await userRepository
+    const queryBuilder = userRepository
       .createQueryBuilder('usuario')
       .select(['usuario.id', 'usuario.rut', 'usuario.nombre', 'usuario.email', 'usuario.rol'])
-      .where('usuario.rut LIKE :terminoRut', { terminoRut: `%${terminoLimpio}%` })
-      .orWhere('LOWER(usuario.nombre) LIKE LOWER(:terminoNombre)', { terminoNombre: `%${terminoLimpio}%` })
-      .andWhere('usuario.estado = :estado', { estado: 'activo' })
-      .andWhere('usuario.rol IN (:...roles)', { roles: ['academico', 'estudiante'] })
+      .where('(usuario.rut LIKE :terminoRut OR LOWER(usuario.nombre) LIKE LOWER(:terminoNombre))', {
+        terminoRut: `%${terminoLimpio}%`,
+        terminoNombre: `%${terminoLimpio}%`
+      })
+      .andWhere('usuario.estado = :estado', { estado });
+    
+    // Solo filtrar por roles si se especifica explícitamente
+    if (roles !== null && roles.length > 0) {
+      if (roles.length === 1) {
+        queryBuilder.andWhere('usuario.rol = :rol', { rol: roles[0] });
+      } else {
+        queryBuilder.andWhere('usuario.rol IN (:...roles)', { roles });
+      }
+    }
+    
+    const users = await queryBuilder
       .orderBy('usuario.nombre', 'ASC')
-      .limit(20) 
+      .limit(limite)
       .getMany();
     
     return [users, null];

@@ -1,6 +1,6 @@
 import { AppDataSource } from "../config/config.db.js";
 import GrupoJugadorSchema from "../entity/GrupoJugador.js";
-
+import { ILike } from 'typeorm';
 // Crear grupo
 export async function crearGrupo(datosGrupo) {
   try {
@@ -19,16 +19,59 @@ export async function crearGrupo(datosGrupo) {
 }
 
 // Obtener todos
-export async function obtenerTodosGrupos() {
+export async function obtenerTodosGrupos(filtros = {}) {
   try {
     const repo = AppDataSource.getRepository(GrupoJugadorSchema);
-    const grupos = await repo.find({ relations: ["jugadorGrupos"] });
-    return [grupos, null];
+
+    // Parámetros de paginación
+    const page = Math.max(1, filtros.page || 1);
+    const limit = Math.min(100, Math.max(1, filtros.limit || 20));
+    const skip = (page - 1) * limit;
+
+    // Construir opciones de consulta
+    const queryOptions = {
+      relations: ["jugadorGrupos"], // ← Solo cargar jugadorGrupos, sin usuario anidado
+      order: { nombre: 'ASC' },
+      skip,
+      take: limit
+    };
+
+    // Aplicar filtro por nombre si se proporciona (case-insensitive)
+    // ILike funciona en PostgreSQL, Like en MySQL/MariaDB es case-insensitive por defecto
+    if (filtros.nombre) {
+      queryOptions.where = {
+        // Usa ILike para PostgreSQL, Like para MySQL/MariaDB
+        nombre: ILike(`%${filtros.nombre}%`) // ← Case-insensitive en todos los DB
+      };
+    }
+
+    // Obtener grupos y total para la paginación
+    const [grupos, total] = await repo.findAndCount(queryOptions);
+
+    // Calcular metadatos de paginación
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    const paginationMeta = {
+      currentPage: page,
+      totalPages,
+      totalItems: total,
+      itemsPerPage: limit,
+      hasNext,
+      hasPrev,
+      nextPage: hasNext ? page + 1 : null,
+      prevPage: hasPrev ? page - 1 : null
+    };
+
+    return [{ grupos, pagination: paginationMeta }, null];
   } catch (error) {
     console.error("Error obteniendo grupos:", error);
     return [null, "Error al obtener grupos"];
   }
 }
+
+
 
 // Obtener por ID
 export async function obtenerGrupoPorId(id) {
@@ -102,7 +145,6 @@ export async function obtenerMiembrosDeGrupo(grupoId, pagina = 1, limite = 10, f
       .take(limite)
       .getManyAndCount();
 
-    // Opcional: lista “plana” de miembros
     const miembros = relaciones.map(r => ({
       jugadorId: r.jugador.id,
       usuarioId: r.jugador.usuarioId,

@@ -113,7 +113,7 @@ export default function ReservaNueva() {
 
       setBuscandoSugerencias(true);
       try {
-        const resultados = await buscarUsuarios(valorBusqueda);
+        const resultados = await buscarUsuarios(valorBusqueda, { roles: ['estudiante', 'academico'] });
         
         // Filtrar usuarios que ya están agregados
         const resultadosFiltrados = resultados.filter(

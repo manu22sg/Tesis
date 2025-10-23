@@ -203,7 +203,7 @@ export async function buscarUsuariosPorRuts(req, res) {
   
 export async function buscarUsuarios(req, res) {
   try {
-    const { termino } = req.query;
+    const { termino, roles } = req.query;
     
     if (!termino || termino.length < 2) {
       return res.status(400).json({
@@ -212,8 +212,22 @@ export async function buscarUsuarios(req, res) {
       });
     }
 
+    // Preparar opciones
+    const opciones = {};
+    
+    // Parsear roles si viene en el query
+    if (roles) {
+      try {
+        // Si viene como string JSON: roles=["estudiante","academico"]
+        opciones.roles = JSON.parse(roles);
+      } catch {
+        // Si viene como string simple: roles=estudiante
+        opciones.roles = [roles];
+      }
+    }
+    // Si no viene roles, se usa el default (null = todos)
 
-    const [users, error] = await buscarUsuariosPorTermino(termino);
+    const [users, error] = await buscarUsuariosPorTermino(termino, opciones);
     
     if (error) {
       return res.status(500).json({
@@ -232,7 +246,6 @@ export async function buscarUsuarios(req, res) {
       rol: user.rol
     }));
 
-
     return success(res, resultados, 'Usuarios encontrados');
   } catch (error) {
     console.error('Error buscando usuarios:', error);
@@ -242,3 +255,4 @@ export async function buscarUsuarios(req, res) {
     });
   }
 }
+

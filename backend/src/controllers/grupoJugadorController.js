@@ -15,10 +15,45 @@ export async function crearGrupoController(req, res) {
 }
 
 export async function obtenerTodosGruposController(req, res) {
-  const [grupos, err] = await obtenerTodosGrupos();
-  if (err) return error(res, err);
-  return success(res, grupos, "Grupos obtenidos correctamente");
+  try {
+    
+    const filtros = {
+      nombre: req.query.nombre || undefined,
+      page: req.query.page ? parseInt(req.query.page) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit) : 20
+    };
+
+
+    const [result, err] = await obtenerTodosGrupos(filtros);
+    
+    if (err) {
+      console.error('❌ Controller - Error del servicio:', err);
+      return error(res, err, 500);
+    }
+
+    
+
+    const { grupos, pagination } = result;
+    const msg = grupos.length
+      ? `${grupos.length} grupo(s) — Página ${pagination.currentPage}/${pagination.totalPages}`
+      : 'No se encontraron grupos';
+
+
+    // Devolver con la estructura correcta
+    return res.status(200).json({
+      success: true,
+      message: msg,
+      data: {
+        grupos,
+        pagination
+      }
+    });
+  } catch (e) {
+    console.error('💥 Controller - Exception:', e);
+    return error(res, 'Error interno del servidor', 500);
+  }
 }
+
 
 export async function obtenerGrupoPorIdController(req, res) {
   const [grupo, err] = await obtenerGrupoPorId(parseInt(req.params.id));

@@ -16,7 +16,9 @@ import {
   Tooltip,
   Badge,
   Descriptions,
-  Empty
+  Empty,
+  ConfigProvider,
+  Pagination
 } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -30,12 +32,19 @@ import {
   TeamOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+import locale from 'antd/locale/es_ES';
 import {
   obtenerEstadisticas,
   obtenerReservasPendientes,
   aprobarReserva as aprobarReservaService,
   rechazarReserva as rechazarReservaService
 } from '../services/aprobacion.services.js';
+import { getDisponibilidadPorFecha } from '../services/horario.services.js';
+import MainLayout from '../components/MainLayout.jsx';
+import ModalDetalleReserva from '../components/ModalDetalleReserva.jsx';
+
+dayjs.locale('es');
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -43,6 +52,7 @@ const { Option } = Select;
 const AprobarReservasPage = () => {
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [canchasDisponibles, setCanchasDisponibles] = useState([]);
   const [estadisticas, setEstadisticas] = useState({
     pendiente: 0,
     aprobada: 0,
@@ -53,18 +63,16 @@ const AprobarReservasPage = () => {
     reservasHoy: 0
   });
   const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10
+    current: 1,
+    pageSize: 5,
+    total: 0
   });
   
   // Filtros
   const [filtros, setFiltros] = useState({
     fecha: null,
     canchaId: null,
-    page: 1,
-    limit: 10
+    estado: 'todas' // Por defecto: todas
   });
 
   // Modales
@@ -76,6 +84,25 @@ const AprobarReservasPage = () => {
   const [observacion, setObservacion] = useState('');
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // Cargar canchas disponibles
+  useEffect(() => {
+    const cargarCanchas = async () => {
+      try {
+        const fechaHoy = dayjs().format('YYYY-MM-DD');
+        const response = await getDisponibilidadPorFecha(fechaHoy, 1, 100);
+        
+        const lista = (response.data || []).map((d) => ({
+          label: d.cancha.nombre,
+          value: d.cancha.id,
+        }));
+        setCanchasDisponibles(lista);
+      } catch (err) {
+        console.error('Error cargando canchas:', err);
+      }
+    };
+    cargarCanchas();
+  }, []);
 
   // Cargar estadísticas
   const cargarEstadisticas = async () => {
@@ -90,12 +117,28 @@ const AprobarReservasPage = () => {
   };
 
   // Cargar reservas pendientes
-  const cargarReservasPendientes = async () => {
+  const cargarReservasPendientes = async (page = 1, limit = 5) => {
     setLoading(true);
-    const filtrosFormateados = {
-      ...filtros,
-      fecha: filtros.fecha ? filtros.fecha.format('YYYY-MM-DD') : undefined
-    };
+    
+    // Solo enviar filtros que tengan valor
+    const filtrosFormateados = {};
+    
+    if (filtros.fecha) {
+      filtrosFormateados.fecha = filtros.fecha.format('YYYY-MM-DD');
+    }
+    
+    if (filtros.canchaId) {
+      filtrosFormateados.canchaId = filtros.canchaId;
+    }
+    
+    if (filtros.estado && filtros.estado !== 'todas') {
+      filtrosFormateados.estado = filtros.estado;
+    }
+    
+    filtrosFormateados.page = page;
+    filtrosFormateados.limit = limit;
+
+    console.log('📤 Enviando filtros:', filtrosFormateados);
 
     const [data, error] = await obtenerReservasPendientes(filtrosFormateados);
     
@@ -108,7 +151,11 @@ const AprobarReservasPage = () => {
 
     if (data?.success) {
       setReservas(data.data.reservas);
-      setPagination(data.data.pagination);
+      setPagination({
+        current: data.data.pagination.currentPage,
+        pageSize: data.data.pagination.itemsPerPage,
+        total: data.data.pagination.totalItems
+      });
     }
   };
 
@@ -134,7 +181,7 @@ const AprobarReservasPage = () => {
       message.success('Reserva aprobada exitosamente');
       setModalAprobar({ visible: false, reserva: null });
       setObservacion('');
-      cargarReservasPendientes();
+      cargarReservasPendientes(pagination.current, pagination.pageSize);
       cargarEstadisticas();
     }
   };
@@ -166,40 +213,60 @@ const AprobarReservasPage = () => {
       message.success('Reserva rechazada exitosamente');
       setModalRechazar({ visible: false, reserva: null });
       setMotivoRechazo('');
-      cargarReservasPendientes();
+      cargarReservasPendientes(pagination.current, pagination.pageSize);
       cargarEstadisticas();
     }
   };
 
   // Manejar cambio de paginación
-  const handleTableChange = (paginationInfo) => {
-    setFiltros({
-      ...filtros,
-      page: paginationInfo.current,
-      limit: paginationInfo.pageSize
-    });
+  const handlePageChange = (page, pageSize) => {
+    cargarReservasPendientes(page, pageSize);
   };
 
   // Aplicar filtros
   const aplicarFiltros = () => {
-    setFiltros({ ...filtros, page: 1 });
+    cargarReservasPendientes(1, pagination.pageSize);
   };
 
-  // Limpiar filtros
-  const limpiarFiltros = () => {
+  // Limpiar filtros y recargar automáticamente
+  const limpiarFiltros = async () => {
+    // Primero actualizar los filtros
     setFiltros({
       fecha: null,
       canchaId: null,
-      page: 1,
-      limit: 10
+      estado: 'todas'
     });
+    
+    // Esperar un momento para que React actualice el estado
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Recargar con filtros limpios directamente
+    setLoading(true);
+    const [data, error] = await obtenerReservasPendientes({
+      page: 1,
+      limit: pagination.pageSize
+    });
+    
+    setLoading(false);
+
+    if (error) {
+      message.error(error);
+      return;
+    }
+
+    if (data?.success) {
+      setReservas(data.data.reservas);
+      setPagination({
+        current: 1,
+        pageSize: data.data.pagination.itemsPerPage,
+        total: data.data.pagination.totalItems
+      });
+      message.success('Filtros limpiados');
+    }
   };
 
   useEffect(() => {
-    cargarReservasPendientes();
-  }, [filtros.page, filtros.limit]);
-
-  useEffect(() => {
+    cargarReservasPendientes(1, 5);
     cargarEstadisticas();
   }, []);
 
@@ -220,7 +287,7 @@ const AprobarReservasPage = () => {
         <div>
           <div style={{ fontWeight: 500 }}>{record.usuario?.nombre || 'N/A'}</div>
           <div style={{ fontSize: '12px', color: '#888' }}>
-            {record.usuario?.email || ''}
+            {record.usuario?.rut || ''}
           </div>
         </div>
       ),
@@ -278,340 +345,314 @@ const AprobarReservasPage = () => {
               onClick={() => setModalDetalle({ visible: true, reserva: record })}
             />
           </Tooltip>
-          <Button 
-            type="primary" 
-            size="small"
-            icon={<CheckCircleOutlined />}
-            onClick={() => setModalAprobar({ visible: true, reserva: record })}
-          >
-            Aprobar
-          </Button>
-          <Button 
-            danger 
-            size="small"
-            icon={<CloseCircleOutlined />}
-            onClick={() => setModalRechazar({ visible: true, reserva: record })}
-          >
-            Rechazar
-          </Button>
+          
+          {/* Solo mostrar botón Aprobar si está pendiente */}
+          {record.estado === 'pendiente' && (
+            <Button 
+              type="primary" 
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => setModalAprobar({ visible: true, reserva: record })}
+            >
+              Aprobar
+            </Button>
+          )}
+          
+          {/* Solo mostrar botón Rechazar si está pendiente */}
+          {record.estado === 'pendiente' && (
+            <Button 
+              danger 
+              size="small"
+              icon={<CloseCircleOutlined />}
+              onClick={() => setModalRechazar({ visible: true, reserva: record })}
+            >
+              Rechazar
+            </Button>
+          )}
+          
+          {/* Mostrar estado si no es pendiente */}
+          {record.estado !== 'pendiente' && (
+            <Tag color={
+              record.estado === 'aprobada' ? 'green' :
+              record.estado === 'rechazada' ? 'red' :
+              record.estado === 'cancelada' ? 'default' :
+              'blue'
+            }>
+              {record.estado?.toUpperCase()}
+            </Tag>
+          )}
         </Space>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <h1 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 600 }}>
-        Gestión de Aprobación de Reservas
-      </h1>
+    <MainLayout>
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+          <h1 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 600 }}>
+            Gestión de Aprobación de Reservas
+          </h1>
 
-      {/* Estadísticas */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Pendientes"
-              value={estadisticas.pendiente}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Aprobadas"
-              value={estadisticas.aprobada}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Rechazadas"
-              value={estadisticas.rechazada}
-              prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Reservas Hoy"
-              value={estadisticas.reservasHoy}
-              prefix={<CalendarOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+          {/* Estadísticas */}
+          <Row gutter={16} style={{ marginBottom: '24px' }}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card>
+                <Statistic
+                  title="Pendientes"
+                  value={estadisticas.pendiente}
+                  prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card>
+                <Statistic
+                  title="Aprobadas"
+                  value={estadisticas.aprobada}
+                  prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card>
+                <Statistic
+                  title="Rechazadas"
+                  value={estadisticas.rechazada}
+                  prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card>
+                <Statistic
+                  title="Reservas Hoy"
+                  value={estadisticas.reservasHoy}
+                  prefix={<CalendarOutlined style={{ color: '#1890ff' }} />}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Filtros */}
-      <Card 
-        title={<span><FilterOutlined /> Filtros</span>}
-        style={{ marginBottom: '24px' }}
-        extra={
-          <Space>
-            <Button onClick={limpiarFiltros}>Limpiar</Button>
-            <Button type="primary" onClick={aplicarFiltros}>Aplicar</Button>
-          </Space>
-        }
-      >
-        <Row gutter={16}>
-          <Col xs={24} sm={12} md={8}>
-            <div style={{ marginBottom: '8px' }}>Fecha:</div>
-            <DatePicker
-              style={{ width: '100%' }}
-              format="YYYY-MM-DD"
-              placeholder="Seleccionar fecha"
-              value={filtros.fecha}
-              onChange={(date) => setFiltros({ ...filtros, fecha: date })}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <div style={{ marginBottom: '8px' }}>Cancha:</div>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Seleccionar cancha"
-              allowClear
-              value={filtros.canchaId}
-              onChange={(value) => setFiltros({ ...filtros, canchaId: value })}
-            >
-              <Option value={1}>Cancha 1</Option>
-              <Option value={2}>Cancha 2</Option>
-              <Option value={3}>Cancha 3</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <div style={{ marginBottom: '8px' }}>Resultados por página:</div>
-            <Select
-              style={{ width: '100%' }}
-              value={filtros.limit}
-              onChange={(value) => setFiltros({ ...filtros, limit: value, page: 1 })}
-            >
-              <Option value={10}>10</Option>
-              <Option value={20}>20</Option>
-              <Option value={30}>30</Option>
-              <Option value={50}>50</Option>
-            </Select>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Tabla de Reservas */}
-      <Card 
-        title={
-          <span>
-            <TeamOutlined /> Reservas Pendientes ({pagination.totalItems})
-          </span>
-        }
-        extra={
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={cargarReservasPendientes}
-            loading={loading}
+          {/* Filtros */}
+          <Card 
+            title={<span><FilterOutlined /> Filtros</span>}
+            style={{ marginBottom: '24px', backgroundColor: '#fafafa' }}
+            extra={
+              <Space>
+                <Button onClick={limpiarFiltros}>Limpiar</Button>
+                <Button type="primary" onClick={aplicarFiltros}>Aplicar</Button>
+              </Space>
+            }
           >
-            Actualizar
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={reservas}
-          rowKey="id"
-          loading={loading}
-          scroll={{ x: 1200 }}
-          pagination={{
-            current: pagination.currentPage,
-            pageSize: pagination.itemsPerPage,
-            total: pagination.totalItems,
-            showSizeChanger: false,
-            showTotal: (total) => `Total ${total} reservas`,
-          }}
-          onChange={handleTableChange}
-          locale={{
-            emptyText: <Empty description="No hay reservas pendientes" />
-          }}
-        />
-      </Card>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8}>
+                <div style={{ marginBottom: '8px' }}>Fecha:</div>
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format="DD/MM/YYYY"
+                  placeholder="Seleccionar fecha"
+                  value={filtros.fecha}
+                  onChange={(date) => setFiltros({ ...filtros, fecha: date })}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8}>
+                <div style={{ marginBottom: '8px' }}>Cancha:</div>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="Seleccionar cancha"
+                  allowClear
+                  value={filtros.canchaId}
+                  onChange={(value) => setFiltros({ ...filtros, canchaId: value })}
+                  loading={canchasDisponibles.length === 0}
+                >
+                  {canchasDisponibles.map(cancha => (
+                    <Option key={cancha.value} value={cancha.value}>
+                      {cancha.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={8}>
+                <div style={{ marginBottom: '8px' }}>Estado:</div>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="Seleccionar estado"
+                  value={filtros.estado}
+                  onChange={(value) => setFiltros({ ...filtros, estado: value })}
+                >
+                  <Option value="todas">Todos los estados</Option>
+                  <Option value="pendiente">Pendiente</Option>
+                  <Option value="aprobada">Aprobada</Option>
+                  <Option value="rechazada">Rechazada</Option>
+                  <Option value="cancelada">Cancelada</Option>
+                  <Option value="completada">Completada</Option>
+                </Select>
+              </Col>
+            </Row>
+          </Card>
 
-      {/* Modal Aprobar Reserva */}
-      <Modal
-        title={<span><CheckCircleOutlined style={{ color: '#52c41a' }} /> Aprobar Reserva</span>}
-        open={modalAprobar.visible}
-        onOk={handleAprobarReserva}
-        onCancel={() => {
-          setModalAprobar({ visible: false, reserva: null });
-          setObservacion('');
-        }}
-        confirmLoading={loadingAction}
-        okText="Aprobar"
-        cancelText="Cancelar"
-        okButtonProps={{ icon: <CheckCircleOutlined /> }}
-      >
-        {modalAprobar.reserva && (
-          <>
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="ID">{modalAprobar.reserva.id}</Descriptions.Item>
-              <Descriptions.Item label="Usuario">
-                {modalAprobar.reserva.usuario?.nombre}
-              </Descriptions.Item>
-              <Descriptions.Item label="Cancha">
-                {modalAprobar.reserva.cancha?.nombre}
-              </Descriptions.Item>
-              <Descriptions.Item label="Fecha">
-                {dayjs(modalAprobar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
-              </Descriptions.Item>
-              <Descriptions.Item label="Horario">
-                {modalAprobar.reserva.horaInicio} - {modalAprobar.reserva.horaFin}
-              </Descriptions.Item>
-            </Descriptions>
+          {/* Tabla de Reservas */}
+          <Card 
+            title={
+              <span>
+                <TeamOutlined /> Gestión de Reservas
+              </span>
+            }
+            extra={
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={() => cargarReservasPendientes(pagination.current, pagination.pageSize)}
+                loading={loading}
+              >
+                Actualizar
+              </Button>
+            }
+          >
+            <Table
+              columns={columns}
+              dataSource={reservas}
+              rowKey="id"
+              loading={loading}
+              scroll={{ x: 1200 }}
+              pagination={false}
+              locale={{
+                emptyText: <Empty description="No hay reservas pendientes" />
+              }}
+            />
 
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ marginBottom: '8px' }}>Observación (opcional):</div>
-              <TextArea
-                rows={3}
-                placeholder="Agregar observación sobre la aprobación..."
-                value={observacion}
-                onChange={(e) => setObservacion(e.target.value)}
-                maxLength={500}
-                showCount
-              />
-            </div>
-          </>
-        )}
-      </Modal>
-
-      {/* Modal Rechazar Reserva */}
-      <Modal
-        title={<span><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> Rechazar Reserva</span>}
-        open={modalRechazar.visible}
-        onOk={handleRechazarReserva}
-        onCancel={() => {
-          setModalRechazar({ visible: false, reserva: null });
-          setMotivoRechazo('');
-        }}
-        confirmLoading={loadingAction}
-        okText="Rechazar"
-        cancelText="Cancelar"
-        okButtonProps={{ danger: true, icon: <CloseCircleOutlined /> }}
-      >
-        {modalRechazar.reserva && (
-          <>
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="ID">{modalRechazar.reserva.id}</Descriptions.Item>
-              <Descriptions.Item label="Usuario">
-                {modalRechazar.reserva.usuario?.nombre}
-              </Descriptions.Item>
-              <Descriptions.Item label="Cancha">
-                {modalRechazar.reserva.cancha?.nombre}
-              </Descriptions.Item>
-              <Descriptions.Item label="Fecha">
-                {dayjs(modalRechazar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
-              </Descriptions.Item>
-              <Descriptions.Item label="Horario">
-                {modalRechazar.reserva.horaInicio} - {modalRechazar.reserva.horaFin}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ marginBottom: '8px' }}>
-                Motivo de Rechazo <span style={{ color: 'red' }}>*</span>:
-              </div>
-              <TextArea
-                rows={4}
-                placeholder="Describir el motivo del rechazo (mínimo 10 caracteres)..."
-                value={motivoRechazo}
-                onChange={(e) => setMotivoRechazo(e.target.value)}
-                maxLength={500}
-                showCount
-                status={motivoRechazo.length > 0 && motivoRechazo.length < 10 ? 'error' : ''}
-              />
-              {motivoRechazo.length > 0 && motivoRechazo.length < 10 && (
-                <div style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>
-                  El motivo debe tener al menos 10 caracteres
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </Modal>
-
-      {/* Modal Ver Detalle */}
-      <Modal
-        title={<span><EyeOutlined /> Detalle de Reserva</span>}
-        open={modalDetalle.visible}
-        onCancel={() => setModalDetalle({ visible: false, reserva: null })}
-        footer={[
-          <Button key="close" onClick={() => setModalDetalle({ visible: false, reserva: null })}>
-            Cerrar
-          </Button>
-        ]}
-        width={700}
-      >
-        {modalDetalle.reserva && (
-          <>
-            <Descriptions bordered column={2} size="small">
-              <Descriptions.Item label="ID" span={2}>{modalDetalle.reserva.id}</Descriptions.Item>
-              <Descriptions.Item label="Usuario" span={2}>
-                <div>
-                  <UserOutlined /> {modalDetalle.reserva.usuario?.nombre}
-                </div>
-                <div style={{ fontSize: '12px', color: '#888' }}>
-                  {modalDetalle.reserva.usuario?.email}
-                </div>
-              </Descriptions.Item>
-              <Descriptions.Item label="Cancha" span={2}>
-                {modalDetalle.reserva.cancha?.nombre}
-              </Descriptions.Item>
-              <Descriptions.Item label="Fecha Solicitud">
-                {dayjs(modalDetalle.reserva.fechaSolicitud).format('DD/MM/YYYY')}
-              </Descriptions.Item>
-              <Descriptions.Item label="Horario">
-                {modalDetalle.reserva.horaInicio} - {modalDetalle.reserva.horaFin}
-              </Descriptions.Item>
-              <Descriptions.Item label="Estado" span={2}>
-                <Tag color={
-                  modalDetalle.reserva.estado === 'pendiente' ? 'gold' :
-                  modalDetalle.reserva.estado === 'aprobada' ? 'green' :
-                  modalDetalle.reserva.estado === 'rechazada' ? 'red' : 'default'
-                }>
-                  {modalDetalle.reserva.estado?.toUpperCase()}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Participantes" span={2}>
-                <Badge count={modalDetalle.reserva.participantes?.length || 0} showZero />
-                {modalDetalle.reserva.participantes?.length > 0 && (
-                  <div style={{ marginTop: '8px' }}>
-                    {modalDetalle.reserva.participantes.map((p, idx) => (
-                      <Tag key={idx}>{p.usuario?.nombre || 'N/A'}</Tag>
-                    ))}
-                  </div>
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {modalDetalle.reserva.historial?.length > 0 && (
-              <div style={{ marginTop: '16px' }}>
-                <h4>Historial:</h4>
-                {modalDetalle.reserva.historial.map((h, idx) => (
-                  <Card key={idx} size="small" style={{ marginBottom: '8px' }}>
-                    <div><strong>Acción:</strong> {h.accion}</div>
-                    <div><strong>Observación:</strong> {h.observacion}</div>
-                    <div style={{ fontSize: '12px', color: '#888' }}>
-                      Por: {h.usuario?.nombre || 'Sistema'}
-                    </div>
-                  </Card>
-                ))}
+            {/* Paginación */}
+            {reservas.length > 0 && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  showTotal={(total) => `Total: ${total} reservas`}
+                  pageSizeOptions={['5', '10', '20', '50']}
+                />
               </div>
             )}
-          </>
-        )}
-      </Modal>
-    </div>
+          </Card>
+
+          {/* Modal Aprobar Reserva */}
+          <Modal
+            title={<span><CheckCircleOutlined style={{ color: '#52c41a' }} /> Aprobar Reserva</span>}
+            open={modalAprobar.visible}
+            onOk={handleAprobarReserva}
+            onCancel={() => {
+              setModalAprobar({ visible: false, reserva: null });
+              setObservacion('');
+            }}
+            confirmLoading={loadingAction}
+            okText="Aprobar"
+            cancelText="Cancelar"
+            okButtonProps={{ icon: <CheckCircleOutlined /> }}
+          >
+            {modalAprobar.reserva && (
+              <>
+                <Descriptions bordered column={1} size="small">
+                  <Descriptions.Item label="ID">{modalAprobar.reserva.id}</Descriptions.Item>
+                  <Descriptions.Item label="Usuario">
+                    {modalAprobar.reserva.usuario?.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Cancha">
+                    {modalAprobar.reserva.cancha?.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Fecha">
+                    {dayjs(modalAprobar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Horario">
+                    {modalAprobar.reserva.horaInicio} - {modalAprobar.reserva.horaFin}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginBottom: '8px' }}>Observación (opcional):</div>
+                  <TextArea
+                    rows={3}
+                    placeholder="Agregar observación sobre la aprobación..."
+                    value={observacion}
+                    onChange={(e) => setObservacion(e.target.value)}
+                    maxLength={500}
+                    showCount
+                  />
+                </div>
+              </>
+            )}
+          </Modal>
+
+          {/* Modal Rechazar Reserva */}
+          <Modal
+            title={<span><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> Rechazar Reserva</span>}
+            open={modalRechazar.visible}
+            onOk={handleRechazarReserva}
+            onCancel={() => {
+              setModalRechazar({ visible: false, reserva: null });
+              setMotivoRechazo('');
+            }}
+            confirmLoading={loadingAction}
+            okText="Rechazar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true, icon: <CloseCircleOutlined /> }}
+          >
+            {modalRechazar.reserva && (
+              <>
+                <Descriptions bordered column={1} size="small">
+                  <Descriptions.Item label="ID">{modalRechazar.reserva.id}</Descriptions.Item>
+                  <Descriptions.Item label="Usuario">
+                    {modalRechazar.reserva.usuario?.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Cancha">
+                    {modalRechazar.reserva.cancha?.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Fecha">
+                    {dayjs(modalRechazar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Horario">
+                    {modalRechazar.reserva.horaInicio} - {modalRechazar.reserva.horaFin}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    Motivo de Rechazo <span style={{ color: 'red' }}>*</span>:
+                  </div>
+                  <TextArea
+                    rows={4}
+                    placeholder="Describir el motivo del rechazo (mínimo 10 caracteres)..."
+                    value={motivoRechazo}
+                    onChange={(e) => setMotivoRechazo(e.target.value)}
+                    maxLength={500}
+                    showCount
+                    status={motivoRechazo.length > 0 && motivoRechazo.length < 10 ? 'error' : ''}
+                  />
+                  {motivoRechazo.length > 0 && motivoRechazo.length < 10 && (
+                    <div style={{ color: '#ff4d4f', fontSize: '12px', marginTop: '4px' }}>
+                      El motivo debe tener al menos 10 caracteres
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </Modal>
+
+          {/* Modal Ver Detalle */}
+          <ModalDetalleReserva
+            visible={modalDetalle.visible}
+            reserva={modalDetalle.reserva}
+            onClose={() => setModalDetalle({ visible: false, reserva: null })}
+          />
+        </div>
+      </ConfigProvider>
+    </MainLayout>
   );
 };
 

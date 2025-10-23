@@ -17,8 +17,11 @@ import {
   Popconfirm,
   Modal,
   Alert,
-  Tabs
+  Tabs,
+  Pagination,
+  ConfigProvider
 } from 'antd';
+import locale from 'antd/locale/es_ES';
 import {
   TeamOutlined,
   ArrowLeftOutlined,
@@ -27,13 +30,15 @@ import {
   DeleteOutlined,
   PlusOutlined,
   CalendarOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
 import { removerJugadorDeGrupo, asignarJugadorAGrupo, obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones, eliminarSesion } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -51,6 +56,13 @@ export default function GrupoMiembros() {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroCarrera, setFiltroCarrera] = useState('todos');
 
+  // Paginación miembros (frontend)
+  const [paginationMiembros, setPaginationMiembros] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+
   // Modal agregar miembros
   const [modalAgregar, setModalAgregar] = useState(false);
   const [jugadoresDisponibles, setJugadoresDisponibles] = useState([]);
@@ -62,13 +74,20 @@ export default function GrupoMiembros() {
   const [loadingSesiones, setLoadingSesiones] = useState(false);
   const [tabActiva, setTabActiva] = useState('miembros');
 
+  // Paginación entrenamientos (backend)
+  const [paginationEntrenamientos, setPaginationEntrenamientos] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+
   useEffect(() => {
     cargarDatos();
   }, [id]);
 
   useEffect(() => {
     if (tabActiva === 'entrenamientos') {
-      cargarSesiones();
+      cargarSesiones(1, 10);
     }
   }, [tabActiva, id]);
 
@@ -99,6 +118,7 @@ export default function GrupoMiembros() {
       
       setMiembros(miembrosData);
       setMiembrosFiltrados(miembrosData);
+      setPaginationMiembros(prev => ({ ...prev, total: miembrosData.length }));
     } catch (error) {
       console.error('Error cargando datos:', error);
       message.error('Error al cargar los datos del grupo');
@@ -132,6 +152,7 @@ export default function GrupoMiembros() {
     }
 
     setMiembrosFiltrados(resultado);
+    setPaginationMiembros(prev => ({ ...prev, total: resultado.length, current: 1 }));
   };
 
   const handleRemoverMiembro = async (jugadorId) => {
@@ -187,15 +208,33 @@ export default function GrupoMiembros() {
     }
   };
 
-  const cargarSesiones = async () => {
+  // 🎯 PAGINACIÓN DESDE BACKEND - Entrenamientos
+  const cargarSesiones = async (page = 1, limit = 10) => {
     try {
       setLoadingSesiones(true);
-      const data = await obtenerSesiones({ grupoId: parseInt(id), limit: 50 });
-      console.log('Sesiones cargadas:', data);
-      setSesiones(data.sesiones || []);
+      const data = await obtenerSesiones({ 
+        grupoId: parseInt(id), 
+        page, 
+        limit 
+      });
+      
+      console.log('📦 Sesiones cargadas:', data);
+      
+      // Extraer datos correctamente según estructura del backend
+      const sesionesData = data?.sesiones || data?.data?.sesiones || [];
+      const paginationData = data?.pagination || data?.data?.pagination || {};
+      
+      console.log('✅ Sesiones:', sesionesData.length);
+      console.log('✅ Paginación:', paginationData);
+      
+      setSesiones(sesionesData);
+      setPaginationEntrenamientos({
+        current: paginationData.currentPage || page,
+        pageSize: paginationData.itemsPerPage || limit,
+        total: paginationData.totalItems || 0
+      });
     } catch (error) {
-      console.error('Error cargando sesiones:', error);
-      console.log(error);
+      console.error('❌ Error cargando sesiones:', error);
       message.error('Error al cargar los entrenamientos');
     } finally {
       setLoadingSesiones(false);
@@ -206,7 +245,8 @@ export default function GrupoMiembros() {
     try {
       await eliminarSesion(sesionId);
       message.success('Entrenamiento eliminado correctamente');
-      cargarSesiones();
+      // Recargar la página actual
+      cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize);
     } catch (error) {
       console.error('Error eliminando sesión:', error);
       message.error(error.response?.data?.message || 'Error al eliminar entrenamiento');
@@ -217,8 +257,26 @@ export default function GrupoMiembros() {
     navigate(`/jugadores/${jugadorId}`);
   };
 
+  // Paginación frontend - Solo miembros
+  const handlePageChangeMiembros = (page, pageSize) => {
+    setPaginationMiembros({ ...paginationMiembros, current: page, pageSize });
+  };
+
+  // Paginación backend - Entrenamientos
+  const handlePageChangeEntrenamientos = (page, pageSize) => {
+    setPaginationEntrenamientos({ ...paginationEntrenamientos, current: page, pageSize });
+    cargarSesiones(page, pageSize); // ← Nueva petición al backend
+  };
+
   // Obtener carreras únicas para el filtro
   const carrerasUnicas = [...new Set(miembros.map(m => m.carrera))].filter(Boolean);
+
+  // Calcular miembros paginados (frontend)
+  const getMiembrosPaginados = () => {
+    const startIndex = (paginationMiembros.current - 1) * paginationMiembros.pageSize;
+    const endIndex = startIndex + paginationMiembros.pageSize;
+    return miembrosFiltrados.slice(startIndex, endIndex);
+  };
 
   // Columnas de entrenamientos
   const columnasEntrenamientos = [
@@ -299,6 +357,7 @@ export default function GrupoMiembros() {
     },
   ];
 
+  // Columnas de miembros
   const columns = [
     {
       title: 'Jugador',
@@ -393,26 +452,31 @@ export default function GrupoMiembros() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 120 }}>
-        <Spin size="large" />
-      </div>
+      <MainLayout>
+        <div style={{ textAlign: 'center', paddingTop: 120 }}>
+          <Spin size="large" />
+        </div>
+      </MainLayout>
     );
   }
 
   if (!grupo) {
     return (
-      <div style={{ padding: 24 }}>
-        <Empty description="Grupo no encontrado">
-          <Button type="primary" onClick={() => navigate('/grupos')}>
-            Volver a Grupos
-          </Button>
-        </Empty>
-      </div>
+      <MainLayout>
+        <div style={{ padding: 24 }}>
+          <Empty description="Grupo no encontrado">
+            <Button type="primary" onClick={() => navigate('/grupos')}>
+              Volver a Grupos
+            </Button>
+          </Empty>
+        </div>
+      </MainLayout>
     );
   }
 
   return (
     <MainLayout>
+    <ConfigProvider locale={locale}>
     <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Card>
         {/* Header */}
@@ -514,7 +578,7 @@ export default function GrupoMiembros() {
                   </Row>
 
                   {/* Filtros Miembros */}
-                  <Card style={{ marginBottom: 16 }}>
+                  <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
                     <Row gutter={[16, 16]}>
                       <Col xs={24} sm={12} md={8}>
                         <Input
@@ -523,7 +587,6 @@ export default function GrupoMiembros() {
                           value={busqueda}
                           onChange={(e) => setBusqueda(e.target.value)}
                           allowClear
-                          size="large"
                         />
                       </Col>
                       <Col xs={24} sm={12} md={8}>
@@ -531,7 +594,6 @@ export default function GrupoMiembros() {
                           value={filtroEstado}
                           onChange={setFiltroEstado}
                           style={{ width: '100%' }}
-                          size="large"
                           placeholder="Filtrar por estado"
                         >
                           <Option value="todos">Todos los estados</Option>
@@ -544,7 +606,6 @@ export default function GrupoMiembros() {
                           value={filtroCarrera}
                           onChange={setFiltroCarrera}
                           style={{ width: '100%' }}
-                          size="large"
                           placeholder="Filtrar por carrera"
                         >
                           <Option value="todos">Todas las carreras</Option>
@@ -559,29 +620,43 @@ export default function GrupoMiembros() {
                   </Card>
 
                   {/* Tabla Miembros */}
-                  <Table
-                    columns={columns}
-                    dataSource={miembrosFiltrados}
-                    rowKey="id"
-                    pagination={{
-                      pageSize: 10,
-                      showSizeChanger: true,
-                      showTotal: (total) => `Total: ${total} miembros`,
-                    }}
-                    locale={{
-                      emptyText: (
-                        <Empty description="No hay miembros en este grupo">
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleAgregarMiembro}
-                          >
-                            Agregar Miembros
-                          </Button>
-                        </Empty>
-                      ),
-                    }}
-                  />
+                  <Card>
+                    <Table
+                      columns={columns}
+                      dataSource={getMiembrosPaginados()}
+                      rowKey="id"
+                      pagination={false}
+                      locale={{
+                        emptyText: (
+                          <Empty description="No hay miembros en este grupo">
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={handleAgregarMiembro}
+                            >
+                              Agregar Miembros
+                            </Button>
+                          </Empty>
+                        ),
+                      }}
+                    />
+
+                    {/* Paginación externa */}
+                    {paginationMiembros.total > 0 && (
+                      <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                        <Pagination
+                          current={paginationMiembros.current}
+                          pageSize={paginationMiembros.pageSize}
+                          total={paginationMiembros.total}
+                          onChange={handlePageChangeMiembros}
+                          onShowSizeChange={handlePageChangeMiembros}
+                          showSizeChanger
+                          showTotal={(total) => `Total: ${total} miembros`}
+                          pageSizeOptions={['5', '10', '20', '50']}
+                        />
+                      </div>
+                    )}
+                  </Card>
                 </>
               ),
             },
@@ -590,36 +665,68 @@ export default function GrupoMiembros() {
               label: (
                 <span>
                   <CalendarOutlined />
-                  Entrenamientos ({sesiones.length})
+                  Entrenamientos ({paginationEntrenamientos.total})
                 </span>
               ),
               children: (
                 <>
+                  {/* Botón actualizar entrenamientos */}
+                  <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                    <Row gutter={16} align="middle">
+                      <Col flex="auto">
+                        
+                      </Col>
+                      <Col>
+                        <Button
+                          icon={<ReloadOutlined />}
+                          onClick={() => cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize)}
+                          loading={loadingSesiones}
+                        >
+                          Actualizar
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+
                   {/* Tabla Entrenamientos */}
-                  <Table
-                    columns={columnasEntrenamientos}
-                    dataSource={sesiones}
-                    rowKey="id"
-                    loading={loadingSesiones}
-                    pagination={{
-                      pageSize: 10,
-                      showSizeChanger: true,
-                      showTotal: (total) => `Total: ${total} entrenamientos`,
-                    }}
-                    locale={{
-                      emptyText: (
-                        <Empty description="No hay entrenamientos programados">
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
-                          >
-                            Crear Primer Entrenamiento
-                          </Button>
-                        </Empty>
-                      ),
-                    }}
-                  />
+                  <Card>
+                    <Table
+                      columns={columnasEntrenamientos}
+                      dataSource={sesiones}
+                      rowKey="id"
+                      loading={loadingSesiones}
+                      pagination={false}
+                      locale={{
+                        emptyText: (
+                          <Empty description="No hay entrenamientos programados">
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
+                            >
+                              Crear Primer Entrenamiento
+                            </Button>
+                          </Empty>
+                        ),
+                      }}
+                    />
+
+                    {/* Paginación externa */}
+                    {paginationEntrenamientos.total > 0 && (
+                      <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                        <Pagination
+                          current={paginationEntrenamientos.current}
+                          pageSize={paginationEntrenamientos.pageSize}
+                          total={paginationEntrenamientos.total}
+                          onChange={handlePageChangeEntrenamientos}
+                          onShowSizeChange={handlePageChangeEntrenamientos}
+                          showSizeChanger
+                          showTotal={(total) => `Total: ${total} entrenamientos`}
+                          pageSizeOptions={['5', '10', '20', '50']}
+                        />
+                      </div>
+                    )}
+                  </Card>
                 </>
               ),
             },
@@ -673,7 +780,6 @@ export default function GrupoMiembros() {
             onChange={setJugadorSeleccionado}
             placeholder="Buscar por nombre, RUT o carrera..."
             style={{ width: '100%', marginTop: 8 }}
-            size="large"
             showSearch
             filterOption={(input, option) => {
               const searchText = input.toLowerCase();
@@ -697,6 +803,7 @@ export default function GrupoMiembros() {
         </div>
       </Modal>
     </div>
+    </ConfigProvider>
     </MainLayout>
   );
 }

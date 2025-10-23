@@ -19,7 +19,6 @@ export async function crearJugadorController(req, res) {
 }
 export async function obtenerTodosJugadoresController(req, res) {
   try {
-    // 🧭 Extraemos todos los posibles filtros
     const { pagina = 1, limite = 10, estado, carrera, anioIngreso, q } = req.query;
 
     // ✅ Incluimos q en los filtros
