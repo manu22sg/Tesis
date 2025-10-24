@@ -5,7 +5,8 @@ import {
   getSesionPorId,
   patchActualizarSesion,
   deleteSesion,
-  postSesionesRecurrentes
+  postSesionesRecurrentes,
+  getSesionesPorEstudiante
 } from '../controllers/sesionController.js';
 
 import {
@@ -64,6 +65,12 @@ router.post('/recurrente',
   requireRole(['entrenador', 'superadmin']),
   validate(crearSesionesRecurrentesBody),
   postSesionesRecurrentes
+);
+
+router.get('/estudiante',
+  authenticateToken,
+  requireRole(['estudiante']),
+  getSesionesPorEstudiante
 );
 
 export default router;

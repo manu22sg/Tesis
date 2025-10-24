@@ -8,13 +8,14 @@ import {
   message,
   Empty,
   Tooltip,
-  Modal,
-  Select,
   Popconfirm,
   Typography,
   Pagination,
-  Spin
+  Spin,
+  ConfigProvider
 } from 'antd';
+import locale from 'antd/locale/es_ES';
+import 'dayjs/locale/es';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -33,7 +34,11 @@ import {
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
 import MainLayout from '../components/MainLayout.jsx';
+import EditarAsistenciaModal from '../components/EditarAsistenciaModal.jsx';
+
 const { Title, Text } = Typography;
+
+dayjs.locale('es');
 
 const ESTADOS = {
   presente: { label: 'Presente', color: 'success', icon: <CheckCircleOutlined /> },
@@ -146,101 +151,103 @@ export default function GestionarAsistencias() {
   };
 
   const columns = [
-    {
-      title: 'Jugador',
-      key: 'jugador',
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {record.jugador?.usuario?.nombre || 'Sin nombre'}
-          </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            RUT: {record.jugador?.usuario?.rut || 'Sin RUT'}
-          </Text>
+  {
+    title: 'Jugador',
+    key: 'jugador',
+    render: (_, record) => (
+      <div>
+        <div style={{ fontWeight: 500 }}>
+          {record.jugador?.usuario?.nombre || 'Sin nombre'}
         </div>
-      ),
-    },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      key: 'estado',
-      render: (estado) => {
-        const config = ESTADOS[estado] || ESTADOS.presente;
-        return (
-          <Tag color={config.color} icon={config.icon}>
-            {config.label}
-          </Tag>
-        );
-      },
-      align: 'center',
-      width: 130,
-    },
-    {
-      title: 'Origen',
-      dataIndex: 'origen',
-      key: 'origen',
-      render: (origen) => (
-        <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
-          {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          RUT: {record.jugador?.usuario?.rut || 'Sin RUT'}
+        </Text>
+      </div>
+    ),
+  },
+  {
+    title: 'Estado',
+    dataIndex: 'estado',
+    key: 'estado',
+    render: (estado) => {
+      const config = ESTADOS[estado] || ESTADOS.presente;
+      return (
+        <Tag color={config.color} icon={config.icon}>
+          {config.label}
         </Tag>
-      ),
-      align: 'center',
-      width: 120,
+      );
     },
-    {
-      title: 'Ubicación',
-      key: 'ubicacion',
-      render: (_, record) => (
-        record.latitud && record.longitud ? (
-          <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
-            <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+    align: 'center',
+    width: 130,
+  },
+  {
+    title: 'Origen',
+    dataIndex: 'origen',
+    key: 'origen',
+    render: (origen) => (
+      <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
+        {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+      </Tag>
+    ),
+    align: 'center',
+    width: 120,
+  },
+  {
+    title: 'Ubicación',
+    key: 'ubicacion',
+    render: (_, record) => (
+      record.latitud && record.longitud ? (
+        <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
+          <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+        </Tooltip>
+      ) : (
+        <Text type="secondary">—</Text>
+      )
+    ),
+    align: 'center',
+    width: 100,
+  },
+  {
+    title: 'Fecha Registro',
+    dataIndex: 'fechaRegistro',  // ✅ Cambiado de createdAt a fechaRegistro
+    key: 'fechaRegistro',  // ✅ Cambiado
+    render: (fecha) => {
+      if (!fecha) return <Text type="secondary">—</Text>;
+      return dayjs(fecha).format('DD/MM/YYYY HH:mm');
+    },
+    width: 150,
+  },
+  {
+    title: 'Acciones',
+    key: 'acciones',
+    render: (_, record) => (
+      <Space>
+        <Tooltip title="Editar estado">
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => abrirModalEditar(record)}
+          />
+        </Tooltip>
+        <Popconfirm
+          title="¿Eliminar esta asistencia?"
+          description="Esta acción no se puede deshacer"
+          onConfirm={() => handleEliminar(record.id)}
+          okText="Sí, eliminar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true }}
+        >
+          <Tooltip title="Eliminar">
+            <Button type="link" danger icon={<DeleteOutlined />} />
           </Tooltip>
-        ) : (
-          <Text type="secondary">—</Text>
-        )
-      ),
-      align: 'center',
-      width: 100,
-    },
-    {
-      title: 'Fecha Registro',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY HH:mm') : '—',
-      width: 150,
-    },
-    {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Editar estado">
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => abrirModalEditar(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="¿Eliminar esta asistencia?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleEliminar(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Eliminar">
-              <Button type="link" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-      align: 'center',
-      width: 120,
-    },
-  ];
+        </Popconfirm>
+      </Space>
+    ),
+    align: 'center',
+    width: 120,
+  },
+];
 
-  // Calcular estadísticas
   const estadisticas = {
     presente: asistencias.filter(a => a.estado === 'presente').length,
     ausente: asistencias.filter(a => a.estado === 'ausente').length,
@@ -249,177 +256,139 @@ export default function GestionarAsistencias() {
 
   if (loadingSesion) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 120 }}>
-        <Spin size="large" />
-      </div>
+      <MainLayout>
+        <div style={{ textAlign: 'center', paddingTop: 120 }}>
+          <Spin size="large" />
+        </div>
+      </MainLayout>
     );
   }
 
   return (
     <MainLayout>
-    <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      {/* Información de la sesión */}
-      {sesion && (
-        <Card style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <Title level={4} style={{ marginBottom: 4 }}>
-                {sesion.tipoSesion}
-              </Title>
-              <Space size="large" wrap>
-                <Text type="secondary">
-                  📅 {dayjs(sesion.fecha).format('DD/MM/YYYY')}
-                </Text>
-                <Text type="secondary">
-                  🕐 {sesion.horaInicio} - {sesion.horaFin}
-                </Text>
-                <Text type="secondary">
-                  🏟️ {sesion.cancha?.nombre || 'Sin cancha'}
-                </Text>
-                {sesion.grupo && (
-                  <Text type="secondary">
-                    👥 {sesion.grupo.nombre}
-                  </Text>
-                )}
-              </Space>
-            </div>
-            <Button onClick={() => navigate('/sesiones')}>
-              Volver a Sesiones
-            </Button>
-          </div>
-
-          {/* Estadísticas */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-            gap: 16, 
-            marginTop: 24,
-            padding: 16,
-            background: '#f5f5f5',
-            borderRadius: 8
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#52c41a' }}>
-                {estadisticas.presente}
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          {sesion && (
+            <Card style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <div>
+                  <Title level={4} style={{ marginBottom: 4 }}>
+                    {sesion.tipoSesion}
+                  </Title>
+                  <Space size="large" wrap>
+                    <Text type="secondary">
+                      📅 {dayjs(sesion.fecha).format('DD/MM/YYYY')}
+                    </Text>
+                    <Text type="secondary">
+                      🕐 {sesion.horaInicio} - {sesion.horaFin}
+                    </Text>
+                    <Text type="secondary">
+                      🏟️ {sesion.cancha?.nombre || 'Sin cancha'}
+                    </Text>
+                    {sesion.grupo && (
+                      <Text type="secondary">
+                        👥 {sesion.grupo.nombre}
+                      </Text>
+                    )}
+                  </Space>
+                </div>
+                <Button onClick={() => navigate('/sesiones')}>
+                  Volver a Sesiones
+                </Button>
               </div>
-              <Text type="secondary">Presentes</Text>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ff4d4f' }}>
-                {estadisticas.ausente}
-              </div>
-              <Text type="secondary">Ausentes</Text>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#faad14' }}>
-                {estadisticas.justificado}
-              </div>
-              <Text type="secondary">Justificados</Text>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}>
-                {pagination.total}
-              </div>
-              <Text type="secondary">Total</Text>
-            </div>
-          </div>
-        </Card>
-      )}
 
-      {/* Tabla de asistencias */}
-      <Card
-        title="Lista de Asistencias"
-        extra={
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => cargarAsistencias(pagination.current, pagination.pageSize)}
-          >
-            Actualizar
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={asistencias}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          locale={{
-            emptyText: (
-              <Empty description="No hay asistencias registradas para esta sesión">
-                <Text type="secondary">
-                  Los jugadores deben marcar su asistencia usando el token activo
-                </Text>
-              </Empty>
-            ),
-          }}
-        />
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gap: 16, 
+                marginTop: 24,
+                padding: 16,
+                background: '#f5f5f5',
+                borderRadius: 8
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#52c41a' }}>
+                    {estadisticas.presente}
+                  </div>
+                  <Text type="secondary">Presentes</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ff4d4f' }}>
+                    {estadisticas.ausente}
+                  </div>
+                  <Text type="secondary">Ausentes</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#faad14' }}>
+                    {estadisticas.justificado}
+                  </div>
+                  <Text type="secondary">Justificados</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}>
+                    {pagination.total}
+                  </div>
+                  <Text type="secondary">Total</Text>
+                </div>
+              </div>
+            </Card>
+          )}
 
-        {asistencias.length > 0 && (
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Pagination
-              current={pagination.current}
-              pageSize={pagination.pageSize}
-              total={pagination.total}
-              onChange={handlePageChange}
-              onShowSizeChange={handlePageChange}
-              showSizeChanger
-              showTotal={(total) => `Total: ${total} asistencias`}
-              pageSizeOptions={['5', '10', '20', '50']}
-            />
-          </div>
-        )}
-      </Card>
-
-      {/* Modal Editar Estado */}
-      <Modal
-        title="Editar Estado de Asistencia"
-        open={editModal}
-        onCancel={() => setEditModal(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setEditModal(false)}>
-            Cancelar
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={loadingEdit}
-            onClick={handleActualizar}
-          >
-            Actualizar
-          </Button>,
-        ]}
-      >
-        {asistenciaEdit && (
-          <div>
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>Jugador: </Text>
-              <Text>{asistenciaEdit.jugador?.usuario?.nombre || 'Sin nombre'}</Text>
-            </div>
-            
-            <div>
-              <Text strong>Nuevo Estado:</Text>
-              <Select
-                value={nuevoEstado}
-                onChange={setNuevoEstado}
-                style={{ width: '100%', marginTop: 8 }}
-                size="large"
+          <Card
+            title="Lista de Asistencias"
+            extra={
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => cargarAsistencias(pagination.current, pagination.pageSize)}
               >
-                <Select.Option value="presente">
-                  <Tag color="success" icon={<CheckCircleOutlined />}>Presente</Tag>
-                </Select.Option>
-                <Select.Option value="ausente">
-                  <Tag color="error" icon={<CloseCircleOutlined />}>Ausente</Tag>
-                </Select.Option>
-                <Select.Option value="justificado">
-                  <Tag color="warning" icon={<QuestionCircleOutlined />}>Justificado</Tag>
-                </Select.Option>
-              </Select>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
+                Actualizar
+              </Button>
+            }
+          >
+            <Table
+              columns={columns}
+              dataSource={asistencias}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              locale={{
+                emptyText: (
+                  <Empty description="No hay asistencias registradas para esta sesión">
+                    <Text type="secondary">
+                      Los jugadores deben marcar su asistencia usando el token activo
+                    </Text>
+                  </Empty>
+                ),
+              }}
+            />
+
+            {asistencias.length > 0 && (
+              <div style={{ textAlign: 'center', marginTop: 24 }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  showTotal={(total) => `Total: ${total} asistencias`}
+                  pageSizeOptions={['5', '10', '20', '50']}
+                />
+              </div>
+            )}
+          </Card>
+
+          <EditarAsistenciaModal
+            open={editModal}
+            asistencia={asistenciaEdit}
+            nuevoEstado={nuevoEstado}
+            onEstadoChange={setNuevoEstado}
+            loading={loadingEdit}
+            onClose={() => setEditModal(false)}
+            onConfirm={handleActualizar}
+          />
+        </div>
+      </ConfigProvider>
     </MainLayout>
   );
 }

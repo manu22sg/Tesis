@@ -70,10 +70,15 @@ export async function buscarUsuarios(termino, opciones = {}) {
       params.roles = JSON.stringify(opciones.roles);
     }
     
+    // 🔥 Agregar excluirJugadores si es true
+    if (opciones.excluirJugadores === true) {
+      params.excluirJugadores = 'true';
+    }
+    
     const { data } = await api.get("/auth/buscar-usuarios", { params });
     return data.data || [];
   } catch (error) {
-    console.error(" Error buscando usuarios:", error);
+    console.error("❌ Error buscando usuarios:", error);
     return [];
   }
 }

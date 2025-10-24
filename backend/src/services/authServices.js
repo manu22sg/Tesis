@@ -182,14 +182,15 @@ export async function loginService(loginData) {
 export async function buscarUsuariosPorTermino(termino, opciones = {}) {
   try {
     const {
-      roles = null, // null = no filtrar por roles, array = filtrar roles específicos
+      roles = null,
       estado = 'activo',
-      limite = 20
+      limite = 20,
+      excluirJugadores = false
     } = opciones;
-    
+     
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
     const terminoLimpio = termino.trim();
-    
+     
     const queryBuilder = userRepository
       .createQueryBuilder('usuario')
       .select(['usuario.id', 'usuario.rut', 'usuario.nombre', 'usuario.email', 'usuario.rol'])
@@ -198,7 +199,7 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
         terminoNombre: `%${terminoLimpio}%`
       })
       .andWhere('usuario.estado = :estado', { estado });
-    
+     
     // Solo filtrar por roles si se especifica explícitamente
     if (roles !== null && roles.length > 0) {
       if (roles.length === 1) {
@@ -207,12 +208,24 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
         queryBuilder.andWhere('usuario.rol IN (:...roles)', { roles });
       }
     }
-    
+ 
+    // Excluir usuarios que ya son jugadores
+    if (excluirJugadores) {
+      queryBuilder.andWhere(`
+        usuario.id NOT IN (
+          SELECT "usuarioId" 
+          FROM jugadores 
+          WHERE "usuarioId" IS NOT NULL
+        )
+      `);
+    }
+     
     const users = await queryBuilder
       .orderBy('usuario.nombre', 'ASC')
       .limit(limite)
       .getMany();
-    
+     
+     
     return [users, null];
   } catch (error) {
     console.error('Error buscando usuarios por término:', error);

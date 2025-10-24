@@ -4,6 +4,9 @@ import {
   Modal, Spin, Popconfirm, Input, DatePicker, Pagination, ConfigProvider, 
   TimePicker, InputNumber, Typography, Divider, Alert
 } from 'antd';
+import DetalleSesionModal from '../components/DetalleSesionModal.jsx';
+import TokenSesionModal from '../components/TokenSesionModal.jsx';
+
 import {
   CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined,
   EyeOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, 
@@ -51,7 +54,6 @@ export default function Sesiones() {
   const [sesionDetalle, setSesionDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  // 🔐 Estados para el modal de token
   const [tokenModal, setTokenModal] = useState(false);
   const [sesionToken, setSesionToken] = useState(null);
   const [loadingToken, setLoadingToken] = useState(false);
@@ -102,7 +104,7 @@ export default function Sesiones() {
 
   useEffect(() => {
     cargarSesiones(1, pagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [debouncedQ, filtroFecha, filtroHorario]);
 
   const verDetalle = async (sesionId) => {
@@ -380,7 +382,7 @@ export default function Sesiones() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               prefix={<SearchOutlined />}
-              placeholder="Filtrar por búsqueda"
+              placeholder="Buscar por cancha, grupo, tipo..."
               style={{ width: 280 }}
             />
             <DatePicker
@@ -467,150 +469,26 @@ export default function Sesiones() {
         </Card>
 
         {/* Modal Detalle */}
-        <Modal
-          title="Detalle de la Sesión"
-          open={detalleModal}
-          onCancel={() => { setDetalleModal(false); setSesionDetalle(null); }}
-          footer={[<Button key="close" onClick={() => setDetalleModal(false)}>Cerrar</Button>]}
-          width={600}
-        >
-          {loadingDetalle ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin size="large" /></div>
-          ) : sesionDetalle ? (
-            <div>
-              <h3>Información General</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div><strong>Fecha:</strong> {dayjs(sesionDetalle.fecha).format('DD/MM/YYYY')}</div>
-                <div><strong>Horario:</strong> {sesionDetalle.horaInicio} - {sesionDetalle.horaFin}</div>
-                <div><strong>Cancha:</strong> {sesionDetalle.cancha?.nombre || 'Sin cancha'}</div>
-                <div><strong>Grupo:</strong> {sesionDetalle.grupo?.nombre || 'Sin grupo'}</div>
-                <div><strong>Tipo:</strong> <Tag color={colorForTipo(sesionDetalle.tipoSesion)}>{sesionDetalle.tipoSesion}</Tag></div>
-              </div>
-              {sesionDetalle.objetivos && (
-                <div style={{ marginTop: 12 }}>
-                  <strong>Objetivos:</strong>
-                  <p style={{ marginTop: 4, color: '#666' }}>{sesionDetalle.objetivos}</p>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </Modal>
+        <DetalleSesionModal
+  open={detalleModal}
+  loading={loadingDetalle}
+  sesion={sesionDetalle}
+  onClose={() => { setDetalleModal(false); setSesionDetalle(null); }}
+/>
 
-        {/* 🔐 Modal de Token */}
-        <Modal
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <KeyOutlined />
-              <span>Gestionar Token de Asistencia</span>
-            </div>
-          }
-          open={tokenModal}
-          onCancel={() => { setTokenModal(false); setSesionToken(null); }}
-          footer={null}
-          width={550}
-        >
-          {sesionToken && (
-            <div>
-              <Alert
-                message="Token de Asistencia"
-                description="Los jugadores usarán este código para registrar su asistencia a la sesión"
-                type="info"
-                showIcon
-                style={{ marginBottom: 20 }}
-              />
-
-              {sesionToken.tokenActivo ? (
-                <>
-                  <div className="token-display">
-                    <div style={{ fontSize: 14, opacity: 0.9 }}>Código de Asistencia</div>
-                    <div className="token-code">{sesionToken.token}</div>
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>
-                      Expira: {dayjs(sesionToken.tokenExpiracion).format('DD/MM/YYYY HH:mm')}
-                    </div>
-                  </div>
-
-                  <Space style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}>
-                    <Button 
-                      icon={<CopyOutlined />} 
-                      onClick={copiarToken}
-                      size="large"
-                    >
-                      Copiar Código
-                    </Button>
-                  </Space>
-
-                  <Divider />
-
-                  <Popconfirm
-                    title="¿Desactivar token?"
-                    description="Los jugadores ya no podrán registrar asistencia con este código"
-                    onConfirm={handleDesactivarToken}
-                    okText="Sí, desactivar"
-                    cancelText="Cancelar"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button 
-                      danger 
-                      block 
-                      icon={<LockOutlined />}
-                      loading={loadingToken}
-                    >
-                      Desactivar Token
-                    </Button>
-                  </Popconfirm>
-                </>
-              ) : (
-                <>
-                  <div style={{ marginBottom: 20 }}>
-                    <Text strong>Configuración del Token</Text>
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ marginBottom: 12 }}>
-                        <Text>Duración (minutos):</Text>
-                        <InputNumber
-                          min={1}
-                          max={240}
-                          value={ttlMin}
-                          onChange={setTtlMin}
-                          style={{ width: '100%', marginTop: 8 }}
-                          placeholder="Minutos de validez"
-                        />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          El token expirará en {ttlMin} minutos
-                        </Text>
-                      </div>
-
-                      <div>
-                        <Text>Longitud del código:</Text>
-                        <InputNumber
-                          min={4}
-                          max={20}
-                          value={tokenLength}
-                          onChange={setTokenLength}
-                          style={{ width: '100%', marginTop: 8 }}
-                          placeholder="Caracteres del código"
-                        />
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          Código de {tokenLength} caracteres
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="primary"
-                    block
-                    icon={<UnlockOutlined />}
-                    onClick={handleActivarToken}
-                    loading={loadingToken}
-                    size="large"
-                  >
-                    Generar Token
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-        </Modal>
+        {/* Modal de Token */}
+        <TokenSesionModal
+  open={tokenModal}
+  sesion={sesionToken}
+  ttlMin={ttlMin}
+  setTtlMin={setTtlMin}
+  tokenLength={tokenLength}
+  setTokenLength={setTokenLength}
+  loadingToken={loadingToken}
+  onClose={() => { setTokenModal(false); setSesionToken(null); }}
+  onActivar={handleActivarToken}
+  onDesactivar={handleDesactivarToken}
+/>
       </div>
     </ConfigProvider>
     </MainLayout>

@@ -1,34 +1,31 @@
 import { Router } from "express";
 import { validarBody, validarParams, validarQuery, idParamSchema } from "../validations/commonValidations.js";
-import { authenticateToken, attachJugadorId, requireRole } from "../middleware/authMiddleware.js";
+import { authenticateToken, requireRole } from "../middleware/authMiddleware.js";
 import {
-  marcarAsistenciaBodySchema,
   actualizarAsistenciaBodySchema,
-  paginacionAsistenciasSchema
+  paginacionAsistenciasSchema,
+  marcarAsistenciaPorTokenBodySchema 
 } from "../validations/asistenciaValidations.js";
 import {
-  marcarAsistenciaController,
   actualizarAsistenciaController,
   eliminarAsistenciaController,
-  listarAsistenciasDeSesionController
+  listarAsistenciasDeSesionController,
+  postMarcarAsistenciaPorToken
 } from "../controllers/asistenciaController.js";
 
 const router = Router();
 
-// Jugador marca asistencia usando token de la sesión
 router.post(
-  "/:id",
+  '/marcar-asistencia',
   authenticateToken,
-  requireRole("estudiante"),
-  attachJugadorId,
-  validarParams(idParamSchema),
-  validarBody(marcarAsistenciaBodySchema),
-  marcarAsistenciaController
+  requireRole('estudiante'),
+  validarBody(marcarAsistenciaPorTokenBodySchema),
+  postMarcarAsistenciaPorToken
 );
 
 // Entrenador edita asistencia
 router.patch(
-  "/:id", // :id es el ID de la asistencia
+  "/:id",
   authenticateToken,
   requireRole("entrenador"),
   validarParams(idParamSchema),
@@ -38,7 +35,7 @@ router.patch(
 
 // Entrenador elimina asistencia
 router.delete(
-  "/:id", // :id es el ID de la asistencia
+  "/:id", 
   authenticateToken,
   requireRole("entrenador"),
   validarParams(idParamSchema),

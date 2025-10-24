@@ -1,28 +1,42 @@
 import { AppDataSource } from "../config/config.db.js";
 import AsistenciaSchema, { ESTADOS_ASISTENCIA } from "../entity/Asistencia.js";
 import SesionEntrenamientoSchema from "../entity/SesionEntrenamiento.js";
+import { parseDateLocal } from '../utils/dateLocal.js';
 
-export async function marcarAsistencia({ sesionId, jugadorId, token, estado, latitud, longitud, origen }) {
+
+export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latitud, longitud, origen }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    // 1) Validar sesión y token
-    const sesion = await sesionRepo.findOne({ where: { id: sesionId } });
-    if (!sesion) return [null, "Sesión no encontrada", 404];
+    // 🔍 Buscar sesión activa con este token
+    const sesiones = await sesionRepo.find({ where: { token, tokenActivo: true } });
+
+    if (sesiones.length === 0) return [null, "Token inválido o sesión no activa", 404];
+    if (sesiones.length > 1) return [null, "Conflicto: más de una sesión usa este token. Contacte al entrenador.", 409];
+
+    const sesion = sesiones[0];
     const now = new Date();
 
-    if (!sesion.tokenActivo || !sesion.token || sesion.token !== token) {
-      return [null, "Token inválido o inactivo", 401];
-    }
+    // ✅ Validar expiración del token
     if (sesion.tokenExpiracion && now > new Date(sesion.tokenExpiracion)) {
       return [null, "Token expirado", 401];
     }
 
-    // 2) Alta asistencia (única por jugador/sesión). Deja estado por defecto 'presente'
-    const nuevo = asistenciaRepo.create({
+    // ✅ VALIDAR: No marcar asistencia para sesiones que ya terminaron
+    const fechaSesion = parseDateLocal(sesion.fecha);
+    const [horaFin, minFin] = sesion.horaFin.split(':').map(Number);
+    const finSesion = new Date(fechaSesion);
+    finSesion.setHours(horaFin, minFin, 0, 0);
+
+    if (finSesion < now) {
+      return [null, "No se puede marcar asistencia para una sesión que ya finalizó", 400];
+    }
+
+    // 🔒 Crear registro de asistencia
+    const nuevaAsistencia = asistenciaRepo.create({
       jugadorId,
-      sesionId,
+      sesionId: sesion.id,
       estado: estado && ESTADOS_ASISTENCIA.includes(estado) ? estado : "presente",
       latitud,
       longitud,
@@ -30,21 +44,20 @@ export async function marcarAsistencia({ sesionId, jugadorId, token, estado, lat
     });
 
     try {
-      const guardado = await asistenciaRepo.save(nuevo);
-      // opcional: traer con relaciones 
+      const guardado = await asistenciaRepo.save(nuevaAsistencia);
       return [guardado, null, 201];
     } catch (e) {
-      // UNIQUE violation (jugadorId, sesionId)
       if (e?.code === "23505" || e?.code === "ER_DUP_ENTRY") {
-        return [null, "La asistencia ya fue registrada para este jugador en esta sesión", 409];
+        return [null, "Ya registraste asistencia para esta sesión", 409];
       }
       throw e;
     }
   } catch (error) {
-    console.error("Error marcando asistencia:", error);
+    console.error("Error marcando asistencia por token:", error);
     return [null, "Error al marcar asistencia", 500];
   }
 }
+
 
 export async function actualizarAsistencia(id, { estado, latitud, longitud, origen }) {
   try {
@@ -52,10 +65,18 @@ export async function actualizarAsistencia(id, { estado, latitud, longitud, orig
     const asistencia = await asistenciaRepo.findOne({ where: { id } });
     if (!asistencia) return [null, "Asistencia no encontrada", 404];
 
-    asistencia.estado = estado;
+    // ✅ Validar estado si se proporciona
+    if (estado !== undefined) {
+      if (!ESTADOS_ASISTENCIA.includes(estado)) {
+        return [null, `Estado inválido. Debe ser uno de: ${ESTADOS_ASISTENCIA.join(', ')}`, 400];
+      }
+      asistencia.estado = estado;
+    }
+
+    // Actualizar otros campos opcionales
     if (latitud !== undefined) asistencia.latitud = latitud;
     if (longitud !== undefined) asistencia.longitud = longitud;
-    asistencia.origen = origen || "entrenador";
+    if (origen !== undefined) asistencia.origen = origen;
 
     const actualizado = await asistenciaRepo.save(asistencia);
     return [actualizado, null, 200];
@@ -93,7 +114,7 @@ export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite =
     if (estado) qb.andWhere("a.estado = :estado", { estado });
 
     const [items, total] = await qb
-      .orderBy("a.id", "ASC")
+      .orderBy("a.fechaRegistro", "DESC")  
       .skip(skip)
       .take(limite)
       .getManyAndCount();

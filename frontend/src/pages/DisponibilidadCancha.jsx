@@ -204,56 +204,55 @@ export default function DisponibilidadCancha() {
             )}
           </div>
 
-          <Card 
-            type="inner" 
-            title={
-              <span>
-                <FilterOutlined style={{ marginRight: 8 }} />
-                Filtros de búsqueda
-              </span>
-            }
-            style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
-          >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <Input
-                  placeholder="Buscar por nombre de cancha"
-                  prefix={<SearchOutlined />}
-                  value={filtroNombre}
-                  onChange={(e) => setFiltroNombre(e.target.value)}
-                  style={{ flex: '1 1 300px', minWidth: 200 }}
-                  allowClear
-                />
-                
-                <Select
-                  placeholder="Filtrar por capacidad"
-                  value={filtroCapacidad}
-                  onChange={setFiltroCapacidad}
-                  style={{ flex: '1 1 250px', minWidth: 200 }}
-                  options={opcionesCapacidad}
-                  allowClear
-                />
-              </div>
+          <Card
+  type="inner"
+  title={
+    <span>
+      <FilterOutlined style={{ marginRight: 8 }} />
+      Filtros de búsqueda
+    </span>
+  }
+  style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+>
+  <Space
+    direction="horizontal"
+    wrap
+    size="middle"
+    style={{
+      width: '100%',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+    }}
+  >
+    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <Input
+        placeholder="Nombre de cancha"
+        prefix={<SearchOutlined />}
+        value={filtroNombre}
+        onChange={(e) => setFiltroNombre(e.target.value)}
+        allowClear
+        style={{ width: 220 }}
+      />
 
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                <Button onClick={limpiarFiltros}>
-                  Limpiar filtros
-                </Button>
-              </div>
+      <Select
+        placeholder="Capacidad"
+        value={filtroCapacidad}
+        onChange={setFiltroCapacidad}
+        allowClear
+        options={[
+          { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
+          { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
+          { label: 'Grande (>15 jugadores)', value: 'grande' },
+        ]}
+        style={{ width: 180 }}
+      />
+    </div>
 
-              {filtrosActivos && (
-                <div style={{ 
-                  padding: '8px 12px', 
-                  backgroundColor: '#e6f7ff', 
-                  borderRadius: 6,
-                  fontSize: 13,
-                  color: '#0958d9'
-                }}>
-                  📊 Mostrando {disponibilidadFiltrada.length} de {disponibilidad.length} canchas
-                </div>
-              )}
-            </Space>
-          </Card>
+  </Space>
+
+  
+</Card>
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>

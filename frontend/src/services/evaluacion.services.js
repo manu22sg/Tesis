@@ -93,9 +93,12 @@ export const obtenerMisEvaluaciones = async (filtros = {}) => {
 
     const response = await api.get('/evaluaciones/mias', { params });
     
+    // La respuesta viene así: { success: true, data: { evaluaciones: [...], pagination: {...} } }
+    const apiData = response.data.data || {};
+    
     return {
-      evaluaciones: response.data.data?.evaluaciones || [],
-      pagination: response.data.data?.pagination || {}
+      evaluaciones: apiData.evaluaciones || [],
+      pagination: apiData.pagination || {}
     };
   } catch (error) {
     throw error.response?.data || error;

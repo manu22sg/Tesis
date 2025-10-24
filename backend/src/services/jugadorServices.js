@@ -4,7 +4,6 @@ import JugadorGrupoSchema from "../entity/JugadorGrupo.js";
 import UsuarioSchema from "../entity/Usuario.js";
 import GrupoJugadorSchema from "../entity/GrupoJugador.js";
 
-// ---------- Services
 
 
 export async function crearJugador(datosJugador) {

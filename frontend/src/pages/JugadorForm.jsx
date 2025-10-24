@@ -8,11 +8,14 @@ import {
   message,
   Spin,
   AutoComplete,
-  DatePicker
+  DatePicker,
+  ConfigProvider
 } from 'antd';
 import { UserOutlined, SaveOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+import locale from 'antd/locale/es_ES';
 import {
   crearJugador,
   obtenerJugadorPorId,
@@ -20,7 +23,11 @@ import {
 } from '../services/jugador.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
+
 const { Option } = Select;
+
+// Configurar dayjs en español
+dayjs.locale('es');
 
 export default function JugadorForm() {
   const [form] = Form.useForm();
@@ -91,23 +98,27 @@ export default function JugadorForm() {
 
       setBuscandoSugerencias(true);
       try {
-        const resultados = await buscarUsuarios(valorBusqueda, { roles: ['estudiante'] });
-        console.log('✅ Resultados de búsqueda:', resultados);
+       
+        const resultados = await buscarUsuarios(valorBusqueda, { 
+          roles: ['estudiante'],
+          excluirJugadores: true 
+        });
+        //console.log(' Resultados de búsqueda:', resultados);
         
         // Formatear opciones para el AutoComplete
         const opcionesFormateadas = resultados.map(usuario => {
-          console.log('🔄 Formateando usuario:', usuario);
+          //console.log(' Formateando usuario:', usuario);
           return {
             value: usuario.rut,
             label: `${usuario.rut} - ${usuario.nombre}`,
             rut: usuario.rut,
             nombre: usuario.nombre,
             email: usuario.email,
-            usuarioId: usuario.id // Asegurarse de que venga el ID
+            usuarioId: usuario.id
           };
         });
         
-        console.log('📋 Opciones formateadas:', opcionesFormateadas);
+      //  console.log(' Opciones formateadas:', opcionesFormateadas);
         setOpcionesAutoComplete(opcionesFormateadas);
       } catch (error) {
         console.error('Error buscando sugerencias:', error);
@@ -122,27 +133,29 @@ export default function JugadorForm() {
 
   // Seleccionar usuario
   const seleccionarUsuario = (rut, option) => {
-    console.log('🎯 Seleccionando usuario:', { rut, option });
+  console.log('🎯 Seleccionando usuario:', { rut, option });
+  
+  if (option) {
+    const usuario = {
+      id: option.usuarioId,
+      rut: option.rut,
+      nombre: option.nombre,
+      email: option.email
+    };
     
-    if (option) {
-      const usuario = {
-        id: option.usuarioId,
-        rut: option.rut,
-        nombre: option.nombre,
-        email: option.email
-      };
-      
-      console.log('👤 Usuario a guardar:', usuario);
-      setUsuarioSeleccionado(usuario);
-      
-      // Establecer el ID del usuario en el formulario
-      form.setFieldsValue({ usuarioId: option.usuarioId });
-      console.log('📝 usuarioId establecido en el form:', option.usuarioId);
-      
-      // Actualizar el valor mostrado
-      setValorBusqueda(`${option.rut} - ${option.nombre}`);
-    }
-  };
+    setUsuarioSeleccionado(usuario);
+    
+    // Establecer el ID del usuario en el formulario
+    form.setFieldsValue({ usuarioId: option.usuarioId });
+    
+    // ✅ Limpiar el campo de búsqueda después de seleccionar
+    setValorBusqueda('');
+    
+    // ✅ Limpiar las opciones del autocomplete
+    setOpcionesAutoComplete([]);
+  }
+};
+
 
   const handleSubmit = async (values) => {
     // Validar que se haya seleccionado un usuario en creación
@@ -193,6 +206,7 @@ export default function JugadorForm() {
 
   return (
     <MainLayout>
+    <ConfigProvider locale={locale}>
     <div style={{ 
       minHeight: '100vh', 
       padding: '2rem', 
@@ -216,65 +230,81 @@ export default function JugadorForm() {
           }}
         >
           {/* Usuario con AutoComplete (solo en creación) */}
-          {!isEdit ? (
-            <>
-              <Form.Item
-                name="usuarioId"
-                label="Usuario"
-                rules={[{ 
-                  required: true, 
-                  message: 'Selecciona un usuario' 
-                }]}
-                validateTrigger="onSubmit"
-              >
-                <AutoComplete
-                  value={valorBusqueda}
-                  options={opcionesAutoComplete}
-                  onSearch={setValorBusqueda}
-                  onSelect={(value, option) => seleccionarUsuario(value, option)}
-                  style={{ width: '100%' }}
-                  notFoundContent={
-                    buscandoSugerencias ? 'Buscando...' :
-                    valorBusqueda.length < 2 ? 'Escribe al menos 2 caracteres para buscar' :
-                    'No se encontraron usuarios'
-                  }
-                >
-                  <Input
-                    placeholder="Buscar por nombre o RUT"
-                    allowClear
-                    onClear={() => {
-                      setUsuarioSeleccionado(null);
-                      form.setFieldsValue({ usuarioId: undefined });
-                    }}
-                  />
-                </AutoComplete>
-              </Form.Item>
+         {!isEdit ? (
+  <>
+    {/* Mostrar usuario seleccionado PRIMERO */}
+    {usuarioSeleccionado && (
+      <div style={{
+        marginBottom: 16,
+        padding: 12,
+        background: '#f6ffed',
+        border: '1px solid #b7eb8f',
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+          <div>
+            <div style={{ fontWeight: 'bold' }}>
+              {usuarioSeleccionado.nombre}
+            </div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {usuarioSeleccionado.rut}
+              {usuarioSeleccionado.email && ` • ${usuarioSeleccionado.email}`}
+            </div>
+          </div>
+        </div>
+        {/* Botón para cambiar de usuario */}
+        <Button 
+          type="link" 
+          size="small"
+          onClick={() => {
+            setUsuarioSeleccionado(null);
+            form.setFieldsValue({ usuarioId: undefined });
+            setValorBusqueda('');
+          }}
+        >
+          Cambiar
+        </Button>
+      </div>
+    )}
 
-              {/* Mostrar usuario seleccionado */}
-              {usuarioSeleccionado && (
-                <div style={{
-                  marginBottom: 16,
-                  padding: 12,
-                  background: '#f6ffed',
-                  border: '1px solid #b7eb8f',
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>
-                      {usuarioSeleccionado.nombre}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#666' }}>
-                      {usuarioSeleccionado.rut}
-                      {usuarioSeleccionado.email && ` • ${usuarioSeleccionado.email}`}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+    {/* Campo de búsqueda - solo visible si NO hay usuario seleccionado */}
+    {!usuarioSeleccionado && (
+      <Form.Item
+        name="usuarioId"
+        label="Usuario"
+        rules={[{ 
+          required: true, 
+          message: 'Selecciona un usuario' 
+        }]}
+        validateTrigger="onSubmit"
+      >
+        <AutoComplete
+          value={valorBusqueda}
+          options={opcionesAutoComplete}
+          onSearch={setValorBusqueda}
+          onSelect={(value, option) => seleccionarUsuario(value, option)}
+          style={{ width: '100%' }}
+          placeholder="Buscar por nombre o RUT"
+          allowClear
+          onClear={() => {
+            setValorBusqueda('');
+            setUsuarioSeleccionado(null);
+            form.setFieldsValue({ usuarioId: undefined });
+          }}
+          notFoundContent={
+            buscandoSugerencias ? 'Buscando...' :
+            valorBusqueda.length < 2 ? 'Escribe al menos 2 caracteres para buscar' :
+            'No se encontraron usuarios disponibles'
+          }
+        />
+      </Form.Item>
+    )}
+  </>
           ) : (
             // Mostrar usuario en modo edición (solo lectura)
             usuarioSeleccionado && (
@@ -335,6 +365,7 @@ export default function JugadorForm() {
               <Select placeholder="Selecciona el estado">
                 <Option value="activo">Activo</Option>
                 <Option value="inactivo">Inactivo</Option>
+                <Option value="lesionado">Lesionado</Option>
                 <Option value="suspendido">Suspendido</Option>
               </Select>
             </Form.Item>
@@ -386,6 +417,7 @@ export default function JugadorForm() {
         </Form>
       </Card>
     </div>
-  </MainLayout>
+    </ConfigProvider>
+    </MainLayout>
   );
 }

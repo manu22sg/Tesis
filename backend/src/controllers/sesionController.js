@@ -4,7 +4,8 @@ import {
   obtenerSesionPorId,
   actualizarSesion,
   eliminarSesion,
-  crearSesionesRecurrentes
+  crearSesionesRecurrentes,
+  obtenerSesionesPorEstudiante
 } from '../services/sesionServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
@@ -36,9 +37,9 @@ export async function getSesiones(req, res) {
   try {
    const filtros = {
   q: req.query.q || '',
-  fecha: req.query.fecha || null,           // ✅ FECHA
-  canchaId: req.query.canchaId || null,     // ✅ CANCHA
-  grupoId: req.query.grupoId || null,       // ✅ GRUPO
+  fecha: req.query.fecha || null,           
+  canchaId: req.query.canchaId || null,     
+  grupoId: req.query.grupoId || null,       
   tipoSesion: req.query.tipoSesion || null, 
   horaInicio: req.query.horaInicio || null,
   horaFin: req.query.horaFin || null,
@@ -127,6 +128,27 @@ export async function postSesionesRecurrentes(req, res) {
     return success(res, resultado, msg, 201);
   } catch (e) {
     console.error('postSesionesRecurrentes:', e);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+export async function getSesionesPorEstudiante(req, res) {
+  try {
+    const usuarioId = req.user.id;
+    const { page, limit } = req.query;
+
+    const [result, err] = await obtenerSesionesPorEstudiante(usuarioId, { page, limit });
+
+    if (err) return error(res, err, 400);
+
+    const { sesiones, pagination } = result;
+    const msg = sesiones.length
+      ? `${sesiones.length} sesión(es) — Página ${pagination?.currentPage}/${pagination?.totalPages}`
+      : 'No tienes sesiones registradas';
+
+    return success(res, result, msg);
+  } catch (e) {
+    console.error('getSesionesPorEstudiante:', e);
     return error(res, 'Error interno del servidor', 500);
   }
 }

@@ -1,16 +1,14 @@
 import api from './root.services.js';
 
-
-export async function marcarAsistencia(sesionId, data) {
+export async function marcarAsistenciaPorToken(data) {
   try {
-    const response = await api.post(`/asistencia/${sesionId}`, data);
+    const response = await api.post('/asistencia/marcar-asistencia', data);
     return response.data.data;
   } catch (error) {
-    console.error('Error marcando asistencia:', error);
+    console.error('Error marcando asistencia por token:', error);
     throw error;
   }
 }
-
 
 export async function actualizarAsistencia(asistenciaId, data) {
   try {
@@ -22,7 +20,6 @@ export async function actualizarAsistencia(asistenciaId, data) {
   }
 }
 
-
 export async function eliminarAsistencia(asistenciaId) {
   try {
     const response = await api.delete(`/asistencia/${asistenciaId}`);
@@ -32,7 +29,6 @@ export async function eliminarAsistencia(asistenciaId) {
     throw error;
   }
 }
-
 
 export async function listarAsistenciasDeSesion(sesionId, params = {}) {
   try {

@@ -1,23 +1,40 @@
 import {
-  marcarAsistencia,
   actualizarAsistencia,
   eliminarAsistencia,
-  listarAsistenciasDeSesion
+  listarAsistenciasDeSesion,
+  marcarAsistenciaPorToken
 } from "../services/asistenciaServices.js";
 import { success, error } from "../utils/responseHandler.js";
+import JugadorSchema from "../entity/Jugador.js";
+import { AppDataSource } from '../config/config.db.js';
 
-export async function marcarAsistenciaController(req, res) {
-  const sesionId = Number.parseInt(req.params.id, 10);
-  if (Number.isNaN(sesionId)) return error(res, 'Sesión inválida', 400);
+// ✅ ÚNICO método para marcar asistencia (por token en body)
+export async function postMarcarAsistenciaPorToken(req, res) {
+  try {
+    const usuarioId = req.user.id;
 
-  const jugadorId = req.user?.jugadorId;
-  if (!jugadorId) return error(res, 'El usuario no tiene jugador asociado', 403);
+    const jugadorRepo = AppDataSource.getRepository(JugadorSchema);
+    const jugador = await jugadorRepo.findOne({ where: { usuarioId } });
+    if (!jugador) return error(res, "Este usuario no tiene perfil de jugador", 400);
 
-  const { token, estado, latitud, longitud, origen } = req.body;
-  const [data, err, status] = await marcarAsistencia({ sesionId, jugadorId, token, estado, latitud, longitud, origen });
+    const { token, estado, latitud, longitud, origen } = req.body;
+    if (!token) return error(res, "Debe proporcionar un token válido", 400);
 
-  if (err) return error(res, err, status || 400);
-  return success(res, data, "Asistencia registrada correctamente", 201);
+    const [resultado, err, status = 200] = await marcarAsistenciaPorToken({
+      token,
+      jugadorId: jugador.id,
+      estado,
+      latitud,
+      longitud,
+      origen,
+    });
+
+    if (err) return error(res, err, status);
+    return success(res, resultado, "Asistencia registrada correctamente", status);
+  } catch (e) {
+    console.error("postMarcarAsistenciaPorToken:", e);
+    return error(res, "Error interno del servidor", 500);
+  }
 }
 
 export async function actualizarAsistenciaController(req, res) {

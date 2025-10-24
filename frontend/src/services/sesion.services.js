@@ -86,3 +86,19 @@ export async function desactivarTokenSesion(sesionId) {
     throw error;
   }
 }
+
+export async function obtenerSesionesEstudiante({ page = 1, limit = 10 } = {}) {
+  try {
+    const query = `?page=${page}&limit=${limit}`;
+    const res = await api.get(`/sesion/estudiante${query}`);
+    
+    
+    return {
+      sesiones: res.data.data.sesiones,
+      pagination: res.data.data.pagination
+    };
+  } catch (error) {
+    console.error('Error obteniendo sesiones del estudiante:', error);
+    throw error;
+  }
+}

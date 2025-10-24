@@ -35,6 +35,9 @@ import {
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
+import DetalleSesionModal from '../components/DetalleSesionModal.jsx';
+import { obtenerSesionPorId } from '../services/sesion.services.js';
+
 import { removerJugadorDeGrupo, asignarJugadorAGrupo, obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones, eliminarSesion } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
@@ -50,7 +53,10 @@ export default function GrupoMiembros() {
   const [miembros, setMiembros] = useState([]);
   const [miembrosFiltrados, setMiembrosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [detalleModal, setDetalleModal] = useState(false);
+const [sesionDetalle, setSesionDetalle] = useState(null);
+const [loadingDetalle, setLoadingDetalle] = useState(false);
+
   // Filtros miembros
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -165,6 +171,22 @@ export default function GrupoMiembros() {
       message.error(error.response?.data?.message || 'Error al remover miembro');
     }
   };
+  
+  const handleVerDetalleSesion = async (sesionId) => {
+  try {
+    setLoadingDetalle(true);
+    setDetalleModal(true);
+    const detalle = await obtenerSesionPorId(sesionId);
+    setSesionDetalle(detalle);
+  } catch (error) {
+    console.error('Error cargando detalle de sesión:', error);
+    message.error('Error al cargar el detalle de la sesión');
+    setDetalleModal(false);
+  } finally {
+    setLoadingDetalle(false);
+  }
+};
+
 
   const handleAgregarMiembro = async () => {
     try {
@@ -332,12 +354,12 @@ export default function GrupoMiembros() {
       render: (_, record) => (
         <Space size="small">
           <Button
-            type="link"
-            size="small"
-            onClick={() => navigate(`/sesiones/${record.id}`)}
-          >
-            Ver Detalle
-          </Button>
+  type="link"
+  size="small"
+  onClick={() => handleVerDetalleSesion(record.id)}
+>
+  Ver Detalle
+</Button>
           <Popconfirm
             title="¿Eliminar entrenamiento?"
             description="Esta acción no se puede deshacer"
@@ -772,6 +794,7 @@ export default function GrupoMiembros() {
           <Text strong>Grupo: </Text>
           <Text>{grupo?.nombre}</Text>
         </div>
+        
 
         <div>
           <Text strong>Selecciona un jugador:</Text>
@@ -802,6 +825,15 @@ export default function GrupoMiembros() {
           )}
         </div>
       </Modal>
+      <DetalleSesionModal
+  open={detalleModal}
+  loading={loadingDetalle}
+  sesion={sesionDetalle}
+  onClose={() => {
+    setDetalleModal(false);
+    setSesionDetalle(null);
+  }}
+/>
     </div>
     </ConfigProvider>
     </MainLayout>

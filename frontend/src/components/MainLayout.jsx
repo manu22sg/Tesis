@@ -137,7 +137,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       // 🏟️ Canchas
       'canchas-gestion': '/gestion-canchas',
       'canchas-ver': '/canchas',
-
+      'canchas': '/canchas',
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
       'aprobar-reservas': '/aprobar-reservas',

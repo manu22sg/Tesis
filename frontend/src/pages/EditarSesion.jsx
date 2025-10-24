@@ -50,20 +50,21 @@ export default function EditarSesion() {
 
         // Obtener canchas disponibles
         const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
-        const listaCanchas = (canchasRes || []).map((c) => ({
-          label: c.nombre,
-          value: c.id,
-          capacidad: c.capacidadMaxima,
-          descripcion: c.descripcion,
-        }));
+const listaCanchas = (canchasRes.canchas || []).map((c) => ({
+  label: c.nombre,
+  value: c.id,
+  capacidad: c.capacidadMaxima,
+  descripcion: c.descripcion,
+}));
+
         setCanchas(listaCanchas);
 
         // Obtener grupos
         const gruposRes = await obtenerGrupos();
-        const listaGrupos = (gruposRes || []).map((g) => ({
-          label: g.nombre,
-          value: g.id,
-        }));
+const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g) => ({
+  label: g.nombre,
+  value: g.id,
+}));
         setGrupos(listaGrupos);
 
         // Precargar formulario

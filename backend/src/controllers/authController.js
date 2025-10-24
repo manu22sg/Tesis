@@ -203,7 +203,7 @@ export async function buscarUsuariosPorRuts(req, res) {
   
 export async function buscarUsuarios(req, res) {
   try {
-    const { termino, roles } = req.query;
+    const { termino, roles, excluirJugadores } = req.query; // <-- Nuevo parámetro
     
     if (!termino || termino.length < 2) {
       return res.status(400).json({
@@ -218,14 +218,16 @@ export async function buscarUsuarios(req, res) {
     // Parsear roles si viene en el query
     if (roles) {
       try {
-        // Si viene como string JSON: roles=["estudiante","academico"]
         opciones.roles = JSON.parse(roles);
       } catch {
-        // Si viene como string simple: roles=estudiante
         opciones.roles = [roles];
       }
     }
-    // Si no viene roles, se usa el default (null = todos)
+
+    // Agregar opción para excluir jugadores (opcional)
+    if (excluirJugadores === 'true') {
+      opciones.excluirJugadores = true;
+    }
 
     const [users, error] = await buscarUsuariosPorTermino(termino, opciones);
     
@@ -255,4 +257,5 @@ export async function buscarUsuarios(req, res) {
     });
   }
 }
+
 

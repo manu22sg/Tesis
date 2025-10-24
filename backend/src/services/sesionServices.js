@@ -2,6 +2,9 @@ import { AppDataSource } from '../config/config.db.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import GrupoJugadorSchema from '../entity/GrupoJugador.js';
 import EntrenamientoSesionSchema from '../entity/EntrenamientoSesion.js';
+import JugadorSchema from '../entity/Jugador.js';
+import JugadorGrupoSchema from '../entity/JugadorGrupo.js';
+import AsistenciaSchema from '../entity/Asistencia.js';
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import CanchaSchema from '../entity/Cancha.js';
@@ -127,8 +130,8 @@ export async function obtenerSesiones(filtros = {}) {
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.grupo', 'g')
       .leftJoinAndSelect('s.cancha', 'c')
-      .orderBy('s.fecha', 'ASC')
-      .addOrderBy('s.horaInicio', 'ASC')
+      .orderBy('s.fecha', 'DESC')
+      .addOrderBy('s.horaInicio', 'DESC')
       .skip(skip)
       .take(limit);
 
@@ -407,3 +410,85 @@ export async function crearSesionesRecurrentes(datos) {
     return [null, 'Error interno del servidor'];
   }
 }
+
+export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
+  try {
+    const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
+    const jugadorRepo = AppDataSource.getRepository(JugadorSchema);
+    const jugadorGrupoRepo = AppDataSource.getRepository(JugadorGrupoSchema);
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema); // ✅ NUEVO
+
+    // 1️⃣ Obtener jugador asociado al usuario
+    const jugador = await jugadorRepo.findOne({ where: { usuarioId } });
+    if (!jugador) return [null, 'Este usuario no tiene perfil de jugador'];
+
+    // 2️⃣ Obtener grupos donde participa
+    const grupos = await jugadorGrupoRepo.find({
+      where: { jugadorId: jugador.id },
+      select: ['grupoId'],
+    });
+    if (grupos.length === 0) return [{ sesiones: [], pagination: null }, null];
+
+    const grupoIds = grupos.map(g => g.grupoId);
+
+    // 3️⃣ Configuración de paginación
+    const page = Math.max(1, filtros.page ? parseInt(filtros.page) : 1);
+    const limit = Math.min(50, filtros.limit ? parseInt(filtros.limit) : 10);
+    const skip = (page - 1) * limit;
+
+    // 4️⃣ Consultar sesiones del jugador (solo sus grupos)
+    const [sesiones, total] = await sesionRepo.findAndCount({
+      where: { grupoId: In(grupoIds) },
+      relations: ['grupo', 'cancha'],
+      order: { fecha: 'DESC', horaInicio: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    // ✅ 5️⃣ Verificar asistencias del jugador para estas sesiones
+    const sesionIds = sesiones.map(s => s.id);
+    const asistencias = await asistenciaRepo.find({
+      where: {
+        jugadorId: jugador.id,
+        sesionId: In(sesionIds)
+      },
+      select: ['sesionId', 'estado'] // Solo necesitamos saber si existe
+    });
+
+    // Crear mapa de sesionId -> asistencia marcada
+    const asistenciasMap = new Map(
+      asistencias.map(a => [a.sesionId, a.estado])
+    );
+
+    // 6️⃣ Formatear respuesta
+    const formateadas = sesiones.map(s => ({
+      id: s.id,
+      fecha: s.fecha,
+      horaInicio: s.horaInicio,
+      horaFin: s.horaFin,
+      tipoSesion: s.tipoSesion,
+      grupo: s.grupo?.nombre || 'Sin grupo',
+      cancha: s.cancha?.nombre || 'Sin cancha',
+      tokenActivo: s.tokenActivo || false,
+      token: s.tokenActivo ? s.token : null,
+      tokenExpiracion: s.tokenActivo ? s.tokenExpiracion : null,
+      asistenciaMarcada: asistenciasMap.has(s.id), // 
+      estadoAsistencia: asistenciasMap.get(s.id) || null, 
+    }));
+
+    const pagination = {
+      currentPage: page,
+      itemsPerPage: limit,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
+    };
+
+    return [{ sesiones: formateadas, pagination }, null];
+  } catch (error) {
+    console.error('Error obteniendo sesiones del estudiante:', error);
+    return [null, 'Error interno del servidor'];
+  }
+}
+

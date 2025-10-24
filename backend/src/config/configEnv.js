@@ -10,3 +10,4 @@ export const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 export const cookieKey = process.env.cookieKey;
 export const CORREO = process.env.CORREO;
 export const CONTRASENA = process.env.CONTRASENA;
+export const UBICACION_OBLIGATORIA = process.env.UBICACION_OBLIGATORIA;

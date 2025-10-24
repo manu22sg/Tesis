@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col } from 'antd';
+import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col,ConfigProvider } from 'antd';
 import { ReloadOutlined, TrophyOutlined, LineChartOutlined } from '@ant-design/icons';
 import { obtenerMisEvaluaciones } from '../services/evaluacion.services.js';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout.jsx';
 import dayjs from 'dayjs';
-
+import esES from 'antd/locale/es_ES';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-
 export default function MisEvaluaciones() {
   const { usuario } = useAuth();
   const [evaluaciones, setEvaluaciones] = useState([]);
@@ -66,8 +65,8 @@ export default function MisEvaluaciones() {
     setLoading(true);
     try {
       const params = { 
-        pagina: page,
-        limite: 10
+        page: page,
+        limit: 10
       };
       
       if (filtros.desde) params.desde = filtros.desde.format('YYYY-MM-DD');
@@ -75,14 +74,17 @@ export default function MisEvaluaciones() {
       if (filtros.sesionId) params.sesionId = filtros.sesionId;
 
       const res = await obtenerMisEvaluaciones(params);
-      console.log('Evaluaciones obtenidas:', res.data.evaluaciones);
-      setEvaluaciones(res.data.evaluaciones || []);
-      setTotal(res.data?.total || 0);
-      setPagina(res.data?.pagina || 1);
-      calcularPromedios(res.data.evaluaciones || []);
+      
+      const evalData = res.evaluaciones || [];
+      const paginacion = res.pagination || {};
+      
+      setEvaluaciones(evalData);
+      setTotal(paginacion.totalItems || 0);
+      setPagina(paginacion.currentPage || page);
+      calcularPromedios(evalData);
     } catch (err) {
       message.error('Error cargando tus evaluaciones');
-      console.error(err);
+      console.error('Error completo:', err);
     } finally {
       setLoading(false);
     }
@@ -90,51 +92,24 @@ export default function MisEvaluaciones() {
 
   useEffect(() => { 
     fetchData(); 
-  }, []);
+  }, [filtros]);
 
-  const aplicarFiltros = () => {
-    fetchData(1);
+  const limpiarFiltros = () => {
+    setFiltros({
+      desde: null,
+      hasta: null,
+      sesionId: null
+    });
+    message.success('Filtros limpiados'); 
   };
 
-  const limpiarFiltros = async () => {
-  // Resetear el estado de filtros
-  setFiltros({
-    desde: null,
-    hasta: null,
-    sesionId: null
-  });
-  
-  // Llamar a la API directamente con filtros vacíos
-  setLoading(true);
-  try {
-    const params = { 
-      pagina: 1,
-      limite: 10
-      // No incluimos desde, hasta ni sesionId
-    };
-
-    const res = await obtenerMisEvaluaciones(params);
-    const evalData = res.data?.evaluaciones || [];
-    
-    setEvaluaciones(evalData);
-    setTotal(res.data?.total || 0);
-    setPagina(1);
-    calcularPromedios(evalData);
-    
-    message.success('Filtros limpiados'); 
-  } catch (err) {
-    message.error('Error cargando evaluaciones');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  const hayFiltrosActivos = filtros.desde || filtros.hasta || filtros.sesionId;
 
   const getColorNota = (nota) => {
-    if (nota >= 9) return '#52c41a'; // Verde
-    if (nota >= 7) return '#1890ff'; // Azul
-    if (nota >= 5) return '#faad14'; // Amarillo
-    return '#ff4d4f'; // Rojo
+    if (nota >= 9) return '#52c41a';
+    if (nota >= 7) return '#1890ff';
+    if (nota >= 5) return '#faad14';
+    return '#ff4d4f';
   };
 
   const columns = [
@@ -223,6 +198,7 @@ export default function MisEvaluaciones() {
   ];
 
   return (
+    <ConfigProvider locale={esES}>
     <MainLayout>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '8px' }}>
@@ -233,7 +209,6 @@ export default function MisEvaluaciones() {
         </p>
       </div>
 
-      {/* Estadísticas de Promedios */}
       <Row gutter={16} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} md={6} lg={4}>
           <Card>
@@ -299,7 +274,6 @@ export default function MisEvaluaciones() {
         </Col>
       </Row>
 
-      {/* Filtros */}
       <Card 
         style={{ marginBottom: '24px' }}
         title="Filtros"
@@ -323,15 +297,13 @@ export default function MisEvaluaciones() {
           </Col>
           
           <Col xs={24} sm={24} md={8} style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <Space>
-              <Button onClick={limpiarFiltros}>Limpiar</Button>
-              <Button type="primary" onClick={aplicarFiltros}>Aplicar</Button>
-            </Space>
+            {hayFiltrosActivos && (
+              <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+            )}
           </Col>
         </Row>
       </Card>
 
-      {/* Tabla de Evaluaciones */}
       <Card
         title={
           <span>
@@ -369,5 +341,6 @@ export default function MisEvaluaciones() {
         />
       </Card>
     </MainLayout>
+    </ConfigProvider>
   );
 }

@@ -26,10 +26,10 @@ export const crearJugadorSchema = Joi.object({
     }),
 
   estado: Joi.string()
-    .valid('activo', 'inactivo', 'suspendido')
+    .valid('activo', 'inactivo', 'suspendido', 'lesionado')
     .default('activo')
     .messages({
-      'any.only': 'estado debe ser: activo, inactivo o suspendido'
+      'any.only': 'estado debe ser: activo, inactivo, suspendido o lesionado'
     }),
 
   fechaNacimiento: Joi.date()
@@ -69,10 +69,10 @@ export const actualizarJugadorSchema = Joi.object({
     }),
 
   estado: Joi.string()
-    .valid('activo', 'inactivo', 'suspendido')
+    .valid('activo', 'inactivo', 'suspendido', 'lesionado')
     .optional()
     .messages({
-      'any.only': 'estado debe ser: activo, inactivo o suspendido'
+      'any.only': 'estado debe ser: activo, inactivo, suspendido o lesionado'
     }),
 
   fechaNacimiento: Joi.date()

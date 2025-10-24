@@ -1,7 +1,6 @@
 import { AppDataSource } from "../config/config.db.js";
 import GrupoJugadorSchema from "../entity/GrupoJugador.js";
 import { ILike } from 'typeorm';
-// Crear grupo
 export async function crearGrupo(datosGrupo) {
   try {
     const repo = AppDataSource.getRepository(GrupoJugadorSchema);
