@@ -25,6 +25,8 @@ export async function obtenerLesiones({ pagina=1, limite=10, jugadorId, desde, h
     const repo = AppDataSource.getRepository(LesionSchema);
     const qb = repo.createQueryBuilder('l')
       .leftJoinAndSelect('l.jugador','jugador')
+      .leftJoinAndSelect('jugador.usuario','usuario')
+
       .orderBy('l.fechaInicio','DESC')
       .skip((pagina-1)*limite)
       .take(limite);

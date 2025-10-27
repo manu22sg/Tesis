@@ -64,6 +64,16 @@ export default function Grupos() {
     cargarGrupos(1, 10, filtroNombre);
   }, []);
 
+  // Búsqueda en tiempo real con debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination({ ...pagination, current: 1 });
+      cargarGrupos(1, pagination.pageSize, filtroNombre);
+    }, 300); // Espera 300ms después de que el usuario deja de escribir
+
+    return () => clearTimeout(timer);
+  }, [filtroNombre]);
+
   const cargarGrupos = async (page = 1, limit = 10, nombre = '') => {
     console.log('🔄 Frontend - Cargando grupos con:', { page, limit, nombre });
     try {
@@ -174,15 +184,8 @@ export default function Grupos() {
     cargarGrupos(page, pageSize, filtroNombre);
   };
 
-  const handleBuscar = () => {
-    setPagination({ ...pagination, current: 1 });
-    cargarGrupos(1, pagination.pageSize, filtroNombre);
-  };
-
   const handleLimpiarFiltro = () => {
     setFiltroNombre('');
-    setPagination({ ...pagination, current: 1 });
-    cargarGrupos(1, pagination.pageSize, '');
   };
 
   // Calcular estadísticas
@@ -320,24 +323,14 @@ export default function Grupos() {
           <Card style={{ marginBottom: '24px', backgroundColor: '#fafafa' }}>
             <Row gutter={16} align="middle">
               <Col flex="auto">
-                <Space.Compact style={{ width: '100%', maxWidth: '400px' }}>
-                  <Input
-                    placeholder="Buscar por nombre de grupo..."
-                    value={filtroNombre}
-                    onChange={(e) => setFiltroNombre(e.target.value)}
-                    onPressEnter={handleBuscar}
-                    prefix={<SearchOutlined />}
-                    allowClear
-                  />
-                  <Button
-                    type="primary"
-                    icon={<SearchOutlined />}
-                    onClick={handleBuscar}
-                    loading={loading}
-                  >
-                    Buscar
-                  </Button>
-                </Space.Compact>
+                <Input
+                  placeholder="Buscar por nombre de grupo..."
+                  value={filtroNombre}
+                  onChange={(e) => setFiltroNombre(e.target.value)}
+                  prefix={<SearchOutlined />}
+                  allowClear
+                  style={{ maxWidth: '400px' }}
+                />
               </Col>
               <Col>
                 <Space>
@@ -382,7 +375,7 @@ export default function Grupos() {
                       icon={<PlusOutlined />}
                       onClick={handleNuevoGrupo}
                     >
-                      Crear Primer Grupo
+                      Crear Grupo
                     </Button>
                   </Empty>
                 ),

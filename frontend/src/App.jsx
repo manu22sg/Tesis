@@ -24,7 +24,8 @@ import AprobarReservasPage from './pages/AprobarReservasPage.jsx';
 import GestionCanchas from './pages/GestionarCanchas.jsx';
 import MisEvaluaciones from './pages/MisEvaluaciones';
 import Entrenamientos from './pages/Entrenamientos';
-
+import GestionLesiones from './pages/GestionLesiones.jsx';
+import MisLesiones from './pages/MisLesiones.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -91,6 +92,15 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* ========== GESTIÓN DE LESIONES - Entrenador y SuperAdmin ========== */}
+      <Route
+        path="/lesiones"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <GestionLesiones />
+          </ProtectedRoute>
+        }
+      />
 
       
 
@@ -103,7 +113,15 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      
+      {/* Mis Lesiones - Solo Estudiantes  */}
+      <Route
+        path="/mis-lesiones"
+        element={
+          <ProtectedRoute roles={['estudiante', ]}>
+            <MisLesiones />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Mis Evaluaciones - Solo Estudiantes  */}
       <Route

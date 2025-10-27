@@ -416,13 +416,13 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const jugadorRepo = AppDataSource.getRepository(JugadorSchema);
     const jugadorGrupoRepo = AppDataSource.getRepository(JugadorGrupoSchema);
-    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema); // ✅ NUEVO
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema); 
 
-    // 1️⃣ Obtener jugador asociado al usuario
+    //  Obtener jugador asociado al usuario
     const jugador = await jugadorRepo.findOne({ where: { usuarioId } });
     if (!jugador) return [null, 'Este usuario no tiene perfil de jugador'];
 
-    // 2️⃣ Obtener grupos donde participa
+    //  Obtener grupos donde participa
     const grupos = await jugadorGrupoRepo.find({
       where: { jugadorId: jugador.id },
       select: ['grupoId'],
@@ -431,12 +431,12 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
 
     const grupoIds = grupos.map(g => g.grupoId);
 
-    // 3️⃣ Configuración de paginación
+    //  Configuración de paginación
     const page = Math.max(1, filtros.page ? parseInt(filtros.page) : 1);
     const limit = Math.min(50, filtros.limit ? parseInt(filtros.limit) : 10);
     const skip = (page - 1) * limit;
 
-    // 4️⃣ Consultar sesiones del jugador (solo sus grupos)
+    //  Consultar sesiones del jugador (solo sus grupos)
     const [sesiones, total] = await sesionRepo.findAndCount({
       where: { grupoId: In(grupoIds) },
       relations: ['grupo', 'cancha'],
@@ -445,7 +445,7 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
       take: limit,
     });
 
-    // ✅ 5️⃣ Verificar asistencias del jugador para estas sesiones
+    //  Verificar asistencias del jugador para estas sesiones
     const sesionIds = sesiones.map(s => s.id);
     const asistencias = await asistenciaRepo.find({
       where: {

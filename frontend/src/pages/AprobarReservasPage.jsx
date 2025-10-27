@@ -223,11 +223,6 @@ const AprobarReservasPage = () => {
     cargarReservasPendientes(page, pageSize);
   };
 
-  // Aplicar filtros
-  const aplicarFiltros = () => {
-    cargarReservasPendientes(1, pagination.pageSize);
-  };
-
   // Limpiar filtros y recargar automáticamente
   const limpiarFiltros = async () => {
     setFiltros({
@@ -262,8 +257,13 @@ const AprobarReservasPage = () => {
     }
   };
 
+  // ⚡ Effect para aplicar filtros automáticamente cuando cambien
   useEffect(() => {
-    cargarReservasPendientes(1, 5);
+    cargarReservasPendientes(1, pagination.pageSize);
+  }, [filtros.fecha, filtros.canchaId, filtros.estado]);
+
+  // Cargar inicial
+  useEffect(() => {
     cargarEstadisticas();
   }, []);
 
@@ -430,10 +430,7 @@ const AprobarReservasPage = () => {
             title={<span><FilterOutlined /> Filtros</span>}
             style={{ marginBottom: '24px', backgroundColor: '#fafafa' }}
             extra={
-              <Space>
-                <Button onClick={limpiarFiltros}>Limpiar</Button>
-                <Button type="primary" onClick={aplicarFiltros}>Aplicar</Button>
-              </Space>
+              <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
             }
           >
             <Row gutter={16}>

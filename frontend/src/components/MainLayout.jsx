@@ -12,7 +12,8 @@ import {
   PlusOutlined,
   EyeOutlined,
   ScheduleOutlined,
-  EditOutlined
+  EditOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +56,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
+    
+    // ⚽ NUEVO: Entrenamientos
+    getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
+    
     getItem('Aprobar Reservas', 'aprobar-reservas', <CheckCircleOutlined />),
     getItem('Jugadores', 'jugadores', <UserOutlined />),
     getItem('Grupos', 'grupos', <TeamOutlined />),
@@ -74,6 +79,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
+    
+    // ⚽ NUEVO: Entrenamientos para superadmin también
+    getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
+    
     getItem('Jugadores', 'jugadores', <UserOutlined />),
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
@@ -103,15 +112,23 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const pathToKey = {
     '/dashboard': 'dashboard',
 
-    // 🏟️ Canchas nuevas
+    // 🏟️ Canchas
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
 
+    // 📅 Reservas
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
     '/aprobar-reservas': 'aprobar-reservas',
+    
+    // 📆 Sesiones
     '/sesiones': 'sesiones',
     '/sesiones/nueva': 'sesiones-nueva',
+    
+    // ⚽ NUEVO: Entrenamientos (también reconoce la ruta con sesionId)
+    '/entrenamientos': 'entrenamientos',
+    
+    // ✅ Otras rutas
     '/marcar-asistencia': 'marcar-asistencia',
     '/jugadores': 'jugadores',
     '/grupos': 'grupos',
@@ -119,7 +136,15 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/mis-evaluaciones': 'mis-evaluaciones',
   };
 
-  const selectedKey = selectedKeyOverride ?? (pathToKey[location.pathname] || 'dashboard');
+  // Detectar si estamos en una ruta de entrenamientos dentro de sesión
+  let selectedKey = selectedKeyOverride;
+  if (!selectedKey) {
+    if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
+      selectedKey = 'entrenamientos';
+    } else {
+      selectedKey = pathToKey[location.pathname] || 'dashboard';
+    }
+  }
 
   // 🔓 Control submenús abiertos
   const [openKeys, setOpenKeys] = useState(() => {
@@ -138,11 +163,20 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       'canchas-gestion': '/gestion-canchas',
       'canchas-ver': '/canchas',
       'canchas': '/canchas',
+      
+      // 📅 Reservas
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
       'aprobar-reservas': '/aprobar-reservas',
+      
+      // 📆 Sesiones
       sesiones: '/sesiones',
       'sesiones-nueva': '/sesiones/nueva',
+      
+      // ⚽ NUEVO: Entrenamientos
+      entrenamientos: '/entrenamientos',
+      
+      // ✅ Otras
       'marcar-asistencia': '/marcar-asistencia',
       jugadores: '/jugadores',
       grupos: '/grupos',
