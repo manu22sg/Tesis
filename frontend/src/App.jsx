@@ -23,6 +23,7 @@ import NotFound from './pages/NotFound';
 import AprobarReservasPage from './pages/AprobarReservasPage.jsx';
 import GestionCanchas from './pages/GestionarCanchas.jsx';
 import MisEvaluaciones from './pages/MisEvaluaciones';
+import Entrenamientos from './pages/Entrenamientos';
 
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
@@ -73,6 +74,24 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* ========== ENTRENAMIENTOS - Entrenador y SuperAdmin ========== */}
+      <Route
+        path="/entrenamientos"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <Entrenamientos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sesiones/:sesionId/entrenamientos"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <Entrenamientos />
+          </ProtectedRoute>
+        }
+      />
+
       
 
       {/* ========== RESERVAS - Solo Estudiantes y Académicos ========== */}

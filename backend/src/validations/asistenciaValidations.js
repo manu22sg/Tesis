@@ -1,13 +1,7 @@
 import Joi from "joi";
 import { ESTADOS_ASISTENCIA } from "../entity/Asistencia.js";
 
-const UBICACION_OBLIGATORIA = process.env.UBICACION_OBLIGATORIA === 'true';
 
-// Helper para campos de ubicación
-const ubicacionSchema = (obligatorio = false) => {
-  const schema = Joi.number();
-  return obligatorio ? schema.required() : schema.optional().allow(null);
-};
 
 // Entrenador edita asistencia
 export const actualizarAsistenciaBodySchema = Joi.object({
@@ -15,16 +9,8 @@ export const actualizarAsistenciaBodySchema = Joi.object({
     "any.only": `estado debe ser: ${ESTADOS_ASISTENCIA.join(", ")}`,
     "any.required": "estado es requerido",
   }),
-  latitud: ubicacionSchema(UBICACION_OBLIGATORIA).min(-90).max(90).messages({
-    "any.required": "La ubicación es obligatoria",
-    "number.min": "Latitud debe estar entre -90 y 90",
-    "number.max": "Latitud debe estar entre -90 y 90",
-  }),
-  longitud: ubicacionSchema(UBICACION_OBLIGATORIA).min(-180).max(180).messages({
-    "any.required": "La ubicación es obligatoria",
-    "number.min": "Longitud debe estar entre -180 y 180",
-    "number.max": "Longitud debe estar entre -180 y 180",
-  }),
+  latitud: Joi.number().min(-90).max(90).optional(),
+  longitud: Joi.number().min(-180).max(180).optional(),
   origen: Joi.string().valid("entrenador")
 });
 
@@ -38,11 +24,8 @@ export const paginacionAsistenciasSchema = Joi.object({
 export const marcarAsistenciaPorTokenBodySchema = Joi.object({
   token: Joi.string().min(4).max(10).required(),
   estado: Joi.string().valid(...ESTADOS_ASISTENCIA).optional().default('presente'),
-  latitud: ubicacionSchema(UBICACION_OBLIGATORIA).messages({
-    "any.required": "La ubicación es obligatoria para marcar asistencia",
-  }),
-  longitud: ubicacionSchema(UBICACION_OBLIGATORIA).messages({
-    "any.required": "La ubicación es obligatoria para marcar asistencia",
-  }),
+  latitud: Joi.number().optional().allow(null),
+  longitud: Joi.number().optional().allow(null),
   origen: Joi.string().valid('jugador', 'entrenador').optional().default('jugador'),
 }).unknown(false);
+

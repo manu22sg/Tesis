@@ -65,9 +65,11 @@ export async function activarTokenSesion(sesionId, params = {}) {
   try {
     const payload = {
       ttlMin: params.ttlMin || 30,
-      tokenLength: params.tokenLength || 6
+      tokenLength: params.tokenLength || 6,
+      latitudToken: params.latitudToken ?? null,   // ✅ nombres correctos
+      longitudToken: params.longitudToken ?? null, // ✅ nombres correctos
     };
-    
+
     const response = await api.post(`/sesionToken/activar/${sesionId}`, payload);
     return response.data.data;
   } catch (error) {

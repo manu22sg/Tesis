@@ -13,8 +13,10 @@ import {
   Select,
   Pagination,
   Avatar,
-  Typography
+  Typography,
+  ConfigProvider
 } from 'antd';
+import locale from 'antd/locale/es_ES';
 import {
   UserOutlined,
   EyeOutlined,
@@ -146,6 +148,7 @@ export default function Jugadores() {
   };
 
   const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, current: page, pageSize });
     cargarJugadores(page, pageSize);
   };
 
@@ -295,138 +298,140 @@ export default function Jugadores() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-        <Card
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <TrophyOutlined style={{ fontSize: 24 }} />
-              <span>Jugadores</span>
-            </div>
-          }
-          extra={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/jugadores/nuevo')}
-            >
-              Nuevo Jugador
-            </Button>
-          }
-        >
-          {/* Barra de filtros */}
-          <div style={{ 
-            marginBottom: 16, 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 12 
-          }}>
-            <Input
-              allowClear
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              prefix={<SearchOutlined />}
-              placeholder="Buscar por nombre o RUT..."
-            />
-            
-            <Select
-              allowClear
-              placeholder="Filtrar por estado"
-              value={filtroEstado}
-              onChange={setFiltroEstado}
-            >
-              <Option value="activo">Activo</Option>
-              <Option value="inactivo">Inactivo</Option>
-              <Option value="lesionado">Lesionado</Option>
-              <Option value="suspendido">Suspendido</Option>
-            </Select>
-
-            <Select
-              allowClear
-              showSearch
-              placeholder="Filtrar por carrera"
-              value={filtroCarrera}
-              onChange={setFiltroCarrera}
-              filterOption={(input, option) =>
-                (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {carrerasUnicas.map(carrera => (
-                <Option key={carrera} value={carrera}>{carrera}</Option>
-              ))}
-            </Select>
-
-            <Select
-              allowClear
-              placeholder="Año de ingreso"
-              value={filtroAnio}
-              onChange={setFiltroAnio}
-              showSearch
-            >
-              {aniosUnicos.map(year => (
-                <Option key={year} value={year}>{year}</Option>
-              ))}
-            </Select>
-
-            {hayFiltrosActivos && (
-              <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
-            )}
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={jugadoresFiltrados}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            size="middle"
-            scroll={{ x: 1100 }}
-            locale={{
-              emptyText: (
-                <Empty
-                  description={
-                    hayFiltrosActivos
-                      ? 'No se encontraron jugadores con los filtros aplicados'
-                      : 'No hay jugadores registrados'
-                  }
-                >
-                  {!hayFiltrosActivos && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => navigate('/jugadores/nuevo')}
-                    >
-                      Registrar primer jugador
-                    </Button>
-                  )}
-                </Empty>
-              ),
-            }}
-          />
-
-          {jugadoresFiltrados.length > 0 && (
-            <div style={{ textAlign: 'center', marginTop: 24 }}>
-              <Pagination
-                current={pagination.current}
-                pageSize={pagination.pageSize}
-                total={pagination.total}
-                onChange={handlePageChange}
-                onShowSizeChange={handlePageChange}
-                showSizeChanger
-                showTotal={(total) => `Total: ${total} jugadores`}
-                pageSizeOptions={['5', '10', '20', '50']}
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <Card
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <TrophyOutlined style={{ fontSize: 24 }} />
+                <span>Jugadores</span>
+              </div>
+            }
+            extra={
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate('/jugadores/nuevo')}
+              >
+                Nuevo Jugador
+              </Button>
+            }
+          >
+            {/* Barra de filtros */}
+            <div style={{ 
+              marginBottom: 16, 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 12 
+            }}>
+              <Input
+                allowClear
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                prefix={<SearchOutlined />}
+                placeholder="Buscar por nombre o RUT..."
               />
-            </div>
-          )}
-        </Card>
+              
+              <Select
+                allowClear
+                placeholder="Filtrar por estado"
+                value={filtroEstado}
+                onChange={setFiltroEstado}
+              >
+                <Option value="activo">Activo</Option>
+                <Option value="inactivo">Inactivo</Option>
+                <Option value="lesionado">Lesionado</Option>
+                <Option value="suspendido">Suspendido</Option>
+              </Select>
 
-        {/* Modal Detalle */}
-        <JugadorDetalleModal
-          visible={detalleModal}
-          onClose={cerrarModal}
-          jugador={jugadorDetalle}
-          loading={loadingDetalle}
-        />
-      </div>
+              <Select
+                allowClear
+                showSearch
+                placeholder="Filtrar por carrera"
+                value={filtroCarrera}
+                onChange={setFiltroCarrera}
+                filterOption={(input, option) =>
+                  (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {carrerasUnicas.map(carrera => (
+                  <Option key={carrera} value={carrera}>{carrera}</Option>
+                ))}
+              </Select>
+
+              <Select
+                allowClear
+                placeholder="Año de ingreso"
+                value={filtroAnio}
+                onChange={setFiltroAnio}
+                showSearch
+              >
+                {aniosUnicos.map(year => (
+                  <Option key={year} value={year}>{year}</Option>
+                ))}
+              </Select>
+
+              {hayFiltrosActivos && (
+                <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
+              )}
+            </div>
+
+            <Table
+              columns={columns}
+              dataSource={jugadoresFiltrados}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              size="middle"
+              scroll={{ x: 1100 }}
+              locale={{
+                emptyText: (
+                  <Empty
+                    description={
+                      hayFiltrosActivos
+                        ? 'No se encontraron jugadores con los filtros aplicados'
+                        : 'No hay jugadores registrados'
+                    }
+                  >
+                    {!hayFiltrosActivos && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => navigate('/jugadores/nuevo')}
+                      >
+                        Registrar primer jugador
+                      </Button>
+                    )}
+                  </Empty>
+                ),
+              }}
+            />
+
+            {jugadoresFiltrados.length > 0 && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  showTotal={(total) => `Total: ${total} jugadores`}
+                  pageSizeOptions={['5', '10', '20', '50']}
+                />
+              </div>
+            )}
+          </Card>
+
+          {/* Modal Detalle */}
+          <JugadorDetalleModal
+            visible={detalleModal}
+            onClose={cerrarModal}
+            jugador={jugadorDetalle}
+            loading={loadingDetalle}
+          />
+        </div>
+      </ConfigProvider>
     </MainLayout>
   );
 }

@@ -20,6 +20,8 @@ const SesionEntrenamientoSchema = new EntitySchema({
     token: { type: "varchar", length: 20, nullable: true },
     tokenActivo: { type: "boolean", default: false },
     tokenExpiracion: { type: "timestamp", nullable: true },
+    latitudToken: { type: "decimal", precision: 9, scale: 6, nullable: true },
+    longitudToken: { type: "decimal", precision: 9, scale: 6, nullable: true },
 
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },

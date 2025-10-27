@@ -11,14 +11,20 @@ import {
   Typography,
   Spin,
   Pagination,
+  Switch,
+  Alert,
+  ConfigProvider
 } from 'antd';
+import locale from 'antd/locale/es_ES';
 import {
   CalendarOutlined,
   FieldTimeOutlined,
   KeyOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined, // ✅ AGREGAR si usas la columna Estado
-  QuestionCircleOutlined
+  CloseCircleOutlined,
+  QuestionCircleOutlined,
+  EnvironmentOutlined,
+  AimOutlined
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -41,6 +47,12 @@ export default function MarcarAsistencia() {
   const [token, setToken] = useState('');
   const [selectedSesion, setSelectedSesion] = useState(null);
   const [marcando, setMarcando] = useState(false);
+
+  // Estado para ubicación manual
+  const [usarUbicacion, setUsarUbicacion] = useState(false);
+  const [ubicacion, setUbicacion] = useState({ latitud: null, longitud: null });
+  const [loadingUbicacion, setLoadingUbicacion] = useState(false);
+  const [errorUbicacion, setErrorUbicacion] = useState(null);
 
   // 🔹 Cargar sesiones del estudiante
   const cargarSesiones = async (page = 1, limit = 5) => {
@@ -65,14 +77,45 @@ export default function MarcarAsistencia() {
     cargarSesiones();
   }, []);
 
-  // 🔸 Abrir modal para marcar asistencia
+  // Abrir modal
   const abrirModal = (sesion) => {
     setSelectedSesion(sesion);
     setModalVisible(true);
     setToken('');
+    setUsarUbicacion(false);
+    setUbicacion({ latitud: null, longitud: null });
   };
 
-  // ✅ Marcar asistencia con token (CORREGIDO)
+  // Obtener ubicación manual
+  const obtenerUbicacion = () => {
+    if (!navigator.geolocation) {
+      setErrorUbicacion('Tu navegador no soporta geolocalización');
+      message.error('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    setLoadingUbicacion(true);
+    setErrorUbicacion(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUbicacion({
+          latitud: pos.coords.latitude,
+          longitud: pos.coords.longitude,
+        });
+        setLoadingUbicacion(false);
+        message.success('📍 Ubicación obtenida');
+      },
+      (err) => {
+        console.warn('Error obteniendo ubicación:', err);
+        setErrorUbicacion('No se pudo obtener la ubicación');
+        setLoadingUbicacion(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  // Confirmar asistencia
   const handleMarcarAsistencia = async () => {
     if (!token) {
       message.error('Debes ingresar el código de asistencia');
@@ -81,19 +124,22 @@ export default function MarcarAsistencia() {
 
     try {
       setMarcando(true);
-      
-      // ✅ Ahora enviamos el token en el body
-      await marcarAsistenciaPorToken({
+
+      const payload = {
         token: token.trim().toUpperCase(),
         estado: 'presente',
         origen: 'jugador',
-      });
+        latitud: usarUbicacion ? ubicacion.latitud : null,
+        longitud: usarUbicacion ? ubicacion.longitud : null,
+      };
+
+      await marcarAsistenciaPorToken(payload);
 
       message.success('¡Asistencia registrada correctamente!');
       setModalVisible(false);
       setToken('');
-      
-      // Recargar sesiones para actualizar el estado
+      setUbicacion({ latitud: null, longitud: null });
+
       await cargarSesiones(pagination.current, pagination.pageSize);
     } catch (error) {
       console.error('Error marcando asistencia:', error);
@@ -104,174 +150,181 @@ export default function MarcarAsistencia() {
     }
   };
 
-  // 🔹 Columnas de la tabla
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, current: page, pageSize });
+    cargarSesiones(page, pageSize);
+  };
+
   const columns = [
-  {
-    title: 'Fecha',
-    dataIndex: 'fecha',
-    key: 'fecha',
-    render: (fecha) => {
-      const [year, month, day] = fecha.split('-');
-      const fechaLocal = new Date(year, month - 1, day);
-      
-      return (
-        <Space>
-          <CalendarOutlined /> 
-          {fechaLocal.toLocaleDateString('es-CL', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          })}
-        </Space>
-      );
-    },
-  },
-  {
-    title: 'Horario',
-    key: 'horario',
-    render: (_, record) => (
-      <Space>
-        <FieldTimeOutlined /> {record.horaInicio} - {record.horaFin}
-      </Space>
-    ),
-  },
-  {
-    title: 'Cancha',
-    dataIndex: 'cancha',
-    key: 'cancha',
-  },
-  {
-    title: 'Tipo de Sesión',
-    dataIndex: 'tipoSesion',
-    key: 'tipoSesion',
-    render: (tipo) => <Tag color="blue">{tipo || 'Entrenamiento'}</Tag>,
-  },
-  {
-  title: 'Estado',
-  key: 'estado',
-  render: (_, record) => {
-    if (!record.asistenciaMarcada) {
-      return <Tag color="default">Sin registrar</Tag>;
-    }
-
-    const estados = {
-      presente: { color: 'success', icon: <CheckCircleOutlined />, text: 'Presente' },
-      ausente: { color: 'error', icon: <CloseCircleOutlined />, text: 'Ausente' },
-      justificado: { color: 'warning', icon: <QuestionCircleOutlined />, text: 'Justificado' }
-    };
-
-    const config = estados[record.estadoAsistencia] || estados.presente;
-
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {config.text}
-      </Tag>
-    );
-  },
-},
- 
-  {
-    title: 'Acción',
-    key: 'accion',
-    render: (_, record) => {
-      // ✅ Si ya marcó asistencia, mostrar tag
-      if (record.asistenciaMarcada) {
+    {
+      title: 'Fecha',
+      dataIndex: 'fecha',
+      render: (fecha) => {
+        const [y, m, d] = fecha.split('-');
         return (
+          <Space>
+            <CalendarOutlined /> {`${d}-${m}-${y}`}
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Horario',
+      render: (_, r) => (
+        <Space>
+          <FieldTimeOutlined /> {r.horaInicio} - {r.horaFin}
+        </Space>
+      ),
+    },
+    {
+      title: 'Cancha',
+      dataIndex: 'cancha',
+    },
+    {
+      title: 'Tipo de Sesión',
+      dataIndex: 'tipoSesion',
+      render: (t) => <Tag color="blue">{t || 'Entrenamiento'}</Tag>,
+    },
+    {
+      title: 'Estado',
+      render: (_, r) => {
+        if (!r.asistenciaMarcada) return <Tag>Sin registrar</Tag>;
+        const map = {
+          presente: { color: 'success', icon: <CheckCircleOutlined />, text: 'Presente' },
+          ausente: { color: 'error', icon: <CloseCircleOutlined />, text: 'Ausente' },
+          justificado: { color: 'warning', icon: <QuestionCircleOutlined />, text: 'Justificado' },
+        };
+        const cfg = map[r.estadoAsistencia] || map.presente;
+        return <Tag color={cfg.color} icon={cfg.icon}>{cfg.text}</Tag>;
+      },
+    },
+    {
+      title: 'Acción',
+      render: (_, r) =>
+        r.asistenciaMarcada ? (
           <Tag color="success" icon={<CheckCircleOutlined />}>
             Asistencia Registrada
           </Tag>
-        );
-      }
-
-
-      // ✅ Si no ha marcado, mostrar botón (deshabilitado si token inactivo)
-      return (
-        <Button
-          type="primary"
-          disabled={!record.tokenActivo}
-          onClick={() => abrirModal(record)}
-        >
-          Marcar Asistencia
-        </Button>
-      );
+        ) : (
+          <Button type="primary" disabled={!r.tokenActivo} onClick={() => abrirModal(r)}>
+            Marcar Asistencia
+          </Button>
+        ),
     },
-  },
-];
+  ];
 
   return (
     <MainLayout>
-      <Card
-        title={
-          <Title level={3} style={{ margin: 0 }}>
-            Marcar Asistencia
-          </Title>
-        }
-        style={{ borderRadius: 12 }}
-      >
-        <Text type="secondary">
-          Aquí puedes ver tus sesiones y marcar asistencia con el código entregado por tu entrenador.
-        </Text>
+      <ConfigProvider locale={locale}>
+        <Card title={<Title level={3}>Marcar Asistencia</Title>} style={{ borderRadius: 12 }}>
+          <Text type="secondary">
+            Aquí puedes ver tus sesiones y marcar asistencia con el código entregado por tu entrenador.
+          </Text>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <Spin size="large" />
-          </div>
-        ) : (
-          <>
-            <Table
-              columns={columns}
-              dataSource={sesiones.map((s) => ({ ...s, key: s.id }))}
-              pagination={false}
-              style={{ marginTop: 20 }}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <Spin size="large" />
+            </div>
+          ) : (
+            <>
+              <Table
+                columns={columns}
+                dataSource={sesiones.map((s) => ({ ...s, key: s.id }))}
+                pagination={false}
+                style={{ marginTop: 20 }}
+              />
+
+              {sesiones.length > 0 && (
+                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                  <Pagination
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    total={pagination.total}
+                    onChange={handlePageChange}
+                    onShowSizeChange={handlePageChange}
+                    showSizeChanger
+                    showTotal={(total) => `Total: ${total} sesiones`}
+                    pageSizeOptions={['5', '10', '20', '50']}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Modal */}
+          <Modal
+            title={<span><KeyOutlined /> Ingresar Código de Asistencia</span>}
+            open={modalVisible}
+            onCancel={() => setModalVisible(false)}
+            onOk={handleMarcarAsistencia}
+            okText="Confirmar Asistencia"
+            confirmLoading={marcando}
+            okButtonProps={{ disabled: !token }}
+          >
+            <p>
+              <strong>Sesión:</strong> {selectedSesion?.tipoSesion} — {selectedSesion?.cancha?.nombre}
+            </p>
+
+            <Input
+              prefix={<KeyOutlined />}
+              placeholder="Ej: ABC123"
+              value={token}
+              onChange={(e) => setToken(e.target.value.toUpperCase())}
+              onPressEnter={handleMarcarAsistencia}
+              maxLength={20}
             />
 
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <Pagination
-                current={pagination.current}
-                pageSize={pagination.pageSize}
-                total={pagination.total}
-                onChange={(page, pageSize) => cargarSesiones(page, pageSize)}
-                showTotal={(total) => `Total: ${total} sesiones`}
-              />
+            <div style={{ marginTop: 20, marginBottom: 10 }}>
+              <Space>
+                <EnvironmentOutlined />
+                <Text strong>Registrar ubicación</Text>
+                <Switch checked={usarUbicacion} onChange={setUsarUbicacion} />
+              </Space>
             </div>
-          </>
-        )}
 
-        {/* Modal de ingreso de token */}
-        <Modal
-          title={
-            <span>
-              <KeyOutlined /> Ingresar Código de Asistencia
-            </span>
-          }
-          open={modalVisible}
-          onCancel={() => {
-            setModalVisible(false);
-            setToken('');
-          }}
-          onOk={handleMarcarAsistencia}
-          okText="Confirmar Asistencia"
-          confirmLoading={marcando}
-          okButtonProps={{ disabled: !token }}
-        >
-          <p>
-            <strong>Sesión:</strong> {selectedSesion?.tipoSesion} —{' '}
-            {selectedSesion?.cancha?.nombre}
-          </p>
-          <Input
-            prefix={<KeyOutlined />}
-            placeholder="Ej: ABC123"
-            value={token}
-            onChange={(e) => setToken(e.target.value.toUpperCase())}
-            onPressEnter={handleMarcarAsistencia}
-            maxLength={20}
-            autoFocus
-          />
-          <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
-            Ingresa el código proporcionado por tu entrenador
-          </Text>
-        </Modal>
-      </Card>
+            {usarUbicacion && (
+              <div
+                style={{
+                  border: '1px solid #d9d9d9',
+                  padding: 12,
+                  borderRadius: 8,
+                  background: '#fafafa',
+                }}
+              >
+                <Button
+                  type="default"
+                  icon={<AimOutlined />}
+                  onClick={obtenerUbicacion}
+                  loading={loadingUbicacion}
+                  size="small"
+                >
+                  {ubicacion.latitud ? 'Actualizar ubicación' : 'Obtener ubicación'}
+                </Button>
+
+                {errorUbicacion && (
+                  <Alert
+                    message={errorUbicacion}
+                    type="error"
+                    showIcon
+                    style={{ marginTop: 12 }}
+                  />
+                )}
+
+                {ubicacion.latitud && (
+                  <div style={{ marginTop: 10 }}>
+                    <Text type="secondary" style={{ display: 'block' }}>
+                      Lat: {ubicacion.latitud.toFixed(6)}
+                    </Text>
+                    <Text type="secondary" style={{ display: 'block' }}>
+                      Lng: {ubicacion.longitud.toFixed(6)}
+                    </Text>
+                  </div>
+                )}
+              </div>
+            )}
+          </Modal>
+        </Card>
+      </ConfigProvider>
     </MainLayout>
   );
 }

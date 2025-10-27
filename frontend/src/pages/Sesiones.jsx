@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import {
   Card, Table, Tag, Button, Space, message, Empty, Tooltip,
   Modal, Spin, Popconfirm, Input, DatePicker, Pagination, ConfigProvider, 
-  TimePicker, InputNumber, Typography, Divider, Alert
+  TimePicker, InputNumber, Typography, Divider, Alert 
 } from 'antd';
+
 import DetalleSesionModal from '../components/DetalleSesionModal.jsx';
 import TokenSesionModal from '../components/TokenSesionModal.jsx';
 
@@ -11,7 +12,7 @@ import {
   CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined,
   EyeOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PlusOutlined, 
   SearchOutlined, KeyOutlined, LockOutlined, UnlockOutlined, CopyOutlined,
-  UserOutlined
+  UserOutlined,FileTextOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -141,25 +142,39 @@ export default function Sesiones() {
     setTokenModal(true);
   };
 
-  const handleActivarToken = async () => {
-    try {
-      setLoadingToken(true);
-      const sesionActualizada = await activarTokenSesion(sesionToken.id, { ttlMin, tokenLength });
-      
-      message.success('Token generado correctamente');
-      
-      setSesiones(prevSesiones => 
-        prevSesiones.map(s => s.id === sesionToken.id ? sesionActualizada : s)
-      );
-      
-      setSesionToken(sesionActualizada);
-    } catch (error) {
-      console.error('Error activando token:', error);
-      message.error(error.response?.data?.message || 'Error al generar el token');
-    } finally {
-      setLoadingToken(false);
+  const handleActivarToken = async (paramsExtra = {}) => {
+  try {
+    if (!sesionToken || !sesionToken.id) {
+      message.error("No se encontró la sesión seleccionada");
+      return;
     }
-  };
+
+    setLoadingToken(true);
+
+    // 👇 Ahora incluimos las coordenadas si el modal las envía
+    const payload = {
+      ttlMin,
+      tokenLength,
+      latitudToken: paramsExtra.latitudToken ?? null,
+      longitudToken: paramsExtra.longitudToken ?? null,
+    };
+
+    const sesionActualizada = await activarTokenSesion(sesionToken.id, payload);
+
+    message.success('Token generado correctamente');
+
+    setSesiones(prevSesiones =>
+      prevSesiones.map(s => (s.id === sesionToken.id ? sesionActualizada : s))
+    );
+
+    setSesionToken(sesionActualizada);
+  } catch (error) {
+    console.error('Error activando token:', error);
+    message.error(error.response?.data?.message || 'Error al generar el token');
+  } finally {
+    setLoadingToken(false);
+  }
+};
 
   const handleDesactivarToken = async () => {
     try {
@@ -267,48 +282,56 @@ export default function Sesiones() {
       align: 'center',
     },
     {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Ver asistencias">
-            <Button 
-              type="link" 
-              icon={<UserOutlined />} 
-              onClick={() => navigate(`/sesiones/${record.id}/asistencias`)}
-            />
-          </Tooltip>
-          <Tooltip title="Gestionar token">
-            <Button 
-              type="link" 
-              icon={<KeyOutlined />} 
-              onClick={() => abrirModalToken(record)}
-              style={{ color: record.tokenActivo ? '#52c41a' : '#8c8c8c' }}
-            />
-          </Tooltip>
-          <Tooltip title="Ver detalle">
-            <Button type="link" icon={<EyeOutlined />} onClick={() => verDetalle(record.id)} />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button type="link" icon={<EditOutlined />} onClick={() => navigate(`/sesiones/editar/${record.id}`)} />
-          </Tooltip>
-          <Popconfirm
-            title="¿Eliminar esta sesión?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleEliminar(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Eliminar">
-              <Button type="link" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-      width: 220,
-      align: 'center',
-    },
+  title: 'Acciones',
+  key: 'acciones',
+  render: (_, record) => (
+    <Space>
+      <Tooltip title="Ver entrenamientos">
+        <Button 
+          type="link" 
+          icon={<FileTextOutlined />} 
+          onClick={() => navigate(`/sesiones/${record.id}/entrenamientos`)}
+        />
+      </Tooltip>
+      <Tooltip title="Ver asistencias">
+        <Button 
+          type="link" 
+          icon={<UserOutlined />} 
+          onClick={() => navigate(`/sesiones/${record.id}/asistencias`)}
+        />
+      </Tooltip>
+      <Tooltip title="Gestionar token">
+        <Button 
+          type="link" 
+          icon={<KeyOutlined />} 
+          onClick={() => abrirModalToken(record)}
+          style={{ color: record.tokenActivo ? '#52c41a' : '#8c8c8c' }}
+        />
+      </Tooltip>
+      <Tooltip title="Ver detalle">
+        <Button type="link" icon={<EyeOutlined />} onClick={() => verDetalle(record.id)} />
+      </Tooltip>
+      <Tooltip title="Editar">
+        <Button type="link" icon={<EditOutlined />} onClick={() => navigate(`/sesiones/editar/${record.id}`)} />
+      </Tooltip>
+      <Popconfirm
+        title="¿Eliminar esta sesión?"
+        description="Esta acción no se puede deshacer"
+        onConfirm={() => handleEliminar(record.id)}
+        okText="Sí, eliminar"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true }}
+      >
+        <Tooltip title="Eliminar">
+          <Button type="link" danger icon={<DeleteOutlined />} />
+        </Tooltip>
+      </Popconfirm>
+    </Space>
+  ),
+  width: 260, // Aumenta el ancho para el nuevo botón
+  align: 'center',
+}
+
   ];
 
   // Estilos

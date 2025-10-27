@@ -11,13 +11,13 @@ import {
 
 import {
   crearSesionBody,
-  obtenerSesionesQuery,        // ✅ Query
+  obtenerSesionesQuery,        
   obtenerSesionPorIdBody,
   actualizarSesionBody,
   eliminarSesionBody,
   crearSesionesRecurrentesBody,
   validate,
-  validateQuery                 // ✅ Importar
+  validateQuery                 
 } from '../validations/sesionValidations.js';
 
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';

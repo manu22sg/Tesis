@@ -96,16 +96,20 @@ export default function TokenSesionModal({
       }
     );
   };
-
-  const handleActivar = () => {
-    // Pasar ubicación si está activada
-    const datosExtra = {};
-    if (incluirUbicacion && ubicacion.latitud && ubicacion.longitud) {
-      datosExtra.latitud = ubicacion.latitud;
-      datosExtra.longitud = ubicacion.longitud;
-    }
-    onActivar(datosExtra);
+const handleActivar = () => {
+  const datosExtra = {
+    ttlMin,
+    tokenLength,
   };
+
+  if (incluirUbicacion && ubicacion.latitud && ubicacion.longitud) {
+    datosExtra.latitudToken = ubicacion.latitud;
+    datosExtra.longitudToken = ubicacion.longitud;
+  }
+
+  onActivar(datosExtra);
+};
+
 
   return (
     <Modal
@@ -212,7 +216,7 @@ export default function TokenSesionModal({
               }}>
                 <Space>
                   <EnvironmentOutlined style={{ fontSize: 16 }} />
-                  <Text strong>Registrar mi ubicación</Text>
+                  <Text strong>Registrar ubicación</Text>
                 </Space>
                 <Switch 
                   checked={incluirUbicacion} 

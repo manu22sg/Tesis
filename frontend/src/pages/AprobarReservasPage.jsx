@@ -72,7 +72,7 @@ const AprobarReservasPage = () => {
   const [filtros, setFiltros] = useState({
     fecha: null,
     canchaId: null,
-    estado: 'todas' // Por defecto: todas
+    estado: 'todas'
   });
 
   // Modales
@@ -120,7 +120,6 @@ const AprobarReservasPage = () => {
   const cargarReservasPendientes = async (page = 1, limit = 5) => {
     setLoading(true);
     
-    // Solo enviar filtros que tengan valor
     const filtrosFormateados = {};
     
     if (filtros.fecha) {
@@ -220,6 +219,7 @@ const AprobarReservasPage = () => {
 
   // Manejar cambio de paginación
   const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, current: page, pageSize });
     cargarReservasPendientes(page, pageSize);
   };
 
@@ -230,17 +230,14 @@ const AprobarReservasPage = () => {
 
   // Limpiar filtros y recargar automáticamente
   const limpiarFiltros = async () => {
-    // Primero actualizar los filtros
     setFiltros({
       fecha: null,
       canchaId: null,
       estado: 'todas'
     });
     
-    // Esperar un momento para que React actualice el estado
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    // Recargar con filtros limpios directamente
     setLoading(true);
     const [data, error] = await obtenerReservasPendientes({
       page: 1,
@@ -272,13 +269,6 @@ const AprobarReservasPage = () => {
 
   // Columnas de la tabla
   const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 70,
-      fixed: 'left',
-    },
     {
       title: 'Usuario',
       dataIndex: ['usuario', 'nombre'],
@@ -346,7 +336,6 @@ const AprobarReservasPage = () => {
             />
           </Tooltip>
           
-          {/* Solo mostrar botón Aprobar si está pendiente */}
           {record.estado === 'pendiente' && (
             <Button 
               type="primary" 
@@ -358,7 +347,6 @@ const AprobarReservasPage = () => {
             </Button>
           )}
           
-          {/* Solo mostrar botón Rechazar si está pendiente */}
           {record.estado === 'pendiente' && (
             <Button 
               danger 
@@ -370,7 +358,6 @@ const AprobarReservasPage = () => {
             </Button>
           )}
           
-          {/* Mostrar estado si no es pendiente */}
           {record.estado !== 'pendiente' && (
             <Tag color={
               record.estado === 'aprobada' ? 'green' :
@@ -559,7 +546,6 @@ const AprobarReservasPage = () => {
             {modalAprobar.reserva && (
               <>
                 <Descriptions bordered column={1} size="small">
-                  <Descriptions.Item label="ID">{modalAprobar.reserva.id}</Descriptions.Item>
                   <Descriptions.Item label="Usuario">
                     {modalAprobar.reserva.usuario?.nombre}
                   </Descriptions.Item>
@@ -606,7 +592,6 @@ const AprobarReservasPage = () => {
             {modalRechazar.reserva && (
               <>
                 <Descriptions bordered column={1} size="small">
-                  <Descriptions.Item label="ID">{modalRechazar.reserva.id}</Descriptions.Item>
                   <Descriptions.Item label="Usuario">
                     {modalRechazar.reserva.usuario?.nombre}
                   </Descriptions.Item>

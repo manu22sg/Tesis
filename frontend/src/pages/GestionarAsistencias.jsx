@@ -209,8 +209,8 @@ export default function GestionarAsistencias() {
   },
   {
     title: 'Fecha Registro',
-    dataIndex: 'fechaRegistro',  // ✅ Cambiado de createdAt a fechaRegistro
-    key: 'fechaRegistro',  // ✅ Cambiado
+    dataIndex: 'fechaRegistro', 
+    key: 'fechaRegistro',  
     render: (fecha) => {
       if (!fecha) return <Text type="secondary">—</Text>;
       return dayjs(fecha).format('DD/MM/YYYY HH:mm');
@@ -285,6 +285,13 @@ export default function GestionarAsistencias() {
                     <Text type="secondary">
                       🏟️ {sesion.cancha?.nombre || 'Sin cancha'}
                     </Text>
+                    {sesion.latitudToken && sesion.longitudToken ? (
+  <Tag color="green" icon={<EnvironmentOutlined />}>
+    Token con ubicación activa
+  </Tag>
+) : (
+  <Tag color="default">Token sin ubicación</Tag>
+)}
                     {sesion.grupo && (
                       <Text type="secondary">
                         👥 {sesion.grupo.nombre}

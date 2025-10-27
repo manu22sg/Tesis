@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col,ConfigProvider } from 'antd';
+import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col, ConfigProvider } from 'antd';
 import { ReloadOutlined, TrophyOutlined, LineChartOutlined } from '@ant-design/icons';
 import { obtenerMisEvaluaciones } from '../services/evaluacion.services.js';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout.jsx';
 import dayjs from 'dayjs';
-import esES from 'antd/locale/es_ES';
+import locale from 'antd/locale/es_ES';
+
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
 export default function MisEvaluaciones() {
   const { usuario } = useAuth();
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagina, setPagina] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
   const [filtros, setFiltros] = useState({
     desde: null,
     hasta: null,
@@ -61,12 +66,12 @@ export default function MisEvaluaciones() {
     setPromedios(promediosCalc);
   };
 
-  const fetchData = async (page = 1) => {
+  const fetchData = async (page = 1, limit = 10) => {
     setLoading(true);
     try {
       const params = { 
         page: page,
-        limit: 10
+        limit: limit
       };
       
       if (filtros.desde) params.desde = filtros.desde.format('YYYY-MM-DD');
@@ -76,11 +81,14 @@ export default function MisEvaluaciones() {
       const res = await obtenerMisEvaluaciones(params);
       
       const evalData = res.evaluaciones || [];
-      const paginacion = res.pagination || {};
+      const paginationData = res.pagination || {};
       
       setEvaluaciones(evalData);
-      setTotal(paginacion.totalItems || 0);
-      setPagina(paginacion.currentPage || page);
+      setPagination({
+        current: page,
+        pageSize: limit,
+        total: paginationData.totalItems || 0
+      });
       calcularPromedios(evalData);
     } catch (err) {
       message.error('Error cargando tus evaluaciones');
@@ -91,7 +99,7 @@ export default function MisEvaluaciones() {
   };
 
   useEffect(() => { 
-    fetchData(); 
+    fetchData(1, pagination.pageSize); 
   }, [filtros]);
 
   const limpiarFiltros = () => {
@@ -101,6 +109,11 @@ export default function MisEvaluaciones() {
       sesionId: null
     });
     message.success('Filtros limpiados'); 
+  };
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, current: page, pageSize });
+    fetchData(page, pageSize);
   };
 
   const hayFiltrosActivos = filtros.desde || filtros.hasta || filtros.sesionId;
@@ -198,149 +211,156 @@ export default function MisEvaluaciones() {
   ];
 
   return (
-    <ConfigProvider locale={esES}>
-    <MainLayout>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '8px' }}>
-          Mis Evaluaciones
-        </h1>
-        <p style={{ color: '#666' }}>
-          Aquí puedes ver todas tus evaluaciones de rendimiento en las sesiones de entrenamiento.
-        </p>
-      </div>
+    <ConfigProvider locale={locale}>
+      <MainLayout>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '8px' }}>
+            Mis Evaluaciones
+          </h1>
+          <p style={{ color: '#666' }}>
+            Aquí puedes ver todas tus evaluaciones de rendimiento en las sesiones de entrenamiento.
+          </p>
+        </div>
 
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card>
-            <Statistic
-              title="Técnica"
-              value={promedios.tecnica}
-              precision={1}
-              suffix="/ 10"
-              valueStyle={{ color: getColorNota(parseFloat(promedios.tecnica)) }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card>
-            <Statistic
-              title="Táctica"
-              value={promedios.tactica}
-              precision={1}
-              suffix="/ 10"
-              valueStyle={{ color: getColorNota(parseFloat(promedios.tactica)) }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card>
-            <Statistic
-              title="Actitudinal"
-              value={promedios.actitudinal}
-              precision={1}
-              suffix="/ 10"
-              valueStyle={{ color: getColorNota(parseFloat(promedios.actitudinal)) }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card>
-            <Statistic
-              title="Física"
-              value={promedios.fisica}
-              precision={1}
-              suffix="/ 10"
-              valueStyle={{ color: getColorNota(parseFloat(promedios.fisica)) }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={24} md={12} lg={8}>
-          <Card>
-            <Statistic
-              title="Promedio General"
-              value={promedios.general}
-              precision={1}
-              suffix="/ 10"
-              prefix={<TrophyOutlined />}
-              valueStyle={{ 
-                color: getColorNota(parseFloat(promedios.general)),
-                fontSize: '28px'
-              }}
-            />
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
-              Basado en {evaluaciones.length} evaluación(es)
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Card 
-        style={{ marginBottom: '24px' }}
-        title="Filtros"
-      >
-        <Row gutter={16}>
-          <Col xs={24} sm={12} md={8}>
-            <div style={{ marginBottom: '8px' }}>Rango de Fechas:</div>
-            <RangePicker
-              style={{ width: '100%' }}
-              format="YYYY-MM-DD"
-              placeholder={['Desde', 'Hasta']}
-              value={filtros.desde && filtros.hasta ? [filtros.desde, filtros.hasta] : null}
-              onChange={(dates) => {
-                if (dates) {
-                  setFiltros({ ...filtros, desde: dates[0], hasta: dates[1] });
-                } else {
-                  setFiltros({ ...filtros, desde: null, hasta: null });
-                }
-              }}
-            />
+        <Row gutter={16} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Card>
+              <Statistic
+                title="Técnica"
+                value={promedios.tecnica}
+                precision={1}
+                suffix="/ 10"
+                valueStyle={{ color: getColorNota(parseFloat(promedios.tecnica)) }}
+              />
+            </Card>
           </Col>
-          
-          <Col xs={24} sm={24} md={8} style={{ display: 'flex', alignItems: 'flex-end' }}>
-            {hayFiltrosActivos && (
-              <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-            )}
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Card>
+              <Statistic
+                title="Táctica"
+                value={promedios.tactica}
+                precision={1}
+                suffix="/ 10"
+                valueStyle={{ color: getColorNota(parseFloat(promedios.tactica)) }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Card>
+              <Statistic
+                title="Actitudinal"
+                value={promedios.actitudinal}
+                precision={1}
+                suffix="/ 10"
+                valueStyle={{ color: getColorNota(parseFloat(promedios.actitudinal)) }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Card>
+              <Statistic
+                title="Física"
+                value={promedios.fisica}
+                precision={1}
+                suffix="/ 10"
+                valueStyle={{ color: getColorNota(parseFloat(promedios.fisica)) }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={24} md={12} lg={8}>
+            <Card>
+              <Statistic
+                title="Promedio General"
+                value={promedios.general}
+                precision={1}
+                suffix="/ 10"
+                prefix={<TrophyOutlined />}
+                valueStyle={{ 
+                  color: getColorNota(parseFloat(promedios.general)),
+                  fontSize: '28px'
+                }}
+              />
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#888' }}>
+                Basado en {evaluaciones.length} evaluación(es)
+              </div>
+            </Card>
           </Col>
         </Row>
-      </Card>
 
-      <Card
-        title={
-          <span>
-            <LineChartOutlined /> Historial de Evaluaciones ({total})
-          </span>
-        }
-        extra={
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={() => fetchData(pagina)}
+        <Card 
+          style={{ marginBottom: '24px' }}
+          title="Filtros"
+        >
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <div style={{ marginBottom: '8px' }}>Rango de Fechas:</div>
+              <RangePicker
+                style={{ width: '100%' }}
+                format="YYYY-MM-DD"
+                placeholder={['Desde', 'Hasta']}
+                value={filtros.desde && filtros.hasta ? [filtros.desde, filtros.hasta] : null}
+                onChange={(dates) => {
+                  if (dates) {
+                    setFiltros({ ...filtros, desde: dates[0], hasta: dates[1] });
+                  } else {
+                    setFiltros({ ...filtros, desde: null, hasta: null });
+                  }
+                }}
+              />
+            </Col>
+            
+            <Col xs={24} sm={24} md={8} style={{ display: 'flex', alignItems: 'flex-end' }}>
+              {hayFiltrosActivos && (
+                <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+              )}
+            </Col>
+          </Row>
+        </Card>
+
+        <Card
+          title={
+            <span>
+              <LineChartOutlined /> Historial de Evaluaciones ({pagination.total})
+            </span>
+          }
+          extra={
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={() => fetchData(pagination.current, pagination.pageSize)}
+              loading={loading}
+            >
+              Actualizar
+            </Button>
+          }
+        >
+          <Table
+            dataSource={evaluaciones}
+            columns={columns}
             loading={loading}
-          >
-            Actualizar
-          </Button>
-        }
-      >
-        <Table
-          dataSource={evaluaciones}
-          columns={columns}
-          loading={loading}
-          pagination={false}
-          rowKey="id"
-          scroll={{ x: 1000 }}
-          locale={{
-            emptyText: 'No tienes evaluaciones registradas aún'
-          }}
-        />
-        <Pagination
-          style={{ marginTop: 16, textAlign: 'center' }}
-          current={pagina}
-          total={total}
-          pageSize={10}
-          onChange={fetchData}
-          showTotal={(total) => `Total ${total} evaluaciones`}
-        />
-      </Card>
-    </MainLayout>
+            pagination={false}
+            rowKey="id"
+            scroll={{ x: 1000 }}
+            locale={{
+              emptyText: 'No tienes evaluaciones registradas aún'
+            }}
+          />
+          
+          {evaluaciones.length > 0 && (
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <Pagination
+                current={pagination.current}
+                pageSize={pagination.pageSize}
+                total={pagination.total}
+                onChange={handlePageChange}
+                onShowSizeChange={handlePageChange}
+                showSizeChanger
+                showTotal={(total) => `Total: ${total} evaluaciones`}
+                pageSizeOptions={['5', '10', '20', '50']}
+              />
+            </div>
+          )}
+        </Card>
+      </MainLayout>
     </ConfigProvider>
   );
 }

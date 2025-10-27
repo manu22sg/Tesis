@@ -9,19 +9,27 @@ function generarToken(length = 6) {
   return t;
 }
 
-export async function activarTokenSesion(sesionId, { ttlMin = 30, tokenLength = 6 }) {
+export async function activarTokenSesion(sesionId, params = {}) {
   try {
+    // ✅ Extraer todos los valores desde params
+    const {
+      ttlMin = 30,
+      tokenLength = 6,
+      latitudToken = null,
+      longitudToken = null,
+    } = params;
+
     const repo = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const sesion = await repo.findOne({ 
+    const sesion = await repo.findOne({
       where: { id: sesionId },
-      relations: ['grupo', 'cancha'] 
+      relations: ['grupo', 'cancha'],
     });
-    
+
     if (!sesion) return [null, "Sesión no encontrada", 404];
 
     const ahora = new Date();
     const fechaSesion = parseDateLocal(sesion.fecha);
-    
+
     const [horaFin, minFin] = sesion.horaFin.split(':').map(Number);
     const finSesion = new Date(fechaSesion);
     finSesion.setHours(horaFin, minFin, 0, 0);
@@ -30,6 +38,7 @@ export async function activarTokenSesion(sesionId, { ttlMin = 30, tokenLength = 
       return [null, "No se puede activar el token para una sesión que ya finalizó", 400];
     }
 
+    // ✅ Generar token único
     let token;
     const maxIntentos = 10;
     for (let i = 0; i < maxIntentos; i++) {
@@ -41,18 +50,24 @@ export async function activarTokenSesion(sesionId, { ttlMin = 30, tokenLength = 
       }
     }
 
-    const now = new Date();
-    const exp = new Date(now.getTime() + ttlMin * 60000);
+    const exp = new Date(ahora.getTime() + ttlMin * 60000);
 
+    // ✅ Guardar token y ubicación (si viene)
     sesion.token = token;
     sesion.tokenActivo = true;
     sesion.tokenExpiracion = exp;
 
+    // ✅ Guardar coordenadas si el DT las envió
+    if (latitudToken !== null && longitudToken !== null) {
+      sesion.latitudToken = latitudToken;
+      sesion.longitudToken = longitudToken;
+    }
+
     const actualizado = await repo.save(sesion);
-    
+
     const sesionCompleta = await repo.findOne({
       where: { id: actualizado.id },
-      relations: ['grupo', 'cancha']
+      relations: ['grupo', 'cancha'],
     });
 
     return [sesionCompleta, null, 200];
@@ -61,6 +76,7 @@ export async function activarTokenSesion(sesionId, { ttlMin = 30, tokenLength = 
     return [null, "Error al activar token", 500];
   }
 }
+
 
 
 export async function desactivarTokenSesion(sesionId) {

@@ -9,7 +9,8 @@ const EntrenamientoSesionSchema = new EntitySchema({
             generated: true,
         },
         sesionId: {
-            type: "int",
+            type: "int"
+            , nullable: true
         },
         titulo: {
             type: "varchar",
