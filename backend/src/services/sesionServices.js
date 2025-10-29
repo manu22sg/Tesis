@@ -125,55 +125,53 @@ export async function obtenerSesiones(filtros = {}) {
     const canchaId = filtros.canchaId ? parseInt(filtros.canchaId) : null;
     const grupoId = filtros.grupoId ? parseInt(filtros.grupoId) : null;
     const tipoSesion = filtros.tipoSesion ? filtros.tipoSesion.trim() : null;
+    const jugadorId = filtros.jugadorId ? parseInt(filtros.jugadorId) : null; 
 
+    // Base del query
     const qb = sesionRepo
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.grupo', 'g')
-      .leftJoinAndSelect('s.cancha', 'c')
-      .orderBy('s.fecha', 'DESC')
+      .leftJoinAndSelect('s.cancha', 'c');
+
+    // 👇 solo hacemos join con jugadores si se filtra por jugadorId
+    if (jugadorId) {
+  qb.leftJoin('g.jugadorGrupos', 'jg')
+    .leftJoin('jg.jugador', 'j')
+    .andWhere('j.id = :jugadorId', { jugadorId });
+}
+
+    qb.orderBy('s.fecha', 'DESC')
       .addOrderBy('s.horaInicio', 'DESC')
       .skip(skip)
       .take(limit);
 
-    // Búsqueda general por texto
+    // Búsqueda general
     if (q) {
-      qb.andWhere(`(LOWER(s.tipoSesion) LIKE :q OR LOWER(g.nombre) LIKE :q OR LOWER(c.nombre) LIKE :q)`, { q: `%${q}%` });
+      qb.andWhere(`
+        (LOWER(s.tipoSesion) LIKE :q 
+         OR LOWER(g.nombre) LIKE :q 
+         OR LOWER(c.nombre) LIKE :q)
+      `, { q: `%${q}%` });
     }
 
-    // Filtro por fecha
-    if (fecha) {
-      qb.andWhere(`s.fecha = :fecha`, { fecha });
-    }
-
-    // Filtro por cancha
-    if (canchaId) {
-      qb.andWhere(`s.canchaId = :canchaId`, { canchaId });
-    }
-
-    // Filtro por grupo
-    if (grupoId) {
-      qb.andWhere(`s.grupoId = :grupoId`, { grupoId });
-    }
-
-    // Filtro por tipo de sesión
-    if (tipoSesion) {
-      qb.andWhere(`LOWER(s.tipoSesion) = :tipoSesion`, { tipoSesion: tipoSesion.toLowerCase() });
-    }
+    if (fecha) qb.andWhere(`s.fecha = :fecha`, { fecha });
+    if (canchaId) qb.andWhere(`s.canchaId = :canchaId`, { canchaId });
+    if (grupoId) qb.andWhere(`s.grupoId = :grupoId`, { grupoId });
+    if (tipoSesion) qb.andWhere(`LOWER(s.tipoSesion) = :tipoSesion`, { tipoSesion: tipoSesion.toLowerCase() });
 
     const horaInicio = filtros.horaInicio ? filtros.horaInicio.trim() : null;
-const horaFin = filtros.horaFin ? filtros.horaFin.trim() : null;
+    const horaFin = filtros.horaFin ? filtros.horaFin.trim() : null;
 
-// Lógica de solapamiento de horarios
-if (horaInicio && horaFin) {
-  qb.andWhere(
-    `(
-      (s.horaInicio >= :horaInicio AND s.horaInicio < :horaFin) OR 
-      (s.horaFin > :horaInicio AND s.horaFin <= :horaFin) OR 
-      (s.horaInicio <= :horaInicio AND s.horaFin >= :horaFin)
-    )`,
-    { horaInicio, horaFin }
-  );
-}
+    if (horaInicio && horaFin) {
+      qb.andWhere(
+        `(
+          (s.horaInicio >= :horaInicio AND s.horaInicio < :horaFin) OR 
+          (s.horaFin > :horaInicio AND s.horaFin <= :horaFin) OR 
+          (s.horaInicio <= :horaInicio AND s.horaFin >= :horaFin)
+        )`,
+        { horaInicio, horaFin }
+      );
+    }
 
     const [sesiones, total] = await qb.getManyAndCount();
 
@@ -192,6 +190,7 @@ if (horaInicio && horaFin) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 
 

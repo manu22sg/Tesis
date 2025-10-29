@@ -6,28 +6,31 @@ export async function crearSesion(data) {
   return res.data.data;
 }
 
-
 export async function obtenerSesiones(filtros = {}) {
   const params = new URLSearchParams();
   
-  if (filtros.q)     params.append('q', filtros.q);
-  if (filtros.fecha) params.append('fecha', filtros.fecha);      
-  if (filtros.canchaId) params.append('canchaId', filtros.canchaId); 
-  if (filtros.grupoId) params.append('grupoId', filtros.grupoId);    
-  if (filtros.tipoSesion) params.append('tipoSesion', filtros.tipoSesion); 
-  if (filtros.page)  params.append('page', filtros.page);
+  if (filtros.q) params.append('q', filtros.q);
+  if (filtros.fecha) params.append('fecha', filtros.fecha);
+  if (filtros.canchaId) params.append('canchaId', filtros.canchaId);
+  if (filtros.grupoId) params.append('grupoId', filtros.grupoId);
+  if (filtros.tipoSesion) params.append('tipoSesion', filtros.tipoSesion);
+  if (filtros.page) params.append('page', filtros.page);
   if (filtros.limit) params.append('limit', filtros.limit);
   if (filtros.horaInicio) params.append('horaInicio', filtros.horaInicio);
   if (filtros.horaFin) params.append('horaFin', filtros.horaFin);
-  
+
+  // 👇 Nuevo: permitir filtro opcional por jugadorId
+  if (filtros.jugadorId) params.append('jugadorId', filtros.jugadorId);
+
   const query = params.toString() ? `?${params.toString()}` : '';
   const res = await api.get(`/sesion${query}`);
-  
+
   return {
     sesiones: res.data.data.sesiones,
-    pagination: res.data.data.pagination
+    pagination: res.data.data.pagination,
   };
 }
+
 
 /**
  * Obtener detalle de una sesión por ID

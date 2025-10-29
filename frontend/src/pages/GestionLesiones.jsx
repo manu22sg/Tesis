@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
-  message, Popconfirm, Card, Row, Col, Statistic, Typography, Select,
-  Tooltip, Avatar, Empty, Pagination, ConfigProvider
+  message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
+  Pagination, ConfigProvider, Input as AntInput
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -13,7 +13,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import {
-  crearLesion, obtenerLesiones, actualizarLesion, 
+  crearLesion, obtenerLesiones, actualizarLesion,
   eliminarLesion
 } from '../services/lesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
@@ -24,7 +24,6 @@ dayjs.locale('es');
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-const { Title } = Typography;
 const { Option } = Select;
 
 export default function GestionLesiones() {
@@ -39,13 +38,12 @@ export default function GestionLesiones() {
   const [modalEditando, setModalEditando] = useState(false);
   const [lesionActual, setLesionActual] = useState(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const [estadisticas, setEstadisticas] = useState({ activas: 0, recuperadas: 0, total: 0 });
-  
-  // Filtros en línea
+
+  // Filtros
   const [busqueda, setBusqueda] = useState('');
   const [filtroJugadorId, setFiltroJugadorId] = useState(null);
   const [rangoFechas, setRangoFechas] = useState(null);
-  
+
   const [form] = Form.useForm();
 
   const esEstudiante = rolUsuario === 'estudiante';
@@ -59,7 +57,6 @@ export default function GestionLesiones() {
   const cargarJugadores = async () => {
     try {
       const data = await obtenerJugadores({ limite: 100 });
-      console.log('Jugadores cargados:', data);
       setJugadores(data.data?.jugadores || data.jugadores || []);
     } catch (error) {
       console.error('Error cargando jugadores:', error);
@@ -82,28 +79,18 @@ export default function GestionLesiones() {
       }
 
       const response = await obtenerLesiones(params);
-      console.log('Lesiones cargadas:', response.data.lesiones);
-
-
-      setLesiones(response.data.lesiones);
-      setPagination(prev => ({ 
-        ...prev, 
+      setLesiones(response.data.lesiones || []);
+      setPagination(prev => ({
+        ...prev,
         total: response.data.total,
-        totalPages: response.data.totalPaginas 
+        totalPages: response.data.totalPaginas
       }));
-      calcularEstadisticas(response.data.lesiones);
     } catch (error) {
       console.error('Error al cargar lesiones:', error);
       message.error(error.message || 'Error al cargar lesiones');
     } finally {
       setLoading(false);
     }
-  };
-
-  const calcularEstadisticas = (data) => {
-    const activas = data.filter(l => !l.fechaAltaReal).length;
-    const recuperadas = data.filter(l => l.fechaAltaReal).length;
-    setEstadisticas({ activas, recuperadas, total: data.length });
   };
 
   const handleCrear = async (values) => {
@@ -114,7 +101,6 @@ export default function GestionLesiones() {
         fechaAltaEstimada: values.fechaAltaEstimada?.format('YYYY-MM-DD') || null,
         fechaAltaReal: values.fechaAltaReal?.format('YYYY-MM-DD') || null,
       };
-      // Si es estudiante, fuerza su jugadorId
       if (esEstudiante) payload.jugadorId = jugadorId;
 
       await crearLesion(payload);
@@ -182,7 +168,7 @@ export default function GestionLesiones() {
     setPagination({ ...pagination, current: page, pageSize });
   };
 
-  // Filtrado local por búsqueda
+  // Filtrado local
   const lesionesFiltradas = lesiones.filter(lesion => {
     if (!busqueda) return true;
     const searchLower = busqueda.toLowerCase();
@@ -231,37 +217,36 @@ export default function GestionLesiones() {
       dataIndex: 'fechaInicio',
       key: 'fechaInicio',
       render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
-      width: 120,
       align: 'center',
+      width: 120,
     },
     {
       title: 'Alta Estimada',
       dataIndex: 'fechaAltaEstimada',
       key: 'fechaAltaEstimada',
       render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      width: 130,
       align: 'center',
+      width: 130,
     },
     {
       title: 'Alta Real',
       dataIndex: 'fechaAltaReal',
       key: 'fechaAltaReal',
       render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      width: 120,
       align: 'center',
+      width: 130,
     },
     {
       title: 'Estado',
       key: 'estado',
-      render: (_, record) => (
+      render: (_, record) =>
         record.fechaAltaReal ? (
           <Tag icon={<CheckCircleOutlined />} color="success">Recuperado</Tag>
         ) : (
           <Tag icon={<ClockCircleOutlined />} color="warning">Activa</Tag>
-        )
-      ),
-      width: 130,
+        ),
       align: 'center',
+      width: 120,
     },
     ...(puedeEditar ? [{
       title: 'Acciones',
@@ -301,42 +286,34 @@ export default function GestionLesiones() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: '24px' }}>
-          <Card>
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Lesiones Activas"
-                  value={estadisticas.activas}
-                  prefix={<MedicineBoxOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Col>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Recuperadas"
-                  value={estadisticas.recuperadas}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Col>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Total"
-                  value={estadisticas.total}
-                  prefix={<MedicineBoxOutlined />}
-                />
-              </Col>
-            </Row>
-
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <Card
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <MedicineBoxOutlined style={{ fontSize: 24 }} />
+                <span>Gestión de Lesiones</span>
+              </div>
+            }
+            extra={
+              puedeEditar && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setModalVisible(true)}
+                >
+                  Nueva Lesión
+                </Button>
+              )
+            }
+          >
             {/* Filtros */}
-            <div style={{ 
-              marginBottom: 16, 
-              display: 'grid', 
+            <div style={{
+              marginBottom: 16,
+              display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 12 
+              gap: 12
             }}>
-              <Input
+              <AntInput
                 allowClear
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -352,12 +329,9 @@ export default function GestionLesiones() {
                   onChange={setFiltroJugadorId}
                   placeholder="Filtrar por jugador"
                   optionFilterProp="children"
-                  filterOption={(input, option) => {
-  const text = typeof option?.children === 'string'
-    ? option.children
-    : option?.children?.toString?.() || '';
-  return text.toLowerCase().includes(input.toLowerCase());
-}}
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
                 >
                   {jugadores.map(jugador => (
                     <Option key={jugador.id} value={jugador.id}>
@@ -380,25 +354,14 @@ export default function GestionLesiones() {
               )}
             </div>
 
-            {puedeEditar && (
-              <Space style={{ marginBottom: 16 }}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalVisible(true)}
-                >
-                  Nueva Lesión
-                </Button>
-              </Space>
-            )}
-
+            {/* Tabla */}
             <Table
               columns={columns}
               dataSource={lesionesFiltradas}
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={{ x: 1200 }}
+              scroll={{ x: 1000 }}
               size="middle"
               locale={{
                 emptyText: (
@@ -467,12 +430,9 @@ export default function GestionLesiones() {
                     showSearch
                     placeholder="Seleccione un jugador"
                     optionFilterProp="children"
-                    filterOption={(input, option) => {
-  const text = typeof option?.children === 'string'
-    ? option.children
-    : option?.children?.toString?.() || '';
-  return text.toLowerCase().includes(input.toLowerCase());
-}}
+                    filterOption={(input, option) =>
+                      (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
                   >
                     {jugadores.map(jugador => (
                       <Option key={jugador.id} value={jugador.id}>

@@ -35,17 +35,22 @@ export async function postCrearSesion(req, res) {
 /** GET /api/sesiones */
 export async function getSesiones(req, res) {
   try {
-   const filtros = {
-  q: req.query.q || '',
-  fecha: req.query.fecha || null,           
-  canchaId: req.query.canchaId || null,     
-  grupoId: req.query.grupoId || null,       
-  tipoSesion: req.query.tipoSesion || null, 
-  horaInicio: req.query.horaInicio || null,
-  horaFin: req.query.horaFin || null,
-  page: req.query.page,
-  limit: req.query.limit
-};
+    const filtros = {
+      q: req.query.q || '',
+      fecha: req.query.fecha || null,
+      canchaId: req.query.canchaId || null,
+      grupoId: req.query.grupoId || null,
+      tipoSesion: req.query.tipoSesion || null,
+      horaInicio: req.query.horaInicio || null,
+      horaFin: req.query.horaFin || null,
+      page: req.query.page,
+      limit: req.query.limit,
+    };
+
+    // 👇 Nuevo: permitir filtrar por jugadorId (opcional)
+    if (req.query.jugadorId) {
+      filtros.jugadorId = parseInt(req.query.jugadorId);
+    }
 
     const [result, err] = await obtenerSesiones(filtros);
     if (err) return error(res, err, 500);
@@ -61,7 +66,6 @@ export async function getSesiones(req, res) {
     return error(res, 'Error interno del servidor', 500);
   }
 }
-
 /** POST /api/sesiones/detalle */
 export async function getSesionPorId(req, res) {
   try {

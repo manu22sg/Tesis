@@ -3,9 +3,6 @@ import {
   Card,
   Table,
   Tag,
-  Statistic,
-  Row,
-  Col,
   Input,
   DatePicker,
   Space,
@@ -39,7 +36,6 @@ export default function MisLesiones() {
   const [loading, setLoading] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [rangoFechas, setRangoFechas] = useState(null);
-  const [estadisticas, setEstadisticas] = useState({ activas: 0, recuperadas: 0, total: 0 });
 
   useEffect(() => {
     cargarMisLesiones();
@@ -57,19 +53,12 @@ export default function MisLesiones() {
       const response = await obtenerMisLesiones(params);
       const data = response.data.lesiones || [];
       setLesiones(data);
-      calcularEstadisticas(data);
     } catch (error) {
       console.error('Error cargando mis lesiones:', error);
       message.error(error.message || 'Error al cargar tus lesiones');
     } finally {
       setLoading(false);
     }
-  };
-
-  const calcularEstadisticas = (data) => {
-    const activas = data.filter(l => !l.fechaAltaReal).length;
-    const recuperadas = data.filter(l => l.fechaAltaReal).length;
-    setEstadisticas({ activas, recuperadas, total: data.length });
   };
 
   const limpiarFiltros = () => {
@@ -95,29 +84,30 @@ export default function MisLesiones() {
       dataIndex: 'fechaInicio',
       key: 'fechaInicio',
       render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
-      width: 130,
       align: 'center',
+      width: 130,
     },
     {
       title: 'Alta Estimada',
       dataIndex: 'fechaAltaEstimada',
       key: 'fechaAltaEstimada',
       render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      width: 130,
       align: 'center',
+      width: 130,
     },
     {
       title: 'Alta Real',
       dataIndex: 'fechaAltaReal',
       key: 'fechaAltaReal',
       render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      width: 130,
       align: 'center',
+      width: 130,
     },
     {
       title: 'Estado',
       key: 'estado',
       align: 'center',
+      width: 120,
       render: (_, record) =>
         record.fechaAltaReal ? (
           <Tag icon={<CheckCircleOutlined />} color="success">
@@ -128,7 +118,6 @@ export default function MisLesiones() {
             Activa
           </Tag>
         ),
-      width: 130,
     },
   ];
 
@@ -137,34 +126,15 @@ export default function MisLesiones() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: 24 }}>
-          <Card>
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Lesiones Activas"
-                  value={estadisticas.activas}
-                  prefix={<MedicineBoxOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Col>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Recuperadas"
-                  value={estadisticas.recuperadas}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Col>
-              <Col xs={24} sm={8}>
-                <Statistic
-                  title="Total"
-                  value={estadisticas.total}
-                  prefix={<MedicineBoxOutlined />}
-                />
-              </Col>
-            </Row>
-
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <Card
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <MedicineBoxOutlined style={{ fontSize: 24 }} />
+                <span>Mis Lesiones</span>
+              </div>
+            }
+          >
             {/* Filtros */}
             <div
               style={{

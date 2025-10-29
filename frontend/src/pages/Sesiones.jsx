@@ -292,6 +292,13 @@ export default function Sesiones() {
           icon={<FileTextOutlined />} 
           onClick={() => navigate(`/sesiones/${record.id}/entrenamientos`)}
         />
+         <Tooltip title="Ver alineación">
+        <Button 
+          type="link" 
+          icon={<TeamOutlined />} 
+          onClick={() => navigate(`/sesiones/${record.id}/alineacion`)}
+        />
+      </Tooltip>
       </Tooltip>
       <Tooltip title="Ver asistencias">
         <Button 

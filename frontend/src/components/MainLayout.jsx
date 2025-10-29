@@ -13,7 +13,9 @@ import {
   EyeOutlined,
   ScheduleOutlined,
   EditOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  MedicineBoxOutlined,
+  BarChartOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +48,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const entrenadorItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
 
-    // ✅ Canchas con submenú
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -56,20 +57,28 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
-    
-    // ⚽ NUEVO: Entrenamientos
+
+    // ⚽ Entrenamientos
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-    
+
     getItem('Aprobar Reservas', 'aprobar-reservas', <CheckCircleOutlined />),
-    getItem('Jugadores', 'jugadores', <UserOutlined />),
+
+    // 👥 Jugadores + Lesiones
+    getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
+      getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
+      getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
+    ]),
+
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
+    
+    // 📊 Estadísticas para Entrenador
+    getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
   ];
 
   const superAdminItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
 
-    // ✅ También para superadmin
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -79,13 +88,19 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
-    
-    // ⚽ NUEVO: Entrenamientos para superadmin también
+
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-    
-    getItem('Jugadores', 'jugadores', <UserOutlined />),
+
+    getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
+      getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
+      getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
+    ]),
+
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
+    
+    // 📊 Estadísticas para SuperAdmin
+    getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
   ];
 
   const estudianteItems = [
@@ -97,6 +112,12 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     ]),
     getItem('Marcar Asistencia', 'marcar-asistencia', <CheckCircleOutlined />),
     getItem('Mis Evaluaciones', 'mis-evaluaciones', <TrophyOutlined />),
+
+    // 🩹 Mis Lesiones
+    getItem('Mis Lesiones', 'mis-lesiones', <MedicineBoxOutlined />),
+    
+    // 📊 Mis Estadísticas
+    getItem('Mis Estadísticas', 'mis-estadisticas', <BarChartOutlined />),
   ];
 
   const academicoItems = [
@@ -120,14 +141,22 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
     '/aprobar-reservas': 'aprobar-reservas',
-    
+
     // 📆 Sesiones
     '/sesiones': 'sesiones',
     '/sesiones/nueva': 'sesiones-nueva',
-    
-    // ⚽ NUEVO: Entrenamientos (también reconoce la ruta con sesionId)
+
+    // ⚽ Entrenamientos
     '/entrenamientos': 'entrenamientos',
-    
+
+    // 🩹 Lesiones
+    '/lesiones': 'lesiones',
+    '/mis-lesiones': 'mis-lesiones',
+
+    // 📊 Estadísticas
+    '/estadisticas': 'estadisticas',
+    '/mis-estadisticas': 'mis-estadisticas',
+
     // ✅ Otras rutas
     '/marcar-asistencia': 'marcar-asistencia',
     '/jugadores': 'jugadores',
@@ -136,7 +165,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/mis-evaluaciones': 'mis-evaluaciones',
   };
 
-  // Detectar si estamos en una ruta de entrenamientos dentro de sesión
+  // Detectar si estamos en entrenamientos dentro de sesión
   let selectedKey = selectedKeyOverride;
   if (!selectedKey) {
     if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
@@ -146,15 +175,17 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     }
   }
 
-  // 🔓 Control submenús abiertos
+  // 🔓 Submenús abiertos por defecto
   const [openKeys, setOpenKeys] = useState(() => {
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
     if (location.pathname.startsWith('/reservas')) return ['sub_reservas'];
     if (location.pathname.startsWith('/canchas')) return ['sub_canchas'];
+    if (location.pathname.startsWith('/jugadores') || location.pathname.startsWith('/lesiones'))
+      return ['sub_jugadores'];
     return [];
   });
 
-  // 🔀 Click handler
+  // 🔀 Navegación al hacer click
   const onMenuClick = ({ key }) => {
     const keyToPath = {
       dashboard: '/dashboard',
@@ -162,20 +193,28 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       // 🏟️ Canchas
       'canchas-gestion': '/gestion-canchas',
       'canchas-ver': '/canchas',
-      'canchas': '/canchas',
-      
+      canchas: '/canchas',
+
       // 📅 Reservas
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
       'aprobar-reservas': '/aprobar-reservas',
-      
+
       // 📆 Sesiones
       sesiones: '/sesiones',
       'sesiones-nueva': '/sesiones/nueva',
-      
-      // ⚽ NUEVO: Entrenamientos
+
+      // ⚽ Entrenamientos
       entrenamientos: '/entrenamientos',
-      
+
+      // 🩹 Lesiones
+      lesiones: '/lesiones',
+      'mis-lesiones': '/mis-lesiones',
+
+      // 📊 Estadísticas
+      estadisticas: '/estadisticas',
+      'mis-estadisticas': '/mis-estadisticas',
+
       // ✅ Otras
       'marcar-asistencia': '/marcar-asistencia',
       jugadores: '/jugadores',
@@ -188,7 +227,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     if (route) navigate(route);
   };
 
-  // 🧩 Items por rol
+  // 🧩 Menús por rol
   const itemsByRole = {
     superadmin: superAdminItems,
     entrenador: entrenadorItems,
@@ -196,7 +235,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     academico: academicoItems,
   };
 
-  // 👤 Menú usuario
+  // 👤 Menú usuario superior derecho
   const userMenuItems = [
     {
       key: 'profile',

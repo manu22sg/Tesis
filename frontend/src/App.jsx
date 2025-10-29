@@ -26,6 +26,9 @@ import MisEvaluaciones from './pages/MisEvaluaciones';
 import Entrenamientos from './pages/Entrenamientos';
 import GestionLesiones from './pages/GestionLesiones.jsx';
 import MisLesiones from './pages/MisLesiones.jsx';
+import Estadisticas from './pages/Estadisticas.jsx';
+import MisEstadisticas from './pages/MisEstadisticas.jsx';
+import AlineacionCompleta from './pages/AlineacionCompleta.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -54,6 +57,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Alineación Completa - Entrenador y SuperAdmin */}
+      <Route
+        path="/alineacion-completa"
+        element={
+          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+            <AlineacionCompleta />
           </ProtectedRoute>
         }
       />
@@ -102,6 +115,16 @@ function AppRoutes() {
         }
       />
 
+      {/* ========== ESTADÍSTICAS - Todos los usuarios autenticados ========== */}
+      <Route
+        path="/estadisticas"
+        element={
+          <ProtectedRoute>
+            <Estadisticas />
+          </ProtectedRoute>
+        }
+      />
+
       
 
       {/* ========== RESERVAS - Solo Estudiantes y Académicos ========== */}
@@ -122,6 +145,15 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+       <Route
+        path="/mis-estadisticas"
+        element={
+          <ProtectedRoute roles={['estudiante', ]}>
+            <MisEstadisticas />
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* Mis Evaluaciones - Solo Estudiantes  */}
       <Route

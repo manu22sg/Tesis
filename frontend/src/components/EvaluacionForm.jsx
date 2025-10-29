@@ -10,57 +10,63 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
   const [sesiones, setSesiones] = useState([]);
   const [loadingJugadores, setLoadingJugadores] = useState(false);
   const [loadingSesiones, setLoadingSesiones] = useState(false);
+  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null); // 👈 nuevo
   const editando = !!initialValues;
 
-  // 🔹 Cargar valores iniciales
+  //  Cargar valores iniciales (modo edición)
   useEffect(() => {
     if (initialValues) form.setFieldsValue(initialValues);
   }, [initialValues]);
 
-  // 🔹 Cargar datos base
+  //  Cargar datos base (modo creación)
   useEffect(() => {
     if (!editando) {
       loadJugadores();
-      loadSesiones();
     }
   }, [editando]);
 
+  //  Cuando cambia el jugador seleccionado, cargar SOLO sus sesiones
+  useEffect(() => {
+    if (jugadorSeleccionado) {
+      loadSesionesPorJugador(jugadorSeleccionado);
+    } else {
+      setSesiones([]); // limpiar sesiones si no hay jugador
+    }
+  }, [jugadorSeleccionado]);
+
   const loadJugadores = async (q = '') => {
-  setLoadingJugadores(true);
-  try {
-    const data = await obtenerJugadores({ q });
-    console.log('🔍 Respuesta completa de obtenerJugadores:', data);
-    // ✅ Usa la propiedad jugadores
-    setJugadores(Array.isArray(data.jugadores) ? data.jugadores : []);
-  } catch (error) {
-    console.error('❌ Error cargando jugadores:', error);
-    setJugadores([]);
-  } finally {
-    setLoadingJugadores(false);
-  }
-};
+    setLoadingJugadores(true);
+    try {
+      const data = await obtenerJugadores({ q });
+      setJugadores(Array.isArray(data.jugadores) ? data.jugadores : []);
+    } catch (error) {
+      console.error(' Error cargando jugadores:', error);
+      setJugadores([]);
+    } finally {
+      setLoadingJugadores(false);
+    }
+  };
 
-
-  const loadSesiones = async (q = '') => {
+  //  Cargar sesiones filtradas por jugador
+  const loadSesionesPorJugador = async (jugadorId) => {
     setLoadingSesiones(true);
     try {
-      const sesionesData = await obtenerSesiones({ q });
-      // ⚠️ tus sesiones vienen en un objeto con { sesiones, pagination }
-      setSesiones(Array.isArray(sesionesData.sesiones) ? sesionesData.sesiones : []);
+      const resultado = await obtenerSesiones({ jugadorId, limit: 50, page: 1 });
+      setSesiones(Array.isArray(resultado.sesiones) ? resultado.sesiones : []);
     } catch (error) {
-      console.error('Error cargando sesiones:', error);
+      console.error(' Error cargando sesiones por jugador:', error);
+      message.error('Error al cargar las sesiones del jugador');
       setSesiones([]);
     } finally {
       setLoadingSesiones(false);
     }
   };
 
-  // 🔹 Envío del formulario
+  //  Envío del formulario
   const onFinish = async (values) => {
     try {
       if (editando) {
         await actualizarEvaluacion({ id: initialValues.id, ...values });
-        console.log('Evaluación actualizada:', initialValues.id, values);
         message.success('Evaluación actualizada');
       } else {
         await crearEvaluacion(values);
@@ -74,44 +80,57 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
   };
 
   return (
-    <Form
-      layout="vertical"
-      form={form}
-      onFinish={onFinish}
-    >
-      {/* 🔍 Jugador con búsqueda */}
+    <Form layout="vertical" form={form} onFinish={onFinish}>
+      {/* 🔍 Jugador */}
       {!editando && (
-        <Form.Item name="jugadorId" label="Jugador" rules={[{ required: true, message: 'Selecciona un jugador' }]}>
-  <Select
-    showSearch
-    placeholder="Buscar jugador por nombre o RUT..."
-    filterOption={false}
-    onSearch={loadJugadores}
-    notFoundContent={loadingJugadores ? <Spin size="small" /> : 'No encontrado'}
-    optionFilterProp="children"
-  >
-    {jugadores.map(j => (
-      <Select.Option key={j.id} value={j.id}>
-        {j.usuario?.nombre || `Jugador #${j.id}`} — {j.usuario?.rut || 'Sin RUT'}
-      </Select.Option>
-    ))}
-  </Select>
-</Form.Item>
-      )}
-
-      {/* 🔍 Sesión con búsqueda */}
-      {!editando && (
-        <Form.Item name="sesionId" label="Sesión" rules={[{ required: true, message: 'Selecciona una sesión' }]}>
+        <Form.Item
+          name="jugadorId"
+          label="Jugador"
+          rules={[{ required: true, message: 'Selecciona un jugador' }]}
+        >
           <Select
             showSearch
-            placeholder="Buscar sesión..."
+            placeholder="Buscar jugador por nombre o RUT..."
             filterOption={false}
-            onSearch={loadSesiones}
-            notFoundContent={loadingSesiones ? <Spin size="small" /> : 'No encontrada'}
+            onSearch={loadJugadores}
+            onChange={(value) => setJugadorSeleccionado(value)} // 👈 carga sesiones al elegir
+            notFoundContent={loadingJugadores ? <Spin size="small" /> : 'No encontrado'}
+            optionFilterProp="children"
           >
-            {sesiones.map(s => (
+            {jugadores.map((j) => (
+              <Select.Option key={j.id} value={j.id}>
+                {j.usuario?.nombre || `Jugador #${j.id}`} — {j.usuario?.rut || 'Sin RUT'}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+      )}
+
+      {/* 🔍 Sesión dependiente del jugador */}
+      {!editando && (
+        <Form.Item
+          name="sesionId"
+          label="Sesión"
+          rules={[{ required: true, message: 'Selecciona una sesión' }]}
+        >
+          <Select
+            showSearch
+            placeholder={
+              jugadorSeleccionado
+                ? 'Selecciona una sesión del grupo del jugador'
+                : 'Primero selecciona un jugador'
+            }
+            disabled={!jugadorSeleccionado}
+            notFoundContent={loadingSesiones ? <Spin size="small" /> : 'No encontrada'}
+            filterOption={(input, option) =>
+              String(option?.children ?? '')
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          >
+            {sesiones.map((s) => (
               <Select.Option key={s.id} value={s.id}>
-                {s.fecha} ({s.horaInicio})
+                {s.fecha} — {s.horaInicio} ({s.tipoSesion || 'N/A'})
               </Select.Option>
             ))}
           </Select>

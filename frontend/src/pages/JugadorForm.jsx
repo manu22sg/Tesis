@@ -176,7 +176,6 @@ export default function JugadorForm() {
       };
 
       if (isEdit) {
-        // No enviar usuarioId en la actualización
         const { usuarioId, ...datosActualizacion } = datosFormulario;
         await actualizarJugador(parseInt(id), datosActualizacion);
         message.success('Jugador actualizado correctamente');
@@ -232,6 +231,9 @@ export default function JugadorForm() {
           {/* Usuario con AutoComplete (solo en creación) */}
          {!isEdit ? (
   <>
+  <Form.Item name="usuarioId" hidden>
+      <Input type="hidden" />
+    </Form.Item>
     {/* Mostrar usuario seleccionado PRIMERO */}
     {usuarioSeleccionado && (
       <div style={{
