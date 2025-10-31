@@ -286,20 +286,24 @@ export default function Sesiones() {
   key: 'acciones',
   render: (_, record) => (
     <Space>
-      <Tooltip title="Ver entrenamientos">
-        <Button 
-          type="link" 
-          icon={<FileTextOutlined />} 
-          onClick={() => navigate(`/sesiones/${record.id}/entrenamientos`)}
-        />
-         <Tooltip title="Ver alineación">
+      {/* 🆕 BOTÓN DE ALINEACIÓN */}
+      <Tooltip title="Ver alineación">
         <Button 
           type="link" 
           icon={<TeamOutlined />} 
           onClick={() => navigate(`/sesiones/${record.id}/alineacion`)}
         />
       </Tooltip>
+
+      {/* Botones existentes */}
+      <Tooltip title="Ver entrenamientos">
+        <Button 
+          type="link" 
+          icon={<FileTextOutlined />} 
+          onClick={() => navigate(`/sesiones/${record.id}/entrenamientos`)}
+        />
       </Tooltip>
+      
       <Tooltip title="Ver asistencias">
         <Button 
           type="link" 
@@ -307,6 +311,7 @@ export default function Sesiones() {
           onClick={() => navigate(`/sesiones/${record.id}/asistencias`)}
         />
       </Tooltip>
+      
       <Tooltip title="Gestionar token">
         <Button 
           type="link" 
@@ -315,12 +320,15 @@ export default function Sesiones() {
           style={{ color: record.tokenActivo ? '#52c41a' : '#8c8c8c' }}
         />
       </Tooltip>
+      
       <Tooltip title="Ver detalle">
         <Button type="link" icon={<EyeOutlined />} onClick={() => verDetalle(record.id)} />
       </Tooltip>
+      
       <Tooltip title="Editar">
         <Button type="link" icon={<EditOutlined />} onClick={() => navigate(`/sesiones/editar/${record.id}`)} />
       </Tooltip>
+      
       <Popconfirm
         title="¿Eliminar esta sesión?"
         description="Esta acción no se puede deshacer"
@@ -335,7 +343,7 @@ export default function Sesiones() {
       </Popconfirm>
     </Space>
   ),
-  width: 260, // Aumenta el ancho para el nuevo botón
+  width: 320, // Aumenta el ancho para el nuevo botón
   align: 'center',
 }
 

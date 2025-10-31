@@ -5,9 +5,26 @@ const AlineacionJugadorSchema = new EntitySchema({
   columns: {
     alineacionId: { type: "int", primary: true },
     jugadorId:    { type: "int", primary: true },
-    posicion:     { type: "varchar", length: 20 },
+    posicion:     { type: "varchar", length: 50,  },
     orden:        { type: "int", nullable: true },
     comentario:   { type: "text", nullable: true },
+    posicionX: {
+      type: 'decimal',
+      precision: 5,
+      scale: 2,
+      nullable: true,
+      name: 'posicion_x',
+   
+    },
+    posicionY: {
+      type: 'decimal',
+      precision: 5,
+      scale: 2,
+      nullable: true,
+      name: 'posicion_y',
+      
+    }
+
   },
   relations: {
     alineacion: { type: "many-to-one", target: "Alineacion", joinColumn: { name: "alineacionId" }, onDelete: "CASCADE" },

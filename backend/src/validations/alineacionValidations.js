@@ -1,14 +1,11 @@
 import Joi from 'joi';
 
-const TIME_YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/; // por si filtras por fecha en el futuro
-
 export const crearAlineacionBody = Joi.object({
   sesionId: Joi.number().integer().positive().required(),
   generadaAuto: Joi.boolean().optional().default(false),
-  // permitir crear vacía o con jugadores iniciales
   jugadores: Joi.array().items(Joi.object({
     jugadorId: Joi.number().integer().positive().required(),
-    posicion:  Joi.string().trim().max(20).required(),
+    posicion:  Joi.string().trim().max(50).required(),
     orden:     Joi.number().integer().min(1).optional(),
     comentario:Joi.string().trim().max(500).optional().allow(''),
   })).optional().default([]),
@@ -17,21 +14,30 @@ export const crearAlineacionBody = Joi.object({
 export const agregarJugadorBody = Joi.object({
   alineacionId: Joi.number().integer().positive().required(),
   jugadorId:    Joi.number().integer().positive().required(),
-  posicion:     Joi.string().trim().max(20).required(),
+  posicion:     Joi.string().trim().max(50).required(),
   orden:        Joi.number().integer().min(1).optional(),
   comentario:   Joi.string().trim().max(500).optional().allow(''),
+  posicionX:    Joi.number().min(0).max(100).optional().allow(null),
+  posicionY:    Joi.number().min(0).max(100).optional().allow(null),
 });
 
 export const actualizarJugadorAlineacionBody = Joi.object({
   alineacionId: Joi.number().integer().positive().required(),
   jugadorId:    Joi.number().integer().positive().required(),
-  posicion:     Joi.string().trim().max(20).optional(),
+  posicion:     Joi.string().trim().max(50).optional(),
   orden:        Joi.number().integer().min(1).optional(),
   comentario:   Joi.string().trim().max(500).optional().allow(''),
+  posicionX:    Joi.number().min(0).max(100).optional().allow(null),
+  posicionY:    Joi.number().min(0).max(100).optional().allow(null),
 }).min(1);
 
 export const idParamSchema = Joi.object({
   id: Joi.number().integer().positive().required()
+});
+
+// 🆕 NUEVO SCHEMA PARA sesionId
+export const sesionIdParamSchema = Joi.object({
+  sesionId: Joi.number().integer().positive().required()
 });
 
 export const quitarJugadorParams = Joi.object({

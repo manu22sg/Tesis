@@ -6,6 +6,7 @@ import {
   actualizarAlineacionJugador,
   quitarJugadorDeAlineacion,
   eliminarAlineacion,
+  actualizarPosicionesJugadores
 } from '../services/alineacionServices.js';
 
 export async function postCrearAlineacion(req, res) {
@@ -46,4 +47,12 @@ export async function deleteAlineacion(req, res) {
   const [ok, err] = await eliminarAlineacion(id);
   if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, { eliminada: !!ok }, 'Alineación eliminada');
+}
+
+export async function patchActualizarPosiciones(req, res) {
+  const { alineacionId, jugadores } = req.body;
+  
+  const [data, err] = await actualizarPosicionesJugadores(alineacionId, jugadores);
+  if (err) return error(res, err, 400);
+  return success(res, data, 'Posiciones actualizadas');
 }

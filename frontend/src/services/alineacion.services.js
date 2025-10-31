@@ -34,3 +34,15 @@ export const eliminarAlineacion = async (id) => {
   const response = await api.delete(`/alineaciones/${id}`);
   return response.data;
 };
+
+export const actualizarPosicionesJugadores = async (alineacionId, jugadores) => {
+  const response = await api.patch('/alineaciones/posiciones', {
+    alineacionId,
+    jugadores: jugadores.map(j => ({
+      jugadorId: j.jugadorId,
+      x: j.x,
+      y: j.y
+    }))
+  });
+  return response.data;
+};

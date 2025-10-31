@@ -69,7 +69,15 @@ export async function obtenerAlineacionPorSesion(sesionId) {
   }
 }
 
-export async function agregarJugadorAlineacion({ alineacionId, jugadorId, posicion, orden, comentario }) {
+export async function agregarJugadorAlineacion({ 
+  alineacionId, 
+  jugadorId, 
+  posicion, 
+  orden, 
+  comentario,
+  posicionX,
+  posicionY 
+}) {
   try {
     const alinRepo = AppDataSource.getRepository(AlineacionSchema);
     const jugRepo  = AppDataSource.getRepository(JugadorSchema);
@@ -81,9 +89,13 @@ export async function agregarJugadorAlineacion({ alineacionId, jugadorId, posici
     if (!jug) return [null, 'Jugador no encontrado'];
 
     const fila = ajRepo.create({
-      alineacionId, jugadorId, posicion,
+      alineacionId, 
+      jugadorId, 
+      posicion,
       orden: orden ?? null,
       comentario: comentario ?? null,
+      posicionX: posicionX ?? null,
+      posicionY: posicionY ?? null,
     });
     const guardada = await ajRepo.save(fila);
     return [guardada, null];
@@ -94,7 +106,16 @@ export async function agregarJugadorAlineacion({ alineacionId, jugadorId, posici
   }
 }
 
-export async function actualizarAlineacionJugador({ alineacionId, jugadorId, posicion, orden, comentario }) {
+
+export async function actualizarAlineacionJugador({ 
+  alineacionId, 
+  jugadorId, 
+  posicion, 
+  orden, 
+  comentario,
+  posicionX,
+  posicionY 
+}) {
   try {
     const ajRepo = AppDataSource.getRepository(AlineacionJugadorSchema);
     const fila = await ajRepo.findOne({ where: { alineacionId, jugadorId } });
@@ -102,7 +123,9 @@ export async function actualizarAlineacionJugador({ alineacionId, jugadorId, pos
 
     if (posicion !== undefined)  fila.posicion = posicion;
     if (orden !== undefined)     fila.orden = orden;
-    if (comentario !== undefined)fila.comentario = comentario;
+    if (comentario !== undefined) fila.comentario = comentario;
+    if (posicionX !== undefined) fila.posicionX = posicionX;
+    if (posicionY !== undefined) fila.posicionY = posicionY;
 
     const up = await ajRepo.save(fila);
     return [up, null];
@@ -111,6 +134,7 @@ export async function actualizarAlineacionJugador({ alineacionId, jugadorId, pos
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function quitarJugadorDeAlineacion(alineacionId, jugadorId) {
   try {
@@ -134,6 +158,41 @@ export async function eliminarAlineacion(id) {
     return [true, null];
   } catch (e) {
     console.error('eliminarAlineacion:', e);
+    return [null, 'Error interno del servidor'];
+  }
+}
+
+
+export async function actualizarPosicionesJugadores(alineacionId, jugadores) {
+  try {
+    const ajRepo = AppDataSource.getRepository(AlineacionJugadorSchema);
+    
+    // Actualizar cada jugador
+    for (const jugador of jugadores) {
+      const fila = await ajRepo.findOne({ 
+        where: { 
+          alineacionId, 
+          jugadorId: jugador.jugadorId 
+        } 
+      });
+      
+      if (fila) {
+        fila.posicionX = jugador.x;
+        fila.posicionY = jugador.y;
+        await ajRepo.save(fila);
+      }
+    }
+    
+    // Retornar la alineación actualizada con todas las relaciones
+    const alinRepo = AppDataSource.getRepository(AlineacionSchema);
+    const completa = await alinRepo.findOne({
+      where: { id: alineacionId },
+      relations: ['sesion', 'jugadores', 'jugadores.jugador', 'jugadores.jugador.usuario'],
+    });
+    
+    return [completa, null];
+  } catch (e) {
+    console.error('actualizarPosicionesJugadores:', e);
     return [null, 'Error interno del servidor'];
   }
 }

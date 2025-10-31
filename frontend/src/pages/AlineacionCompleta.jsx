@@ -17,7 +17,8 @@ import {
   agregarJugadorAlineacion,
   actualizarJugadorAlineacion,
   quitarJugadorAlineacion,
-  eliminarAlineacion
+  eliminarAlineacion,
+  actualizarPosicionesJugadores
 } from '../services/alineacion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
@@ -44,6 +45,8 @@ export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
 
+  // 🔍 Debug inicial
+  
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
   const [sesionInfo, setSesionInfo] = useState(null);
@@ -55,13 +58,20 @@ export default function AlineacionCompleta() {
   const [form] = Form.useForm();
   const [formEdit] = Form.useForm();
 
-  useEffect(() => {
-    if (sesionId) {
-      cargarSesion();
-      cargarAlineacion();
-      cargarJugadores();
-    }
-  }, [sesionId]);
+  // Primero carga la sesión
+useEffect(() => {
+  if (sesionId) {
+    cargarSesion();
+  }
+}, [sesionId]);
+
+// Cuando ya tenga la sesión cargada, recién carga los jugadores y la alineación
+useEffect(() => {
+  if (sesionInfo) {
+    cargarJugadores();
+    cargarAlineacion();
+  }
+}, [sesionInfo]);
 
   const cargarSesion = async () => {
     try {
@@ -74,56 +84,58 @@ export default function AlineacionCompleta() {
   };
 
   const cargarAlineacion = async () => {
-    setLoading(true);
-    try {
-      const response = await obtenerAlineacionPorSesion(parseInt(sesionId, 10));
+  setLoading(true);
+  try {
+    const response = await obtenerAlineacionPorSesion(parseInt(sesionId, 10));
+    if (response?.data) {
       setAlineacion(response.data);
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setAlineacion(null);
-      } else {
-        message.error('Error al cargar la alineación');
-        console.error(error);
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      setAlineacion(null);
     }
-  };
+  } catch (error) {
+    if (error.response?.status === 404) {
+      setAlineacion(null);
+    } else {
+      message.error('Error al cargar alineación');
+      console.error('Error al cargar alineación:', error);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const cargarJugadores = async () => {
-    try {
-      const data = await obtenerJugadores({ limite: 1000 });
-      setJugadoresDisponibles(data.jugadores || []);
-    } catch (error) {
-      message.error('Error al cargar jugadores');
-      console.error(error);
+
+ const cargarJugadores = async () => {
+  try {
+    // Espera a que exista el grupo de la sesión
+    const grupoId = sesionInfo?.grupo?.id;
+    if (!grupoId) {
+      setJugadoresDisponibles([]);
+      return;
     }
-  };
+
+    const data = await obtenerJugadores({ limite: 100, grupoId });
+    setJugadoresDisponibles(data.jugadores || []);
+  } catch (error) {
+    message.error('Error al cargar jugadores del grupo');
+    console.error('Error al cargar jugadores:', error);
+  }
+};
+
 
   const handleCrearAlineacion = async () => {
     setLoading(true);
     try {
-      const payload = {
+      await crearAlineacion({
         sesionId: parseInt(sesionId, 10),
         generadaAuto: false,
         jugadores: []
-      };
-      
-      console.log('🔍 DEBUG - sesionId original:', sesionId);
-      console.log('🔍 DEBUG - sesionId parseado:', parseInt(sesionId, 10));
-      console.log('🔍 DEBUG - Payload completo:', payload);
-      console.log('🔍 DEBUG - Tipo de sesionId:', typeof payload.sesionId);
-      
-      const resultado = await crearAlineacion(payload);
-      
-      console.log('✅ DEBUG - Resultado:', resultado);
+      });
       
       message.success('Alineación creada exitosamente');
       cargarAlineacion();
     } catch (error) {
-      console.error('❌ DEBUG - Error completo:', error);
-      console.error('❌ DEBUG - Error response:', error.response);
-      console.error('❌ DEBUG - Error data:', error.response?.data);
+      console.error('Error al crear alineación:', error);
       message.error(error.response?.data?.message || 'Error al crear la alineación');
     } finally {
       setLoading(false);
@@ -457,7 +469,21 @@ export default function AlineacionCompleta() {
                         Vista Campo
                       </span>
                     ),
-                    children: <CampoAlineacion jugadores={alineacion.jugadores} />
+                    children: (
+  <CampoAlineacion 
+    jugadores={alineacion.jugadores}
+    onActualizarPosiciones={async (jugadoresActualizados) => {
+      try {
+        const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
+        message.success('✅ Posiciones guardadas correctamente');
+        setAlineacion(response.data); // refresca el estado con la versión del backend
+      } catch (error) {
+        console.error('Error al guardar posiciones:', error);
+        message.error(error.response?.data?.message || '❌ Error al guardar posiciones');
+      }
+    }}
+  />
+),
                   },
                   {
                     key: 'tabla',
@@ -520,18 +546,17 @@ export default function AlineacionCompleta() {
                 rules={[{ required: true, message: 'Selecciona un jugador' }]}
               >
                 <Select
-                  placeholder="Selecciona un jugador"
-                  showSearch
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {jugadoresFiltrados.map(j => (
-                    <Select.Option key={j.id} value={j.id}>
-                      {j.usuario?.nombre} {j.usuario?.apellido}
-                    </Select.Option>
-                  ))}
-                </Select>
+  placeholder="Selecciona un jugador"
+  showSearch
+  optionFilterProp="label"
+  filterOption={(input, option) =>
+    option?.label?.toLowerCase().includes(input.toLowerCase())
+  }
+  options={jugadoresFiltrados.map(j => ({
+    label: `${j.usuario?.nombre || ''} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'}`,
+    value: j.id,
+  }))}
+/>
               </Form.Item>
 
               <Form.Item

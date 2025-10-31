@@ -36,8 +36,17 @@ export async function obtenerSesiones(filtros = {}) {
  * Obtener detalle de una sesión por ID
  */
 export async function obtenerSesionPorId(id) {
-  const res = await api.post('/sesion/detalle', { id });
-  return res.data.data;
+  try {
+    const res = await api.post('/sesion/detalle', { id });
+    
+    // 🔍 Debug temporal - quítalo después
+   
+    
+    return res.data.data;
+  } catch (error) {
+    console.error('Error obteniendo sesión por ID:', error);
+    throw error;
+  }
 }
 
 /**

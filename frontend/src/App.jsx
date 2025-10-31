@@ -62,14 +62,7 @@ function AppRoutes() {
       />
 
       {/* Alineación Completa - Entrenador y SuperAdmin */}
-      <Route
-        path="/alineacion-completa"
-        element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
-            <AlineacionCompleta />
-          </ProtectedRoute>
-        }
-      />
+      
 
       {/* Disponibilidad de Canchas - Todos los usuarios */}
       <Route
@@ -209,6 +202,15 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+  path="/sesiones/:sesionId/alineacion"
+  element={
+    <ProtectedRoute roles={['entrenador', 'superadmin']}>
+      <AlineacionCompleta />
+    </ProtectedRoute>
+  }
+/>
 
       {/* ========== ASISTENCIAS ========== */}
       {/* Marcar Asistencia - Solo Estudiantes */}

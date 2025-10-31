@@ -57,7 +57,7 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
       .leftJoinAndSelect("jugador.jugadorGrupos", "jugadorGrupos")
       .leftJoinAndSelect("jugadorGrupos.grupo", "grupo");
 
-    // 🔍 Nuevo: búsqueda general por nombre o RUT
+    // Nuevo: búsqueda general por nombre o RUT
     if (filtros.q) {
       queryBuilder.andWhere(
         "(usuario.nombre LIKE :q OR usuario.rut LIKE :q)",
@@ -65,10 +65,13 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
       );
     }
 
-    // Filtros adicionales (ya los tienes)
     if (filtros.estado) {
       queryBuilder.andWhere("jugador.estado = :estado", { estado: filtros.estado });
     }
+
+    if (filtros.grupoId) {
+  queryBuilder.andWhere("grupo.id = :grupoId", { grupoId: filtros.grupoId });
+}
     if (filtros.carrera) {
   queryBuilder.andWhere("LOWER(jugador.carrera) LIKE LOWER(:carrera)", { 
     carrera: `%${filtros.carrera}%` 

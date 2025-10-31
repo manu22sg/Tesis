@@ -17,12 +17,26 @@ export async function crearJugadorController(req, res) {
     return error(res, err.message);
   }
 }
+
 export async function obtenerTodosJugadoresController(req, res) {
   try {
-    const { pagina = 1, limite = 10, estado, carrera, anioIngreso, q } = req.query;
+    const { 
+      pagina = 1, 
+      limite = 10, 
+      estado, 
+      carrera, 
+      anioIngreso, 
+      q,
+      grupoId 
+    } = req.query;
 
-    // ✅ Incluimos q en los filtros
-    const filtros = { estado, carrera, anioIngreso, q };
+    const filtros = { 
+      estado, 
+      carrera, 
+      anioIngreso, 
+      q,
+      grupoId: grupoId ? parseInt(grupoId) : undefined 
+    };
 
     // 📦 Llamamos al servicio pasando todos los filtros
     const [resultado, err] = await obtenerTodosJugadores(
@@ -35,13 +49,13 @@ export async function obtenerTodosJugadoresController(req, res) {
       return error(res, err);
     }
 
-    // ✅ Devolvemos la respuesta normalizada
     return success(res, resultado, "Jugadores obtenidos correctamente");
   } catch (err) {
     console.error("Error en obtenerTodosJugadoresController:", err);
     return error(res, err.message);
   }
 }
+
 
 export async function obtenerJugadorPorIdController(req, res) {
   try {

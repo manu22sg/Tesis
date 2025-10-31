@@ -6,7 +6,8 @@ import {
   agregarJugadorBody,
   actualizarJugadorAlineacionBody,
   idParamSchema,
-  quitarJugadorParams
+  quitarJugadorParams,
+  sesionIdParamSchema
 } from '../validations/alineacionValidations.js';
 
 import {
@@ -16,6 +17,7 @@ import {
   patchAlineacionJugador,
   deleteAlineacionJugador,
   deleteAlineacion,
+  patchActualizarPosiciones
 } from '../controllers/alineacionController.js';
 
 const router = Router();
@@ -33,7 +35,7 @@ router.get(
   '/sesion/:sesionId',
   authenticateToken,
   requireRole(['entrenador','superadmin']),
-  validarParams(idParamSchema), // sesionId
+  validarParams(sesionIdParamSchema), // sesionId
   getAlineacionPorSesion
 );
  // agregar jugador a alineación
@@ -67,6 +69,14 @@ router.delete(
   requireRole(['entrenador','superadmin']),
   validarParams(idParamSchema),
   deleteAlineacion
+);
+
+// actualizar posiciones de jugadores en alineación
+router.patch(
+  '/posiciones',
+  authenticateToken,
+  requireRole(['entrenador','superadmin']),
+  patchActualizarPosiciones
 );
 
 export default router;
