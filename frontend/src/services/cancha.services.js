@@ -5,7 +5,6 @@ import api from './root.services.js';
 export const crearCancha = async (datosCancha) => {
   try {
     const response = await api.post('/canchas', datosCancha);
-    console.log("canchas servicio", response);
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || 'Error al crear la cancha';

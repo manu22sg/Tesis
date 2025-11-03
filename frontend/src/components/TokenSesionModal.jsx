@@ -1,31 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { 
-  Modal, 
-  Button, 
-  Alert, 
-  Divider, 
-  Popconfirm, 
-  InputNumber, 
-  Space, 
-  Typography, 
-  message,
-  Switch,
-  Spin
+  Modal, Button, Alert, Divider, Popconfirm, InputNumber, Space,
+  Typography, message, Switch, Spin 
 } from 'antd';
 import { 
-  KeyOutlined, 
-  LockOutlined, 
-  UnlockOutlined, 
-  CopyOutlined,
-  EnvironmentOutlined,
-  AimOutlined,
-  CheckCircleOutlined
+  KeyOutlined, LockOutlined, UnlockOutlined, CopyOutlined,
+  EnvironmentOutlined, AimOutlined, CheckCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
 
-export default function TokenSesionModal({
+// Config global para que no se acumulen mensajes
+message.config({ maxCount: 1 });
+
+const TokenSesionModal = memo(function TokenSesionModal({
   open,
   sesion,
   ttlMin,
@@ -37,23 +26,23 @@ export default function TokenSesionModal({
   onActivar,
   onDesactivar
 }) {
-  // Estados para ubicación
   const [incluirUbicacion, setIncluirUbicacion] = useState(false);
   const [ubicacion, setUbicacion] = useState({ latitud: null, longitud: null });
   const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState(null);
 
-  const copiarToken = () => {
+  const copiarToken = useCallback(() => {
     if (sesion?.token) {
       navigator.clipboard.writeText(sesion.token);
       message.success('Token copiado al portapapeles');
     }
-  };
+  }, [sesion]);
 
-  const obtenerUbicacion = () => {
+  const obtenerUbicacion = useCallback(() => {
     if (!navigator.geolocation) {
-      setErrorUbicacion('Tu navegador no soporta geolocalización');
-      message.error('Tu navegador no soporta geolocalización');
+      const msg = 'Tu navegador no soporta geolocalización';
+      setErrorUbicacion(msg);
+      message.error(msg);
       return;
     }
 
@@ -61,10 +50,10 @@ export default function TokenSesionModal({
     setErrorUbicacion(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      (pos) => {
         const nuevaUbicacion = {
-          latitud: position.coords.latitude,
-          longitud: position.coords.longitude
+          latitud: pos.coords.latitude,
+          longitud: pos.coords.longitude,
         };
         setUbicacion(nuevaUbicacion);
         setLoadingUbicacion(false);
@@ -72,60 +61,43 @@ export default function TokenSesionModal({
       },
       (error) => {
         setLoadingUbicacion(false);
-        let errorMsg = 'No se pudo obtener la ubicación';
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = 'Permiso de ubicación denegado';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = 'Información de ubicación no disponible';
-            break;
-          case error.TIMEOUT:
-            errorMsg = 'Tiempo de espera agotado';
-            break;
-        }
-        
-        setErrorUbicacion(errorMsg);
-        message.error(errorMsg);
+        const errorMap = {
+          [error.PERMISSION_DENIED]: 'Permiso de ubicación denegado',
+          [error.POSITION_UNAVAILABLE]: 'Información de ubicación no disponible',
+          [error.TIMEOUT]: 'Tiempo de espera agotado',
+        };
+        const msg = errorMap[error.code] || 'No se pudo obtener la ubicación';
+        setErrorUbicacion(msg);
+        message.error(msg);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  };
-const handleActivar = () => {
-  const datosExtra = {
-    ttlMin,
-    tokenLength,
-  };
+  }, []);
 
-  if (incluirUbicacion && ubicacion.latitud && ubicacion.longitud) {
-    datosExtra.latitudToken = ubicacion.latitud;
-    datosExtra.longitudToken = ubicacion.longitud;
-  }
+  const handleActivar = useCallback(() => {
+    const datosExtra = { ttlMin, tokenLength };
+    if (incluirUbicacion && ubicacion.latitud && ubicacion.longitud) {
+      datosExtra.latitudToken = ubicacion.latitud;
+      datosExtra.longitudToken = ubicacion.longitud;
+    }
+    onActivar(datosExtra);
+  }, [ttlMin, tokenLength, incluirUbicacion, ubicacion, onActivar]);
 
-  onActivar(datosExtra);
-};
-
+  // 🔒 No renderizar el contenido hasta que se abra el modal
+  if (!open) return null;
 
   return (
     <Modal
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <KeyOutlined />
-          <span>Gestionar Token de Asistencia</span>
-        </div>
-      }
+      title={<><KeyOutlined /> Gestionar Token de Asistencia</>}
       open={open}
       onCancel={onClose}
       footer={null}
       width={550}
+      destroyOnClose
+      maskClosable
     >
-      {sesion && (
-        <div>
+      {!sesion ? null : (
+        <>
           <Alert
             message="Token de Asistencia"
             description="Los jugadores usarán este código para registrar su asistencia a la sesión"
@@ -143,7 +115,6 @@ const handleActivar = () => {
                   Expira: {dayjs(sesion.tokenExpiracion).format('DD/MM/YYYY HH:mm')}
                 </div>
               </div>
-
               <Space style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}>
                 <Button icon={<CopyOutlined />} onClick={copiarToken} size="large">
                   Copiar Código
@@ -154,7 +125,6 @@ const handleActivar = () => {
 
               <Popconfirm
                 title="¿Desactivar token?"
-                description="Los jugadores ya no podrán registrar asistencia con este código"
                 onConfirm={onDesactivar}
                 okText="Sí, desactivar"
                 cancelText="Cancelar"
@@ -178,10 +148,9 @@ const handleActivar = () => {
                       value={ttlMin}
                       onChange={setTtlMin}
                       style={{ width: '100%', marginTop: 8 }}
-                      placeholder="Minutos de validez"
                     />
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      El token expirará en {ttlMin} minutos
+                      Expira en {ttlMin} minutos
                     </Text>
                   </div>
 
@@ -193,55 +162,54 @@ const handleActivar = () => {
                       value={tokenLength}
                       onChange={setTokenLength}
                       style={{ width: '100%', marginTop: 8 }}
-                      placeholder="Caracteres del código"
                     />
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      Código de {tokenLength} caracteres
+                      {tokenLength} caracteres
                     </Text>
                   </div>
                 </div>
               </div>
 
-              <Divider style={{ margin: '16px 0' }} />
+              <Divider />
 
-              {/* Switch para activar/desactivar ubicación */}
-              <div style={{ 
-                background: '#f5f5f5', 
-                padding: 12, 
-                borderRadius: 8,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12
-              }}>
+              <div
+                style={{
+                  background: '#f5f5f5',
+                  padding: 12,
+                  borderRadius: 8,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}
+              >
                 <Space>
                   <EnvironmentOutlined style={{ fontSize: 16 }} />
                   <Text strong>Registrar ubicación</Text>
                 </Space>
-                <Switch 
-                  checked={incluirUbicacion} 
-                  onChange={setIncluirUbicacion}
-                />
+                <Switch checked={incluirUbicacion} onChange={setIncluirUbicacion} />
               </div>
 
-              {/* Sección de Ubicación (solo si el switch está activado) */}
               {incluirUbicacion && (
-                <div style={{
-                  border: '1px solid #d9d9d9',
-                  borderRadius: 8,
-                  padding: 12,
-                  background: '#fafafa',
-                  marginBottom: 16
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    marginBottom: 12 
-                  }}>
+                <div
+                  style={{
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 8,
+                    padding: 12,
+                    background: '#fafafa',
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
                     <Text strong>Ubicación:</Text>
                     <Button
-                      type="default"
                       icon={<AimOutlined />}
                       onClick={obtenerUbicacion}
                       loading={loadingUbicacion}
@@ -263,37 +231,28 @@ const handleActivar = () => {
                   )}
 
                   {loadingUbicacion ? (
-                    <div style={{ 
-                      textAlign: 'center', 
-                      padding: 16
-                    }}>
+                    <div style={{ textAlign: 'center', padding: 16 }}>
                       <Spin />
                       <div style={{ marginTop: 8 }}>
-                        <Text type="secondary" style={{ fontSize: 13 }}>
-                          Obteniendo ubicación...
-                        </Text>
+                        <Text type="secondary">Obteniendo ubicación...</Text>
                       </div>
                     </div>
-                  ) : ubicacion.latitud && ubicacion.longitud ? (
+                  ) : ubicacion.latitud ? (
                     <div
                       style={{
                         background: '#f6ffed',
                         padding: 12,
                         borderRadius: 8,
-                        border: '1px solid #b7eb8f'
+                        border: '1px solid #b7eb8f',
                       }}
                     >
                       <Space direction="vertical" size={4}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                          <Text strong style={{ fontSize: 13 }}>Ubicación obtenida</Text>
+                          <Text strong>Ubicación obtenida</Text>
                         </div>
-                        <Text type="secondary" style={{ fontSize: 12, paddingLeft: 24 }}>
-                          Lat: {ubicacion.latitud.toFixed(6)}
-                        </Text>
-                        <Text type="secondary" style={{ fontSize: 12, paddingLeft: 24 }}>
-                          Lng: {ubicacion.longitud.toFixed(6)}
-                        </Text>
+                        <Text type="secondary">Lat: {ubicacion.latitud.toFixed(6)}</Text>
+                        <Text type="secondary">Lng: {ubicacion.longitud.toFixed(6)}</Text>
                       </Space>
                     </div>
                   ) : (
@@ -301,7 +260,6 @@ const handleActivar = () => {
                       message="Haz clic en 'Obtener ubicación' para registrar tu ubicación actual"
                       type="info"
                       showIcon
-                      style={{ fontSize: 12 }}
                     />
                   )}
                 </div>
@@ -319,8 +277,10 @@ const handleActivar = () => {
               </Button>
             </>
           )}
-        </div>
+        </>
       )}
     </Modal>
   );
-}
+});
+
+export default TokenSesionModal;

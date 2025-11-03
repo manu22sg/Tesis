@@ -230,7 +230,7 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
     }
   };
 
-  // 🎯 PAGINACIÓN DESDE BACKEND - Entrenamientos
+  // PAGINACIÓN DESDE BACKEND - Entrenamientos
   const cargarSesiones = async (page = 1, limit = 10) => {
     try {
       setLoadingSesiones(true);
@@ -240,14 +240,12 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
         limit 
       });
       
-      console.log('📦 Sesiones cargadas:', data);
       
       // Extraer datos correctamente según estructura del backend
       const sesionesData = data?.sesiones || data?.data?.sesiones || [];
       const paginationData = data?.pagination || data?.data?.pagination || {};
       
-      console.log('✅ Sesiones:', sesionesData.length);
-      console.log('✅ Paginación:', paginationData);
+     
       
       setSesiones(sesionesData);
       setPaginationEntrenamientos({

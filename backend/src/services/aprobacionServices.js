@@ -141,6 +141,9 @@ export async function obtenerReservasPendientes(filtros = {}) {
     if (filtros.canchaId) {
       whereConditions.canchaId = filtros.canchaId;
     }
+    if (filtros.usuarioId) {
+      whereConditions.usuarioId = filtros.usuarioId;
+    }
 
     const queryOptions = {
       where: whereConditions,

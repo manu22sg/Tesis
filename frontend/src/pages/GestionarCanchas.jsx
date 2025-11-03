@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -15,7 +15,6 @@ import {
   Popconfirm,
   Row,
   Col,
-  Statistic,
   Badge,
   Alert,
   ConfigProvider,
@@ -30,7 +29,6 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ToolOutlined,
-  ExclamationCircleOutlined,
   UndoOutlined,
   AppstoreOutlined
 } from '@ant-design/icons';
@@ -54,22 +52,15 @@ const GestionCanchas = () => {
   const [canchaSeleccionada, setCanchaSeleccionada] = useState(null);
   const [form] = Form.useForm();
 
-  const [filtroEstado, setFiltroEstado] = useState('todos'); // ✅ Cambio 1
+  const [filtroEstado, setFiltroEstado] = useState('todos');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 5,
     total: 0
   });
 
-  const [estadisticas, setEstadisticas] = useState({
-    disponibles: 0,
-    mantenimiento: 0,
-    fueraServicio: 0,
-    total: 0
-  });
-
   // 🔄 Cargar canchas desde backend
-  const cargarCanchas = async (page = 1, limit = 5, estado = undefined) => {
+  const cargarCanchas = useCallback(async (page = 1, limit = 5, estado = undefined) => {
     setLoading(true);
     try {
       const resultado = await obtenerCanchas({ page, limit, estado });
@@ -83,36 +74,27 @@ const GestionCanchas = () => {
         pageSize: limit,
         total: paginationData?.totalItems || canchasData.length || 0
       });
-
-      // Calcular estadísticas
-      const stats = {
-        disponibles: canchasData.filter(c => c.estado === 'disponible').length,
-        mantenimiento: canchasData.filter(c => c.estado === 'mantenimiento').length,
-        fueraServicio: canchasData.filter(c => c.estado === 'fuera_servicio').length,
-        total: paginationData?.totalItems || canchasData.length
-      };
-      setEstadisticas(stats);
     } catch (error) {
       console.error('❌ Error cargando canchas:', error);
       message.error('No se pudieron obtener las canchas');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    cargarCanchas(1, 5, undefined); // ✅ Cambio 2: Al iniciar, no filtra
   }, []);
 
+  useEffect(() => {
+    cargarCanchas(1, 5, undefined); 
+  }, [cargarCanchas]);
+
   // Crear / Editar
-  const abrirModalCrear = () => {
+  const abrirModalCrear = useCallback(() => {
     setModalMode('crear');
     setCanchaSeleccionada(null);
     form.resetFields();
     setModalVisible(true);
-  };
+  }, [form]);
 
-  const abrirModalEditar = (cancha) => {
+  const abrirModalEditar = useCallback((cancha) => {
     setModalMode('editar');
     setCanchaSeleccionada(cancha);
     form.setFieldsValue({
@@ -122,13 +104,13 @@ const GestionCanchas = () => {
       estado: cancha.estado
     });
     setModalVisible(true);
-  };
+  }, [form]);
 
-  const cerrarModal = () => {
+  const cerrarModal = useCallback(() => {
     setModalVisible(false);
     setCanchaSeleccionada(null);
     form.resetFields();
-  };
+  }, [form]);
 
   const handleSubmit = async (values) => {
     try {
@@ -140,7 +122,7 @@ const GestionCanchas = () => {
         message.success('Cancha actualizada exitosamente');
       }
       cerrarModal();
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado; // ✅ Cambio 3
+      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
       cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
     } catch (error) {
       message.error(error);
@@ -152,7 +134,7 @@ const GestionCanchas = () => {
     try {
       await eliminarCancha(id);
       message.success('Cancha eliminada exitosamente');
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado; // ✅ Cambio 4
+      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
       cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
     } catch (error) {
       message.error(error);
@@ -163,26 +145,26 @@ const GestionCanchas = () => {
     try {
       await reactivarCancha(id);
       message.success('Cancha reactivada exitosamente');
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado; // ✅ Cambio 5
+      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
       cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
     } catch (error) {
       message.error(error);
     }
   };
 
-  const handlePageChange = (page, pageSize) => {
-    setPagination({ ...pagination, current: page, pageSize });
-    const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado; // ✅ Cambio 6
+  const handlePageChange = useCallback((page, pageSize) => {
+    setPagination({ current: page, pageSize, total: pagination.total });
+    const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
     cargarCanchas(page, pageSize, estadoFiltro);
-  };
+  }, [filtroEstado, cargarCanchas, pagination.total]);
 
-  const aplicarFiltro = (estado) => {
+  const aplicarFiltro = useCallback((estado) => {
     setFiltroEstado(estado);
-    const estadoFiltro = estado === 'todos' ? undefined : estado; // ✅ Cambio 7
+    const estadoFiltro = estado === 'todos' ? undefined : estado;
     cargarCanchas(1, pagination.pageSize, estadoFiltro);
-  };
+  }, [cargarCanchas, pagination.pageSize]);
 
-  const renderEstadoTag = (estado) => {
+  const renderEstadoTag = useCallback((estado) => {
     const estados = {
       disponible: { color: 'green', icon: <CheckCircleOutlined />, text: 'Disponible' },
       mantenimiento: { color: 'orange', icon: <ToolOutlined />, text: 'Mantenimiento' },
@@ -194,10 +176,9 @@ const GestionCanchas = () => {
         {config.text}
       </Tag>
     );
-  };
+  }, []);
 
-  const columns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
+  const columns = useMemo(() => [
     {
       title: 'Nombre',
       dataIndex: 'nombre',
@@ -273,56 +254,17 @@ const GestionCanchas = () => {
         </Space>
       )
     }
-  ];
+  ], [renderEstadoTag, abrirModalEditar]);
+
+  const handleActualizar = useCallback(() => {
+    const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
+    cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
+  }, [filtroEstado, pagination.current, pagination.pageSize, cargarCanchas]);
 
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} bordered={false}>
-          {/* Estadísticas */}
-          <Row gutter={16} style={{ marginBottom: '24px' }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Total de Canchas"
-                  value={estadisticas.total}
-                  prefix={<AppstoreOutlined style={{ color: '#1890ff' }} />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Disponibles"
-                  value={estadisticas.disponibles}
-                  prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="En Mantenimiento"
-                  value={estadisticas.mantenimiento}
-                  prefix={<ToolOutlined style={{ color: '#faad14' }} />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Fuera de Servicio"
-                  value={estadisticas.fueraServicio}
-                  prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                  valueStyle={{ color: '#ff4d4f' }}
-                />
-              </Card>
-            </Col>
-          </Row>
-
+        <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} variant="filled">
           {/* Filtros y acciones */}
           <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
             <Row gutter={16} align="middle">
@@ -345,10 +287,7 @@ const GestionCanchas = () => {
                 <Space>
                   <Button
                     icon={<ReloadOutlined />}
-                    onClick={() => {
-                      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado; // ✅ Cambio 10
-                      cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
-                    }}
+                    onClick={handleActualizar}
                     loading={loading}
                   >
                     Actualizar
@@ -370,6 +309,7 @@ const GestionCanchas = () => {
               loading={loading}
               pagination={false}
               scroll={{ x: 900 }}
+              size="middle"
             />
 
             {/* Paginación uniforme */}
@@ -383,7 +323,7 @@ const GestionCanchas = () => {
                   onShowSizeChange={handlePageChange}
                   showSizeChanger
                   showTotal={(total) => `Total: ${total} canchas`}
-                  pageSizeOptions={['5', '10', '20', '50']}
+                  pageSizeOptions={['5', '10', '20']}
                 />
               </div>
             )}

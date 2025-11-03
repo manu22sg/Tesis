@@ -18,6 +18,7 @@ export async function obtenerReservasPendientes(filtros = {}) {
   if (filtros.fecha) params.fecha = filtros.fecha;
   if (filtros.canchaId) params.canchaId = filtros.canchaId;
   if (filtros.estado) params.estado = filtros.estado;
+  if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
   if (filtros.page) params.page = filtros.page;
   if (filtros.limit) params.limit = filtros.limit;
 

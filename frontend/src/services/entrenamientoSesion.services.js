@@ -88,6 +88,5 @@ export async function obtenerEstadisticas(sesionId = null) {
 }
 export async function asignarEntrenamientosASesion(sesionId, ids) {
   const res = await api.patch(`/entrenamientos/${sesionId}/asignar`, { ids });
-  console.log(res.data);
   return res.data.data;
 }

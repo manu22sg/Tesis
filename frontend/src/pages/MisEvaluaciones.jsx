@@ -274,7 +274,7 @@ export default function MisEvaluaciones() {
                 value={promedios.general}
                 precision={1}
                 suffix="/ 10"
-                prefix={<TrophyOutlined />}
+               
                 valueStyle={{ 
                   color: getColorNota(parseFloat(promedios.general)),
                   fontSize: '28px'

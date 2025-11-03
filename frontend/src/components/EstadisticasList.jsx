@@ -133,7 +133,7 @@ const ListaEstadisticas = ({
       align: 'center',
       render: (goles) => (
         <Tag color={goles > 0 ? 'green' : 'default'}>
-          <TrophyOutlined /> {goles}
+         {goles}
         </Tag>
       ),
     },

@@ -26,7 +26,7 @@ export const actualizarJugadorAlineacionBody = Joi.object({
   jugadorId:    Joi.number().integer().positive().required(),
   posicion:     Joi.string().trim().max(50).optional(),
   orden:        Joi.number().integer().min(1).optional(),
-  comentario:   Joi.string().trim().max(500).optional().allow(''),
+  comentario:   Joi.string().trim().max(500).optional().allow('',null),
   posicionX:    Joi.number().min(0).max(100).optional().allow(null),
   posicionY:    Joi.number().min(0).max(100).optional().allow(null),
 }).min(1);
@@ -35,7 +35,6 @@ export const idParamSchema = Joi.object({
   id: Joi.number().integer().positive().required()
 });
 
-// 🆕 NUEVO SCHEMA PARA sesionId
 export const sesionIdParamSchema = Joi.object({
   sesionId: Joi.number().integer().positive().required()
 });

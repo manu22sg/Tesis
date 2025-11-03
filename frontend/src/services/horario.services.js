@@ -33,14 +33,12 @@ export async function verificarDisponibilidad(canchaId, fecha, horaInicio, horaF
     return response.data; // { disponible: true }
   } catch (error) {
     if (error.response?.status === 409) {
-      console.log('Cancha no disponible:', error.response.data);
       return {
         disponible: false,
         message: error.response.data?.message || 'La cancha no está disponible',
       };
     }
 
-    console.log('Error verificando disponibilidad:', error);
     throw error;
   }
 }

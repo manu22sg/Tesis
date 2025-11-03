@@ -103,11 +103,9 @@ export default function JugadorForm() {
           roles: ['estudiante'],
           excluirJugadores: true 
         });
-        //console.log(' Resultados de búsqueda:', resultados);
         
         // Formatear opciones para el AutoComplete
         const opcionesFormateadas = resultados.map(usuario => {
-          //console.log(' Formateando usuario:', usuario);
           return {
             value: usuario.rut,
             label: `${usuario.rut} - ${usuario.nombre}`,
@@ -118,7 +116,6 @@ export default function JugadorForm() {
           };
         });
         
-      //  console.log(' Opciones formateadas:', opcionesFormateadas);
         setOpcionesAutoComplete(opcionesFormateadas);
       } catch (error) {
         console.error('Error buscando sugerencias:', error);
@@ -133,7 +130,6 @@ export default function JugadorForm() {
 
   // Seleccionar usuario
   const seleccionarUsuario = (rut, option) => {
-  console.log('🎯 Seleccionando usuario:', { rut, option });
   
   if (option) {
     const usuario = {

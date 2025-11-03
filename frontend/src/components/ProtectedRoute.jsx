@@ -8,17 +8,14 @@ export default function ProtectedRoute({ children, roles }) {
   const navigate = useNavigate();
 
   // Mientras se verifica sesión, mostrar spinner
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Spin size="large" tip="Verificando sesión..." />
-      </div>
-    );
-  }
+ if (loading) {
+  return (
+    <Spin fullscreen tip="Cargando..." />
+  );
+}
 
   // Solo redirigir si ya terminó la verificación y no hay sesión
   if (!loading && !isAuthenticated) {
-    console.log("🔁 Redirigiendo al login (no autenticado)");
     return <Navigate to="/login" replace />;
   }
 
@@ -27,7 +24,6 @@ export default function ProtectedRoute({ children, roles }) {
     const userRole = (usuario?.rol?.nombre || usuario?.rol || '').toLowerCase();
     
     if (!roles.includes(userRole)) {
-      console.log("🚫 Rol no permitido:", userRole, "Roles permitidos:", roles);
       
       // Mostrar página de acceso denegado en lugar de redirigir
       return (

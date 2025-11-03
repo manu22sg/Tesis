@@ -49,7 +49,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
 
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
-      getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
+      getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
     ]),
 

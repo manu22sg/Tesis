@@ -13,9 +13,9 @@ import {
   Empty,
   Row,
   Col,
-  Statistic,
   Pagination,
-  ConfigProvider
+  ConfigProvider,
+  Tooltip
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -75,14 +75,11 @@ export default function Grupos() {
   }, [filtroNombre]);
 
   const cargarGrupos = async (page = 1, limit = 10, nombre = '') => {
-    console.log('🔄 Frontend - Cargando grupos con:', { page, limit, nombre });
     try {
       setLoading(true);
       const resultado = await obtenerGrupos({ page, limit, nombre });
       
-      console.log('📦 Frontend - Resultado completo:', resultado);
-      console.log('📦 Frontend - resultado.data:', resultado.data);
-      console.log('📦 Frontend - resultado.data.grupos:', resultado.data?.grupos);
+     
       
       // Manejar diferentes formatos de respuesta
       const gruposData = resultado?.grupos || resultado?.data?.grupos || resultado?.data || [];
@@ -93,10 +90,7 @@ export default function Grupos() {
         itemsPerPage: limit
       };
       
-      console.log('✅ Frontend - gruposData extraído:', gruposData);
-      console.log('✅ Frontend - gruposData es array?', Array.isArray(gruposData));
-      console.log('✅ Frontend - gruposData.length:', gruposData.length);
-      console.log('✅ Frontend - paginationData:', paginationData);
+    
       
       setGrupos(Array.isArray(gruposData) ? gruposData : []);
       setPagination({
@@ -105,7 +99,6 @@ export default function Grupos() {
         total: paginationData.totalItems || 0
       });
       
-      console.log('✅ Frontend - Estado actualizado');
     } catch (error) {
       console.error('❌ Frontend - Error cargando grupos:', error);
       message.error('Error al cargar los grupos');
@@ -188,20 +181,8 @@ export default function Grupos() {
     setFiltroNombre('');
   };
 
-  // Calcular estadísticas
-  const totalMiembros = grupos.reduce((acc, g) => acc + (g.jugadorGrupos?.length || 0), 0);
-  const promedioMiembros = grupos.length > 0 ? (totalMiembros / grupos.length).toFixed(1) : 0;
-  const grupoMasGrande = grupos.length > 0 
-    ? Math.max(...grupos.map(g => g.jugadorGrupos?.length || 0))
-    : 0;
-
   const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 70
-    },
+    
     {
       title: 'Nombre del Grupo',
       dataIndex: 'nombre',
@@ -232,21 +213,21 @@ export default function Grupos() {
       key: 'acciones',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleVerMiembros(record.id)}
-          >
-            Ver Miembros
-          </Button>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEditarGrupo(record)}
-          >
-            Editar
-          </Button>
+          <Tooltip title="Ver Miembros" placement="top">
+            <Button
+              type="primary"
+              size="middle"
+              icon={<EyeOutlined />}
+              onClick={() => handleVerMiembros(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title="Editar" placement="top">
+            <Button
+              size="middle"
+              icon={<EditOutlined />}
+              onClick={() => handleEditarGrupo(record)}
+            />
+          </Tooltip>
           <Popconfirm
             title="¿Eliminar grupo?"
             description="Los jugadores no se eliminarán"
@@ -255,13 +236,16 @@ export default function Grupos() {
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
           >
-            <Button danger size="small" icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
+            <Tooltip title="Eliminar" placement="top">
+              <Button 
+                danger 
+                size="middle" 
+                icon={<DeleteOutlined />}
+              />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
-      width: 340,
       align: 'center',
     },
   ];
@@ -273,51 +257,6 @@ export default function Grupos() {
           <h1 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 600 }}>
             <TeamOutlined /> Gestión de Grupos
           </h1>
-
-          {/* Estadísticas */}
-          <Row gutter={16} style={{ marginBottom: '24px' }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Total de Grupos"
-                  value={grupos.length}
-                  prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Total de Miembros"
-                  value={totalMiembros}
-                  prefix={<UserOutlined style={{ color: '#52c41a' }} />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Promedio por Grupo"
-                  value={promedioMiembros}
-                  prefix={<TeamOutlined style={{ color: '#faad14' }} />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <Statistic
-                  title="Grupo Más Grande"
-                  value={grupoMasGrande}
-                  prefix={<UserOutlined style={{ color: '#ff4d4f' }} />}
-                  valueStyle={{ color: '#ff4d4f' }}
-                  suffix="miembros"
-                />
-              </Card>
-            </Col>
-          </Row>
 
           {/* Filtros y Acciones */}
           <Card style={{ marginBottom: '24px', backgroundColor: '#fafafa' }}>
@@ -366,7 +305,6 @@ export default function Grupos() {
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={{ x: 900 }}
               locale={{
                 emptyText: (
                   <Empty description="No hay grupos creados">

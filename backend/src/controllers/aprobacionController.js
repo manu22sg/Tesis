@@ -80,6 +80,7 @@ export async function getReservasPendientes(req, res) {
       estado: req.query.estado || undefined,
       fecha: req.query.fecha || undefined,
       canchaId: req.query.canchaId ? parseInt(req.query.canchaId) : undefined,
+      usuarioId: req.query.usuarioId ? parseInt(req.query.usuarioId) : undefined,
       page: req.query.page ? parseInt(req.query.page) : 1,
       limit: req.query.limit ? parseInt(req.query.limit) : 10
     };

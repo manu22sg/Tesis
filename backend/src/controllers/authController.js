@@ -205,12 +205,7 @@ export async function buscarUsuarios(req, res) {
   try {
     const { termino, roles, excluirJugadores } = req.query; // <-- Nuevo parámetro
     
-    if (!termino || termino.length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'El término de búsqueda debe tener al menos 2 caracteres'
-      });
-    }
+   
 
     // Preparar opciones
     const opciones = {};

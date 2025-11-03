@@ -45,8 +45,8 @@ export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
 
-  // 🔍 Debug inicial
-  
+
+
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
   const [sesionInfo, setSesionInfo] = useState(null);
@@ -58,24 +58,24 @@ export default function AlineacionCompleta() {
   const [form] = Form.useForm();
   const [formEdit] = Form.useForm();
 
-  // Primero carga la sesión
-useEffect(() => {
-  if (sesionId) {
-    cargarSesion();
-  }
-}, [sesionId]);
+  useEffect(() => {
+    if (sesionId) {
+      cargarSesion();
+      cargarAlineacion();
+    }
+  }, [sesionId]);
 
-// Cuando ya tenga la sesión cargada, recién carga los jugadores y la alineación
-useEffect(() => {
-  if (sesionInfo) {
-    cargarJugadores();
-    cargarAlineacion();
-  }
-}, [sesionInfo]);
+  // Cargar jugadores después de tener la info de la sesión
+  useEffect(() => {
+    if (sesionInfo) {
+      cargarJugadores();
+    }
+  }, [sesionInfo]);
 
   const cargarSesion = async () => {
     try {
       const sesion = await obtenerSesionPorId(parseInt(sesionId, 10));
+    
       setSesionInfo(sesion);
     } catch (error) {
       console.error('Error cargando sesión:', error);
@@ -84,44 +84,42 @@ useEffect(() => {
   };
 
   const cargarAlineacion = async () => {
-  setLoading(true);
-  try {
-    const response = await obtenerAlineacionPorSesion(parseInt(sesionId, 10));
-    if (response?.data) {
+    setLoading(true);
+    try {
+      const response = await obtenerAlineacionPorSesion(parseInt(sesionId, 10));
       setAlineacion(response.data);
-    } else {
-      setAlineacion(null);
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setAlineacion(null);
+      } else {
+        message.error('Error al cargar la alineación');
+        console.error(error);
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    if (error.response?.status === 404) {
-      setAlineacion(null);
-    } else {
-      message.error('Error al cargar alineación');
-      console.error('Error al cargar alineación:', error);
+  };
+
+  const cargarJugadores = async () => {
+    try {
+ 
+      // Si tenemos info de la sesión Y tiene grupo, filtramos
+      if (sesionInfo?.grupo?.id) {
+        const data = await obtenerJugadores({ 
+          limite: 100,
+          grupoId: sesionInfo.grupo.id
+        });
+        setJugadoresDisponibles(data.jugadores || []);
+      } else {
+        // Si no hay grupo, traer todos
+        const data = await obtenerJugadores({ limite: 100 });
+        setJugadoresDisponibles(data.jugadores || []);
+      }
+    } catch (error) {
+      message.error('Error al cargar jugadores');
+      console.error(error);
     }
-  } finally {
-    setLoading(false);
-  }
-};
-
-
- const cargarJugadores = async () => {
-  try {
-    // Espera a que exista el grupo de la sesión
-    const grupoId = sesionInfo?.grupo?.id;
-    if (!grupoId) {
-      setJugadoresDisponibles([]);
-      return;
-    }
-
-    const data = await obtenerJugadores({ limite: 100, grupoId });
-    setJugadoresDisponibles(data.jugadores || []);
-  } catch (error) {
-    message.error('Error al cargar jugadores del grupo');
-    console.error('Error al cargar jugadores:', error);
-  }
-};
-
+  };
 
   const handleCrearAlineacion = async () => {
     setLoading(true);
@@ -176,16 +174,25 @@ useEffect(() => {
     }
   };
 
-  const handleQuitarJugador = async (jugadorId) => {
-    try {
-      await quitarJugadorAlineacion(alineacion.id, jugadorId);
-      message.success('Jugador removido de la alineación');
-      cargarAlineacion();
-    } catch (error) {
-      message.error('Error al quitar jugador');
-      console.error(error);
-    }
-  };
+const handleQuitarJugador = async (jugadorId) => {
+  try {
+    await quitarJugadorAlineacion(alineacion.id, jugadorId);
+    message.success('Jugador removido de la alineación');
+    
+    // 🔥 Actualiza visualmente
+    setAlineacion(prev => ({
+      ...prev,
+      jugadores: prev.jugadores.filter(j => j.jugadorId !== jugadorId)
+    }));
+
+    // 🔁 Recarga desde backend para mantener sincronizado
+    cargarAlineacion();
+  } catch (error) {
+    console.error('❌ Error al quitar jugador:', error);
+    message.error(error.response?.data?.message || 'Error al quitar jugador');
+  }
+};
+
 
   const handleEliminarAlineacion = async () => {
     try {
@@ -234,7 +241,7 @@ useEffect(() => {
 
   const columns = [
     {
-      title: '#',
+      title: 'Dorsal',
       dataIndex: 'orden',
       key: 'orden',
       width: 60,
@@ -248,7 +255,7 @@ useEffect(() => {
         <Space>
           <TeamOutlined />
           <span>
-            {record.jugador?.usuario?.nombre} {record.jugador?.usuario?.apellido}
+            {record.jugador?.usuario?.nombre} {record.jugador?.usuario?.rut}
           </span>
         </Space>
       )
@@ -337,13 +344,13 @@ useEffect(() => {
 
             <Card>
               <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                imageStyle={{ height: 100 }}
-                description={
-                  <div>
-                    <h3>No hay alineación creada para esta sesión</h3>
-                  </div>
-                }
+  image={Empty.PRESENTED_IMAGE_SIMPLE}
+  styles={{ image: { height: 100 } }}
+  description={
+    <div>
+      <h3>No hay alineación creada para esta sesión</h3>
+    </div>
+  }
               >
                 <Button 
                   type="primary" 
@@ -462,29 +469,32 @@ useEffect(() => {
                 onChange={setVistaActual}
                 items={[
                   {
-                    key: 'campo',
-                    label: (
-                      <span>
-                        <AimOutlined />
-                        Vista Campo
-                      </span>
-                    ),
-                    children: (
-  <CampoAlineacion 
-    jugadores={alineacion.jugadores}
-    onActualizarPosiciones={async (jugadoresActualizados) => {
-      try {
-        const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
-        message.success('✅ Posiciones guardadas correctamente');
-        setAlineacion(response.data); // refresca el estado con la versión del backend
-      } catch (error) {
-        console.error('Error al guardar posiciones:', error);
-        message.error(error.response?.data?.message || '❌ Error al guardar posiciones');
-      }
-    }}
-  />
-),
-                  },
+  key: 'campo',
+  label: (
+    <span>
+      <AimOutlined />
+      Vista Campo
+    </span>
+  ),
+  children: (
+    <CampoAlineacion 
+      jugadores={alineacion.jugadores}
+      onActualizarPosiciones={async (jugadoresActualizados) => {
+        try {
+          const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
+          message.success('✅ Posiciones guardadas correctamente');
+          setAlineacion(response.data);
+        } catch (error) {
+          console.error('Error al guardar posiciones:', error);
+          message.error(error.response?.data?.message || '❌ Error al guardar posiciones');
+        }
+      }}
+      onEliminarJugador={async (jugadorId) => {
+        await handleQuitarJugador(jugadorId);
+      }}
+    />
+  )
+},
                   {
                     key: 'tabla',
                     label: (
@@ -546,17 +556,18 @@ useEffect(() => {
                 rules={[{ required: true, message: 'Selecciona un jugador' }]}
               >
                 <Select
-  placeholder="Selecciona un jugador"
-  showSearch
-  optionFilterProp="label"
-  filterOption={(input, option) =>
-    option?.label?.toLowerCase().includes(input.toLowerCase())
-  }
-  options={jugadoresFiltrados.map(j => ({
-    label: `${j.usuario?.nombre || ''} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'}`,
-    value: j.id,
-  }))}
-/>
+                  placeholder="Selecciona un jugador"
+                  showSearch
+                  filterOption={(input, option) =>
+                    option.children.toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {jugadoresFiltrados.map(j => (
+                    <Select.Option key={j.id} value={j.id}>
+                      {j.usuario?.nombre} {j.usuario?.rut}
+                    </Select.Option>
+                  ))}
+                </Select>
               </Form.Item>
 
               <Form.Item

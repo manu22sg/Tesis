@@ -240,7 +240,7 @@ export default function Evaluaciones() {
       <ConfigProvider locale={locale}>
         <Card
           title={<><StarOutlined /> Evaluaciones de Jugadores</>}
-          bordered={false}
+          variant="outlined"
         >
           {/* Filtros y acciones */}
           <Card 
@@ -347,7 +347,7 @@ export default function Evaluaciones() {
               setEditing(null); 
             }}
             footer={null}
-            destroyOnClose
+            destroyOnHidden
             title={editing ? <><EditOutlined /> Editar Evaluación</> : <><PlusOutlined /> Nueva Evaluación</>}
             width={600}
           >

@@ -238,7 +238,6 @@ export default function Entrenamientos() {
     setEntrenamientoAsignar(entrenamiento);
     setSesionSeleccionada(null);
     setSesionSeleccionadaManual(null);
-    if (!sesionId) await cargarSesionesDisponibles();
     setModalAsignarVisible(true);
   };
 

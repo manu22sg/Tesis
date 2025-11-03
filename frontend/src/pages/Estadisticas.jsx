@@ -103,110 +103,123 @@ const Estadisticas = () => {
               </div>
             }
           >
-            <Tabs activeKey={tabActiva} onChange={setTabActiva}>
-              {/*  TAB POR SESIÓN */}
-              <TabPane tab="Por Sesión" key="sesion">
-                <Row gutter={16} style={{ marginBottom: 16 }}>
-                  <Col span={12}>
-                    <Select
-                      placeholder="Filtrar por sesión"
-                      style={{ width: '100%' }}
-                      value={filtroSesion}
-                      onChange={setFiltroSesion}
-                      allowClear
-                      loading={cargando}
-                      showSearch
-                      filterOption={(input, option) =>
-                        String(option?.children ?? '')
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                    >
-                      {sesiones.map((sesion) => {
-                        const fecha = sesion.fecha
-                          ? dayjs(sesion.fecha).format('DD/MM/YYYY')
-                          : 'Sin fecha';
-                        const hora = sesion.horaInicio
-                          ? dayjs(`1970-01-01T${sesion.horaInicio}`).format('HH:mm')
-                          : 'Sin hora';
-                        return (
-                          <Option key={sesion.id} value={sesion.id}>
-                            {sesion.nombre}  {fecha} — {hora}
-                          </Option>
-                        );
-                      })}
-                    </Select>
-                  </Col>
-                </Row>
+           <Tabs
+  activeKey={tabActiva}
+  onChange={setTabActiva}
+  items={[
+    {
+      key: 'sesion',
+      label: 'Por Sesión',
+      children: (
+        <>
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={12}>
+              <Select
+                placeholder="Filtrar por sesión"
+                style={{ width: '100%' }}
+                value={filtroSesion}
+                onChange={setFiltroSesion}
+                allowClear
+                loading={cargando}
+                showSearch
+                filterOption={(input, option) =>
+                  String(option?.children ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {sesiones.map((sesion) => {
+                  const fecha = sesion.fecha
+                    ? dayjs(sesion.fecha).format('DD/MM/YYYY')
+                    : 'Sin fecha';
+                  const hora = sesion.horaInicio
+                    ? dayjs(`1970-01-01T${sesion.horaInicio}`).format('HH:mm')
+                    : 'Sin hora';
+                  return (
+                    <Option key={sesion.id} value={sesion.id}>
+                      {sesion.nombre} {fecha} — {hora}
+                    </Option>
+                  );
+                })}
+              </Select>
+            </Col>
+          </Row>
 
-                {filtroSesion ? (
-                  <ListaEstadisticas
-                    tipo="sesion"
-                    id={filtroSesion}
-                    onEdit={manejarEditar}
-                    reloadKey={claveRecarga}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '40px',
-                      color: '#999',
-                    }}
-                  >
-                    Selecciona una sesión para ver las estadísticas
-                  </div>
-                )}
-              </TabPane>
+          {filtroSesion ? (
+            <ListaEstadisticas
+              tipo="sesion"
+              id={filtroSesion}
+              onEdit={manejarEditar}
+              reloadKey={claveRecarga}
+            />
+          ) : (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px',
+                color: '#999',
+              }}
+            >
+              Selecciona una sesión para ver las estadísticas
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'jugador',
+      label: 'Por Jugador',
+      children: (
+        <>
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={12}>
+              <Select
+                placeholder="Filtrar por jugador"
+                style={{ width: '100%' }}
+                value={filtroJugador}
+                onChange={setFiltroJugador}
+                allowClear
+                showSearch
+                loading={cargando}
+                filterOption={(input, option) =>
+                  String(option?.children ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+              >
+                {jugadores.map((jugador) => (
+                  <Option key={jugador.id} value={jugador.id}>
+                    {jugador.usuario?.nombre} {jugador.usuario?.apellido} —{' '}
+                    {jugador.usuario?.rut || 'Sin RUT'}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
 
-              {/*  TAB POR JUGADOR */}
-              <TabPane tab="Por Jugador" key="jugador">
-                <Row gutter={16} style={{ marginBottom: 16 }}>
-                  <Col span={12}>
-                    <Select
-                      placeholder="Filtrar por jugador"
-                      style={{ width: '100%' }}
-                      value={filtroJugador}
-                      onChange={setFiltroJugador}
-                      allowClear
-                      showSearch
-                      loading={cargando}
-                      filterOption={(input, option) =>
-                        String(option?.children ?? '')
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                    >
-                      {jugadores.map((jugador) => (
-                        <Option key={jugador.id} value={jugador.id}>
-                          {jugador.usuario?.nombre} {jugador.usuario?.apellido} —{' '}
-                          {jugador.usuario?.rut || 'Sin RUT'}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-
-                {filtroJugador ? (
-                  <ListaEstadisticas
-                    tipo="jugador"
-                    id={filtroJugador}
-                    onEdit={manejarEditar}
-                    reloadKey={claveRecarga}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      padding: '40px',
-                      color: '#999',
-                    }}
-                  >
-                    Selecciona un jugador para ver las estadísticas
-                  </div>
-                )}
-              </TabPane>
-            </Tabs>
+          {filtroJugador ? (
+            <ListaEstadisticas
+              tipo="jugador"
+              id={filtroJugador}
+              onEdit={manejarEditar}
+              reloadKey={claveRecarga}
+            />
+          ) : (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px',
+                color: '#999',
+              }}
+            >
+              Selecciona un jugador para ver las estadísticas
+            </div>
+          )}
+        </>
+      ),
+    },
+  ]}
+/>
           </Card>
 
           {/*  MODAL FORMULARIO */}

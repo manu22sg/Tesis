@@ -14,7 +14,6 @@ export default function Login() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && usuario) {
-      console.log('✅ Usuario ya autenticado, redirigiendo al dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, usuario, authLoading, navigate]);

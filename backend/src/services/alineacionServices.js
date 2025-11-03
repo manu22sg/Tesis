@@ -140,6 +140,7 @@ export async function quitarJugadorDeAlineacion(alineacionId, jugadorId) {
   try {
     const ajRepo = AppDataSource.getRepository(AlineacionJugadorSchema);
     const fila = await ajRepo.findOne({ where: { alineacionId, jugadorId } });
+
     if (!fila) return [null, 'Registro de alineación/jugador no encontrado'];
     await ajRepo.remove(fila);
     return [true, null];
