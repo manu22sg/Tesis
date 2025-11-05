@@ -6,6 +6,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import { formatearFecha, formatearHora } from '../utils/formatters';
 
 const colorForTipo = (tipo) => {
   const t = (tipo || '').toLowerCase();
@@ -19,12 +20,12 @@ const SesionesTable = memo(({ sesiones, loading, verDetalle, handleEliminar, set
     {
       title: 'Fecha',
       dataIndex: 'fecha',
-      render: (f) => dayjs(f).format('DD/MM/YYYY'),
+      render: (f) => formatearFecha(f),
       width: 120,
     },
     {
       title: 'Horario',
-      render: (_, r) => `${r.horaInicio} - ${r.horaFin}`,
+      render: (_, r) => `${formatearHora(r.horaInicio)} - ${formatearHora(r.horaFin)}`,
       width: 120,
     },
     {
@@ -90,16 +91,15 @@ const SesionesTable = memo(({ sesiones, loading, verDetalle, handleEliminar, set
   ], [navigate, verDetalle, handleEliminar, setTokenModal, setSesionToken]);
 
   return (
-    <Table
-      columns={columns}
-      dataSource={sesiones}
-      rowKey="id"
-      loading={loading}
-      pagination={false}
-      scroll={{ y: 400 }}
-      virtual
-    />
-  );
+  <Table
+    columns={columns}
+    dataSource={sesiones}
+    rowKey="id"
+    loading={loading}
+    pagination={false} // <-- ¡Correcto!
+    // ¡Sin 'scroll' y sin 'virtual'!
+  />
+);
 });
 
 export default SesionesTable;

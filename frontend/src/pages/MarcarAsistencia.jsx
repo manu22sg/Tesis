@@ -13,10 +13,12 @@ import {
   Pagination,
   Switch,
   Alert,
-  ConfigProvider
+  ConfigProvider,
+  Tooltip
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
+  CheckSquareOutlined,
   CalendarOutlined,
   FieldTimeOutlined,
   KeyOutlined,
@@ -27,6 +29,7 @@ import {
   AimOutlined
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout.jsx';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { obtenerSesionesEstudiante } from '../services/sesion.services.js';
 import { marcarAsistenciaPorToken } from '../services/asistencia.services.js';
@@ -160,11 +163,9 @@ export default function MarcarAsistencia() {
       title: 'Fecha',
       dataIndex: 'fecha',
       render: (fecha) => {
-        const [y, m, d] = fecha.split('-');
-        return (
-          <Space>
-            <CalendarOutlined /> {`${d}-${m}-${y}`}
-          </Space>
+        return (<Space>
+          <CalendarOutlined /> {formatearFecha(fecha)}
+        </Space>
         );
       },
     },
@@ -172,7 +173,7 @@ export default function MarcarAsistencia() {
       title: 'Horario',
       render: (_, r) => (
         <Space>
-          <FieldTimeOutlined /> {r.horaInicio} - {r.horaFin}
+          <FieldTimeOutlined /> {formatearHora(r.horaInicio)} - {formatearHora(r.horaFin)}
         </Space>
       ),
     },
@@ -199,27 +200,33 @@ export default function MarcarAsistencia() {
       },
     },
     {
-      title: 'Acción',
-      render: (_, r) =>
-        r.asistenciaMarcada ? (
-          <Tag color="success" icon={<CheckCircleOutlined />}>
-            Asistencia Registrada
-          </Tag>
-        ) : (
-          <Button type="primary" disabled={!r.tokenActivo} onClick={() => abrirModal(r)}>
-            Marcar Asistencia
-          </Button>
-        ),
-    },
+  title: 'Acción',
+  align: 'center',
+  width: 160,
+  render: (_, r) =>
+    r.asistenciaMarcada ? (
+      <Tag color="success" icon={<CheckCircleOutlined />}>
+        Asistencia Registrada
+      </Tag>
+    ) : (
+      <Tooltip title="Marcar asistencia">
+        <Button
+          type="primary"
+          size="middle"
+          icon={<CheckSquareOutlined />}
+          onClick={() => abrirModal(r)}
+          disabled={!r.tokenActivo}
+        />
+      </Tooltip>
+    ),
+},
   ];
 
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
         <Card title={<Title level={3}>Marcar Asistencia</Title>} style={{ borderRadius: 12 }}>
-          <Text type="secondary">
-            Aquí puedes ver tus sesiones y marcar asistencia con el código entregado por tu entrenador.
-          </Text>
+          
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>

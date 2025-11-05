@@ -28,7 +28,15 @@ export default function Sesiones() {
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const [filtros, setFiltros] = useState({ q: '', fecha: null, horario: null });
+  
+  // --- CAMBIO 1: Estado de filtros actualizado ---
+  const [filtros, setFiltros] = useState({
+    q: '',
+    fecha: null,
+    horario: null,
+    canchaId: null, // <-- Nuevo
+    grupoId: null    // <-- Nuevo
+  });
 
   const [detalleModal, setDetalleModal] = useState(false);
   const [sesionDetalle, setSesionDetalle] = useState(null);
@@ -39,10 +47,10 @@ export default function Sesiones() {
   const [loadingToken, setLoadingToken] = useState(false);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  // 🧩 Carga de sesiones
-  const cargarSesiones = useCallback(async (page = 1, size = 10) => {
+    const cargarSesiones = useCallback(async (page = 1, size = 10) => {
     setLoading(true);
     try {
+      // --- CAMBIO 2: Parámetros de API actualizados ---
       const params = {
         q: filtros.q,
         page,
@@ -54,6 +62,8 @@ export default function Sesiones() {
               horaFin: filtros.horario[1].format('HH:mm'),
             }
           : {}),
+        ...(filtros.canchaId && { canchaId: filtros.canchaId }), // <-- Nuevo
+        ...(filtros.grupoId && { grupoId: filtros.grupoId }),   // <-- Nuevo
       };
       const { sesiones: data, pagination: p } = await obtenerSesiones(params);
       setSesiones(data);
@@ -63,11 +73,13 @@ export default function Sesiones() {
     } finally {
       setLoading(false);
     }
-  }, [filtros]);
+  }, [filtros]); // La dependencia [filtros] ya es correcta
 
   useEffect(() => {
+    // Esto se disparará automáticamente cuando 'filtros' cambie,
+    // reiniciando a la página 1.
     cargarSesiones(1, pagination.pageSize);
-  }, [cargarSesiones]);
+  }, [cargarSesiones]); // La dependencia [cargarSesiones] es correcta
 
   // 🔍 Detalle
   const verDetalle = useCallback(async (id) => {
@@ -169,8 +181,11 @@ export default function Sesiones() {
               </Space>
             }
           >
+            {/* Esto ya funciona con los nuevos filtros */}
             <SesionesFilterBar filtros={filtros} setFiltros={setFiltros} />
+            
             <SesionesTable {...tableMemo} />
+            
             {sesiones.length > 0 && (
               <div style={{ textAlign: 'center', marginTop: 16 }}>
                 <Pagination
@@ -184,7 +199,7 @@ export default function Sesiones() {
             )}
           </Card>
 
-          {/* Suspensea los modales */}
+          {/* Suspensea los modales (sin cambios) */}
           <Suspense fallback={null}>
             {detalleModal && (
               <DetalleSesionModal

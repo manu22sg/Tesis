@@ -217,7 +217,7 @@ const GestionCanchas = () => {
           <Tooltip title="Editar">
             <Button
               type="primary"
-              size="small"
+              size="medium"
               icon={<EditOutlined />}
               onClick={() => abrirModalEditar(record)}
             />
@@ -233,7 +233,7 @@ const GestionCanchas = () => {
               <Tooltip title="Reactivar">
                 <Button
                   type="default"
-                  size="small"
+                  size="medium"
                   icon={<UndoOutlined />}
                   style={{ color: '#52c41a', borderColor: '#52c41a' }}
                 />
@@ -247,7 +247,7 @@ const GestionCanchas = () => {
               cancelText="No"
             >
               <Tooltip title="Eliminar">
-                <Button danger size="small" icon={<DeleteOutlined />} />
+                <Button danger size="medium" icon={<DeleteOutlined />} />
               </Tooltip>
             </Popconfirm>
           )}

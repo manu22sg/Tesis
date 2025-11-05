@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, message, Tag, Pagination, ConfigProvider } from 'antd';
+import { 
+  Card, 
+  Table, 
+  Button, 
+  Space, 
+  Modal, 
+  message, 
+  Tag, 
+  Pagination, 
+  ConfigProvider, 
+  Tooltip, 
+  Popconfirm, 
+  Avatar, 
+  Typography 
+} from 'antd';
 import locale from 'antd/locale/es_ES';
-import { EditOutlined, DeleteOutlined, TrophyOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
 import {
   obtenerEstadisticasPorJugador,
   obtenerEstadisticasPorSesion,
@@ -9,9 +23,12 @@ import {
   eliminarEstadistica,
 } from '../services/estadistica.services.js';
 import dayjs from 'dayjs';
+import { formatearHora, formatearFecha } from '../utils/formatters.js';
 import 'dayjs/locale/es';
 
 dayjs.locale('es');
+
+const { Text } = Typography;
 
 const ListaEstadisticas = ({
   tipo = 'sesion',
@@ -93,13 +110,32 @@ const ListaEstadisticas = ({
       ? [
           {
             title: 'Jugador',
-            dataIndex: ['jugador', 'usuario'],
             key: 'jugador',
-            render: (usuario) =>
-              usuario ? `${usuario.nombre} ${usuario.rut}` : 'N/A',
+            render: (_, record) => {
+              const usuario = record.jugador?.usuario;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Avatar 
+                    size={40} 
+                    icon={<UserOutlined />} 
+                    style={{ backgroundColor: '#1890ff' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 500 }}>
+                      {usuario?.nombre || 'Sin nombre'}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {usuario?.rut || 'Sin RUT'}
+                    </Text>
+                  </div>
+                </div>
+              );
+            },
+            width: 220,
           },
         ]
       : []),
+
     ...(tipo === 'jugador' || tipo === 'mias'
       ? [
           {
@@ -107,18 +143,16 @@ const ListaEstadisticas = ({
             dataIndex: ['sesion', 'nombre'],
             key: 'sesion',
             render: (nombre, record) => {
-              const fecha = record.sesion?.fecha
-                ? dayjs(record.sesion.fecha).format('DD/MM/YYYY')
-                : 'Sin fecha';
-              const hora = record.sesion?.horaInicio
-                ? dayjs(`1970-01-01T${record.sesion.horaInicio}`).format('HH:mm')
-                : 'Sin hora';
+              const fecha = formatearFecha(record.sesion?.fecha);
+              const horainicio = formatearHora(record.sesion?.horaInicio);
+              const horafin = formatearHora(record.sesion?.horaFin);
+
               return (
                 <div>
                   <strong>{nombre || 'Sin nombre'}</strong>
                   <br />
                   <small style={{ color: '#888' }}>
-                    {fecha} — {hora}
+                    {fecha} — {horainicio} - {horafin}
                   </small>
                 </div>
               );
@@ -126,16 +160,13 @@ const ListaEstadisticas = ({
           },
         ]
       : []),
+
     {
       title: 'Goles',
       dataIndex: 'goles',
       key: 'goles',
       align: 'center',
-      render: (goles) => (
-        <Tag color={goles > 0 ? 'green' : 'default'}>
-         {goles}
-        </Tag>
-      ),
+      render: (goles) => <Tag color={goles > 0 ? 'green' : 'default'}>{goles}</Tag>,
     },
     {
       title: 'Asistencias',
@@ -179,6 +210,7 @@ const ListaEstadisticas = ({
         <Tag color={arcos > 0 ? 'cyan' : 'default'}>{arcos}</Tag>
       ),
     },
+
     ...(userRole !== 'estudiante'
       ? [
           {
@@ -186,24 +218,30 @@ const ListaEstadisticas = ({
             key: 'acciones',
             align: 'center',
             render: (_, record) => (
-              <Space>
+              <Space size="small">
                 {onEdit && (
-                  <Button
-                    type="link"
-                    icon={<EditOutlined />}
-                    onClick={() => onEdit(record)}
-                  >
-                    Editar
-                  </Button>
+                  <Tooltip title="Editar">
+                    <Button
+                      type="primary"
+                      size="middle"
+                      icon={<EditOutlined />}
+                      onClick={() => onEdit(record)}
+                    />
+                  </Tooltip>
                 )}
-                <Button
-                  type="link"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => manejarEliminar(record.id)}
-                >
-                  Eliminar
-                </Button>
+
+                <Tooltip title="Eliminar">
+                  <Popconfirm
+                    title="¿Eliminar registro?"
+                    description="Esta acción no se puede deshacer"
+                    onConfirm={() => manejarEliminar(record.id)}
+                    okText="Sí, eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button danger size="middle" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Tooltip>
               </Space>
             ),
           },
@@ -214,28 +252,30 @@ const ListaEstadisticas = ({
   return (
     <Card>
       {contextHolder}
-      <Table
-        columns={columnas}
-        dataSource={estadisticas}
-        rowKey="id"
-        loading={cargando}
-        pagination={false}
-        scroll={{ x: 'max-content' }}
-      />
-      {estadisticas.length > 0 && (
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <Pagination
-            current={paginacion.actual}
-            pageSize={paginacion.tamanioPagina}
-            total={paginacion.total}
-            onChange={manejarCambioTabla}
-            onShowSizeChange={manejarCambioTabla}
-            showSizeChanger
-            showTotal={(total) => `Total: ${total} registros`}
-            pageSizeOptions={['5', '10', '20', '50']}
-          />
-        </div>
-      )}
+      <ConfigProvider locale={locale}>
+        <Table
+          columns={columnas}
+          dataSource={estadisticas}
+          rowKey="id"
+          loading={cargando}
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+        />
+        {estadisticas.length > 0 && (
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
+            <Pagination
+              current={paginacion.actual}
+              pageSize={paginacion.tamanioPagina}
+              total={paginacion.total}
+              onChange={manejarCambioTabla}
+              onShowSizeChange={manejarCambioTabla}
+              showSizeChanger
+              showTotal={(total) => `Total: ${total} registros`}
+              pageSizeOptions={['5', '10', '20', '50']}
+            />
+          </div>
+        )}
+      </ConfigProvider>
     </Card>
   );
 };

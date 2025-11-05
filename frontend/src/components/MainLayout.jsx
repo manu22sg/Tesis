@@ -61,7 +61,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     // ⚽ Entrenamientos
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
 
-    getItem('Aprobar Reservas', 'aprobar-reservas', <CheckCircleOutlined />),
+    getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
 
     // 👥 Jugadores + Lesiones
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [

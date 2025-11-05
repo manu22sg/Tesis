@@ -1,4 +1,6 @@
 import React from 'react';
+import { formatearFecha, formatearHora, formatearRangoHoras } from '../utils/formatters.js';
+
 import { Modal, Button, Descriptions, Tag, Badge, Card } from 'antd';
 import { EyeOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -30,7 +32,6 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
       width={700}
     >
       <Descriptions bordered column={2} size="small">
-        <Descriptions.Item label="ID" span={2}>{reserva.id}</Descriptions.Item>
         <Descriptions.Item label="Usuario" span={2}>
           <div>
             <UserOutlined /> {reserva.usuario?.nombre}
@@ -46,7 +47,7 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
           {dayjs(reserva.fechaSolicitud).format('DD/MM/YYYY')}
         </Descriptions.Item>
         <Descriptions.Item label="Horario">
-          {reserva.horaInicio} - {reserva.horaFin}
+          {formatearRangoHoras(reserva.horaInicio, reserva.horaFin)}
         </Descriptions.Item>
         <Descriptions.Item label="Estado" span={2}>
           <Tag color={getEstadoColor(reserva.estado)}>

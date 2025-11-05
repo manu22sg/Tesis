@@ -23,7 +23,7 @@ import 'dayjs/locale/es';
 import { useAuth } from '../context/AuthContext.jsx';
 import { obtenerMisLesiones } from '../services/lesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 dayjs.locale('es');
 
 const { RangePicker } = DatePicker;
@@ -83,7 +83,7 @@ export default function MisLesiones() {
       title: 'Fecha Inicio',
       dataIndex: 'fechaInicio',
       key: 'fechaInicio',
-      render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
+      render: (fecha) => formatearFecha(fecha) || '—',
       align: 'center',
       width: 130,
     },
@@ -91,7 +91,7 @@ export default function MisLesiones() {
       title: 'Alta Estimada',
       dataIndex: 'fechaAltaEstimada',
       key: 'fechaAltaEstimada',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
+      render: (fecha) => fecha ? formatearFecha(fecha) || '—' : '—',
       align: 'center',
       width: 130,
     },
@@ -99,7 +99,7 @@ export default function MisLesiones() {
       title: 'Alta Real',
       dataIndex: 'fechaAltaReal',
       key: 'fechaAltaReal',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
+      render: (fecha) => fecha ? formatearFecha(fecha) || '—' : '—',
       align: 'center',
       width: 130,
     },
@@ -129,42 +129,47 @@ export default function MisLesiones() {
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           <Card
             title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <MedicineBoxOutlined style={{ fontSize: 24 }} />
                 <span>Mis Lesiones</span>
               </div>
             }
           >
             {/* Filtros */}
-            <div
-              style={{
-                marginBottom: 16,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: 12,
-              }}
-            >
-              <Input
-                allowClear
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                prefix={<SearchOutlined />}
-                placeholder="Buscar por diagnóstico..."
-              />
+           <div
+  style={{
+    marginBottom: 12,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,              // 👈 separación bien cortita
+  }}
+>
+  <Input
+    allowClear
+    value={busqueda}
+    onChange={(e) => setBusqueda(e.target.value)}
+    prefix={<SearchOutlined />}
+    placeholder="Buscar por diagnóstico..."
+    style={{ width: 260 }}   // 👈 tamaño fijo (no crece)
+    size="middle"
+  />
 
-              <RangePicker
-                value={rangoFechas}
-                onChange={setRangoFechas}
-                format="DD/MM/YYYY"
-                placeholder={['Fecha inicio', 'Fecha fin']}
-                style={{ width: '100%' }}
-              />
+  <RangePicker
+    value={rangoFechas}
+    onChange={setRangoFechas}
+    format="DD/MM/YYYY"
+    placeholder={['Fecha inicio', 'Fecha fin']}
+    style={{ width: 260 }}   // 👈 tamaño fijo (no crece)
+    size="middle"
+  />
 
-              {hayFiltrosActivos && (
-                <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
-              )}
-            </div>
-
+  {hayFiltrosActivos && (
+    <Button onClick={limpiarFiltros} size="middle">
+      Limpiar filtros
+    </Button>
+  )}
+</div>
             {/* Tabla */}
             <Table
               columns={columns}

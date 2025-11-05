@@ -246,52 +246,57 @@ export default function Jugadores() {
       width: 90,
     },
     {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Ver detalle">
-            <Button 
-              type="link" 
-              size="small"
-              icon={<EyeOutlined />} 
-              onClick={() => verDetalle(record.id)} 
-            />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button 
-              type="link" 
-              size="small"
-              icon={<EditOutlined />} 
-              onClick={() => navigate(`/jugadores/editar/${record.id}`)} 
-            />
-          </Tooltip>
-          <Tooltip title="Grupos">
-            <Button 
-              type="link" 
-              size="small"
-              icon={<TeamOutlined />} 
-              onClick={() => navigate(`/jugadores/${record.id}/grupos`)} 
-            />
-          </Tooltip>
-          <Popconfirm
-            title="¿Eliminar este jugador?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleEliminar(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Eliminar">
-              <Button type="link" size="small" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-      width: 160,
-      align: 'center',
-      fixed: 'right',
-    },
+  title: 'Acciones',
+  key: 'acciones',
+  align: 'center',
+  width: 220,
+  fixed: 'right',
+  render: (_, record) => (
+    <Space size="small">
+      <Tooltip title="Ver Detalle" placement="top">
+        <Button
+          type="primary"
+          size="middle"
+          icon={<EyeOutlined />}
+          onClick={() => verDetalle(record.id)}
+        />
+      </Tooltip>
+
+      <Tooltip title="Editar" placement="top">
+        <Button
+          size="middle"
+          icon={<EditOutlined />}
+          onClick={() => navigate(`/jugadores/editar/${record.id}`)}
+        />
+      </Tooltip>
+
+      <Tooltip title="Grupos" placement="top">
+        <Button
+          size="middle"
+          icon={<TeamOutlined />}
+          onClick={() => navigate(`/jugadores/${record.id}/grupos`)}
+        />
+      </Tooltip>
+
+      <Popconfirm
+        title="¿Eliminar jugador?"
+        description="Esta acción no se puede deshacer"
+        onConfirm={() => handleEliminar(record.id)}
+        okText="Sí, eliminar"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true }}
+      >
+        <Tooltip title="Eliminar" placement="top">
+          <Button
+            danger
+            size="middle"
+            icon={<DeleteOutlined />}
+          />
+        </Tooltip>
+      </Popconfirm>
+    </Space>
+  ),
+},
   ];
 
   const hayFiltrosActivos = busqueda || filtroEstado || filtroCarrera || filtroAnio;

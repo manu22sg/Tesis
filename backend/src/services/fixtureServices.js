@@ -112,19 +112,19 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     const equipoRepo = trx.getRepository("EquipoCampeonato");
     const campId = Number(campeonatoId);
 
-    // 1️⃣ Obtener partidos de la ronda anterior
+    //  Obtener partidos de la ronda anterior
     const todosPartidos = await partRepo.find({
       where: { campeonatoId: campId, ronda: rondaAnterior },
       order: { ordenLlave: "ASC" },
     });
     if (!todosPartidos.length) throw new Error("No existe la ronda anterior especificada");
 
-    // 2️⃣ Validar que todos estén finalizados
+    // Validar que todos estén finalizados
     const finalizados = todosPartidos.filter(p => p.estado === "finalizado");
     if (finalizados.length !== todosPartidos.length)
       throw new Error(`Solo ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en ${rondaAnterior}`);
 
-    // 3️⃣ Obtener ganadores válidos
+    //  Obtener ganadores válidos
     const ganadores = finalizados
       .map(p => Number(p.ganadorId))
       .filter(id => !isNaN(id) && id > 0);
@@ -132,7 +132,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     if (ganadores.length !== finalizados.length)
       throw new Error("Uno o más partidos finalizados no tienen ganador asignado");
 
-    // 4️⃣ Caso: un solo ganador → campeonato finalizado
+    //  Caso: un solo ganador → campeonato finalizado
     if (ganadores.length === 1) {
       const equipoGanador = await equipoRepo.findOne({ where: { id: ganadores[0] } });
       if (!equipoGanador)
@@ -145,13 +145,13 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
         ronda: null,
         partidosCreados: [],
         fin: true,
-        mensaje: `🏆 El campeonato ha finalizado. El equipo campeón es: ${equipoGanador.nombre}`,
+        mensaje: ` El campeonato ha finalizado. El equipo campeón es: ${equipoGanador.nombre}`,
         ganadorId: equipoGanador.id,
         nombreGanador: equipoGanador.nombre,
       };
     }
 
-    // 5️⃣ Si hay menos de 2 ganadores → no se puede continuar
+    //  Si hay menos de 2 ganadores → no se puede continuar
     if (ganadores.length < 2) {
       return {
         ronda: null,
@@ -161,11 +161,11 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
       };
     }
 
-    // 6️⃣ Validar número par de ganadores
+    //  Validar número par de ganadores
     if (ganadores.length % 2 !== 0)
       throw new Error(`Número impar de ganadores (${ganadores.length}). Revisa los partidos de ${rondaAnterior}`);
 
-    // 7️⃣ Crear la siguiente ronda
+    //  Crear la siguiente ronda
     const nombreSiguiente = nombreRondaPorCantidad(ganadores.length).toLowerCase();
 
     const existente = await partRepo.findOne({

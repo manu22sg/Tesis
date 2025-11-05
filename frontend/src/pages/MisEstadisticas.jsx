@@ -5,7 +5,6 @@ import { TrophyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext.jsx';
 import ListaEstadisticas from '../components/EstadisticasList.jsx';
 import MainLayout from '../components/MainLayout.jsx';
-
 const MisEstadisticas = () => {
   const { usuario } = useAuth();
   

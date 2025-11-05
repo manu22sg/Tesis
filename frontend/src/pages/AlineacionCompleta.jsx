@@ -24,7 +24,7 @@ import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import CampoAlineacion from '../components/CampoAlineacion.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 const { TextArea } = Input;
 const { Text } = Typography;
 
@@ -382,7 +382,7 @@ const handleQuitarJugador = async (jugadorId) => {
 
           {sesionInfo && (
             <Alert
-              message={`Sesión: ${sesionInfo.fecha} - ${sesionInfo.horaInicio} a ${sesionInfo.horaFin}`}
+              message={`Sesión: ${formatearFecha(sesionInfo.fecha)} - ${formatearHora(sesionInfo.horaInicio)} - ${formatearHora(sesionInfo.horaFin)}`}
               description={`Grupo: ${sesionInfo.grupo?.nombre || 'Sin grupo'} | Cancha: ${sesionInfo.cancha?.nombre || 'Sin cancha'}`}
               type="info"
               showIcon
@@ -390,45 +390,7 @@ const handleQuitarJugador = async (jugadorId) => {
             />
           )}
 
-          {/* Header con estadísticas */}
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col xs={24} sm={12} md={8}>
-              <Card>
-                <Statistic
-                  title="Total Jugadores"
-                  value={stats.total}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: '#3f8600' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8}>
-              <Card>
-                <Statistic
-                  title="Posiciones"
-                  value={Object.keys(stats.posiciones).length}
-                  prefix={<AimOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={24} md={8}>
-              <Card>
-                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: 14, color: '#999' }}>Estado</div>
-                    {alineacion.generadaAuto ? (
-                      <Tag color="purple" icon={<TrophyOutlined />}>
-                        Auto-generada
-                      </Tag>
-                    ) : (
-                      <Tag color="blue">Manual</Tag>
-                    )}
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+          
 
           {/* Contenido principal */}
           <Card

@@ -13,13 +13,13 @@ import {
   Select,
   Row,
   Col,
-  Statistic,
-  Popconfirm,
   Modal,
   Alert,
   Tabs,
   Pagination,
-  ConfigProvider
+  ConfigProvider,
+  Tooltip,
+  Popconfirm, Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -37,11 +37,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
 import DetalleSesionModal from '../components/DetalleSesionModal.jsx';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
-
 import { removerJugadorDeGrupo, asignarJugadorAGrupo, obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones, eliminarSesion } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
+import JugadorDetalleModal from '../components/JugadorDetalleModal.jsx';
+import { obtenerJugadorPorId } from '../services/jugador.services.js';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -54,8 +55,8 @@ export default function GrupoMiembros() {
   const [miembrosFiltrados, setMiembrosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detalleModal, setDetalleModal] = useState(false);
-const [sesionDetalle, setSesionDetalle] = useState(null);
-const [loadingDetalle, setLoadingDetalle] = useState(false);
+  const [sesionDetalle, setSesionDetalle] = useState(null);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
 
   // Filtros miembros
   const [busqueda, setBusqueda] = useState('');
@@ -79,6 +80,9 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [sesiones, setSesiones] = useState([]);
   const [loadingSesiones, setLoadingSesiones] = useState(false);
   const [tabActiva, setTabActiva] = useState('miembros');
+const [modalJugadorVisible, setModalJugadorVisible] = useState(false);
+const [jugadorDetalle, setJugadorDetalle] = useState(null);
+const [loadingJugadorDetalle, setLoadingJugadorDetalle] = useState(false);
 
   // Paginación entrenamientos (backend)
   const [paginationEntrenamientos, setPaginationEntrenamientos] = useState({
@@ -173,17 +177,32 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
   };
   
   const handleVerDetalleSesion = async (sesionId) => {
+    try {
+      setLoadingDetalle(true);
+      setDetalleModal(true);
+      const detalle = await obtenerSesionPorId(sesionId);
+      setSesionDetalle(detalle);
+    } catch (error) {
+      console.error('Error cargando detalle de sesión:', error);
+      message.error('Error al cargar el detalle de la sesión');
+      setDetalleModal(false);
+    } finally {
+      setLoadingDetalle(false);
+    }
+  };
+  const handleVerDetalleJugador = async (jugadorId) => {
   try {
-    setLoadingDetalle(true);
-    setDetalleModal(true);
-    const detalle = await obtenerSesionPorId(sesionId);
-    setSesionDetalle(detalle);
+    setLoadingJugadorDetalle(true);
+    setModalJugadorVisible(true);
+
+    const jugador = await obtenerJugadorPorId(jugadorId);
+    setJugadorDetalle(jugador);
   } catch (error) {
-    console.error('Error cargando detalle de sesión:', error);
-    message.error('Error al cargar el detalle de la sesión');
-    setDetalleModal(false);
+    console.error('Error cargando detalle del jugador:', error);
+    message.error('Error al cargar el detalle del jugador');
+    setModalJugadorVisible(false);
   } finally {
-    setLoadingDetalle(false);
+    setLoadingJugadorDetalle(false);
   }
 };
 
@@ -240,12 +259,9 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
         limit 
       });
       
-      
       // Extraer datos correctamente según estructura del backend
       const sesionesData = data?.sesiones || data?.data?.sesiones || [];
       const paginationData = data?.pagination || data?.data?.pagination || {};
-      
-     
       
       setSesiones(sesionesData);
       setPaginationEntrenamientos({
@@ -273,10 +289,6 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
     }
   };
 
-  const handleVerJugador = (jugadorId) => {
-    navigate(`/jugadores/${jugadorId}`);
-  };
-
   // Paginación frontend - Solo miembros
   const handlePageChangeMiembros = (page, pageSize) => {
     setPaginationMiembros({ ...paginationMiembros, current: page, pageSize });
@@ -285,7 +297,7 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
   // Paginación backend - Entrenamientos
   const handlePageChangeEntrenamientos = (page, pageSize) => {
     setPaginationEntrenamientos({ ...paginationEntrenamientos, current: page, pageSize });
-    cargarSesiones(page, pageSize); // ← Nueva petición al backend
+    cargarSesiones(page, pageSize);
   };
 
   // Obtener carreras únicas para el filtro
@@ -307,7 +319,7 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
       render: (fecha) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <CalendarOutlined style={{ color: '#1890ff' }} />
-          <span>{new Date(fecha).toLocaleDateString('es-CL')}</span>
+          <span>{formatearFecha(fecha)}</span>
         </div>
       ),
       sorter: (a, b) => new Date(a.fecha) - new Date(b.fecha),
@@ -318,7 +330,7 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ClockCircleOutlined style={{ color: '#52c41a' }} />
-          <span>{record.horaInicio} - {record.horaFin}</span>
+          <span>{formatearHora(record.horaInicio)} - {formatearHora(record.horaFin)}</span>
         </div>
       ),
     },
@@ -349,53 +361,64 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
     {
       title: 'Acciones',
       key: 'acciones',
+      align: 'center',
+      width: 160,
       render: (_, record) => (
         <Space size="small">
-          <Button
-  type="link"
-  size="small"
-  onClick={() => handleVerDetalleSesion(record.id)}
->
-  Ver Detalle
-</Button>
-          <Popconfirm
-            title="¿Eliminar entrenamiento?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleEliminarSesion(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="link" danger size="small" icon={<DeleteOutlined />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
+          <Tooltip title="Ver Detalle">
+            <Button
+              type="primary"
+              size="middle"
+              icon={<CalendarOutlined />}
+              onClick={() => handleVerDetalleSesion(record.id)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Eliminar Entrenamiento">
+            <Popconfirm
+              title="¿Eliminar entrenamiento?"
+              description="Esta acción no se puede deshacer"
+              onConfirm={() => handleEliminarSesion(record.id)}
+              okText="Sí, eliminar"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                danger
+                size="middle"
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
-      width: 200,
-      align: 'center',
     },
   ];
 
   // Columnas de miembros
   const columns = [
-    {
-      title: 'Jugador',
-      key: 'jugador',
-      render: (_, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <UserOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 14 }}>
-              {record.nombre}
-            </div>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.rut}
-            </Text>
+     {
+    title: 'Jugador',
+    key: 'jugador',
+    render: (_, record) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar 
+          size={40} 
+          icon={<UserOutlined />} 
+          style={{ backgroundColor: '#1890ff' }}
+        />
+        <div>
+          <div style={{ fontWeight: 500 }}>
+            {record.nombre || 'Sin nombre'}
           </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.rut || 'Sin RUT'}
+          </Text>
         </div>
-      ),
-    },
+      </div>
+    ),
+    width: 220,
+  },
     {
       title: 'Email',
       dataIndex: 'email',
@@ -442,31 +465,37 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
     {
       title: 'Acciones',
       key: 'acciones',
+      align: 'center',
+      width: 160,
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            onClick={() => handleVerJugador(record.id)}
-          >
-            Ver Perfil
-          </Button>
-          <Popconfirm
-            title="¿Remover del grupo?"
-            description="El jugador ya no pertenecerá a este grupo"
-            onConfirm={() => handleRemoverMiembro(record.id)}
-            okText="Sí, remover"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="link" danger size="small" icon={<DeleteOutlined />}>
-              Remover
-            </Button>
-          </Popconfirm>
+          <Tooltip title="Ver Perfil">
+            <Button
+  type="primary"
+  size="middle"
+  icon={<UserOutlined />}
+  onClick={() => handleVerDetalleJugador(record.id)}
+/>
+          </Tooltip>
+
+          <Tooltip title="Remover del Grupo">
+            <Popconfirm
+              title="¿Remover del grupo?"
+              description="El jugador ya no pertenecerá a este grupo"
+              onConfirm={() => handleRemoverMiembro(record.id)}
+              okText="Sí, remover"
+              cancelText="Cancelar"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                danger
+                size="middle"
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
-      width: 180,
-      align: 'center',
     },
   ];
 
@@ -496,344 +525,317 @@ const [loadingDetalle, setLoadingDetalle] = useState(false);
 
   return (
     <MainLayout>
-    <ConfigProvider locale={locale}>
-    <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      <Card>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24,
-          flexWrap: 'wrap',
-          gap: 16
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <TeamOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-            <div>
-              <Title level={4} style={{ margin: 0 }}>
-                {grupo.nombre}
-              </Title>
-              {grupo.descripcion && (
-                <Text type="secondary">{grupo.descripcion}</Text>
-              )}
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <Card>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 24,
+              flexWrap: 'wrap',
+              gap: 16
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <TeamOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+                <div>
+                  <Title level={4} style={{ margin: 0 }}>
+                    {grupo.nombre}
+                  </Title>
+                  {grupo.descripcion && (
+                    <Text type="secondary">{grupo.descripcion}</Text>
+                  )}
+                </div>
+              </div>
+
+              <Space>
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => navigate('/grupos')}
+                >
+                  Volver
+                </Button>
+                {tabActiva === 'miembros' && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAgregarMiembro}
+                  >
+                    Agregar Miembros
+                  </Button>
+                )}
+                {tabActiva === 'entrenamientos' && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
+                  >
+                    Nuevo Entrenamiento
+                  </Button>
+                )}
+              </Space>
             </div>
-          </div>
 
-          <Space>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/grupos')}
-            >
-              Volver
-            </Button>
-            {tabActiva === 'miembros' && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAgregarMiembro}
-              >
-                Agregar Miembros
-              </Button>
-            )}
-            {tabActiva === 'entrenamientos' && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
-              >
-                Nuevo Entrenamiento
-              </Button>
-            )}
-          </Space>
-        </div>
-
-        {/* Tabs */}
-        <Tabs
-          activeKey={tabActiva}
-          onChange={setTabActiva}
-          items={[
-            {
-              key: 'miembros',
-              label: (
-                <span>
-                  <UserOutlined />
-                  Miembros ({miembros.length})
-                </span>
-              ),
-              children: (
-                <>
-                  {/* Estadísticas Miembros */}
-                  <Row gutter={16} style={{ marginBottom: 24 }}>
-                    <Col xs={24} sm={8}>
-                      <Card>
-                        <Statistic
-                          title="Total de Miembros"
-                          value={miembros.length}
-                          prefix={<UserOutlined />}
-                          valueStyle={{ color: '#1890ff' }}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                      <Card>
-                        <Statistic
-                          title="Miembros Activos"
-                          value={miembros.filter(m => m.estado === 'activo').length}
-                          prefix={<UserOutlined />}
-                          valueStyle={{ color: '#52c41a' }}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                      <Card>
-                        <Statistic
-                          title="Resultados Filtrados"
-                          value={miembrosFiltrados.length}
-                          prefix={<SearchOutlined />}
-                          valueStyle={{ color: '#faad14' }}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-
-                  {/* Filtros Miembros */}
-                  <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} sm={12} md={8}>
-                        <Input
-                          placeholder="Buscar por nombre, RUT, email o carrera..."
-                          prefix={<SearchOutlined />}
-                          value={busqueda}
-                          onChange={(e) => setBusqueda(e.target.value)}
-                          allowClear
-                        />
-                      </Col>
-                      <Col xs={24} sm={12} md={8}>
-                        <Select
-                          value={filtroEstado}
-                          onChange={setFiltroEstado}
-                          style={{ width: '100%' }}
-                          placeholder="Filtrar por estado"
-                        >
-                          <Option value="todos">Todos los estados</Option>
-                          <Option value="activo">Activos</Option>
-                          <Option value="inactivo">Inactivos</Option>
-                        </Select>
-                      </Col>
-                      <Col xs={24} sm={12} md={8}>
-                        <Select
-                          value={filtroCarrera}
-                          onChange={setFiltroCarrera}
-                          style={{ width: '100%' }}
-                          placeholder="Filtrar por carrera"
-                        >
-                          <Option value="todos">Todas las carreras</Option>
-                          {carrerasUnicas.map(carrera => (
-                            <Option key={carrera} value={carrera}>
-                              {carrera}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  {/* Tabla Miembros */}
-                  <Card>
-                    <Table
-                      columns={columns}
-                      dataSource={getMiembrosPaginados()}
-                      rowKey="id"
-                      pagination={false}
-                      locale={{
-                        emptyText: (
-                          <Empty description="No hay miembros en este grupo">
-                            <Button
-                              type="primary"
-                              icon={<PlusOutlined />}
-                              onClick={handleAgregarMiembro}
+            {/* Tabs */}
+            <Tabs
+              activeKey={tabActiva}
+              onChange={setTabActiva}
+              items={[
+                {
+                  key: 'miembros',
+                  label: (
+                    <span>
+                      <UserOutlined />
+                      Miembros ({miembros.length})
+                    </span>
+                  ),
+                  children: (
+                    <>
+                      {/* Filtros Miembros */}
+                      <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                        <Row gutter={[16, 16]}>
+                          <Col xs={24} sm={12} md={8}>
+                            <Input
+                              placeholder="Buscar por nombre, RUT, email o carrera..."
+                              prefix={<SearchOutlined />}
+                              value={busqueda}
+                              onChange={(e) => setBusqueda(e.target.value)}
+                              allowClear
+                            />
+                          </Col>
+                          <Col xs={24} sm={12} md={8}>
+                            <Select
+                              value={filtroEstado}
+                              onChange={setFiltroEstado}
+                              style={{ width: '100%' }}
+                              placeholder="Filtrar por estado"
                             >
-                              Agregar Miembros
-                            </Button>
-                          </Empty>
-                        ),
-                      }}
-                    />
+                              <Option value="todos">Todos los estados</Option>
+                              <Option value="activo">Activos</Option>
+                              <Option value="inactivo">Inactivos</Option>
+                            </Select>
+                          </Col>
+                          <Col xs={24} sm={12} md={8}>
+                            <Select
+                              value={filtroCarrera}
+                              onChange={setFiltroCarrera}
+                              style={{ width: '100%' }}
+                              placeholder="Filtrar por carrera"
+                            >
+                              <Option value="todos">Todas las carreras</Option>
+                              {carrerasUnicas.map(carrera => (
+                                <Option key={carrera} value={carrera}>
+                                  {carrera}
+                                </Option>
+                              ))}
+                            </Select>
+                          </Col>
+                        </Row>
+                      </Card>
 
-                    {/* Paginación externa */}
-                    {paginationMiembros.total > 0 && (
-                      <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                        <Pagination
-                          current={paginationMiembros.current}
-                          pageSize={paginationMiembros.pageSize}
-                          total={paginationMiembros.total}
-                          onChange={handlePageChangeMiembros}
-                          onShowSizeChange={handlePageChangeMiembros}
-                          showSizeChanger
-                          showTotal={(total) => `Total: ${total} miembros`}
-                          pageSizeOptions={['5', '10', '20', '50']}
+                      {/* Tabla Miembros */}
+                      <Card>
+                        <Table
+                          columns={columns}
+                          dataSource={getMiembrosPaginados()}
+                          rowKey="id"
+                          pagination={false}
+                          locale={{
+                            emptyText: (
+                              <Empty description="No hay miembros en este grupo">
+                                <Button
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={handleAgregarMiembro}
+                                >
+                                  Agregar Miembros
+                                </Button>
+                              </Empty>
+                            ),
+                          }}
                         />
-                      </div>
-                    )}
-                  </Card>
-                </>
-              ),
-            },
-            {
-              key: 'entrenamientos',
-              label: (
-                <span>
-                  <CalendarOutlined />
-                  Entrenamientos ({paginationEntrenamientos.total})
-                </span>
-              ),
-              children: (
-                <>
-                  {/* Botón actualizar entrenamientos */}
-                  <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
-                    <Row gutter={16} align="middle">
-                      <Col flex="auto">
-                        
-                      </Col>
-                      <Col>
-                        <Button
-                          icon={<ReloadOutlined />}
-                          onClick={() => cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize)}
+
+                        {/* Paginación externa */}
+                        {paginationMiembros.total > 0 && (
+                          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                            <Pagination
+                              current={paginationMiembros.current}
+                              pageSize={paginationMiembros.pageSize}
+                              total={paginationMiembros.total}
+                              onChange={handlePageChangeMiembros}
+                              onShowSizeChange={handlePageChangeMiembros}
+                              showSizeChanger
+                              showTotal={(total) => `Total: ${total} miembros`}
+                              pageSizeOptions={['5', '10', '20', '50']}
+                            />
+                          </div>
+                        )}
+                      </Card>
+                    </>
+                  ),
+                },
+                {
+                  key: 'entrenamientos',
+                  label: (
+                    <span>
+                      <CalendarOutlined />
+                      Entrenamientos ({paginationEntrenamientos.total})
+                    </span>
+                  ),
+                  children: (
+                    <>
+                      {/* Botón actualizar entrenamientos */}
+                      <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                        <Row gutter={16} align="middle">
+                          <Col flex="auto"></Col>
+                          <Col>
+                            <Button
+                              icon={<ReloadOutlined />}
+                              onClick={() => cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize)}
+                              loading={loadingSesiones}
+                            >
+                              Actualizar
+                            </Button>
+                          </Col>
+                        </Row>
+                      </Card>
+
+                      {/* Tabla Entrenamientos */}
+                      <Card>
+                        <Table
+                          columns={columnasEntrenamientos}
+                          dataSource={sesiones}
+                          rowKey="id"
                           loading={loadingSesiones}
-                        >
-                          Actualizar
-                        </Button>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  {/* Tabla Entrenamientos */}
-                  <Card>
-                    <Table
-                      columns={columnasEntrenamientos}
-                      dataSource={sesiones}
-                      rowKey="id"
-                      loading={loadingSesiones}
-                      pagination={false}
-                      locale={{
-                        emptyText: (
-                          <Empty description="No hay entrenamientos programados">
-                            <Button
-                              type="primary"
-                              icon={<PlusOutlined />}
-                              onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
-                            >
-                              Crear Primer Entrenamiento
-                            </Button>
-                          </Empty>
-                        ),
-                      }}
-                    />
-
-                    {/* Paginación externa */}
-                    {paginationEntrenamientos.total > 0 && (
-                      <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                        <Pagination
-                          current={paginationEntrenamientos.current}
-                          pageSize={paginationEntrenamientos.pageSize}
-                          total={paginationEntrenamientos.total}
-                          onChange={handlePageChangeEntrenamientos}
-                          onShowSizeChange={handlePageChangeEntrenamientos}
-                          showSizeChanger
-                          showTotal={(total) => `Total: ${total} entrenamientos`}
-                          pageSizeOptions={['5', '10', '20', '50']}
+                          pagination={false}
+                          locale={{
+                            emptyText: (
+                              <Empty description="No hay entrenamientos programados">
+                                <Button
+                                  type="primary"
+                                  icon={<PlusOutlined />}
+                                  onClick={() => navigate(`/sesiones/crear?grupoId=${id}`)}
+                                >
+                                  Crear Primer Entrenamiento
+                                </Button>
+                              </Empty>
+                            ),
+                          }}
                         />
-                      </div>
-                    )}
-                  </Card>
-                </>
-              ),
-            },
-          ]}
-        />
-      </Card>
 
-      {/* Modal Agregar Miembros */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <UserOutlined />
-            <span>Agregar Jugador al Grupo</span>
-          </div>
-        }
-        open={modalAgregar}
-        onCancel={() => {
-          setModalAgregar(false);
-          setJugadorSeleccionado(null);
-        }}
-        footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
+                        {/* Paginación externa */}
+                        {paginationEntrenamientos.total > 0 && (
+                          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                            <Pagination
+                              current={paginationEntrenamientos.current}
+                              pageSize={paginationEntrenamientos.pageSize}
+                              total={paginationEntrenamientos.total}
+                              onChange={handlePageChangeEntrenamientos}
+                              onShowSizeChange={handlePageChangeEntrenamientos}
+                              showSizeChanger
+                              showTotal={(total) => `Total: ${total} entrenamientos`}
+                              pageSizeOptions={['5', '10', '20', '50']}
+                            />
+                          </div>
+                        )}
+                      </Card>
+                    </>
+                  ),
+                },
+              ]}
+            />
+          </Card>
+
+          {/* Modal Agregar Miembros */}
+          <Modal
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserOutlined />
+                <span>Agregar Jugador al Grupo</span>
+              </div>
+            }
+            open={modalAgregar}
+            onCancel={() => {
               setModalAgregar(false);
               setJugadorSeleccionado(null);
             }}
+            footer={[
+              <Button
+                key="cancel"
+                onClick={() => {
+                  setModalAgregar(false);
+                  setJugadorSeleccionado(null);
+                }}
+              >
+                Cancelar
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                loading={agregando}
+                onClick={handleConfirmarAgregar}
+                disabled={!jugadorSeleccionado}
+              >
+                Agregar
+              </Button>,
+            ]}
           >
-            Cancelar
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={agregando}
-            onClick={handleConfirmarAgregar}
-            disabled={!jugadorSeleccionado}
-          >
-            Agregar
-          </Button>,
-        ]}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <Text strong>Grupo: </Text>
-          <Text>{grupo?.nombre}</Text>
-        </div>
-        
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Grupo: </Text>
+              <Text>{grupo?.nombre}</Text>
+            </div>
 
-        <div>
-          <Text strong>Selecciona un jugador:</Text>
-          <Select
-            value={jugadorSeleccionado}
-            onChange={setJugadorSeleccionado}
-            placeholder="Buscar por nombre, RUT o carrera..."
-            style={{ width: '100%', marginTop: 8 }}
-            showSearch
-            filterOption={(input, option) => {
-              const searchText = input.toLowerCase();
-              return option.label.toLowerCase().includes(searchText);
+            <div>
+              <Text strong>Selecciona un jugador:</Text>
+              <Select
+                value={jugadorSeleccionado}
+                onChange={setJugadorSeleccionado}
+                placeholder="Buscar por nombre, RUT o carrera..."
+                style={{ width: '100%', marginTop: 8 }}
+                showSearch
+                filterOption={(input, option) => {
+                  const searchText = input.toLowerCase();
+                  return option.label.toLowerCase().includes(searchText);
+                }}
+                options={jugadoresDisponibles.map(jugador => ({
+                  value: jugador.id,
+                  label: `${jugador.usuario?.nombre || 'Sin nombre'} - ${jugador.usuario?.rut || 'Sin RUT'} - ${jugador.carrera || 'Sin carrera'}`,
+                }))}
+              />
+
+              {jugadoresDisponibles.length === 0 && (
+                <Alert
+                  message="No hay jugadores disponibles"
+                  description="Todos los jugadores ya están en este grupo"
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: 16 }}
+                />
+              )}
+            </div>
+          </Modal>
+
+          <DetalleSesionModal
+            open={detalleModal}
+            loading={loadingDetalle}
+            sesion={sesionDetalle}
+            onClose={() => {
+              setDetalleModal(false);
+              setSesionDetalle(null);
             }}
-            options={jugadoresDisponibles.map(jugador => ({
-              value: jugador.id,
-              label: `${jugador.usuario?.nombre || 'Sin nombre'} - ${jugador.usuario?.rut || 'Sin RUT'} - ${jugador.carrera || 'Sin carrera'}`,
-            }))}
           />
-
-          {jugadoresDisponibles.length === 0 && (
-            <Alert
-              message="No hay jugadores disponibles"
-              description="Todos los jugadores ya están en este grupo"
-              type="warning"
-              showIcon
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </div>
-      </Modal>
-      <DetalleSesionModal
-  open={detalleModal}
-  loading={loadingDetalle}
-  sesion={sesionDetalle}
+          <JugadorDetalleModal
+  visible={modalJugadorVisible}
+  loading={loadingJugadorDetalle}
+  jugador={jugadorDetalle}
   onClose={() => {
-    setDetalleModal(false);
-    setSesionDetalle(null);
+    setModalJugadorVisible(false);
+    setJugadorDetalle(null);
   }}
 />
-    </div>
-    </ConfigProvider>
+        </div>
+      </ConfigProvider>
     </MainLayout>
   );
 }

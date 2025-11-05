@@ -40,7 +40,7 @@ import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import ModalDetalleReserva from '../components/ModalDetalleReserva.jsx';
-
+import { formatearFecha, formatearHora, formatearRangoHoras } from '../utils/formatters.js';
 dayjs.locale('es');
 
 const { TextArea } = Input;
@@ -94,17 +94,30 @@ const AprobarReservasPage = () => {
   const handleBuscarUsuarios = async (value) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
+    // Si el valor está vacío, limpiar usuarios
     if (!value || value.trim() === '') {
       setUsuarios([]);
       return;
     }
 
-    searchTimeout.current = setTimeout(async () => {
-      setBuscandoUsuarios(true);
-      const data = await buscarUsuarios(value, { roles: ["estudiante", "academico"], estado: 'activo' });
-      setBuscandoUsuarios(false);
-      setUsuarios(Array.isArray(data) ? data : []);
-    }, 300);
+    // Buscar desde la primera letra (mínimo 1 carácter)
+    if (value.trim().length >= 1) {
+      searchTimeout.current = setTimeout(async () => {
+        setBuscandoUsuarios(true);
+        try {
+          const data = await buscarUsuarios(value.trim(), { 
+            roles: ["estudiante", "academico"], 
+            estado: 'activo' 
+          });
+          setUsuarios(Array.isArray(data) ? data : []);
+        } catch (error) {
+          console.error('Error buscando usuarios:', error);
+          setUsuarios([]);
+        } finally {
+          setBuscandoUsuarios(false);
+        }
+      }, 300);
+    }
   };
 
   // Cargar canchas disponibles
@@ -249,17 +262,20 @@ const AprobarReservasPage = () => {
       dataIndex: ['cancha', 'nombre'],
       key: 'cancha',
       render: (nombre) => nombre || 'N/A',
+      width: 160,
     },
     {
       title: 'Fecha Solicitud',
       dataIndex: 'fechaSolicitud',
       key: 'fechaSolicitud',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : 'N/A',
+      render: (fecha) => formatearFecha(fecha) || 'N/A',
+      width: 140,
     },
     {
       title: 'Horario',
       key: 'horario',
-      render: (_, record) => `${record.horaInicio || ''} - ${record.horaFin || ''}`,
+      render: (_, record) => formatearRangoHoras(record.horaInicio, record.horaFin),
+      width: 120,
     },
     {
       title: 'Estado',
@@ -275,6 +291,8 @@ const AprobarReservasPage = () => {
         };
         return <Tag color={colors[estado] || 'default'}>{(estado || '').toUpperCase()}</Tag>;
       },
+      width: 130,
+      align: 'center',
     },
     {
       title: 'Participantes',
@@ -282,40 +300,43 @@ const AprobarReservasPage = () => {
       render: (_, record) => (
         <Badge count={record.participantes?.length || 0} showZero color="#1890ff" />
       ),
+      width: 130,
+      align: 'center',
     },
     {
       title: 'Acciones',
       key: 'acciones',
-      fixed: 'right',
-      width: 250,
+      align: 'left',
+      width: 200,
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Ver detalles">
-            <Button 
-              type="link" 
+            <Button
+              size="middle"
               icon={<EyeOutlined />}
               onClick={() => setModalDetalle({ visible: true, reserva: record })}
             />
           </Tooltip>
-          
+
           {record.estado === 'pendiente' && (
             <>
-              <Button 
-                type="primary" 
-                size="small"
-                icon={<CheckCircleOutlined />}
-                onClick={() => setModalAprobar({ visible: true, reserva: record })}
-              >
-                Aprobar
-              </Button>
-              <Button 
-                danger 
-                size="small"
-                icon={<CloseCircleOutlined />}
-                onClick={() => setModalRechazar({ visible: true, reserva: record })}
-              >
-                Rechazar
-              </Button>
+              <Tooltip title="Aprobar reserva">
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => setModalAprobar({ visible: true, reserva: record })}
+                />
+              </Tooltip>
+
+              <Tooltip title="Rechazar reserva">
+                <Button
+                  danger
+                  size="middle"
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => setModalRechazar({ visible: true, reserva: record })}
+                />
+              </Tooltip>
             </>
           )}
         </Space>
@@ -326,15 +347,11 @@ const AprobarReservasPage = () => {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-          <h1 style={{ marginBottom: 24, fontSize: 24, fontWeight: 600 }}>Gestión de Reservas</h1>
-
+        <Card title={<><TeamOutlined /> Gestión de Reservas</>} variant="filled">
           {/* Filtros */}
           <Card
             title={<span><FilterOutlined /> Filtros</span>}
-            style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
-
-            
+            style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
             extra={<Button onClick={limpiarFiltros}>Limpiar Filtros</Button>}
           >
             <Row gutter={12} align="middle">
@@ -409,30 +426,21 @@ const AprobarReservasPage = () => {
           </Card>
 
           {/* Tabla */}
-          <Card
-            title={<span><TeamOutlined /> Gestión de Reservas</span>}
-            extra={
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => cargarReservasPendientes(pagination.current, pagination.pageSize)}
-                loading={loading}
-              >
-                Actualizar
-              </Button>
-            }
-          >
+          <Card>
             <Table
               columns={columns}
               dataSource={reservas}
               rowKey="id"
               loading={loading}
-              scroll={{ x: 1200 }}
               pagination={false}
+              scroll={{ x: 900 }}
               locale={{ emptyText: <Empty description="No hay reservas encontradas" /> }}
+              style={{ whiteSpace: 'normal' }}
+              size="middle"
             />
 
             {reservas.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: 24 }}>
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                 <Pagination
                   current={pagination.current}
                   pageSize={pagination.pageSize}
@@ -471,10 +479,10 @@ const AprobarReservasPage = () => {
                     {modalAprobar.reserva.cancha?.nombre}
                   </Descriptions.Item>
                   <Descriptions.Item label="Fecha">
-                    {dayjs(modalAprobar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
+                    {formatearFecha(modalAprobar.reserva.fechaSolicitud)}
                   </Descriptions.Item>
                   <Descriptions.Item label="Horario">
-                    {modalAprobar.reserva.horaInicio} - {modalAprobar.reserva.horaFin}
+                    {formatearRangoHoras(modalAprobar.reserva.horaInicio, modalAprobar.reserva.horaFin)}
                   </Descriptions.Item>
                 </Descriptions>
 
@@ -517,10 +525,10 @@ const AprobarReservasPage = () => {
                     {modalRechazar.reserva.cancha?.nombre}
                   </Descriptions.Item>
                   <Descriptions.Item label="Fecha">
-                    {dayjs(modalRechazar.reserva.fechaSolicitud).format('DD/MM/YYYY')}
+                    {formatearFecha(modalRechazar.reserva.fechaSolicitud)}
                   </Descriptions.Item>
                   <Descriptions.Item label="Horario">
-                    {modalRechazar.reserva.horaInicio} - {modalRechazar.reserva.horaFin}
+                    {formatearRangoHoras(modalRechazar.reserva.horaInicio, modalRechazar.reserva.horaFin)}
                   </Descriptions.Item>
                 </Descriptions>
 
@@ -553,7 +561,7 @@ const AprobarReservasPage = () => {
             reserva={modalDetalle.reserva}
             onClose={() => setModalDetalle({ visible: false, reserva: null })}
           />
-        </div>
+        </Card>
       </ConfigProvider>
     </MainLayout>
   );

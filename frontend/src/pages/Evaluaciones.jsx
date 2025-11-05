@@ -24,13 +24,12 @@ import {
   StarOutlined,
   SearchOutlined
 } from '@ant-design/icons';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 import { obtenerEvaluaciones, eliminarEvaluacion } from '../services/evaluacion.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
 import EvaluacionForm from '../components/EvaluacionForm.jsx';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout.jsx';
-
-const { Search } = Input;
 
 export default function Evaluaciones() {
   const { usuario } = useAuth();
@@ -54,6 +53,8 @@ export default function Evaluaciones() {
 
   const esEstudiante = usuario?.rol === 'estudiante';
 
+  // Función para formatear fecha a DD/MM/YYYY
+ 
   // Cargar solo sesiones recientes (últimos 3 meses)
   const cargarSesiones = async () => {
     setLoadingSesiones(true);
@@ -144,10 +145,13 @@ export default function Evaluaciones() {
     },
     {
       title: 'Sesión',
-      render: (_, record) =>
-        record.sesion
-          ? `${record.sesion.fecha} - ${record.sesion.horaInicio}`
-          : '—',
+      render: (_, record) => {
+        if (!record.sesion) return '—';
+        const fechaFormateada = formatearFecha(record.sesion.fecha);
+        const horaFormateada = formatearHora(record.sesion.horaInicio);
+        const horaFin = formatearHora(record.sesion.horaFin);
+        return `${fechaFormateada} - ${horaFormateada} - ${horaFin}`;
+      },
       width: 180
     },
     { 
@@ -189,8 +193,7 @@ export default function Evaluaciones() {
       width: 120,
       render: (fecha) => {
         if (!fecha) return '—';
-        const d = new Date(fecha);
-        return d.toLocaleDateString('es-CL');
+        return formatearFecha(fecha);
       }
     },
     {
@@ -205,7 +208,7 @@ export default function Evaluaciones() {
               <Tooltip title="Editar">
                 <Button 
                   type="primary"
-                  size="small"
+                  size="medium"
                   icon={<EditOutlined />} 
                   onClick={() => { 
                     setEditing(record); 
@@ -223,7 +226,7 @@ export default function Evaluaciones() {
                 <Tooltip title="Eliminar">
                   <Button 
                     danger 
-                    size="small"
+                    size="medium"
                     icon={<DeleteOutlined />} 
                   />
                 </Tooltip>
@@ -251,12 +254,11 @@ export default function Evaluaciones() {
           >
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12} md={8}>
-                <Search
+                <Input
                   placeholder="Buscar por nombre de jugador"
                   allowClear
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  onSearch={setBusqueda}
                   prefix={<SearchOutlined />}
                   style={{ width: '100%' }}
                 />
@@ -274,10 +276,15 @@ export default function Evaluaciones() {
                   filterOption={(input, option) =>
                     (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                   }
-                  options={sesiones.map(s => ({
-                    value: s.id,
-                    label: `${s.fecha} - ${s.horaInicio} (${s.tipoSesion || 'N/A'})`
-                  }))}
+                  options={sesiones.map(s => {
+                    const fechaFormateada = formatearFecha(s.fecha);
+                    const horaInicio = formatearHora(s.horaInicio);
+                    const horaFin = s.horaFin ? formatearHora(s.horaFin) : 'Sin hora final';
+                    return {
+                      value: s.id,
+                      label: `${fechaFormateada} - ${horaInicio} - ${horaFin}`
+                    };
+                  })}
                 />
               </Col>
               <Col xs={24} md={8} style={{ textAlign: 'right' }}>

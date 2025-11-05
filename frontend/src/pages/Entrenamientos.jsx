@@ -30,7 +30,7 @@ import locale from 'antd/locale/es_ES';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 const { TextArea } = Input;
 const { Text } = Typography;
 dayjs.locale('es');
@@ -422,7 +422,7 @@ export default function Entrenamientos() {
                 <FileTextOutlined style={{ fontSize: 24 }} />
                 <span>
                   {sesionId
-                    ? `Entrenamientos - ${sesionInfo?.fecha ? dayjs(sesionInfo.fecha).format('DD/MM/YYYY') : ''}`
+                    ? `Entrenamientos - ${formatearFecha(sesionInfo?.fecha)}`
                     : 'Entrenamientos'}
                 </span>
               </div>
@@ -453,8 +453,8 @@ export default function Entrenamientos() {
             {sesionInfo && (
               <div style={{ marginBottom: 16, padding: 12, background: '#f5f5f5', borderRadius: 8 }}>
                 <Text strong>Sesión: </Text>
-                <Text>{dayjs(sesionInfo.fecha).format('DD/MM/YYYY')} | </Text>
-                <Text>{sesionInfo.horaInicio} - {sesionInfo.horaFin} | </Text>
+                <Text>{formatearFecha(sesionInfo.fecha)} | </Text>
+                <Text>{formatearHora(sesionInfo.horaInicio)} - {formatearHora(sesionInfo.horaFin)} | </Text>
                 <Text>{sesionInfo.cancha?.nombre} | </Text>
                 <Text>{sesionInfo.grupo?.nombre}</Text>
               </div>
@@ -584,7 +584,7 @@ export default function Entrenamientos() {
                         placeholder="Sin sesión (global)"
                         options={sesionesDisponibles.map((s) => ({
                           value: s.id,
-                          label: `${dayjs(s.fecha).format('DD/MM/YYYY')} - ${s.grupo?.nombre || 'Sin grupo'}`
+                          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre || 'Sin grupo'}`
                         }))}
                       />
                     </Form.Item>
@@ -784,7 +784,7 @@ export default function Entrenamientos() {
         }
         options={sesionesDisponibles.map((s) => ({
           value: s.id,
-          label: `${dayjs(s.fecha).format('DD/MM/YYYY')} - ${s.horaInicio} (${s.tipoSesion || 'Entrenamiento'})`
+          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)}`,
         }))}
       />
 

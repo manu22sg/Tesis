@@ -8,6 +8,7 @@ import MainLayout from '../components/MainLayout';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 import 'dayjs/locale/es';
 
 dayjs.locale('es');
@@ -129,15 +130,12 @@ const Estadisticas = () => {
                 }
               >
                 {sesiones.map((sesion) => {
-                  const fecha = sesion.fecha
-                    ? dayjs(sesion.fecha).format('DD/MM/YYYY')
-                    : 'Sin fecha';
-                  const hora = sesion.horaInicio
-                    ? dayjs(`1970-01-01T${sesion.horaInicio}`).format('HH:mm')
-                    : 'Sin hora';
+                  const fecha = formatearFecha(sesion.fecha);
+                  const hora = formatearHora(sesion.horaInicio);
+                  const horaFin = formatearHora(sesion.horaFin);
                   return (
                     <Option key={sesion.id} value={sesion.id}>
-                      {sesion.nombre} {fecha} — {hora}
+                      {sesion.nombre} {fecha} — {hora} - {horaFin}
                     </Option>
                   );
                 })}

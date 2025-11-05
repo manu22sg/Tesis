@@ -23,7 +23,7 @@ import {
 } from '../services/jugador.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 const { Option } = Select;
 
 // Configurar dayjs en español

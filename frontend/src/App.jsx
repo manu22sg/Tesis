@@ -3,6 +3,7 @@ import { ConfigProvider, theme, Button } from 'antd';
 import { ubbLightTheme, ubbDarkTheme } from './theme';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import DisponibilidadCancha from './pages/DisponibilidadCancha';
 import ReservaNueva from './pages/ReservaNueva';
@@ -45,6 +46,7 @@ function RootRedirect() {
 function AppRoutes() {
   return (
     <Routes>
+      
       {/* Redirección de raíz */}
       <Route path="/" element={<RootRedirect />} />
       
@@ -312,6 +314,7 @@ export default function App() {
   return (
     <ConfigProvider theme={darkMode ? ubbDarkTheme : ubbLightTheme}>
       <Router>
+        <ScrollToTop />
         <AuthProvider>
           <div
             style={{

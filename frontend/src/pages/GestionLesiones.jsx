@@ -183,103 +183,115 @@ export default function GestionLesiones() {
   });
 
   const columns = [
-    {
-      title: 'Jugador',
-      key: 'jugador',
-      render: (_, record) => {
-        const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
-        const rut = record.jugador?.usuario?.rut || '';
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
-            <div>
-              <div style={{ fontWeight: 500 }}>{nombre}</div>
-              {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
-            </div>
+  {
+    title: 'Jugador',
+    key: 'jugador',
+    render: (_, record) => {
+      const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
+      const rut = record.jugador?.usuario?.rut || '';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          <div>
+            <div style={{ fontWeight: 500 }}>{nombre}</div>
+            {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
           </div>
-        );
-      },
-      width: 200,
+        </div>
+      );
     },
-    {
-      title: 'Diagnóstico',
-      dataIndex: 'diagnostico',
-      key: 'diagnostico',
-      ellipsis: { showTitle: false },
-      render: (texto) => (
-        <Tooltip title={texto}>
-          <span>{texto}</span>
-        </Tooltip>
+    width: 200,
+  },
+  {
+    title: 'Diagnóstico',
+    dataIndex: 'diagnostico',
+    key: 'diagnostico',
+    ellipsis: { showTitle: false },
+    render: (texto) => (
+      <Tooltip title={texto}>
+        <span>{texto}</span>
+      </Tooltip>
+    ),
+  },
+  {
+    title: 'Fecha Inicio',
+    dataIndex: 'fechaInicio',
+    key: 'fechaInicio',
+    render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
+    align: 'center',
+    width: 120,
+  },
+  {
+    title: 'Alta Estimada',
+    dataIndex: 'fechaAltaEstimada',
+    key: 'fechaAltaEstimada',
+    render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
+    align: 'center',
+    width: 130,
+  },
+  {
+    title: 'Alta Real',
+    dataIndex: 'fechaAltaReal',
+    key: 'fechaAltaReal',
+    render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
+    align: 'center',
+    width: 130,
+  },
+  {
+    title: 'Estado',
+    key: 'estado',
+    render: (_, record) =>
+      record.fechaAltaReal ? (
+        <Tag icon={<CheckCircleOutlined />} color="success">
+          Recuperado
+        </Tag>
+      ) : (
+        <Tag icon={<ClockCircleOutlined />} color="warning">
+          Activa
+        </Tag>
       ),
-    },
-    {
-      title: 'Fecha Inicio',
-      dataIndex: 'fechaInicio',
-      key: 'fechaInicio',
-      render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
-      align: 'center',
-      width: 120,
-    },
-    {
-      title: 'Alta Estimada',
-      dataIndex: 'fechaAltaEstimada',
-      key: 'fechaAltaEstimada',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      align: 'center',
-      width: 130,
-    },
-    {
-      title: 'Alta Real',
-      dataIndex: 'fechaAltaReal',
-      key: 'fechaAltaReal',
-      render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-      align: 'center',
-      width: 130,
-    },
-    {
-      title: 'Estado',
-      key: 'estado',
-      render: (_, record) =>
-        record.fechaAltaReal ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">Recuperado</Tag>
-        ) : (
-          <Tag icon={<ClockCircleOutlined />} color="warning">Activa</Tag>
-        ),
-      align: 'center',
-      width: 120,
-    },
-    ...(puedeEditar ? [{
-      title: 'Acciones',
-      key: 'acciones',
-      fixed: 'right',
-      width: 100,
-      align: 'center',
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Editar">
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => abrirModalEditar(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="¿Eliminar lesión?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleEliminar(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Eliminar">
-              <Button type="link" size="small" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    }] : []),
-  ];
+    align: 'center',
+    width: 120,
+  },
+  ...(puedeEditar
+    ? [
+        {
+          title: 'Acciones',
+          key: 'acciones',
+          align: 'center',
+          width: 150,
+          render: (_, record) => (
+            <Space size="small">
+              <Tooltip title="Editar">
+                <Button
+                  size="middle"
+                  icon={<EditOutlined />}
+                  onClick={() => abrirModalEditar(record)}
+                />
+              </Tooltip>
+
+              <Popconfirm
+                title="¿Eliminar lesión?"
+                description="Esta acción no se puede deshacer"
+                onConfirm={() => handleEliminar(record.id)}
+                okText="Sí, eliminar"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+              >
+                <Tooltip title="Eliminar">
+                  <Button
+                    danger
+                    size="middle"
+                    icon={<DeleteOutlined />}
+                  />
+                </Tooltip>
+              </Popconfirm>
+            </Space>
+          ),
+        },
+      ]
+    : []),
+];
+
 
   const hayFiltrosActivos = busqueda || filtroJugadorId || rangoFechas;
 
@@ -361,7 +373,7 @@ export default function GestionLesiones() {
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={{ x: 1000 }}
+              scroll={ false}
               size="middle"
               locale={{
                 emptyText: (

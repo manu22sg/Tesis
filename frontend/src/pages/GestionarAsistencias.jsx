@@ -12,7 +12,8 @@ import {
   Typography,
   Pagination,
   Spin,
-  ConfigProvider
+  ConfigProvider,
+  Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
@@ -23,7 +24,8 @@ import {
   DeleteOutlined,
   EditOutlined,
   ReloadOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -35,7 +37,7 @@ import { obtenerSesionPorId } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
 import MainLayout from '../components/MainLayout.jsx';
 import EditarAsistenciaModal from '../components/EditarAsistenciaModal.jsx';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 const { Title, Text } = Typography;
 
 dayjs.locale('es');
@@ -151,17 +153,24 @@ export default function GestionarAsistencias() {
   };
 
   const columns = [
-  {
+    {
     title: 'Jugador',
     key: 'jugador',
     render: (_, record) => (
-      <div>
-        <div style={{ fontWeight: 500 }}>
-          {record.jugador?.usuario?.nombre || 'Sin nombre'}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar 
+          size={40} 
+          icon={<UserOutlined />} 
+          style={{ backgroundColor: '#1890ff' }}
+        />
+        <div>
+          <div style={{ fontWeight: 500 }}>
+            {record.jugador?.usuario?.nombre || 'Sin nombre'}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.jugador?.usuario?.rut || 'Sin RUT'}
+          </Text>
         </div>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          RUT: {record.jugador?.usuario?.rut || 'Sin RUT'}
-        </Text>
       </div>
     ),
   },
@@ -277,13 +286,13 @@ export default function GestionarAsistencias() {
                   </Title>
                   <Space size="large" wrap>
                     <Text type="secondary">
-                      📅 {dayjs(sesion.fecha).format('DD/MM/YYYY')}
+                       {formatearFecha(sesion.fecha)}
                     </Text>
                     <Text type="secondary">
-                      🕐 {sesion.horaInicio} - {sesion.horaFin}
+                       {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
                     </Text>
                     <Text type="secondary">
-                      🏟️ {sesion.cancha?.nombre || 'Sin cancha'}
+                       {sesion.cancha?.nombre || 'Sin cancha'}
                     </Text>
                     {sesion.latitudToken && sesion.longitudToken ? (
   <Tag color="green" icon={<EnvironmentOutlined />}>

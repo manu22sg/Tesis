@@ -253,13 +253,12 @@ export default function Grupos() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-          <h1 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 600 }}>
-            <TeamOutlined /> Gestión de Grupos
-          </h1>
-
+        <Card 
+          title={<><TeamOutlined /> Gestión de Grupos</>} 
+          variant="filled"
+        >
           {/* Filtros y Acciones */}
-          <Card style={{ marginBottom: '24px', backgroundColor: '#fafafa' }}>
+          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
             <Row gutter={16} align="middle">
               <Col flex="auto">
                 <Input
@@ -407,7 +406,7 @@ export default function Grupos() {
               </Form.Item>
             </Form>
           </Modal>
-        </div>
+        </Card>
       </ConfigProvider>
     </MainLayout>
   );

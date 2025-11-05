@@ -3,7 +3,7 @@ import { crearEvaluacion, actualizarEvaluacion } from '../services/evaluacion.se
 import { useEffect, useState } from 'react';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 export default function EvaluacionForm({ initialValues, onSuccess }) {
   const [form] = Form.useForm();
   const [jugadores, setJugadores] = useState([]);
@@ -130,7 +130,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
           >
             {sesiones.map((s) => (
               <Select.Option key={s.id} value={s.id}>
-                {s.fecha} — {s.horaInicio} ({s.tipoSesion || 'N/A'})
+                {formatearFecha(s.fecha)} - {formatearHora(s.horaInicio)} - {formatearHora(s.horaFin)}
               </Select.Option>
             ))}
           </Select>

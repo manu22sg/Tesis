@@ -34,7 +34,9 @@ export default function DisponibilidadCancha() {
   const puedeReservar = usuario && (usuario.rol === 'estudiante' || usuario.rol === 'academico');
 
   useEffect(() => {
-    handleBuscar(1, pagination.pageSize);
+    if (fecha) {
+      handleBuscar(1, pagination.pageSize);
+    }
   }, [fecha]);
 
   // 🔹 Aplicar filtros automáticamente cuando cambien
@@ -64,6 +66,8 @@ export default function DisponibilidadCancha() {
   ];
 
   const handleBuscar = async (page = 1, pageSize = 5) => {
+    if (!fecha) return;
+    
     try {
       setLoading(true);
       const fechaStr = fecha.format('YYYY-MM-DD');
@@ -118,6 +122,11 @@ export default function DisponibilidadCancha() {
     handleBuscar(page, pageSize);
   };
 
+  const handleDateChange = (newDate) => {
+    // Si newDate es null, mantener la fecha actual
+    setFecha(newDate || dayjs());
+  };
+
   const opcionesCapacidad = [
     { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
     { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
@@ -145,6 +154,7 @@ export default function DisponibilidadCancha() {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <Button
                 onClick={() => {
+                  if (!fecha) return;
                   let nuevaFecha = fecha.subtract(1, 'day');
                   if (nuevaFecha.day() === 0) nuevaFecha = nuevaFecha.subtract(2, 'day');
                   if (nuevaFecha.day() === 6) nuevaFecha = nuevaFecha.subtract(1, 'day');
@@ -157,7 +167,7 @@ export default function DisponibilidadCancha() {
 
               <DatePicker
                 value={fecha}
-                onChange={setFecha}
+                onChange={handleDateChange}
                 format="DD/MM/YYYY"
                 style={{ width: 200 }}
                 disabledDate={(current) => {
@@ -169,6 +179,7 @@ export default function DisponibilidadCancha() {
 
               <Button
                 onClick={() => {
+                  if (!fecha) return;
                   let nuevaFecha = fecha.add(1, 'day');
                   if (nuevaFecha.day() === 6) nuevaFecha = nuevaFecha.add(2, 'day');
                   if (nuevaFecha.day() === 0) nuevaFecha = nuevaFecha.add(1, 'day');
@@ -182,7 +193,7 @@ export default function DisponibilidadCancha() {
               <Button
                 type="dashed"
                 onClick={() => setFecha(dayjs())}
-                disabled={fecha.isSame(dayjs(), 'day')}
+                disabled={!fecha || fecha.isSame(dayjs(), 'day')}
               >
                 Hoy
               </Button>
@@ -205,54 +216,51 @@ export default function DisponibilidadCancha() {
           </div>
 
           <Card
-  type="inner"
-  title={
-    <span>
-      <FilterOutlined style={{ marginRight: 8 }} />
-      Filtros de búsqueda
-    </span>
-  }
-  style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
->
-  <Space
-    direction="horizontal"
-    wrap
-    size="middle"
-    style={{
-      width: '100%',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-    }}
-  >
-    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-      <Input
-        placeholder="Nombre de cancha"
-        prefix={<SearchOutlined />}
-        value={filtroNombre}
-        onChange={(e) => setFiltroNombre(e.target.value)}
-        allowClear
-        style={{ width: 220 }}
-      />
+            type="inner"
+            title={
+              <span>
+                <FilterOutlined style={{ marginRight: 8 }} />
+                Filtros de búsqueda
+              </span>
+            }
+            style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+          >
+            <Space
+              direction="horizontal"
+              wrap
+              size="middle"
+              style={{
+                width: '100%',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Input
+                  placeholder="Nombre de cancha"
+                  prefix={<SearchOutlined />}
+                  value={filtroNombre}
+                  onChange={(e) => setFiltroNombre(e.target.value)}
+                  allowClear
+                  style={{ width: 220 }}
+                />
 
-      <Select
-        placeholder="Capacidad"
-        value={filtroCapacidad}
-        onChange={setFiltroCapacidad}
-        allowClear
-        options={[
-          { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
-          { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
-          { label: 'Grande (>15 jugadores)', value: 'grande' },
-        ]}
-        style={{ width: 180 }}
-      />
-    </div>
-
-  </Space>
-
-  
-</Card>
+                <Select
+                  placeholder="Capacidad"
+                  value={filtroCapacidad}
+                  onChange={setFiltroCapacidad}
+                  allowClear
+                  options={[
+                    { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
+                    { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
+                    { label: 'Grande (>15 jugadores)', value: 'grande' },
+                  ]}
+                  style={{ width: 200 }}
+                />
+              </div>
+            </Space>
+          </Card>
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>

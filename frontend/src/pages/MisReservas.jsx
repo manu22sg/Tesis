@@ -28,6 +28,7 @@ import { obtenerMisReservas, obtenerReservaPorId } from '../services/reserva.ser
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout.jsx';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 dayjs.locale('es');
 
 const estadoConfig = {
@@ -124,7 +125,7 @@ export default function MisReservas() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ClockCircleOutlined style={{ color: '#52c41a' }} />
           <span>
-            {record.horaInicio} - {record.horaFin}
+            {formatearHora(record.horaInicio)} - {formatearHora(record.horaFin)}
           </span>
         </div>
       ),
@@ -292,11 +293,11 @@ export default function MisReservas() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <strong>Fecha:</strong>{' '}
-                      {dayjs(reservaDetalle.fechaSolicitud).format('DD/MM/YYYY')}
+                      {formatearFecha(reservaDetalle.fechaSolicitud)}
                     </div>
                     <div>
-                      <strong>Horario:</strong> {reservaDetalle.horaInicio} -{' '}
-                      {reservaDetalle.horaFin}
+                      <strong>Horario:</strong> {formatearHora(reservaDetalle.horaInicio)} -{' '}
+                      {formatearHora(reservaDetalle.horaFin)}
                     </div>
                     <div>
                       <strong>Cancha:</strong> {reservaDetalle.cancha?.nombre}

@@ -4,7 +4,7 @@ import { upsertEstadistica } from '../services/estadistica.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
-
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 dayjs.locale('es');
 
 const { Option } = Select;
@@ -107,7 +107,7 @@ const FormularioEstadistica = ({
       }}
     >
       <Row gutter={16}>
-        {/* 👤 Jugador */}
+        {/*  Jugador */}
         <Col span={12}>
           <Form.Item
             name="jugadorId"
@@ -140,7 +140,6 @@ const FormularioEstadistica = ({
           </Form.Item>
         </Col>
 
-        {/* 🏟️ Sesión dependiente */}
         <Col span={12}>
           <Form.Item
             name="sesionId"
@@ -167,13 +166,12 @@ const FormularioEstadistica = ({
               }
             >
               {sesiones.map((sesion) => {
-                const fecha = dayjs(sesion.fecha).format('DD/MM/YYYY');
-                const hora = sesion.horaInicio
-                  ? dayjs(`1970-01-01T${sesion.horaInicio}`).format('HH:mm')
-                  : 'Sin hora';
+                const fecha = formatearFecha(sesion.fecha);
+                const horainicio = formatearHora(sesion.horaInicio);
+                const horafin = formatearHora(sesion.horaFin);
                 return (
                   <Option key={sesion.id} value={sesion.id}>
-                    {sesion.nombre} — {fecha} — {hora}
+                    {sesion.nombre} {fecha} — {horainicio} - {horafin}
                   </Option>
                 );
               })}

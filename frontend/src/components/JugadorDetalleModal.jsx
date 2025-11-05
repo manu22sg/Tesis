@@ -1,6 +1,6 @@
 import { Modal, Tag, Space, Typography } from 'antd';
 import { UserOutlined, TeamOutlined } from '@ant-design/icons';
-
+import { formatearFecha } from '../utils/formatters';
 const { Text } = Typography;
 
 const ESTADO_COLORS = {
@@ -63,9 +63,7 @@ export default function JugadorDetalleModal({
             <div>
               <Text strong>Fecha de Nacimiento:</Text>
               <div>
-                {jugador.fechaNacimiento 
-                  ? new Date(jugador.fechaNacimiento).toLocaleDateString('es-ES')
-                  : '—'}
+                {formatearFecha(jugador.fechaNacimiento) || '—'}
               </div>
             </div>
             <div>

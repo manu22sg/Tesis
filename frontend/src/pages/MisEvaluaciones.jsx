@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/MainLayout.jsx';
 import dayjs from 'dayjs';
 import locale from 'antd/locale/es_ES';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -131,10 +132,10 @@ export default function MisEvaluaciones() {
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>
-            {record.sesion?.fecha ? dayjs(record.sesion.fecha).format('DD/MM/YYYY') : '—'}
+            {record.sesion?.fecha ? formatearFecha(record.sesion.fecha) : '—'}
           </div>
           <div style={{ fontSize: '12px', color: '#888' }}>
-            {record.sesion?.horaInicio || '—'} - {record.sesion?.horaFin || '—'}
+            {formatearHora(record.sesion?.horaInicio) || '—'} - {formatearHora(record.sesion?.horaFin) || '—'}
           </div>
         </div>
       ),
@@ -287,35 +288,25 @@ export default function MisEvaluaciones() {
           </Col>
         </Row>
 
-        <Card 
-          style={{ marginBottom: '24px' }}
-          title="Filtros"
-        >
-          <Row gutter={16}>
-            <Col xs={24} sm={12} md={8}>
-              <div style={{ marginBottom: '8px' }}>Rango de Fechas:</div>
-              <RangePicker
-                style={{ width: '100%' }}
-                format="YYYY-MM-DD"
-                placeholder={['Desde', 'Hasta']}
-                value={filtros.desde && filtros.hasta ? [filtros.desde, filtros.hasta] : null}
-                onChange={(dates) => {
-                  if (dates) {
-                    setFiltros({ ...filtros, desde: dates[0], hasta: dates[1] });
-                  } else {
-                    setFiltros({ ...filtros, desde: null, hasta: null });
-                  }
-                }}
-              />
-            </Col>
-            
-            <Col xs={24} sm={24} md={8} style={{ display: 'flex', alignItems: 'flex-end' }}>
-              {hayFiltrosActivos && (
-                <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-              )}
-            </Col>
-          </Row>
-        </Card>
+        <div style={{ marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <RangePicker
+            format="DD/MM/YYYY"
+            placeholder={['Desde', 'Hasta']}
+            value={filtros.desde && filtros.hasta ? [filtros.desde, filtros.hasta] : null}
+            onChange={(dates) => {
+              if (dates) {
+                setFiltros({ ...filtros, desde: dates[0], hasta: dates[1] });
+              } else {
+                setFiltros({ ...filtros, desde: null, hasta: null });
+              }
+            }}
+            style={{ minWidth: '280px' }}
+          />
+          
+          {hayFiltrosActivos && (
+            <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+          )}
+        </div>
 
         <Card
           title={
