@@ -35,7 +35,8 @@ import {
   CalendarOutlined,
   InfoCircleOutlined,
   FireOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  ClearOutlined
 } from '@ant-design/icons';
 import { campeonatoService } from '../services/campeonato.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
@@ -50,6 +51,7 @@ const { Option } = Select;
 export default function Campeonatos() {
   const { usuario } = useAuth();
   const [campeonatos, setCampeonatos] = useState([]);
+  const [campeonatosOriginales, setCampeonatosOriginales] = useState([]);
   const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -57,6 +59,15 @@ export default function Campeonatos() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [campeonatoDetalle, setCampeonatoDetalle] = useState(null);
   const [form] = Form.useForm();
+
+  // Estado para los filtros
+  const [filtros, setFiltros] = useState({
+    formato: null,
+    genero: null,
+    anio: null,
+    semestre: null,
+    estado: null
+  });
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -69,6 +80,7 @@ export default function Campeonatos() {
     try {
       const data = await campeonatoService.listar();
       setCampeonatos(data);
+      setCampeonatosOriginales(data);
       setPagination({
         current: 1,
         pageSize: 10,
@@ -95,6 +107,67 @@ export default function Campeonatos() {
     cargarCampeonatos();
     cargarCanchas();
   }, [cargarCampeonatos, cargarCanchas]);
+
+  // Aplicar filtros combinados
+  const aplicarFiltros = useCallback(() => {
+    let resultado = [...campeonatosOriginales];
+
+    if (filtros.formato) {
+      resultado = resultado.filter(c => c.formato === filtros.formato);
+    }
+    if (filtros.genero) {
+      resultado = resultado.filter(c => c.genero === filtros.genero);
+    }
+    if (filtros.anio) {
+      resultado = resultado.filter(c => c.anio === filtros.anio);
+    }
+    if (filtros.semestre) {
+      resultado = resultado.filter(c => c.semestre === filtros.semestre);
+    }
+    if (filtros.estado) {
+      resultado = resultado.filter(c => c.estado === filtros.estado);
+    }
+
+    setCampeonatos(resultado);
+    setPagination({
+      current: 1,
+      pageSize: pagination.pageSize,
+      total: resultado.length
+    });
+  }, [filtros, campeonatosOriginales, pagination.pageSize]);
+
+  useEffect(() => {
+    aplicarFiltros();
+  }, [aplicarFiltros]);
+
+  const handleFiltroChange = (campo, valor) => {
+    setFiltros(prev => ({
+      ...prev,
+      [campo]: valor
+    }));
+  };
+
+  const limpiarFiltros = () => {
+    setFiltros({
+      formato: null,
+      genero: null,
+      anio: null,
+      semestre: null,
+      estado: null
+    });
+    setCampeonatos(campeonatosOriginales);
+    setPagination({
+      current: 1,
+      pageSize: pagination.pageSize,
+      total: campeonatosOriginales.length
+    });
+  };
+
+  // Obtener años únicos de los campeonatos
+  const aniosDisponibles = useMemo(() => {
+    const anios = [...new Set(campeonatosOriginales.map(c => c.anio))];
+    return anios.sort((a, b) => b - a);
+  }, [campeonatosOriginales]);
 
   const abrirModal = (registro = null) => {
     if (registro) {
@@ -306,35 +379,82 @@ export default function Campeonatos() {
         <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
           {/* Filtros y acciones */}
           <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-            <Row gutter={16} align="middle">
+            <Row gutter={[16, 16]} align="middle">
               <Col flex="auto">
-                <Space>
-                  <span>Filtrar por formato:</span>
+                <Space wrap>
                   <Select
-                    style={{ width: 150 }}
-                    placeholder="Todos"
+                    style={{ width: 120 }}
+                    placeholder="Formato"
                     allowClear
-                    onChange={(value) => {
-                      if (!value) return cargarCampeonatos();
-                      const filtrado = campeonatos.filter(c => c.formato === value);
-                      setCampeonatos(filtrado);
-                    }}
+                    value={filtros.formato}
+                    onChange={(value) => handleFiltroChange('formato', value)}
                   >
                     <Option value="5v5">5v5</Option>
                     <Option value="7v7">7v7</Option>
                     <Option value="11v11">11v11</Option>
                   </Select>
+
+                  <Select
+                    style={{ width: 130 }}
+                    placeholder="Género"
+                    allowClear
+                    value={filtros.genero}
+                    onChange={(value) => handleFiltroChange('genero', value)}
+                  >
+                    <Option value="masculino">Masculino</Option>
+                    <Option value="femenino">Femenino</Option>
+                    <Option value="mixto">Mixto</Option>
+                  </Select>
+
+                  <Select
+                    style={{ width: 100 }}
+                    placeholder="Año"
+                    allowClear
+                    value={filtros.anio}
+                    onChange={(value) => handleFiltroChange('anio', value)}
+                  >
+                    {aniosDisponibles.map(anio => (
+                      <Option key={anio} value={anio}>{anio}</Option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    style={{ width: 110 }}
+                    placeholder="Semestre"
+                    allowClear
+                    value={filtros.semestre}
+                    onChange={(value) => handleFiltroChange('semestre', value)}
+                  >
+                    <Option value={1}>Semestre 1</Option>
+                    <Option value={2}>Semestre 2</Option>
+                  </Select>
+
+                  <Select
+                    style={{ width: 130 }}
+                    placeholder="Estado"
+                    allowClear
+                    value={filtros.estado}
+                    onChange={(value) => handleFiltroChange('estado', value)}
+                  >
+                    <Option value="creado">Creado</Option>
+                    <Option value="en_juego">En Juego</Option>
+                    <Option value="finalizado">Finalizado</Option>
+                    <Option value="cancelado">Cancelado</Option>
+                  </Select>
+
+                  <Button 
+                    icon={<ClearOutlined />} 
+                    onClick={limpiarFiltros}
+                    disabled={!Object.values(filtros).some(v => v !== null)}
+                  >
+                    Limpiar
+                  </Button>
                 </Space>
               </Col>
               <Col>
-                <Space>
-                  <Button icon={<ReloadOutlined />} onClick={cargarCampeonatos} loading={loading}>
-                    Actualizar
-                  </Button>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-                    Nuevo Campeonato
-                  </Button>
-                </Space>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+                  Nuevo Campeonato
+                </Button>
               </Col>
             </Row>
           </Card>
@@ -387,7 +507,7 @@ export default function Campeonatos() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="formato" label="Formato" rules={[{ required: true }]}>
-                    <Select>
+                    <Select placeholder="Seleccionar formato">
                       <Option value="5v5">5v5</Option>
                       <Option value="7v7">7v7</Option>
                       <Option value="11v11">11v11</Option>
@@ -396,7 +516,7 @@ export default function Campeonatos() {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
-                    <Select>
+                    <Select placeholder="Seleccionar género">
                       <Option value="masculino">Masculino</Option>
                       <Option value="femenino">Femenino</Option>
                       <Option value="mixto">Mixto</Option>
