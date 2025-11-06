@@ -19,8 +19,8 @@ const PartidoCampeonatoSchema = new EntitySchema({
     horaFin: { type: "time", nullable: true },
 
     // Marcador neutral
-    golesA: { type: "int", default: 0 },
-    golesB: { type: "int", default: 0 },
+    golesA: { type: "int", default: null },
+    golesB: { type: "int", default: null },
 
     ganadorId: { type: "int", nullable: true }, // FK a EquipoCampeonato
     estado: { type: "varchar", length: 20, default: "pendiente" }, // pendiente, jugado, finalizado

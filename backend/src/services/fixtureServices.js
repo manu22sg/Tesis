@@ -39,13 +39,34 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     const partRepo = trx.getRepository("PartidoCampeonato");
     const campRepo = trx.getRepository("Campeonato");
 
+    // Validar que el campeonato existe
     const camp = await campRepo.findOne({ where: { id: Number(campeonatoId) } });
     if (!camp) throw new Error("Campeonato no existe");
 
-    if (camp.estado !== "creado") throw new Error("El campeonato no está en estado creado");
-    const equipos = await eqRepo.find({ where: { campeonatoId: Number(campeonatoId) } });
-    if (equipos.length < 2) throw new Error("Se requieren al menos 2 equipos");
+    // Validar estado del campeonato
+    if (camp.estado !== "creado") {
+      throw new Error("El campeonato no está en estado creado");
+    }
 
+    // ✅ VALIDACIÓN NUEVA: Verificar que no existan partidos ya sorteados
+    const partidosExistentes = await partRepo.count({ 
+      where: { campeonatoId: Number(campeonatoId) } 
+    });
+    
+    if (partidosExistentes > 0) {
+      throw new Error(
+        `Ya se sorteó la primera ronda de este campeonato. ` +
+        `Existen ${partidosExistentes} partido(s) registrado(s).`
+      );
+    }
+
+    // Validar equipos mínimos
+    const equipos = await eqRepo.find({ where: { campeonatoId: Number(campeonatoId) } });
+    if (equipos.length < 2) {
+      throw new Error("Se requieren al menos 2 equipos para sortear la primera ronda");
+    }
+
+    // Barajar equipos
     const shuffled = shuffle(equipos.map(e => e.id));
     const n = shuffled.length;
     const target = nextPow2(n);
@@ -57,6 +78,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     let orden = 1;
     const partidos = [];
 
+    // Crear partidos de la primera ronda
     for (let i = 0; i < aSortear.length; i += 2) {
       const equipoAId = aSortear[i];
       const equipoBId = aSortear[i + 1];
@@ -69,8 +91,8 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
         equipoAId: A,
         equipoBId: B,
         ronda: rondaNombre,
-        golesA: 0,
-        golesB: 0,
+        golesA: null,
+        golesB: null,
         ganadorId: null,
         estado: "pendiente",
         ordenLlave: orden++,
@@ -80,15 +102,22 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
 
     const creados = await partRepo.save(partidos);
 
+    await campRepo.update(
+      { id: Number(campeonatoId) },
+      { estado: "en_juego" }
+    );
+
     return {
       ronda: rondaNombre,
       partidosCreados: creados,
       byes: avanzan,
       totalEquipos: n,
       objetivoPotencia2: target,
+      mensaje: `Primera ronda sorteada exitosamente. El campeonato ahora está en juego.`
     };
   });
 };
+
 
  //  Genera la siguiente ronda a partir de los ganadores
 export const postGenerarSiguienteRonda = async (req, res) => {
@@ -122,7 +151,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     // Validar que todos estén finalizados
     const finalizados = todosPartidos.filter(p => p.estado === "finalizado");
     if (finalizados.length !== todosPartidos.length)
-      throw new Error(`Solo ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en ${rondaAnterior}`);
+      throw new Error(` ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en ${rondaAnterior}`);
 
     //  Obtener ganadores válidos
     const ganadores = finalizados
@@ -182,8 +211,8 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
         equipoAId: ganadores[i],
         equipoBId: ganadores[i + 1],
         ronda: nombreSiguiente,
-        golesA: 0,
-        golesB: 0,
+        golesA: null,
+        golesB: null,
         ganadorId: null,
         estado: "pendiente",
         ordenLlave: Math.floor(i / 2) + 1,

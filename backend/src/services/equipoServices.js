@@ -154,16 +154,74 @@ export const eliminarEquipo = async (equipoId) => {
   const equipo = await repo.findOne({ where: { id: Number(equipoId) } });
   if (!equipo) throw new Error("El equipo no existe");
 
-  const partidos = await partRepo.count({
-    where: [{ equipoAId: equipoId }, { equipoBId: equipoId }],
+  // ✅ BUSCAR PARTIDOS DONDE EL EQUIPO YA JUGÓ (con resultados)
+  const partidosJugados = await partRepo.find({
+    where: [
+      { equipoAId: Number(equipoId) }, 
+      { equipoBId: Number(equipoId) }
+    ]
   });
 
-  if (partidos > 0)
-    throw new Error("No se puede eliminar un equipo que ya participó en partidos");
+  // Filtrar solo los partidos que ya tienen resultados REALES (finalizados)
+  const partidosConResultados = partidosJugados.filter(partido => {
+    // Si el estado es 'pendiente', NO tiene resultados (aunque tenga 0-0 inicial)
+    if (partido.estado === 'pendiente') {
+      return false;
+    }
 
+    // Si el estado es 'finalizado' o tiene ganador, SÍ tiene resultados
+    if (partido.estado === 'finalizado' || partido.ganadorId !== null) {
+      return true;
+    }
+
+    // Si tiene marcadores diferentes a null y NO es 0-0 inicial, tiene resultados
+    const golesA = partido.golesEquipoA ?? partido.golesA;
+    const golesB = partido.golesEquipoB ?? partido.golesB;
+    
+    // Solo considerar que tiene resultados si:
+    // 1. Los goles no son null Y
+    // 2. NO es el 0-0 inicial (al menos uno debe ser > 0 O ambos null)
+    if (golesA !== null && golesB !== null) {
+      // Si ambos son 0 y el estado es pendiente, es valor inicial
+      if (golesA === 0 && golesB === 0) {
+        return false;
+      }
+      // Cualquier otro marcador es resultado real
+      return true;
+    }
+
+    return false;
+  });
+
+  if (partidosConResultados.length > 0) {
+    throw new Error(
+      `No se puede eliminar el equipo "${equipo.nombre}". ` +
+      `Ya participó en ${partidosConResultados.length} partido(s) con resultados.`
+    );
+  }
+
+  // Si el equipo está en partidos pendientes, eliminar esos partidos primero
+  if (partidosJugados.length > 0) {
+    const partidosPendientes = partidosJugados.filter(p => 
+      p.estado === 'pendiente' || 
+      (p.golesEquipoA === null && p.golesEquipoB === null)
+    );
+    
+    if (partidosPendientes.length > 0) {
+      // Eliminar los partidos pendientes donde participa el equipo
+      await partRepo.remove(partidosPendientes);
+    }
+  }
+
+  // Eliminar el equipo
   await repo.delete({ id: Number(equipoId) });
-  return { ok: true };
+  
+  return { 
+    ok: true,
+    message: `Equipo "${equipo.nombre}" eliminado exitosamente`
+  };
 };
+
 
 
 //  LISTAR EQUIPOS POR CAMPEONATO

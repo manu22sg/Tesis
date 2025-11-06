@@ -116,13 +116,21 @@ export const eliminarCampeonato = async (id) => {
   const camp = await repo.findOne({ where: { id: Number(id) } });
   if (!camp) throw new Error("El campeonato no existe");
 
-  // Bloquear si hay equipos o partidos asociados
+  // Permitir eliminar si está finalizado o cancelado
+  if (["finalizado", "cancelado"].includes(camp.estado)) {
+    await partRepo.delete({ campeonatoId: id });
+    await equipoRepo.delete({ campeonatoId: id });
+    await repo.delete({ id: Number(id) });
+    return { ok: true };
+  }
+
+  // Bloquear si tiene equipos o partidos en otros estados
   const equipos = await equipoRepo.count({ where: { campeonatoId: id } });
   const partidos = await partRepo.count({ where: { campeonatoId: id } });
 
   if (equipos > 0 || partidos > 0) {
     throw new Error(
-      "No se puede eliminar un campeonato con equipos o partidos asociados"
+      "No se puede eliminar un campeonato en curso o con datos activos"
     );
   }
 

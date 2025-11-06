@@ -47,7 +47,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   // 🏋️ Menús según rol
   const entrenadorItems = [
     getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -74,6 +73,8 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     
     // 📊 Estadísticas para Entrenador
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
+    getItem('Campeonatos', 'campeonatos', <TrophyOutlined />),
+
   ];
 
   const superAdminItems = [
@@ -136,7 +137,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     // 🏟️ Canchas
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
-
+    '/campeonatos': 'campeonatos',
     // 📅 Reservas
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
@@ -221,6 +222,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       grupos: '/grupos',
       evaluaciones: '/evaluaciones',
       'mis-evaluaciones': '/mis-evaluaciones',
+      campeonatos: '/campeonatos',
     };
 
     const route = keyToPath[key];

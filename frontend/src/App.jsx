@@ -30,6 +30,7 @@ import MisLesiones from './pages/MisLesiones.jsx';
 import Estadisticas from './pages/Estadisticas.jsx';
 import MisEstadisticas from './pages/MisEstadisticas.jsx';
 import AlineacionCompleta from './pages/AlineacionCompleta.jsx';
+import Campeonatos from './pages/Campeonatos.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -59,6 +60,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ========== CAMPEONATOS - Todos los usuarios autenticados ========== */}
+      <Route
+        path="/campeonatos"
+        element={
+          <ProtectedRoute>
+            <Campeonatos />
           </ProtectedRoute>
         }
       />

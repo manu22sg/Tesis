@@ -34,7 +34,9 @@ export const putCampeonato = async (req, res) => {
 
 export const deleteCampeonato = async (req, res) => {
   try { res.json(await eliminarCampeonato(req.params.id)); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  catch (e) {
+    console.log("Error al eliminar campeonato ID:", req.params.id, e); 
+    res.status(400).json({ error: e.message }); }
 };
 
 // Fixture
