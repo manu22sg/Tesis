@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/config.db.js";
-import { In } from "typeorm";
+import { In,Not } from "typeorm";
 import PartidoCampeonatoSchema from "../entity/PartidoCampeonato.js";
 import CanchaSchema from "../entity/Cancha.js";
 import SesionEntrenamientoSchema from "../entity/SesionEntrenamiento.js";
@@ -8,8 +8,7 @@ import CampeonatoSchema from "../entity/Campeonato.js";
 import { parseDateLocal, formatYMD } from "../utils/dateLocal.js";
   const PartidoRepo = () => AppDataSource.getRepository(PartidoCampeonatoSchema);
 
- //  Verifica disponibilidad de cancha contra sesiones, reservas y otros partidos
-async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInicio, horaFin) {
+async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInicio, horaFin, partidoIdExcluir = null) {
   try {
     const fechaLocal = formatYMD(parseDateLocal(fecha));
 
@@ -18,11 +17,11 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     const reservaRepo = manager.getRepository(ReservaCanchaSchema);
     const partidoRepo = manager.getRepository(PartidoCampeonatoSchema);
 
-    //  Cancha disponible
+    // ✅ Cancha disponible
     const cancha = await canchaRepo.findOne({ where: { id: canchaId, estado: "disponible" } });
     if (!cancha) return [false, "Cancha inexistente o no disponible"];
 
-    //  Conflictos con sesiones
+    // ✅ Conflictos con sesiones
     const sesiones = await sesionRepo.find({ where: { canchaId, fecha: fechaLocal } });
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
@@ -30,7 +29,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       }
     }
 
-    //  Conflictos con reservas pendientes/aprobadas
+    // ✅ Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
       where: { canchaId, fechaSolicitud: fechaLocal, estado: In(["pendiente", "aprobada"]) },
     });
@@ -40,10 +39,20 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       }
     }
 
-    //  Conflictos con otros partidos programados
-    const partidos = await partidoRepo.find({
-      where: { canchaId, fecha: fechaLocal, estado: In(["programado", "en_juego"]) },
-    });
+    // ✅ Conflictos con otros partidos programados (EXCLUYENDO el actual si se está actualizando)
+    const wherePartidos = { 
+      canchaId, 
+      fecha: fechaLocal, 
+      estado: In(["programado", "en_juego"]) 
+    };
+    
+    // 👇 Si se está reprogramando, excluir el partido actual
+    if (partidoIdExcluir) {
+      wherePartidos.id = Not(partidoIdExcluir);
+    }
+
+    const partidos = await partidoRepo.find({ where: wherePartidos });
+    
     for (const p of partidos) {
       if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
         return [false, `Ya existe un partido en la misma cancha y horario (ID: ${p.id})`];
@@ -56,7 +65,6 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     return [false, "Error interno al verificar disponibilidad"];
   }
 }
-
  // Programar un partido: asignar cancha, fecha y hora con validaciones temporales
 export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFin }) {
   const queryRunner = AppDataSource.createQueryRunner();
@@ -75,17 +83,26 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
     const camp = await campRepo.findOne({ where: { id: partido.campeonatoId } });
     if (!camp) return [null, "Campeonato no encontrado"];
 
-    const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
-    if (!cancha) return [null, "Cancha no encontrada"];
-    if (cancha.estado !== "disponible")
-      return [null, "La cancha no está disponible"];
+    // ✅ MEJORA 1: Solo validar cancha si está cambiando
+    if (canchaId && canchaId !== partido.canchaId) {
+      const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
+      if (!cancha) return [null, "Cancha no encontrada"];
+      if (cancha.estado !== "disponible")
+        return [null, "La cancha no está disponible"];
 
-    const minJugadores =
-      camp.formato === "11v11" ? 11 : camp.formato === "7v7" ? 7 : 5;
-    if (cancha.capacidadMaxima < minJugadores)
-      return [null, `La cancha ${cancha.nombre} no soporta formato ${camp.formato}`];
+      const minJugadores =
+        camp.formato === "11v11" ? 11 : camp.formato === "7v7" ? 7 : 5;
+      if (cancha.capacidadMaxima < minJugadores)
+        return [null, `La cancha ${cancha.nombre} no soporta formato ${camp.formato}`];
+    }
 
-    const fechaLocal = formatYMD(parseDateLocal(fecha));
+    // ✅ MEJORA 2: Usar valores actuales si no se proporcionan nuevos
+    const nuevaCanchaId = canchaId ?? partido.canchaId;
+    const nuevaFecha = fecha ?? partido.fecha;
+    const nuevaHoraInicio = horaInicio ?? partido.horaInicio;
+    const nuevaHoraFin = horaFin ?? partido.horaFin;
+
+    const fechaLocal = formatYMD(parseDateLocal(nuevaFecha));
     const hoy = formatYMD(new Date());
     const ahora = new Date();
 
@@ -93,28 +110,34 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
       return [null, "No se puede programar un partido en una fecha pasada"];
 
     if (fechaLocal === hoy) {
-      const [h, m] = horaInicio.split(":").map(Number);
+      const [h, m] = nuevaHoraInicio.split(":").map(Number);
       const horaActualMin = ahora.getHours() * 60 + ahora.getMinutes();
       const horaPartidoMin = h * 60 + m;
       if (horaPartidoMin <= horaActualMin)
         return [null, "No se puede programar un partido en una hora ya pasada"];
     }
 
+    // ✅ MEJORA 3: Verificar disponibilidad excluyendo el partido actual
     const [ok, err] = await verificarDisponibilidadCancha(
       manager,
-      canchaId,
-      fecha,
-      horaInicio,
-      horaFin
+      nuevaCanchaId,
+      nuevaFecha,
+      nuevaHoraInicio,
+      nuevaHoraFin,
+      id // 👈 Pasar el ID del partido para excluirlo en la verificación
     );
     if (!ok) return [null, err];
 
-    // 6️⃣ Guardar actualización
-    partido.canchaId = canchaId;
+    // Guardar actualización
+    partido.canchaId = nuevaCanchaId;
     partido.fecha = fechaLocal;
-    partido.horaInicio = horaInicio; 
-    partido.horaFin = horaFin;      
-    partido.estado = "programado";
+    partido.horaInicio = nuevaHoraInicio; 
+    partido.horaFin = nuevaHoraFin;
+    
+    // ✅ MEJORA 4: Mantener estado si ya está programado
+    if (partido.estado === "pendiente") {
+      partido.estado = "programado";
+    }
 
     const actualizado = await partidoRepo.save(partido);
     await queryRunner.commitTransaction();
@@ -128,7 +151,6 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
     await queryRunner.release();
   }
 }
-
 /** Helper horario */
 function hayConflictoHorario(a, b) {
   const toMin = (t) => {

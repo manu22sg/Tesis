@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useMemo } from 'react';
 import {
   Card, Button, Modal, message, Space, Tag, Descriptions,
   Alert, Spin, Empty, Table, Typography, Form, Select,
@@ -36,7 +36,24 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
   
   // Formularios
   const [formProgramar] = Form.useForm();
+const nombreGanador = useMemo(() => {
+    // Solo calculamos esto si el campeonato está finalizado
+    if (campeonato?.estado !== 'finalizado' || !partidos || !campeonato?.equipos) {
+      return null;
+    }
+    
+    // 1. Encontrar el partido de la final
+    const partidoFinal = partidos.find(p => p.ronda === 'final');
+    if (!partidoFinal || !partidoFinal.ganadorId) {
+      return null; // Aún no hay ganador registrado
+    }
 
+    // 2. Encontrar el equipo ganador usando el ganadorId
+    const equipoGanador = campeonato.equipos.find(e => e.id === partidoFinal.ganadorId);
+    
+    return equipoGanador?.nombre || null; // Devuelve el nombre
+    
+  }, [campeonato?.estado, partidos, campeonato?.equipos]);
   useEffect(() => {
     if (campeonatoId) {
       cargarDatos();
@@ -104,11 +121,11 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
   const handleGenerarSiguienteRonda = async () => {
     const partidosAgrupados = agruparPartidosPorRonda();
     const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
+      // 👇 USA LA MISMA LÓGICA QUE ARRIBA
       const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
-      return (orden[b] || 99) - (orden[a] || 99);
+      return (orden[a] || 99) - (orden[b] || 99);
     });
-    
-    const ultimaRonda = rondasOrdenadas[0];
+  const ultimaRonda = rondasOrdenadas[0];
     const partidosUltimaRonda = partidosAgrupados[ultimaRonda] || [];
     const partidosPendientes = partidosUltimaRonda.filter(p => p.estado !== 'finalizado');
     
@@ -129,7 +146,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
       title: '¿Generar Siguiente Ronda?',
       content: (
         <div>
-          <p>Se generará automáticamente la siguiente ronda con los ganadores de <strong>"{getRondaNombre(ultimaRonda)}"</strong>.</p>
+          <p>Se generará automáticamente la siguiente ronda con los ganadores de "{getRondaNombre(ultimaRonda)}".</p>
           <Alert
             message="Importante"
             description="Asegúrate de que todos los partidos estén finalizados y tengan un ganador asignado."
@@ -148,24 +165,13 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
           const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
 
           if (resultado.fin) {
-            Modal.success({
-              title: '🏆 ¡Campeonato Finalizado!',
-              content: (
-                <div>
-                  <p>{resultado.mensaje}</p>
-                  {resultado.nombreGanador && (
-                    <div style={{ marginTop: 16, textAlign: 'center' }}>
-                      <TrophyOutlined style={{ fontSize: 48, color: '#faad14' }} />
-                      <Title level={4} style={{ marginTop: 8 }}>
-                        {resultado.nombreGanador}
-                      </Title>
-                      <Text type="secondary">¡Campeón del torneo!</Text>
-                    </div>
-                  )}
-                </div>
-              ),
-              width: 500
-            });
+            message.success(
+            <div>
+              <div><strong> ¡Campeonato Finalizado!</strong></div>
+              <div>{resultado.mensaje}</div>
+            </div>,
+            6
+          );
           } else {
             message.success(
               <div>
@@ -212,6 +218,9 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
   const handleRegistrarResultado = async (datos) => {
     const { partidoId, golesA, golesB, penalesA, penalesB } = datos;
     
+    // 👇 1. Verificamos SI este partido es la final ANTES de hacer nada
+    const esLaFinal = partidoSeleccionado?.ronda === 'final';
+
     try {
       const payload = {
         golesA: Number(golesA),
@@ -220,12 +229,36 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
         penalesB: penalesB !== null && penalesB !== undefined ? Number(penalesB) : null
       };
       
+      // 2. Registramos el resultado del partido
       await partidoService.registrarResultado(partidoId, payload);
       
       message.success('Resultado registrado exitosamente');
+      
+      // 👇 3. ¡NUEVA LÓGICA!
+      // Si fue la final, disparamos la finalización del campeonato
+      if (esLaFinal) {
+        setLoading(true); // Mostramos feedback
+        message.info('Registrando final. Finalizando campeonato...');
+        
+        try {
+          // Llamamos al servicio que finaliza el torneo
+          const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
+          
+          if (resultado.fin) {
+             message.success('🏆 ¡Campeonato finalizado!', 5);
+          }
+        } catch (finError) {
+          message.error('Error al finalizar el campeonato. El resultado se guardó, pero contacta a soporte.');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // 4. Cerramos modal y recargamos datos (ahora traerá el estado "finalizado")
       setModalResultado(false);
       setPartidoSeleccionado(null);
       cargarDatos();
+
     } catch (error) {
       console.error('❌ Error completo:', error);
       console.error('❌ Response data:', error?.response?.data);
@@ -332,15 +365,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
     return [];
   };
 
-  const partidosAgrupados = agruparPartidosPorRonda();
-  const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
-    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
-    return (orden[b] || 99) - (orden[a] || 99);
-  });
-
-  const totalPartidos = partidos.length;
-  const cantidadEquipos = campeonato?.equipos?.length || 0;
-  const hayEquiposSuficientes = cantidadEquipos >= 2;
+  
 
   if (!campeonato) {
     return (
@@ -349,7 +374,19 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
       </Card>
     );
   }
+  const partidosAgrupados = agruparPartidosPorRonda();
+  const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
+    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
+    return (orden[a] || 99) - (orden[b] || 99);  });
+const ultimaRonda = rondasOrdenadas[0];
+  const esRondaFinal = ultimaRonda === 'final';
+  
+  const totalPartidos = partidos.length;
+  const cantidadEquipos = campeonato?.equipos?.length || 0;
+  const hayEquiposSuficientes = cantidadEquipos >= 2;
 
+  // Calcular rondas después de verificar que campeonato existe
+  
   const columns = [
     {
       title: 'N°',
@@ -471,40 +508,71 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
         </Tag>
       )
     },
-    {
+   {
       title: 'Acciones',
       key: 'acciones',
       width: 180,
       render: (_, record) => (
         <Space size="small">
-          {['pendiente', 'programado'].includes(record.estado) && (
-            <Tooltip title="Programar">
-              <Button
-                type="text"
-                size="small"
-                icon={<CalendarOutlined />}
-                onClick={() => handleAbrirModalProgramar(record)}
-              >
-                Programar
-              </Button>
-            </Tooltip>
-          )}
-          {record.estado !== 'finalizado' && (
-            <Tooltip title="Registrar Resultado">
-              <Button
-                type="primary"
-                size="small"
-                icon={<TrophyOutlined />}
-                onClick={() => handleAbrirModalResultado(record)}
-              >
-                Resultado
-              </Button>
-            </Tooltip>
-          )}
-          {record.estado === 'finalizado' && (
-            <Tag color="success" icon={<CheckCircleOutlined />}>
-              Finalizado
-            </Tag>
+          
+          {record.estado === 'finalizado' ? (
+            // --- REQ 2: ESTADO FINALIZADO ---
+            // Muestra ambos botones, deshabilitados
+            <>
+              <Tooltip title="Partido finalizado">
+                <Button
+                  type="text"
+                  size="medium"
+                  icon={<CalendarOutlined />}
+                  disabled
+                >
+                </Button>
+              </Tooltip>
+              <Tooltip title="Partido finalizado">
+                <Button
+                  type="primary"
+                  size="medium"
+                  icon={<TrophyOutlined />}
+                  disabled
+                >
+                  Resultado
+                </Button>
+              </Tooltip>
+            </>
+
+          ) : (
+
+            // --- ESTADOS ACTIVOS (pendiente, programado, en_juego) ---
+            <>
+              {/* Botón Programar (Solo para pendiente/programado) */}
+              {['pendiente', 'programado'].includes(record.estado) && (
+                <Tooltip title="Programar">
+                  <Button
+                    type="text"
+                    size="medium"
+                    icon={<CalendarOutlined />}
+                    onClick={() => handleAbrirModalProgramar(record)}
+                  >
+                    
+                  </Button>
+                </Tooltip>
+              )}
+              
+              {/* Botón Resultado (REQ 1: Deshabilitado si está 'pendiente') */}
+              <Tooltip title={record.estado === 'pendiente' ? "Debes programar el partido primero" : "Registrar Resultado"}>
+                <Button
+                  type="primary"
+                  size="medium"
+                  icon={<TrophyOutlined />}
+                  onClick={() => handleAbrirModalResultado(record)}
+                  // 👇 REQ 1: AQUÍ ESTÁ LA LÓGICA
+                  disabled={record.estado === 'pendiente'}
+                >
+                  
+                </Button>
+              </Tooltip>
+            </>
+            
           )}
         </Space>
       )
@@ -535,16 +603,16 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
               </Button>
             )}
             
-            {campeonato.estado === 'en_juego' && (
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                onClick={handleGenerarSiguienteRonda}
-                loading={loading}
-              >
-                Generar Siguiente Ronda
-              </Button>
-            )}
+           {campeonato.estado === 'en_juego' && !esRondaFinal && (
+  <Button
+    type="primary"
+    icon={<PlayCircleOutlined />}
+    onClick={handleGenerarSiguienteRonda}
+    loading={loading}
+  >
+    Generar Siguiente Ronda
+  </Button>
+)}
           </Space>
         }
         style={{ marginBottom: 16 }}
@@ -558,7 +626,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
               campeonato.genero === 'masculino' ? 'blue' :
               campeonato.genero === 'femenino' ? 'pink' : 'orange'
             }>
-              {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
+             {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Estado">
@@ -567,7 +635,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
               campeonato.estado === 'en_juego' ? 'green' :
               campeonato.estado === 'finalizado' ? 'gold' : 'default'
             }>
-            {getEstadoText(campeonato.estado)}
+              {getEstadoText(campeonato.estado)}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Año/Semestre">
@@ -599,14 +667,25 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
       )}
 
       {campeonato.estado === 'finalizado' && (
-        <Alert
-          message="🏆 Campeonato Finalizado"
-          description="Este campeonato ha concluido. Consulta la ronda final para ver al campeón."
-          type="success"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      <Alert
+        message={ // 👈 Título modificado
+          <Space style={{ fontSize: 15, fontWeight: 'bold' }}>
+            <TrophyOutlined style={{ color: '#faad14' }} />
+            ¡Campeonato Finalizado!
+          </Space>
+        }
+        description={ 
+          nombreGanador ? (
+            `Este campeonato ha concluido. ¡El campeón es ${nombreGanador}!`
+          ) : (
+            "Este campeonato ha concluido. Consulta la ronda final para ver al campeón."
+          )
+        }
+        type="success"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+    )}
 
       {/* Fixture por rondas */}
       {totalPartidos > 0 ? (
@@ -618,21 +697,23 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
 
             return (
               <Card
-                key={ronda}
-                title={
-                  <Space>
-                    <FireOutlined style={{ color: '#ff4d4f' }} />
-                    <span>{getRondaNombre(ronda)}</span>
-                    <Tag>{partidosRonda.length} partidos</Tag>
-                    {todosFinalizados && (
-                      <Tag icon={<CheckCircleOutlined />} color="success">
-                        Completa
-                      </Tag>
-                    )}
-                  </Space>
-                }
-                style={{ marginBottom: 16 }}
-              >
+  key={ronda}
+  title={
+    <Space>
+      <FireOutlined style={{ color: '#ff4d4f' }} />
+      <span>{getRondaNombre(ronda)}</span>
+      <Tag>
+        {partidosRonda.length} {partidosRonda.length === 1 ? 'partido' : 'partidos'}
+      </Tag>
+      {todosFinalizados && (
+        <Tag icon={<CheckCircleOutlined />} color="success">
+          Completa
+        </Tag>
+      )}
+    </Space>
+  }
+  style={{ marginBottom: 16 }}
+>
                 <Table
                   dataSource={partidosRonda.map((partido, idx) => ({
                     ...partido,

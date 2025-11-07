@@ -66,12 +66,12 @@ if (tipoNormalizado !== generoCamp) {
     const minJugadores =
       camp.formato === "11v11" ? 11 : camp.formato === "7v7" ? 7 : 5;
     const jugadores = await jugadorRepo.count({ where: { equipoId: guardado.id } });
-    if (jugadores < minJugadores) {
+   /* if (jugadores < minJugadores) {
       console.warn(
         ` El equipo ${nombre} tiene menos de ${minJugadores} jugadores (actualmente ${jugadores}).`
       );
     }
-
+*/
     return guardado;
   });
 };
