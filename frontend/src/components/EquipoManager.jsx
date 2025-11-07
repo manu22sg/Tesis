@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Card, Button, Table, Modal, Form, Input, Select, Space, message,
   Popconfirm, Tag, Descriptions, Empty, Drawer, InputNumber, Divider,
-  List, Avatar, Badge, Tooltip, Row, Col
+  List, Avatar, Badge, Tooltip, Row, Col, AutoComplete
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined,
@@ -10,6 +10,7 @@ import {
   NumberOutlined, EnvironmentOutlined
 } from '@ant-design/icons';
 import { equipoService } from '../services/equipo.services.js';
+import { buscarUsuarios } from '../services/auth.services.js';
 
 const { Option } = Select;
 
@@ -24,6 +25,12 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   const [jugadoresEquipo, setJugadoresEquipo] = useState([]);
   const [form] = Form.useForm();
   const [formJugador] = Form.useForm();
+  
+  // Estados para el autocomplete de jugadores
+  const [opcionesAutoComplete, setOpcionesAutoComplete] = useState([]);
+  const [buscandoSugerencias, setBuscandoSugerencias] = useState(false);
+  const [valorBusqueda, setValorBusqueda] = useState('');
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
 
   useEffect(() => {
     if (campeonatoId) {
@@ -109,7 +116,9 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     setLoading(true);
     setEquipoSeleccionado(equipo);
     try {
-      const data = await equipoService.listarJugadores(equipo.id);
+      const response = await equipoService.listarJugadores(equipo.id);
+      // El backend devuelve { success: true, data: { equipo, totalJugadores, jugadores } }
+      const data = response.data || response;
       setJugadoresEquipo(data.jugadores || []);
       setDrawerVisible(true);
     } catch (error) {
@@ -119,25 +128,82 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     }
   };
 
-  const abrirModalJugador = () => {
+  const abrirModalJugador = (equipo = null) => {
+    if (equipo) {
+      setEquipoSeleccionado(equipo);
+    }
     formJugador.resetFields();
+    setValorBusqueda('');
+    setUsuarioSeleccionado(null);
+    setOpcionesAutoComplete([]);
     setModalJugadorVisible(true);
   };
 
+  // Buscar sugerencias mientras escribe
+  useEffect(() => {
+    const buscarSugerencias = async () => {
+      
+      setBuscandoSugerencias(true);
+      try {
+        const resultados = await buscarUsuarios(valorBusqueda, { 
+          roles: ['estudiante', 'academico'] 
+        });
+        
+        // Filtrar usuarios que ya están en el equipo
+        const rutosEnEquipo = jugadoresEquipo.map(j => j.rut);
+        const resultadosFiltrados = resultados.filter(
+          r => !rutosEnEquipo.includes(r.rut)
+        );
+        
+        // Formatear opciones para el AutoComplete
+        const opcionesFormateadas = resultadosFiltrados.map(usuario => ({
+          value: `${usuario.rut} - ${usuario.nombre}`,
+          label: `${usuario.rut} - ${usuario.nombre}`,
+          usuario: usuario
+        }));
+        
+        setOpcionesAutoComplete(opcionesFormateadas);
+      } catch (error) {
+        console.error('Error buscando sugerencias:', error);
+        setOpcionesAutoComplete([]);
+      } finally {
+        setBuscandoSugerencias(false);
+      }
+    };
+
+    const timer = setTimeout(buscarSugerencias, 300);
+    return () => clearTimeout(timer);
+  }, [valorBusqueda, jugadoresEquipo, modalJugadorVisible]);
+
   const handleAgregarJugador = async (values) => {
+    if (!usuarioSeleccionado) {
+      message.error('Debes seleccionar un usuario de la lista');
+      return;
+    }
+
     setLoading(true);
     try {
       await equipoService.agregarJugador({
         campeonatoId,
         equipoId: equipoSeleccionado.id,
-        usuarioId: values.usuarioId,
+        usuarioId: usuarioSeleccionado.id,
         numeroCamiseta: values.numeroCamiseta || null,
         posicion: values.posicion || null
       });
       message.success('Jugador agregado exitosamente');
       setModalJugadorVisible(false);
       formJugador.resetFields();
-      verJugadores(equipoSeleccionado); // Recargar lista
+      setValorBusqueda('');
+      setUsuarioSeleccionado(null);
+      
+      // 🔥 FIX: Recargar tanto la lista de equipos como la de jugadores
+      await cargarEquipos(); // Actualiza el contador en la tabla principal
+      if (onUpdate) onUpdate(); // Notifica al componente padre
+      
+      // Si el drawer está abierto, recargar la lista de jugadores
+      if (drawerVisible && equipoSeleccionado) {
+        await verJugadores(equipoSeleccionado);
+      }
     } catch (error) {
       message.error(error?.response?.data?.error || 'Error al agregar jugador');
     } finally {
@@ -150,7 +216,11 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     try {
       await equipoService.quitarJugador(campeonatoId, equipoSeleccionado.id, usuarioId);
       message.success('Jugador eliminado del equipo');
-      verJugadores(equipoSeleccionado); // Recargar lista
+      
+      // 🔥 FIX: Recargar tanto la lista de equipos como la de jugadores
+      await cargarEquipos(); // Actualiza el contador en la tabla principal
+      if (onUpdate) onUpdate(); // Notifica al componente padre
+      await verJugadores(equipoSeleccionado); // Recarga lista en el drawer
     } catch (error) {
       message.error(error?.response?.data?.error || 'Error al quitar jugador');
     } finally {
@@ -212,7 +282,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       title: 'Acciones',
       key: 'acciones',
       fixed: 'right',
-      width: 200,
+      width: 250,
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Ver Jugadores">
@@ -220,6 +290,15 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
               type="text"
               icon={<EyeOutlined />}
               onClick={() => verJugadores(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Añadir Jugador">
+            <Button
+              type="text"
+              icon={<UserAddOutlined />}
+              onClick={() => abrirModalJugador(record)}
+              disabled={campeonatoInfo?.estado === 'finalizado'}
+              style={{ color: '#52c41a' }}
             />
           </Tooltip>
           <Tooltip title="Editar">
@@ -283,14 +362,31 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           </Tag>
         )}
 
-        <Table
-          columns={columns}
-          dataSource={equipos}
-          loading={loading}
-          rowKey="id"
-          pagination={{ pageSize: 5 }}
-          locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+  <Table
+    columns={columns}
+    dataSource={equipos}
+    loading={loading}
+    rowKey="id"
+    pagination={{
+      position: ['bottomLeft'], 
+      pageSize: 10,
+      showSizeChanger: true,
+      pageSizeOptions: ['5', '10', '20', '50'],
+      locale: { items_per_page: '/ página' },
+      
+      showTotal: (total) => (
+        <span style={{ fontSize: 14, color: 'rgba(0, 0, 0, 0.85)' }}>
+          Total: {total} {total === 1 ? 'equipo' : 'equipos'}
+        </span>
+      )
+    }}
+    locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
+  />
+  
+  {/* Texto total junto a la paginación */}
+
+</div>
       </Card>
 
       {/* Modal Crear/Editar Equipo */}
@@ -402,7 +498,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           <Button
             type="primary"
             icon={<UserAddOutlined />}
-            onClick={abrirModalJugador}
+            onClick={() => abrirModalJugador(equipoSeleccionado)}
             disabled={campeonatoInfo?.estado === 'finalizado'}
           >
             Agregar Jugador
@@ -480,14 +576,14 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                           <span>RUT: {jugador.rut}</span>
                           {jugador.posicion && (
                             <span>
-                              <EnvironmentOutlined /> {jugador.posicion}
+                              Posición: {jugador.posicion}
                             </span>
                           )}
                           <Space size="large" style={{ marginTop: 4 }}>
-                            <span>⚽ Goles: <strong>{jugador.goles || 0}</strong></span>
-                            <span>🎯 Asistencias: <strong>{jugador.asistencias || 0}</strong></span>
+                            <span> Goles: <strong>{jugador.goles || 0}</strong></span>
+                            <span> Asistencias: <strong>{jugador.asistencias || 0}</strong></span>
                             {jugador.atajadas > 0 && (
-                              <span>🧤 Atajadas: <strong>{jugador.atajadas}</strong></span>
+                              <span> Atajadas: <strong>{jugador.atajadas}</strong></span>
                             )}
                           </Space>
                         </Space>
@@ -508,18 +604,21 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
         title={
           <Space>
             <UserAddOutlined />
-            <span>Agregar Jugador</span>
+            <span>Agregar Jugador a {equipoSeleccionado?.nombre}</span>
           </Space>
         }
         open={modalJugadorVisible}
         onCancel={() => {
           setModalJugadorVisible(false);
           formJugador.resetFields();
+          setValorBusqueda('');
+          setUsuarioSeleccionado(null);
         }}
         onOk={() => formJugador.submit()}
         confirmLoading={loading}
         okText="Agregar"
         cancelText="Cancelar"
+        okButtonProps={{ disabled: !usuarioSeleccionado }}
       >
         <Form
           form={formJugador}
@@ -528,20 +627,50 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           autoComplete="off"
         >
           <Form.Item
-            name="usuarioId"
-            label="ID del Usuario"
-            rules={[
-              { required: true, message: 'El ID del usuario es obligatorio' },
-              { type: 'number', message: 'Debe ser un número' }
-            ]}
-            tooltip="Ingresa el ID del usuario que deseas agregar al equipo"
+            label="Buscar Jugador"
+            required
+            tooltip="Busca por nombre o RUT del jugador"
           >
-            <InputNumber 
-              style={{ width: '100%' }} 
-              placeholder="Ej: 123"
-              min={1}
-            />
+            <AutoComplete
+              value={valorBusqueda}
+              options={opcionesAutoComplete}
+              onSearch={setValorBusqueda}
+              onSelect={(value, option) => {
+                setUsuarioSeleccionado(option.usuario);
+                setValorBusqueda(value);
+              }}
+              style={{ width: '100%' }}
+              notFoundContent={
+                buscandoSugerencias ? 'Buscando...' :
+                'No se encontraron usuarios'
+              }
+            >
+              <Input
+                placeholder="Buscar por nombre o RUT"
+                allowClear
+                onClear={() => {
+                  setUsuarioSeleccionado(null);
+                  setValorBusqueda('');
+                }}
+              />
+            </AutoComplete>
           </Form.Item>
+
+          {usuarioSeleccionado && (
+            <div style={{ 
+              padding: 12, 
+              background: '#e6f7ff', 
+              borderRadius: 8, 
+              marginBottom: 16,
+              border: '1px solid #91d5ff'
+            }}>
+              <Space direction="vertical" size={0}>
+                <strong>{usuarioSeleccionado.nombre}</strong>
+                <span style={{ fontSize: 12, color: '#666' }}>RUT: {usuarioSeleccionado.rut}</span>
+                <span style={{ fontSize: 12, color: '#666' }}>Email: {usuarioSeleccionado.email}</span>
+              </Space>
+            </div>
+          )}
 
           <Row gutter={16}>
             <Col span={12}>

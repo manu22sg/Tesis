@@ -22,7 +22,12 @@ export const partidoService = {
 
   // Registrar resultado del partido
   registrarResultado: async (partidoId, data) => {
-    const response = await api.post(`/partidos/${partidoId}/registrar-resultado`, data);
-    return response.data;
-  }
+  const response = await api.post(`/partidos/${partidoId}/registrar-resultado`, {
+    golesA: data.golesA,
+    golesB: data.golesB,
+    penalesA: data.penalesA,  
+    penalesB: data.penalesB   
+  });
+  return response.data;
+}
 };

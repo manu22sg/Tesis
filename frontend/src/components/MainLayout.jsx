@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { Layout, Menu, theme, Avatar, Dropdown } from 'antd';
 import {
   DashboardOutlined,
@@ -15,12 +15,26 @@ import {
   EditOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  InfoCircleOutlined,
+  StarOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const { Sider, Content, Header } = Layout;
+
+// 🌟 Context para Campeonato Activo
+const CampeonatoActivoContext = createContext();
+
+export const useCampeonatoActivo = () => {
+  const context = useContext(CampeonatoActivoContext);
+  if (!context) {
+    throw new Error('useCampeonatoActivo debe usarse dentro de CampeonatoActivoProvider');
+  }
+  return context;
+};
 
 function getItem(label, key, icon, children) {
   return { key, icon, children, label };
@@ -32,6 +46,9 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const { usuario, logout } = useAuth();
   const token = theme.useToken().token;
   const [collapsed, setCollapsed] = useState(false);
+  
+  // 🏆 Estado para campeonato activo
+  const [campeonatoActivo, setCampeonatoActivo] = useState(null);
 
   // 🔐 Determinar rol
   const rol = (usuario?.rol?.nombre || usuario?.rol || '').toLowerCase();
@@ -57,12 +74,9 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
 
-    // ⚽ Entrenamientos
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-
     getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
 
-    // 👥 Jugadores + Lesiones
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
       getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
       getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
@@ -70,11 +84,28 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
-    
-    // 📊 Estadísticas para Entrenador
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
-    getItem('Campeonatos', 'campeonatos', <TrophyOutlined />),
-
+    
+    // 🏆 Campeonatos con submenu dinámico
+    getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
+      getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
+      
+      // ⭐ Solo aparece si hay campeonato activo
+      ...(campeonatoActivo ? [
+        { type: 'divider', key: 'divider-campeonato' },
+        getItem(
+          `⭐ ${campeonatoActivo.nombre}`, 
+          'sub_campeonato_activo', 
+          <StarOutlined />, 
+          [
+            getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
+            getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
+            getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
+            getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
+          ]
+        ),
+      ] : [])
+    ]),
   ];
 
   const superAdminItems = [
@@ -99,8 +130,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
-    
-    // 📊 Estadísticas para SuperAdmin
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
   ];
 
@@ -113,11 +142,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     ]),
     getItem('Marcar Asistencia', 'marcar-asistencia', <CheckCircleOutlined />),
     getItem('Mis Evaluaciones', 'mis-evaluaciones', <TrophyOutlined />),
-
-    // 🩹 Mis Lesiones
     getItem('Mis Lesiones', 'mis-lesiones', <MedicineBoxOutlined />),
-    
-    // 📊 Mis Estadísticas
     getItem('Mis Estadísticas', 'mis-estadisticas', <BarChartOutlined />),
   ];
 
@@ -133,32 +158,19 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   // 🗺️ Rutas ↔ keys
   const pathToKey = {
     '/dashboard': 'dashboard',
-
-    // 🏟️ Canchas
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
-    '/campeonatos': 'campeonatos',
-    // 📅 Reservas
+    '/campeonatos': 'campeonatos-lista',
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
     '/aprobar-reservas': 'aprobar-reservas',
-
-    // 📆 Sesiones
     '/sesiones': 'sesiones',
     '/sesiones/nueva': 'sesiones-nueva',
-
-    // ⚽ Entrenamientos
     '/entrenamientos': 'entrenamientos',
-
-    // 🩹 Lesiones
     '/lesiones': 'lesiones',
     '/mis-lesiones': 'mis-lesiones',
-
-    // 📊 Estadísticas
     '/estadisticas': 'estadisticas',
     '/mis-estadisticas': 'mis-estadisticas',
-
-    // ✅ Otras rutas
     '/marcar-asistencia': 'marcar-asistencia',
     '/jugadores': 'jugadores',
     '/grupos': 'grupos',
@@ -166,10 +178,14 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/mis-evaluaciones': 'mis-evaluaciones',
   };
 
-  // Detectar si estamos en entrenamientos dentro de sesión
+  // Detectar rutas dinámicas de campeonatos
   let selectedKey = selectedKeyOverride;
   if (!selectedKey) {
-    if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
+    const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla)$/);
+    if (campeonatoMatch) {
+      const [, id, seccion] = campeonatoMatch;
+      selectedKey = `campeonato-${id}-${seccion}`;
+    } else if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
       selectedKey = 'entrenamientos';
     } else {
       selectedKey = pathToKey[location.pathname] || 'dashboard';
@@ -178,6 +194,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   // 🔓 Submenús abiertos por defecto
   const [openKeys, setOpenKeys] = useState(() => {
+    if (location.pathname.startsWith('/campeonatos')) return ['sub_campeonatos', 'sub_campeonato_activo'];
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
     if (location.pathname.startsWith('/reservas')) return ['sub_reservas'];
     if (location.pathname.startsWith('/canchas')) return ['sub_canchas'];
@@ -188,41 +205,35 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   // 🔀 Navegación al hacer click
   const onMenuClick = ({ key }) => {
+    // Rutas dinámicas de campeonatos
+    const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla)$/);
+    if (campeonatoMatch) {
+      const [, id, seccion] = campeonatoMatch;
+      navigate(`/campeonatos/${id}/${seccion}`);
+      return;
+    }
+
     const keyToPath = {
       dashboard: '/dashboard',
-
-      // 🏟️ Canchas
       'canchas-gestion': '/gestion-canchas',
       'canchas-ver': '/canchas',
       canchas: '/canchas',
-
-      // 📅 Reservas
+      'campeonatos-lista': '/campeonatos',
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
       'aprobar-reservas': '/aprobar-reservas',
-
-      // 📆 Sesiones
       sesiones: '/sesiones',
       'sesiones-nueva': '/sesiones/nueva',
-
-      // ⚽ Entrenamientos
       entrenamientos: '/entrenamientos',
-
-      // 🩹 Lesiones
       lesiones: '/lesiones',
       'mis-lesiones': '/mis-lesiones',
-
-      // 📊 Estadísticas
       estadisticas: '/estadisticas',
       'mis-estadisticas': '/mis-estadisticas',
-
-      // ✅ Otras
       'marcar-asistencia': '/marcar-asistencia',
       jugadores: '/jugadores',
       grupos: '/grupos',
       evaluaciones: '/evaluaciones',
       'mis-evaluaciones': '/mis-evaluaciones',
-      campeonatos: '/campeonatos',
     };
 
     const route = keyToPath[key];
@@ -256,82 +267,84 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        collapsedWidth={80}
-        style={{
-          position: 'fixed',
-          height: '100vh',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 100,
-          overflow: 'auto',
-        }}
-      >
-        <div
+    <CampeonatoActivoContext.Provider value={{ campeonatoActivo, setCampeonatoActivo }}>
+      <Layout style={{ minHeight: '100vh' }}>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          collapsedWidth={80}
           style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: collapsed ? '16px' : '20px',
-            fontWeight: 'bold',
-            padding: '0 16px',
+            position: 'fixed',
+            height: '100vh',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
+            overflow: 'auto',
           }}
         >
-          {collapsed ? '⚽' : '⚽ Sistema Deportivo'}
-        </div>
-
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          openKeys={openKeys}
-          onOpenChange={setOpenKeys}
-          onClick={onMenuClick}
-          items={itemsByRole[userRole]}
-        />
-      </Sider>
-
-      <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
-        <Header
-          style={{
-            padding: '0 24px',
-            background: token.colorBgContainer,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}
-        >
-          <div style={{ flex: 1 }}>{breadcrumb}</div>
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
-              {!collapsed && <span>{usuario?.nombre || 'Usuario'}</span>}
-            </div>
-          </Dropdown>
-        </Header>
-
-        <Content style={{ margin: '24px' }}>
           <div
             style={{
-              padding: 24,
-              minHeight: 360,
-              background: token.colorBgContainer,
-              borderRadius: token.borderRadiusLG,
+              height: 64,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: collapsed ? '16px' : '20px',
+              fontWeight: 'bold',
+              padding: '0 16px',
             }}
           >
-            {children}
+            {collapsed ? '⚽' : '⚽ Sistema Deportivo'}
           </div>
-        </Content>
+
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
+            onClick={onMenuClick}
+            items={itemsByRole[userRole]}
+          />
+        </Sider>
+
+        <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+          <Header
+            style={{
+              padding: '0 24px',
+              background: token.colorBgContainer,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            <div style={{ flex: 1 }}>{breadcrumb}</div>
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                {!collapsed && <span>{usuario?.nombre || 'Usuario'}</span>}
+              </div>
+            </Dropdown>
+          </Header>
+
+          <Content style={{ margin: '24px' }}>
+            <div
+              style={{
+                padding: 24,
+                minHeight: 360,
+                background: token.colorBgContainer,
+                borderRadius: token.borderRadiusLG,
+              }}
+            >
+              {children}
+            </div>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </CampeonatoActivoContext.Provider>
   );
 };
 

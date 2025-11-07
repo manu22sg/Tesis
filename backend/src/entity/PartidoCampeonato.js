@@ -22,8 +22,13 @@ const PartidoCampeonatoSchema = new EntitySchema({
     golesA: { type: "int", default: null },
     golesB: { type: "int", default: null },
 
+    // 🆕 PENALES
+    penalesA: { type: "int", nullable: true, default: null },
+    penalesB: { type: "int", nullable: true, default: null },
+    definidoPorPenales: { type: "boolean", default: false }, // indica si se fue a penales
+
     ganadorId: { type: "int", nullable: true }, // FK a EquipoCampeonato
-    estado: { type: "varchar", length: 20, default: "pendiente" }, // pendiente, jugado, finalizado
+    estado: { type: "varchar", length: 20, default: "pendiente" }, // pendiente, en_juego, finalizado
     ordenLlave: { type: "int", nullable: true }   // Para torneos con llave
   },
   relations: {

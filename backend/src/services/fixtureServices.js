@@ -31,7 +31,49 @@ const nombreRondaPorCantidad = (cantidadEquipos) => {
   }
 };
 
- //  Genera la PRIMERA ronda del campeonato
+/**
+ * Detecta automáticamente la última ronda jugada
+ */
+const detectarUltimaRonda = async (partRepo, campId) => {
+  // Buscar todas las rondas del campeonato
+  const todasLasRondas = await partRepo
+    .createQueryBuilder("partido")
+    .select("partido.ronda")
+    .where("partido.campeonatoId = :campId", { campId })
+    .groupBy("partido.ronda")
+    .getRawMany();
+  
+  if (!todasLasRondas.length) {
+    throw new Error("No hay rondas previas en este campeonato");
+  }
+
+  // Ordenar rondas por jerarquía (de más reciente a más antigua)
+  const orden = ["octavos", "cuartos", "semifinal", "final"];
+  const rondasDisponibles = todasLasRondas.map(r => r.partido_ronda);
+  
+  const rondasOrdenadas = rondasDisponibles.sort((a, b) => {
+    const idxA = orden.indexOf(a);
+    const idxB = orden.indexOf(b);
+    
+    // Si ambas están en el orden estándar
+    if (idxA !== -1 && idxB !== -1) {
+      return idxB - idxA; // Mayor índice = ronda más reciente
+    }
+    
+    // Si solo una está en el orden
+    if (idxA === -1 && idxB !== -1) return 1;
+    if (idxA !== -1 && idxB === -1) return -1;
+    
+    // Si ninguna está en el orden (rondas personalizadas)
+    return b.localeCompare(a);
+  });
+
+  return rondasOrdenadas[0]; // La ronda más reciente
+};
+
+/**
+ * Genera la PRIMERA ronda del campeonato
+ */
 export const sortearPrimeraRonda = async ({ campeonatoId }) => {
   const ds = AppDataSource;
   return await ds.transaction(async (trx) => {
@@ -48,7 +90,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       throw new Error("El campeonato no está en estado creado");
     }
 
-    // ✅ VALIDACIÓN NUEVA: Verificar que no existan partidos ya sorteados
+    // Verificar que no existan partidos ya sorteados
     const partidosExistentes = await partRepo.count({ 
       where: { campeonatoId: Number(campeonatoId) } 
     });
@@ -118,14 +160,15 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
   });
 };
 
-
- //  Genera la siguiente ronda a partir de los ganadores
+/**
+ * Endpoint para generar la siguiente ronda (con detección automática)
+ */
 export const postGenerarSiguienteRonda = async (req, res) => {
   try {
-    const { rondaAnterior } = req.body;
+    const { rondaAnterior } = req.body; // Ahora es opcional
     const resultado = await generarSiguienteRonda({ 
       campeonatoId: req.params.id, 
-      rondaAnterior 
+      rondaAnterior // Puede ser undefined
     });
     res.json(resultado);
   } catch (e) { 
@@ -133,6 +176,10 @@ export const postGenerarSiguienteRonda = async (req, res) => {
   }
 };
 
+/**
+ * Genera la siguiente ronda a partir de los ganadores
+ * Si no se especifica rondaAnterior, la detecta automáticamente
+ */
 export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => {
   const ds = AppDataSource;
   return await ds.transaction(async (trx) => {
@@ -141,67 +188,91 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     const equipoRepo = trx.getRepository("EquipoCampeonato");
     const campId = Number(campeonatoId);
 
-    //  Obtener partidos de la ronda anterior
+    //  Si no se especifica rondaAnterior, detectarla automáticamente
+    let rondaAUsar = rondaAnterior;
+    
+    if (!rondaAUsar) {
+      rondaAUsar = await detectarUltimaRonda(partRepo, campId);
+      console.log(`Ronda detectada automáticamente: ${rondaAUsar}`);
+    }
+
+    // Obtener partidos de la ronda anterior
     const todosPartidos = await partRepo.find({
-      where: { campeonatoId: campId, ronda: rondaAnterior },
+      where: { campeonatoId: campId, ronda: rondaAUsar },
       order: { ordenLlave: "ASC" },
     });
-    if (!todosPartidos.length) throw new Error("No existe la ronda anterior especificada");
+    
+    if (!todosPartidos.length) {
+      throw new Error(`No existe la ronda "${rondaAUsar}"`);
+    }
 
     // Validar que todos estén finalizados
     const finalizados = todosPartidos.filter(p => p.estado === "finalizado");
-    if (finalizados.length !== todosPartidos.length)
-      throw new Error(` ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en ${rondaAnterior}`);
+    if (finalizados.length !== todosPartidos.length) {
+      throw new Error(
+        `Solo ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en "${rondaAUsar}". ` +
+        `Completa todos los partidos antes de generar la siguiente ronda.`
+      );
+    }
 
-    //  Obtener ganadores válidos
+    // Obtener ganadores válidos
     const ganadores = finalizados
       .map(p => Number(p.ganadorId))
       .filter(id => !isNaN(id) && id > 0);
 
-    if (ganadores.length !== finalizados.length)
+    if (ganadores.length !== finalizados.length) {
       throw new Error("Uno o más partidos finalizados no tienen ganador asignado");
+    }
 
-    //  Caso: un solo ganador → campeonato finalizado
+    // Caso: un solo ganador → campeonato finalizado
     if (ganadores.length === 1) {
       const equipoGanador = await equipoRepo.findOne({ where: { id: ganadores[0] } });
-      if (!equipoGanador)
+      if (!equipoGanador) {
         throw new Error("No se encontró el equipo ganador del campeonato");
+      }
 
-      // marcar campeonato como finalizado
+      // Marcar campeonato como finalizado
       await campRepo.update({ id: campId }, { estado: "finalizado" });
 
       return {
         ronda: null,
-        partidosCreados: [],
+        partidosCreados: 0,
         fin: true,
-        mensaje: ` El campeonato ha finalizado. El equipo campeón es: ${equipoGanador.nombre}`,
+        mensaje: `¡El campeonato ha finalizado!`,
         ganadorId: equipoGanador.id,
         nombreGanador: equipoGanador.nombre,
+        rondaAnterior: rondaAUsar,
       };
     }
 
-    //  Si hay menos de 2 ganadores → no se puede continuar
+    // Si hay menos de 2 ganadores → no se puede continuar
     if (ganadores.length < 2) {
       return {
         ronda: null,
-        partidosCreados: [],
+        partidosCreados: 0,
         fin: true,
         mensaje: "No hay suficientes ganadores para continuar",
       };
     }
 
-    //  Validar número par de ganadores
-    if (ganadores.length % 2 !== 0)
-      throw new Error(`Número impar de ganadores (${ganadores.length}). Revisa los partidos de ${rondaAnterior}`);
+    // Validar número par de ganadores
+    if (ganadores.length % 2 !== 0) {
+      throw new Error(
+        `Número impar de ganadores (${ganadores.length}) en "${rondaAUsar}". ` +
+        `Revisa los partidos de esa ronda.`
+      );
+    }
 
-    //  Crear la siguiente ronda
+    // Crear la siguiente ronda
     const nombreSiguiente = nombreRondaPorCantidad(ganadores.length).toLowerCase();
 
     const existente = await partRepo.findOne({
       where: { campeonatoId: campId, ronda: nombreSiguiente },
     });
-    if (existente)
-      throw new Error(`La ronda "${nombreSiguiente}" ya fue generada`);
+    
+    if (existente) {
+      throw new Error(`La ronda "${nombreSiguiente}" ya fue generada previamente`);
+    }
 
     const nuevas = [];
     for (let i = 0; i < ganadores.length; i += 2) {
@@ -222,7 +293,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     const creados = await partRepo.save(nuevas);
 
     return {
-      rondaAnterior,
+      rondaAnterior: rondaAUsar,
       ronda: nombreSiguiente,
       totalGanadores: ganadores.length,
       partidosCreados: creados.length,
@@ -231,5 +302,3 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     };
   });
 };
-
-

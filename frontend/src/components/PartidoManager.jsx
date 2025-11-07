@@ -6,17 +6,18 @@ import {
 } from 'antd';
 import {
   CalendarOutlined, EnvironmentOutlined, ClockCircleOutlined,
-  TrophyOutlined, EditOutlined, CheckCircleOutlined, FireOutlined,
+  TrophyOutlined, CheckCircleOutlined, FireOutlined,
   PlayCircleOutlined, StopOutlined, TeamOutlined
 } from '@ant-design/icons';
 import { partidoService } from '../services/partido.services.js';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import 'dayjs/locale/es';
 
 dayjs.extend(customParseFormat);
+dayjs.locale('es');
 
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
   const [partidos, setPartidos] = useState([]);
@@ -54,7 +55,6 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
     setPartidoSeleccionado(partido);
     formProgramar.resetFields();
     
-    // Si ya tiene datos, precargarlos
     if (partido.canchaId) {
       formProgramar.setFieldsValue({
         canchaId: partido.canchaId,
@@ -71,7 +71,6 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
     setPartidoSeleccionado(partido);
     formResultado.resetFields();
     
-    // Si ya tiene resultados, precargarlos
     if (partido.golesA !== null) {
       formResultado.setFieldsValue({
         golesA: partido.golesA,
@@ -146,20 +145,12 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
     return acc;
   }, {});
 
-  const estadisticas = {
-    total: partidos.length,
-    pendientes: partidos.filter(p => p.estado === 'pendiente').length,
-    programados: partidos.filter(p => p.estado === 'programado').length,
-    finalizados: partidos.filter(p => p.estado === 'finalizado').length
-  };
-
   const columns = [
     {
-      title: '#',
-      dataIndex: 'ordenLlave',
-      key: 'ordenLlave',
+      title: 'N°',
+      key: 'orden',
       width: 60,
-      render: (orden) => <Badge count={orden || '-'} style={{ backgroundColor: '#108ee9' }} />
+      render: (_, __, index) => <strong>{index + 1}</strong>
     },
     {
       title: 'Equipo A',
@@ -243,7 +234,7 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
         if (!record.fecha) return <Tag>Por programar</Tag>;
         return (
           <Space direction="vertical" size={0}>
-            <span><CalendarOutlined /> {record.fecha}</span>
+            <span><CalendarOutlined /> {dayjs(record.fecha).format('DD/MM/YYYY')}</span>
             {record.horaInicio && (
               <span><ClockCircleOutlined /> {record.horaInicio} - {record.horaFin}</span>
             )}
@@ -283,55 +274,18 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
   ];
 
   const disabledDate = (current) => {
-    // No permitir fechas pasadas
-    return current && current < dayjs().startOf('day');
+    if (!current) return false;
+    
+    // Deshabilitar fechas pasadas
+    if (current < dayjs().startOf('day')) return true;
+    
+    // Deshabilitar sábados (6) y domingos (0)
+    const day = current.day();
+    return day === 0 || day === 6;
   };
 
   return (
     <div>
-      {/* Estadísticas */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Total Partidos"
-              value={estadisticas.total}
-              prefix={<FireOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Pendientes"
-              value={estadisticas.pendientes}
-              valueStyle={{ color: '#faad14' }}
-              prefix={<ClockCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Programados"
-              value={estadisticas.programados}
-              valueStyle={{ color: '#1890ff' }}
-              prefix={<CalendarOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Finalizados"
-              value={estadisticas.finalizados}
-              valueStyle={{ color: '#52c41a' }}
-              prefix={<CheckCircleOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       {/* Filtros */}
       <Card style={{ marginBottom: 16 }}>
         <Space>
@@ -365,46 +319,46 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
 
       {/* Tabla de Partidos por Ronda */}
       <Tabs
-  defaultActiveKey="todos"
-  items={[
-    {
-      key: 'todos',
-      label: 'Todos los Partidos',
-      children: (
-        <Table
-          columns={columns}
-          dataSource={partidos}
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: 1400 }}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: <Empty description="No hay partidos registrados" /> }}
-        />
-      )
-    },
-    ...getRondasUnicas().map((ronda) => ({
-      key: ronda,
-      label: (
-        <Space>
-          <FireOutlined />
-          {ronda}
-          <Badge count={partidosPorRonda[ronda].length} />
-        </Space>
-      ),
-      children: (
-        <Table
-          columns={columns}
-          dataSource={partidosPorRonda[ronda]}
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: 1400 }}
-          pagination={false}
-          locale={{ emptyText: <Empty description={`No hay partidos en ${ronda}`} /> }}
-        />
-      )
-    }))
-  ]}
-/>
+        defaultActiveKey="todos"
+        items={[
+          {
+            key: 'todos',
+            label: 'Todos los Partidos',
+            children: (
+              <Table
+                columns={columns}
+                dataSource={partidos}
+                loading={loading}
+                rowKey="id"
+                scroll={{ x: false }}
+                pagination={{ pageSize: 10 }}
+                locale={{ emptyText: <Empty description="No hay partidos registrados" /> }}
+              />
+            )
+          },
+          ...getRondasUnicas().map((ronda) => ({
+            key: ronda,
+            label: (
+              <Space>
+                <FireOutlined />
+                {ronda}
+                <Badge count={partidosPorRonda[ronda].length} />
+              </Space>
+            ),
+            children: (
+              <Table
+                columns={columns}
+                dataSource={partidosPorRonda[ronda]}
+                loading={loading}
+                rowKey="id"
+                scroll={{ x: false }}
+                pagination={false}
+                locale={{ emptyText: <Empty description={`No hay partidos en ${ronda}`} /> }}
+              />
+            )
+          }))
+        ]}
+      />
 
       {/* Modal Programar Partido */}
       <Modal
@@ -469,7 +423,7 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
               >
                 <DatePicker
                   style={{ width: '100%' }}
-                  format="YYYY-MM-DD"
+                  format="DD/MM/YYYY"
                   disabledDate={disabledDate}
                   placeholder="Seleccionar fecha"
                 />
@@ -537,7 +491,7 @@ const PartidoManager = ({ campeonatoId, canchas = [], onUpdate }) => {
                 </div>
                 {partidoSeleccionado.fecha && (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#666' }}>
-                    <CalendarOutlined /> {partidoSeleccionado.fecha} • 
+                    <CalendarOutlined /> {dayjs(partidoSeleccionado.fecha).format('DD/MM/YYYY')} • 
                     <ClockCircleOutlined /> {partidoSeleccionado.horaInicio}
                   </div>
                 )}

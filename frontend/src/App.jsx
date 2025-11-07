@@ -31,6 +31,11 @@ import Estadisticas from './pages/Estadisticas.jsx';
 import MisEstadisticas from './pages/MisEstadisticas.jsx';
 import AlineacionCompleta from './pages/AlineacionCompleta.jsx';
 import Campeonatos from './pages/Campeonatos.jsx';
+import CampeonatoInfo from './pages/CampeonatoInfo';
+import CampeonatoEquipos from './pages/CampeonatoEquipos';
+import CampeonatoFixture from './pages/CampeonatoFixture';
+import CampeonatoTabla from './pages/CampeonatoTabla';
+
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -73,6 +78,10 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/campeonatos/:id/info" element={<CampeonatoInfo />} />
+  <Route path="/campeonatos/:id/equipos" element={<CampeonatoEquipos />} />
+  <Route path="/campeonatos/:id/fixture" element={<CampeonatoFixture />} />
+  <Route path="/campeonatos/:id/tabla" element={<CampeonatoTabla />} />
 
       {/* Alineación Completa - Entrenador y SuperAdmin */}
       

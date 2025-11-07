@@ -17,8 +17,6 @@ import {
   Col,
   Badge,
   Empty,
-  Drawer,
-  Descriptions,
   ConfigProvider,
   Pagination
 } from 'antd';
@@ -33,31 +31,28 @@ import {
   TrophyOutlined,
   TeamOutlined,
   CalendarOutlined,
-  InfoCircleOutlined,
-  FireOutlined,
-  ReloadOutlined,
   ClearOutlined
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { campeonatoService } from '../services/campeonato.services.js';
-import { obtenerCanchas } from '../services/cancha.services.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import EquipoManager from '../components/EquipoManager.jsx';
-import PartidoManager from '../components/PartidoManager.jsx';
-import MainLayout from '../components/MainLayout.jsx';
-import { Tabs } from 'antd';
+import MainLayout, { useCampeonatoActivo } from '../components/MainLayout.jsx';
 
 const { Option } = Select;
 
-export default function Campeonatos() {
+// 🔥 Componente interno que usa el hook
+function CampeonatosContent() {
+  const navigate = useNavigate();
   const { usuario } = useAuth();
+  
+  // ✅ Ahora el hook está dentro del Provider
+  const { setCampeonatoActivo } = useCampeonatoActivo();
+  
   const [campeonatos, setCampeonatos] = useState([]);
   const [campeonatosOriginales, setCampeonatosOriginales] = useState([]);
-  const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [campeonatoDetalle, setCampeonatoDetalle] = useState(null);
   const [form] = Form.useForm();
 
   // Estado para los filtros
@@ -93,20 +88,9 @@ export default function Campeonatos() {
     }
   }, []);
 
-  const cargarCanchas = useCallback(async () => {
-    try {
-      const resultado = await obtenerCanchas({ page: 1, limit: 100 });
-      const lista = resultado?.canchas || resultado || [];
-      setCanchas(lista);
-    } catch (error) {
-      console.error('Error al cargar canchas:', error);
-    }
-  }, []);
-
   useEffect(() => {
     cargarCampeonatos();
-    cargarCanchas();
-  }, [cargarCampeonatos, cargarCanchas]);
+  }, [cargarCampeonatos]);
 
   // Aplicar filtros combinados
   const aplicarFiltros = useCallback(() => {
@@ -230,17 +214,16 @@ export default function Campeonatos() {
     }
   };
 
-  const verDetalle = async (id) => {
-    setLoading(true);
-    try {
-      const data = await campeonatoService.obtener(id);
-      setCampeonatoDetalle(data);
-      setDrawerVisible(true);
-    } catch {
-      message.error('Error al cargar detalle');
-    } finally {
-      setLoading(false);
-    }
+  // 🌟 Nueva función: Ir a detalle y establecer como activo
+  const verDetalle = async (campeonato) => {
+    // Establecer campeonato como activo en el sidebar
+    setCampeonatoActivo({
+      id: campeonato.id,
+      nombre: campeonato.nombre
+    });
+    
+    // Navegar a la página de información del campeonato
+    navigate(`/campeonatos/${campeonato.id}/info`);
   };
 
   const sortearPrimeraRonda = async (id) => {
@@ -285,6 +268,17 @@ export default function Campeonatos() {
     return colors[estado] || 'default';
   };
 
+  const formatEstadoTexto = (estado) => {
+    const map = {
+      'creado': 'Creado',
+      'en_juego': 'En Juego',
+      'finalizado': 'Finalizado',
+      'cancelado': 'Cancelado'
+    };
+    // Devuelve el texto formateado, o el original si no se encuentra
+    return map[estado] || estado;
+  };
+
   const columns = useMemo(() => [
     {
       title: 'Nombre',
@@ -310,11 +304,15 @@ export default function Campeonatos() {
       title: 'Año/Semestre',
       render: (_, record) => `${record.anio} - S${record.semestre}`
     },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      render: (estado) => <Tag color={getEstadoColor(estado)}>{estado}</Tag>
-    },
+   {
+  title: 'Estado',
+  dataIndex: 'estado',
+  render: (estado) => (
+    <Tag color={getEstadoColor(estado)}>
+      {formatEstadoTexto(estado)}
+    </Tag>
+  )
+},
     {
       title: 'Equipos',
       render: (_, record) => (
@@ -337,7 +335,7 @@ export default function Campeonatos() {
       render: (_, record) => (
         <Space>
           <Tooltip title="Ver detalle">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => verDetalle(record.id)} />
+            <Button type="text" icon={<EyeOutlined />} onClick={() => verDetalle(record)} />
           </Tooltip>
           <Tooltip title="Editar">
             <Button type="text" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
@@ -374,278 +372,191 @@ export default function Campeonatos() {
   ], []);
 
   return (
-    <MainLayout>
-      <ConfigProvider locale={locale}>
-        <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
-          {/* Filtros y acciones */}
-          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col flex="auto">
-                <Space wrap>
-                  <Select
-                    style={{ width: 120 }}
-                    placeholder="Formato"
-                    allowClear
-                    value={filtros.formato}
-                    onChange={(value) => handleFiltroChange('formato', value)}
-                  >
+    <ConfigProvider locale={locale}>
+      <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
+        {/* Filtros y acciones */}
+        <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col flex="auto">
+              <Space wrap>
+                <Select
+                  style={{ width: 120 }}
+                  placeholder="Formato"
+                  allowClear
+                  value={filtros.formato}
+                  onChange={(value) => handleFiltroChange('formato', value)}
+                >
+                  <Option value="5v5">5v5</Option>
+                  <Option value="7v7">7v7</Option>
+                  <Option value="11v11">11v11</Option>
+                </Select>
+
+                <Select
+                  style={{ width: 130 }}
+                  placeholder="Género"
+                  allowClear
+                  value={filtros.genero}
+                  onChange={(value) => handleFiltroChange('genero', value)}
+                >
+                  <Option value="masculino">Masculino</Option>
+                  <Option value="femenino">Femenino</Option>
+                  <Option value="mixto">Mixto</Option>
+                </Select>
+
+                <Select
+                  style={{ width: 100 }}
+                  placeholder="Año"
+                  allowClear
+                  value={filtros.anio}
+                  onChange={(value) => handleFiltroChange('anio', value)}
+                >
+                  {aniosDisponibles.map(anio => (
+                    <Option key={anio} value={anio}>{anio}</Option>
+                  ))}
+                </Select>
+
+                <Select
+                  style={{ width: 110 }}
+                  placeholder="Semestre"
+                  allowClear
+                  value={filtros.semestre}
+                  onChange={(value) => handleFiltroChange('semestre', value)}
+                >
+                  <Option value={1}>Semestre 1</Option>
+                  <Option value={2}>Semestre 2</Option>
+                </Select>
+
+                <Select
+                  style={{ width: 130 }}
+                  placeholder="Estado"
+                  allowClear
+                  value={filtros.estado}
+                  onChange={(value) => handleFiltroChange('estado', value)}
+                >
+                  <Option value="creado">Creado</Option>
+                  <Option value="en_juego">En Juego</Option>
+                  <Option value="finalizado">Finalizado</Option>
+                  <Option value="cancelado">Cancelado</Option>
+                </Select>
+
+                <Button 
+                  icon={<ClearOutlined />} 
+                  onClick={limpiarFiltros}
+                  disabled={!Object.values(filtros).some(v => v !== null)}
+                >
+                  Limpiar
+                </Button>
+              </Space>
+            </Col>
+            <Col>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+                Nuevo Campeonato
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Tabla principal */}
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={campeonatos}
+            loading={loading}
+            rowKey="id"
+            pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => `Total: ${total} campeonatos`,
+            pageSizeOptions: ['5', '10', '20'],
+            onChange: (page, size) => {
+              setPagination({ ...pagination, current: page, pageSize: size });
+            },
+            position: ['bottomLeft'] // Para que quede centrado como lo tenías
+          }}
+            scroll={{ x: 1000 }}
+            size="middle"
+            locale={{ emptyText: <Empty description="No hay campeonatos" /> }}
+          />
+
+         
+        </Card>
+
+        {/* Modal Crear/Editar */}
+        <Modal
+          title={editingId ? 'Editar Campeonato' : 'Nuevo Campeonato'}
+          open={modalVisible}
+          onCancel={cerrarModal}
+          footer={null}
+          width={600}
+        >
+          <Form form={form} layout="vertical" onFinish={handleSubmit}>
+            <Form.Item
+              name="nombre"
+              label="Nombre del Campeonato"
+              rules={[{ required: true, message: 'Campo obligatorio' }]}
+            >
+              <Input placeholder="Ej: Copa Primavera" />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="formato" label="Formato" rules={[{ required: true }]}>
+                  <Select placeholder="Seleccionar formato">
                     <Option value="5v5">5v5</Option>
                     <Option value="7v7">7v7</Option>
                     <Option value="11v11">11v11</Option>
                   </Select>
-
-                  <Select
-                    style={{ width: 130 }}
-                    placeholder="Género"
-                    allowClear
-                    value={filtros.genero}
-                    onChange={(value) => handleFiltroChange('genero', value)}
-                  >
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
+                  <Select placeholder="Seleccionar género">
                     <Option value="masculino">Masculino</Option>
                     <Option value="femenino">Femenino</Option>
                     <Option value="mixto">Mixto</Option>
                   </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-                  <Select
-                    style={{ width: 100 }}
-                    placeholder="Año"
-                    allowClear
-                    value={filtros.anio}
-                    onChange={(value) => handleFiltroChange('anio', value)}
-                  >
-                    {aniosDisponibles.map(anio => (
-                      <Option key={anio} value={anio}>{anio}</Option>
-                    ))}
-                  </Select>
-
-                  <Select
-                    style={{ width: 110 }}
-                    placeholder="Semestre"
-                    allowClear
-                    value={filtros.semestre}
-                    onChange={(value) => handleFiltroChange('semestre', value)}
-                  >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="anio" label="Año" rules={[{ required: true }]}>
+                  <InputNumber style={{ width: '100%' }} min={2020} max={2100} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="semestre" label="Semestre" rules={[{ required: true }]}>
+                  <Select>
                     <Option value={1}>Semestre 1</Option>
                     <Option value={2}>Semestre 2</Option>
                   </Select>
-
-                  <Select
-                    style={{ width: 130 }}
-                    placeholder="Estado"
-                    allowClear
-                    value={filtros.estado}
-                    onChange={(value) => handleFiltroChange('estado', value)}
-                  >
-                    <Option value="creado">Creado</Option>
-                    <Option value="en_juego">En Juego</Option>
-                    <Option value="finalizado">Finalizado</Option>
-                    <Option value="cancelado">Cancelado</Option>
-                  </Select>
-
-                  <Button 
-                    icon={<ClearOutlined />} 
-                    onClick={limpiarFiltros}
-                    disabled={!Object.values(filtros).some(v => v !== null)}
-                  >
-                    Limpiar
-                  </Button>
-                </Space>
-              </Col>
-              <Col>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-                  Nuevo Campeonato
-                </Button>
+                </Form.Item>
               </Col>
             </Row>
-          </Card>
 
-          {/* Tabla principal */}
-          <Card>
-            <Table
-              columns={columns}
-              dataSource={campeonatos}
-              loading={loading}
-              rowKey="id"
-              pagination={false}
-              scroll={{ x: 1000 }}
-              size="middle"
-              locale={{ emptyText: <Empty description="No hay campeonatos" /> }}
-            />
-
-            {campeonatos.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: 24 }}>
-                <Pagination
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  total={pagination.total}
-                  showSizeChanger
-                  showTotal={(total) => `Total: ${total} campeonatos`}
-                  pageSizeOptions={['5', '10', '20']}
-                  onChange={(page, size) => setPagination({ ...pagination, current: page, pageSize: size })}
-                />
-              </div>
-            )}
-          </Card>
-
-          {/* Modal Crear/Editar */}
-          <Modal
-            title={editingId ? 'Editar Campeonato' : 'Nuevo Campeonato'}
-            open={modalVisible}
-            onCancel={cerrarModal}
-            footer={null}
-            width={600}
-          >
-            <Form form={form} layout="vertical" onFinish={handleSubmit}>
-              <Form.Item
-                name="nombre"
-                label="Nombre del Campeonato"
-                rules={[{ required: true, message: 'Campo obligatorio' }]}
-              >
-                <Input placeholder="Ej: Copa Primavera" />
-              </Form.Item>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="formato" label="Formato" rules={[{ required: true }]}>
-                    <Select placeholder="Seleccionar formato">
-                      <Option value="5v5">5v5</Option>
-                      <Option value="7v7">7v7</Option>
-                      <Option value="11v11">11v11</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
-                    <Select placeholder="Seleccionar género">
-                      <Option value="masculino">Masculino</Option>
-                      <Option value="femenino">Femenino</Option>
-                      <Option value="mixto">Mixto</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="anio" label="Año" rules={[{ required: true }]}>
-                    <InputNumber style={{ width: '100%' }} min={2020} max={2100} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="semestre" label="Semestre" rules={[{ required: true }]}>
-                    <Select>
-                      <Option value={1}>Semestre 1</Option>
-                      <Option value={2}>Semestre 2</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item style={{ textAlign: 'right' }}>
-                <Space>
-                  <Button onClick={cerrarModal}>Cancelar</Button>
-                  <Button type="primary" htmlType="submit">
-                    {editingId ? 'Guardar Cambios' : 'Crear Campeonato'}
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Modal>
-
-          {/* Drawer Detalle */}
-          <Drawer
-            title={
+            <Form.Item style={{ textAlign: 'right' }}>
               <Space>
-                <TrophyOutlined />
-                <span>Detalle del Campeonato</span>
+                <Button onClick={cerrarModal}>Cancelar</Button>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  {editingId ? 'Guardar Cambios' : 'Crear Campeonato'}
+                </Button>
               </Space>
-            }
-            width={1000}
-            open={drawerVisible}
-            onClose={() => {
-              setDrawerVisible(false);
-              setCampeonatoDetalle(null);
-            }}
-          >
-            {campeonatoDetalle && (
-              <Tabs
-                defaultActiveKey="1"
-                items={[
-                  {
-                    key: '1',
-                    label: (
-                      <span>
-                        <InfoCircleOutlined /> Información
-                      </span>
-                    ),
-                    children: (
-                      <>
-                        <Descriptions bordered column={1} size="small">
-                          <Descriptions.Item label="Nombre">{campeonatoDetalle.nombre}</Descriptions.Item>
-                          <Descriptions.Item label="Formato">{campeonatoDetalle.formato}</Descriptions.Item>
-                          <Descriptions.Item label="Género">{campeonatoDetalle.genero}</Descriptions.Item>
-                          <Descriptions.Item label="Año/Semestre">
-                            {campeonatoDetalle.anio} - S{campeonatoDetalle.semestre}
-                          </Descriptions.Item>
-                          <Descriptions.Item label="Estado">
-                            <Tag color={getEstadoColor(campeonatoDetalle.estado)}>
-                              {campeonatoDetalle.estado}
-                            </Tag>
-                          </Descriptions.Item>
-                        </Descriptions>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Card>
+    </ConfigProvider>
+  );
+}
 
-                        <Card title="Equipos Participantes" style={{ marginTop: 16 }}>
-                          {campeonatoDetalle.equipos?.length > 0 ? (
-                            <ul>
-                              {campeonatoDetalle.equipos.map((eq) => (
-                                <li key={eq.id}>
-                                  <TeamOutlined /> {eq.nombre}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <Empty description="No hay equipos registrados" />
-                          )}
-                        </Card>
-                      </>
-                    )
-                  },
-                  {
-                    key: '2',
-                    label: (
-                      <span>
-                        <TeamOutlined /> Equipos
-                      </span>
-                    ),
-                    children: (
-                      <EquipoManager
-                        campeonatoId={campeonatoDetalle.id}
-                        campeonatoInfo={campeonatoDetalle}
-                        onUpdate={() => verDetalle(campeonatoDetalle.id)}
-                      />
-                    )
-                  },
-                  {
-                    key: '3',
-                    label: (
-                      <span>
-                        <FireOutlined /> Fixture
-                      </span>
-                    ),
-                    children: (
-                      <PartidoManager
-                        campeonatoId={campeonatoDetalle.id}
-                        canchas={canchas}
-                        onUpdate={() => verDetalle(campeonatoDetalle.id)}
-                      />
-                    )
-                  }
-                ]}
-              />
-            )}
-          </Drawer>
-        </Card>
-      </ConfigProvider>
+// 🎯 Componente principal que envuelve con MainLayout
+export default function Campeonatos() {
+  return (
+    <MainLayout>
+      <CampeonatosContent />
     </MainLayout>
   );
 }

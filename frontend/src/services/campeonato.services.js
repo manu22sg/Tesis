@@ -40,10 +40,8 @@ export const campeonatoService = {
   },
 
   // Generar siguiente ronda
-  generarSiguienteRonda: async (id, rondaAnterior) => {
-    const response = await api.post(`${CAMPEONATOS_BASE}/${id}/siguiente-ronda`, {
-      rondaAnterior
-    });
+  generarSiguienteRonda: async (id) => {
+    const response = await api.post(`${CAMPEONATOS_BASE}/${id}/siguiente-ronda`, {});
     return response.data;
   }
 };

@@ -19,7 +19,7 @@ export const programarPartidoBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).required(),
   horaInicio: Joi.string().pattern(TIME_HH_MM).required(),
-  horaFin: Joi.string().pattern(TIME_HH_MM).required(), // ✅ ahora es requerido, no opcional
+  horaFin: Joi.string().pattern(TIME_HH_MM).required(), 
 }).custom((value, helpers) => {
   const hoyStr = getLocalDate();
   const hoy = startOfDay(new Date(hoyStr));
@@ -50,6 +50,8 @@ export const programarPartidoBody = Joi.object({
 export const actualizarPartidoBody = Joi.object({
   golesA: Joi.number().integer().min(0).optional(),
   golesB: Joi.number().integer().min(0).optional(),
+  penalesA: Joi.number().integer().min(0).allow(null).optional(),
+  penalesB: Joi.number().integer().min(0).allow(null).optional(),
   estado: Joi.string().valid(...ESTADOS_VALIDOS).optional(),
   ganadorId: Joi.number().integer().positive().allow(null).optional(),
 });
@@ -71,4 +73,6 @@ function formatErrors(error) {
 export const registrarResultadoBody = Joi.object({
   golesA: Joi.number().integer().min(0).required(),
   golesB: Joi.number().integer().min(0).required(),
+  penalesA: Joi.number().integer().min(0).allow(null).optional(),
+  penalesB: Joi.number().integer().min(0).allow(null).optional(),
 });

@@ -142,7 +142,13 @@ function hayConflictoHorario(a, b) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-export const registrarResultado = async ({ partidoId, golesA, golesB }) => {
+export const registrarResultado = async ({ 
+  partidoId, 
+  golesA, 
+  golesB, 
+  penalesA = null, 
+  penalesB = null 
+}) => {
   const repo = PartidoRepo();
   const partido = await repo.findOne({
     where: { id: Number(partidoId) },
@@ -151,34 +157,72 @@ export const registrarResultado = async ({ partidoId, golesA, golesB }) => {
 
   if (!partido) throw new Error("Partido no encontrado");
 
-  //  Validar estado
+  // Validar estado
   if (partido.estado === "finalizado")
     throw new Error("El partido ya fue finalizado anteriormente");
-  if (!["programado", "en_juego"].includes(partido.estado))
+  if (!["pendiente", "programado", "en_juego"].includes(partido.estado))
     throw new Error(`No se puede registrar resultado en estado ${partido.estado}`);
 
-  //  Validar goles
+  // Validar goles
   const gA = Number(golesA);
   const gB = Number(golesB);
   if (isNaN(gA) || isNaN(gB) || gA < 0 || gB < 0)
     throw new Error("Los goles deben ser números válidos y no negativos");
 
-  //  Determinar ganador automáticamente
+  //  Validar penales si hay empate
   let ganador = null;
-  if (gA > gB) ganador = partido.equipoAId;
-  else if (gB > gA) ganador = partido.equipoBId;
-  else ganador = null; // empate
+  let definidoPorPenales = false;
+  
+  if (gA > gB) {
+    ganador = partido.equipoAId;
+  } else if (gB > gA) {
+    ganador = partido.equipoBId;
+  } else {
+    // EMPATE - Verificar si es eliminación directa
+    const esEliminacionDirecta = ["octavos", "cuartos", "semifinal", "final"].includes(
+      partido.ronda?.toLowerCase()
+    );
 
-  //  Actualizar partido
+
+    if (esEliminacionDirecta) {
+      // En eliminación directa SE REQUIEREN penales
+      if (penalesA === null || penalesB === null) {
+        console.log(penalesA, penalesB);
+        throw new Error(
+          "En eliminación directa no puede haber empate. Debes definir el resultado por penales."
+        );
+      }
+
+      const pA = Number(penalesA);
+      const pB = Number(penalesB);
+
+      if (isNaN(pA) || isNaN(pB) || pA < 0 || pB < 0) {
+        throw new Error("Los penales deben ser números válidos y no negativos");
+      }
+
+      if (pA === pB) {
+        throw new Error("Los penales no pueden terminar empatados. Debe haber un ganador.");
+      }
+
+      ganador = pA > pB ? partido.equipoAId : partido.equipoBId;
+      definidoPorPenales = true;
+
+      partido.penalesA = pA;
+      partido.penalesB = pB;
+    } else {
+      // En fase de grupos puede quedar empate
+      ganador = null;
+    }
+  }
+
+  // Actualizar partido
   partido.golesA = gA;
   partido.golesB = gB;
   partido.ganadorId = ganador;
+  partido.definidoPorPenales = definidoPorPenales;
   partido.estado = "finalizado";
 
   const actualizado = await repo.save(partido);
-
-  //  (opcional) actualizar estadísticas globales o de jugadores
-  // await actualizarEstadisticasGenerales(partido);
 
   return actualizado;
 };

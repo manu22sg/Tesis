@@ -1,5 +1,6 @@
 import { programarPartido,registrarResultado, obtenerPartidosPorCampeonato } from "../services/partidoServices.js";
 import { success, error } from "../utils/responseHandler.js";
+
 export const asignarPartido = async (req, res) => {
   try {
     const [partido, err] = await programarPartido(req.params.id, req.body);
@@ -13,16 +14,22 @@ export const asignarPartido = async (req, res) => {
 export const postRegistrarResultado = async (req, res) => {
   try {
     const partidoId = Number(req.params.id);
-    const { golesA, golesB } = req.body;
+    const { golesA, golesB, penalesA, penalesB } = req.body; 
 
-    const partido = await registrarResultado({ partidoId, golesA, golesB });
+    const partido = await registrarResultado({ 
+      partidoId, 
+      golesA, 
+      golesB,
+      penalesA,    
+      penalesB     
+    });
+    
     return success(res, partido, "Resultado registrado correctamente");
   } catch (e) {
     console.error("Error registrando resultado:", e);
     return error(res, e.message, 400);
   }
 };
-
 
 export const getPartidosPorCampeonato = async (req, res) => {
   try {

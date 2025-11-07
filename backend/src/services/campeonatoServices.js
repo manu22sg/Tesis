@@ -7,7 +7,7 @@ const PartidoRepo = () => AppDataSource.getRepository("PartidoCampeonato");
 const CanchaRepo = () => AppDataSource.getRepository("Cancha");
 
 // -----------------------------------------------------------
-// 📘 CREAR CAMPEONATO (con validaciones de reglas de negocio)
+//  CREAR CAMPEONATO (con validaciones de reglas de negocio)
 // -----------------------------------------------------------
 export const crearCampeonato = async (payload) => {
   const repo = CampeonatoRepo();
