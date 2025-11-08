@@ -340,30 +340,21 @@ const nombreGanador = useMemo(() => {
     return day === 0 || day === 6;
   };
 
-  const disabledHours = () => {
-    const hours = [];
-    // Deshabilitar horas antes de las 8:00
-    for (let i = 0; i < 8; i++) {
-      hours.push(i);
-    }
-    // Deshabilitar horas después de las 18:00
-    for (let i = 19; i < 24; i++) {
-      hours.push(i);
-    }
-    return hours;
-  };
-
-  const disabledMinutes = (selectedHour) => {
-    // Si es después de las 18:00, deshabilitar todos los minutos
-    if (selectedHour > 18) {
-      return Array.from({ length: 60 }, (_, i) => i);
-    }
-    // Si es antes de las 8:00, deshabilitar todos los minutos
-    if (selectedHour < 8) {
-      return Array.from({ length: 60 }, (_, i) => i);
-    }
-    return [];
-  };
+  const disabledTime = () => ({
+    disabledHours: () => {
+      const hours = [];
+      // Horas antes de las 8:00 (0-7)
+      for (let i = 0; i < 8; i++) {
+        hours.push(i);
+      }
+      // Horas después de las 18:00 (19-23)
+      for (let i = 19; i < 24; i++) {
+        hours.push(i);
+      }
+      return hours;
+    },
+    // No necesitamos deshabilitar minutos específicos dentro de las horas válidas
+  });
 
   
 
@@ -471,7 +462,6 @@ const ultimaRonda = rondasOrdenadas[0];
         const cancha = canchas.find(c => c.id === id);
         return (
           <Space>
-            <EnvironmentOutlined />
             <Text>{cancha?.nombre || `Cancha ${id}`}</Text>
           </Space>
         );
@@ -486,11 +476,11 @@ const ultimaRonda = rondasOrdenadas[0];
         return (
           <Space direction="vertical" size={0}>
             <Text>
-              <CalendarOutlined /> {dayjs(record.fecha).format('DD/MM/YYYY')}
+              {dayjs(record.fecha).format('DD/MM/YYYY')}
             </Text>
             {record.horaInicio && (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                <ClockCircleOutlined /> {record.horaInicio} - {record.horaFin || '...'}
+                {record.horaInicio} - {record.horaFin || '...'}
               </Text>
             )}
           </Space>
@@ -866,8 +856,8 @@ const ultimaRonda = rondasOrdenadas[0];
                       format="HH:mm"
                       minuteStep={15}
                       placeholder="Entre 08:00 y 18:00"
-                      disabledHours={disabledHours}
-                      disabledMinutes={disabledMinutes}
+                      disabledTime={disabledTime}
+                      hideDisabledOptions
                       showNow={false}
                     />
                   </Form.Item>
@@ -903,8 +893,8 @@ const ultimaRonda = rondasOrdenadas[0];
                       format="HH:mm"
                       minuteStep={15}
                       placeholder="Entre 08:00 y 18:00"
-                      disabledHours={disabledHours}
-                      disabledMinutes={disabledMinutes}
+                     disabledTime={disabledTime}
+                      hideDisabledOptions
                       showNow={false}
                     />
                   </Form.Item>

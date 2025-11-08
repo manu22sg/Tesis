@@ -31,6 +31,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   const [buscandoSugerencias, setBuscandoSugerencias] = useState(false);
   const [valorBusqueda, setValorBusqueda] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [formularioCompleto, setFormularioCompleto] = useState(false);
 
   useEffect(() => {
     if (campeonatoId) {
@@ -136,6 +137,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     setValorBusqueda('');
     setUsuarioSeleccionado(null);
     setOpcionesAutoComplete([]);
+    setFormularioCompleto(false);
     setModalJugadorVisible(true);
   };
 
@@ -175,7 +177,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     return () => clearTimeout(timer);
   }, [valorBusqueda, jugadoresEquipo, modalJugadorVisible]);
 
-  const handleAgregarJugador = async (values) => {
+  const handleAgregarJugador = async (values, continuar = false) => {
     if (!usuarioSeleccionado) {
       message.error('Debes seleccionar un usuario de la lista');
       return;
@@ -191,10 +193,6 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
         posicion: values.posicion || null
       });
       message.success('Jugador agregado exitosamente');
-      setModalJugadorVisible(false);
-      formJugador.resetFields();
-      setValorBusqueda('');
-      setUsuarioSeleccionado(null);
       
       // 🔥 FIX: Recargar tanto la lista de equipos como la de jugadores
       await cargarEquipos(); // Actualiza el contador en la tabla principal
@@ -203,6 +201,22 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       // Si el drawer está abierto, recargar la lista de jugadores
       if (drawerVisible && equipoSeleccionado) {
         await verJugadores(equipoSeleccionado);
+      }
+
+      if (continuar) {
+        // Limpiar formulario para agregar otro jugador
+        formJugador.resetFields();
+        setValorBusqueda('');
+        setUsuarioSeleccionado(null);
+        setOpcionesAutoComplete([]);
+        setFormularioCompleto(false);
+      } else {
+        // Cerrar modal
+        setModalJugadorVisible(false);
+        formJugador.resetFields();
+        setValorBusqueda('');
+        setUsuarioSeleccionado(null);
+        setFormularioCompleto(false);
       }
     } catch (error) {
       message.error(error?.response?.data?.error || 'Error al agregar jugador');
@@ -336,6 +350,15 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     'Mediocampista Defensivo', 'Mediocampista Central', 'Mediocampista Ofensivo',
     'Extremo Derecho', 'Extremo Izquierdo', 'Delantero Centro'
   ];
+
+  // Validar que el formulario esté completo
+  const validarFormularioCompleto = () => {
+    const valores = formJugador.getFieldsValue();
+    const completo = usuarioSeleccionado && 
+                     valores.numeroCamiseta && 
+                     valores.posicion;
+    setFormularioCompleto(completo);
+  };
 
   return (
     <div>
@@ -580,10 +603,10 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                             </span>
                           )}
                           <Space size="large" style={{ marginTop: 4 }}>
-                            <span> Goles: <strong>{jugador.goles || 0}</strong></span>
-                            <span> Asistencias: <strong>{jugador.asistencias || 0}</strong></span>
+                            <span>⚽ Goles: <strong>{jugador.goles || 0}</strong></span>
+                            <span>🎯 Asistencias: <strong>{jugador.asistencias || 0}</strong></span>
                             {jugador.atajadas > 0 && (
-                              <span> Atajadas: <strong>{jugador.atajadas}</strong></span>
+                              <span>🧤 Atajadas: <strong>{jugador.atajadas}</strong></span>
                             )}
                           </Space>
                         </Space>
@@ -614,16 +637,49 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           setValorBusqueda('');
           setUsuarioSeleccionado(null);
         }}
-        onOk={() => formJugador.submit()}
-        confirmLoading={loading}
-        okText="Agregar"
-        cancelText="Cancelar"
-        okButtonProps={{ disabled: !usuarioSeleccionado }}
+        footer={[
+          <Button 
+            key="cancel" 
+            onClick={() => {
+              setModalJugadorVisible(false);
+              formJugador.resetFields();
+              setValorBusqueda('');
+              setUsuarioSeleccionado(null);
+              setFormularioCompleto(false);
+            }}
+          >
+            Cancelar
+          </Button>,
+          <Button
+            key="add-continue"
+            type="default"
+            icon={<PlusOutlined />}
+            onClick={() => formJugador.submit()}
+            loading={loading}
+            disabled={!formularioCompleto}
+          >
+            Agregar y Continuar
+          </Button>,
+          <Button
+            key="add-close"
+            type="primary"
+            onClick={() => {
+              formJugador.validateFields().then(values => {
+                handleAgregarJugador(values, false);
+              });
+            }}
+            loading={loading}
+            disabled={!formularioCompleto}
+          >
+            Agregar y Cerrar
+          </Button>
+        ]}
       >
         <Form
           form={formJugador}
           layout="vertical"
-          onFinish={handleAgregarJugador}
+          onFinish={(values) => handleAgregarJugador(values, true)}
+          onValuesChange={validarFormularioCompleto}
           autoComplete="off"
         >
           <Form.Item
@@ -638,6 +694,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
               onSelect={(value, option) => {
                 setUsuarioSeleccionado(option.usuario);
                 setValorBusqueda(value);
+                validarFormularioCompleto();
               }}
               style={{ width: '100%' }}
               notFoundContent={
@@ -651,6 +708,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                 onClear={() => {
                   setUsuarioSeleccionado(null);
                   setValorBusqueda('');
+                  setFormularioCompleto(false);
                 }}
               />
             </AutoComplete>
@@ -678,6 +736,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                 name="numeroCamiseta"
                 label="Número de Camiseta"
                 rules={[
+                  { required: true, message: 'El número es obligatorio' },
                   { type: 'number', min: 1, max: 99, message: 'Entre 1 y 99' }
                 ]}
               >

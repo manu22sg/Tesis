@@ -226,37 +226,7 @@ function CampeonatosContent() {
     navigate(`/campeonatos/${campeonato.id}/info`);
   };
 
-  const sortearPrimeraRonda = async (id) => {
-    setLoading(true);
-    try {
-      await campeonatoService.sortearPrimeraRonda(id);
-      message.success('Primera ronda sorteada');
-      cargarCampeonatos();
-    } catch {
-      message.error('Error al sortear ronda');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generarSiguienteRonda = async (id) => {
-    Modal.confirm({
-      title: 'Generar Siguiente Ronda',
-      content: <Input placeholder="Número de ronda anterior" type="number" id="rondaAnteriorInput" />,
-      onOk: async () => {
-        const input = document.getElementById('rondaAnteriorInput');
-        const ronda = input?.value;
-        if (!ronda) return message.error('Debes ingresar un número de ronda');
-        try {
-          await campeonatoService.generarSiguienteRonda(id, parseInt(ronda));
-          message.success('Siguiente ronda generada');
-          cargarCampeonatos();
-        } catch {
-          message.error('Error al generar ronda');
-        }
-      }
-    });
-  };
+  
 
   const getEstadoColor = (estado) => {
     const colors = {
@@ -340,22 +310,8 @@ function CampeonatosContent() {
           <Tooltip title="Editar">
             <Button type="text" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
           </Tooltip>
-          <Tooltip title="Sortear Primera Ronda">
-            <Button
-              type="text"
-              icon={<ThunderboltOutlined />}
-              onClick={() => sortearPrimeraRonda(record.id)}
-              disabled={record.estado !== 'creado'}
-            />
-          </Tooltip>
-          <Tooltip title="Generar Siguiente Ronda">
-            <Button
-              type="text"
-              icon={<PlayCircleOutlined />}
-              onClick={() => generarSiguienteRonda(record.id)}
-              disabled={record.estado !== 'en_juego'}
-            />
-          </Tooltip>
+        
+          
           <Popconfirm
             title="¿Eliminar campeonato?"
             onConfirm={() => handleEliminar(record.id)}
