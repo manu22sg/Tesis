@@ -144,7 +144,6 @@ const AprobarReservasPage = () => {
     if (data?.success) setEstadisticas(data.data);
   };
 
-  // Cargar reservas (usa tu servicio actual; si tu backend soporta todos los estados, te sirve igual)
   const cargarReservas = async (page = 1, limit = 5) => {
     setLoading(true);
     const filtrosFormateados = {};
@@ -358,25 +357,25 @@ const AprobarReservasPage = () => {
             <Row gutter={12} align="middle">
               <Col xs={24} sm={6}>
                 <Select
-                  showSearch
-                  allowClear
-                  placeholder="Nombre o RUT"
-                  filterOption={false}
-                  onSearch={handleBuscarUsuarios}
-                  loading={buscandoUsuarios}
-                  value={filtros.usuarioId || null}
-                  onChange={(value) => {
-                    setFiltros({ ...filtros, usuarioId: value });
-                    setPagination((p) => ({ ...p, current: 1 }));
-                  }}
-                  notFoundContent={buscandoUsuarios ? 'Buscando...' : (usuarios.length === 0 ? null : 'Sin resultados')}
-                  style={{ width: '100%' }}
-                  size="medium"
-                >
+  showSearch
+  allowClear
+  placeholder="Nombre o RUT"
+  filterOption={false}
+  onSearch={handleBuscarUsuarios}
+  loading={buscandoUsuarios}
+  value={filtros.usuarioId || null}
+  onChange={(value) => {
+    setFiltros({ ...filtros, usuarioId: value });
+    setPagination((p) => ({ ...p, current: 1 }));
+  }}
+  notFoundContent={buscandoUsuarios ? 'Buscando...' : (usuarios.length === 0 ? null : 'Sin resultados')}
+  style={{ width: '100%' }}
+  size="medium"
+  suffixIcon={null}  // <-- Agregar esta línea
+>
                   {usuarios.map((user) => (
                     <Option key={user.id} value={user.id}>
-                      {user.nombre} <span style={{ color: '#999' }}>({user.rut})</span>
-                    </Option>
+          {user.nombre} <span>- {user.rut}</span></Option>
                   ))}
                 </Select>
               </Col>
