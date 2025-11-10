@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DatePicker, Button, Card, Table, Tag, message, Spin, ConfigProvider, Pagination, Input, Select, Space } from 'antd';
-import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import { SearchOutlined, FilterOutlined,PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { useNavigate } from 'react-router-dom';
@@ -199,19 +199,14 @@ export default function DisponibilidadCancha() {
               </Button>
             </div>
 
-            {/* 🔹 Solo mostrar botón de reserva a estudiantes y académicos */}
             {puedeReservar && (
               <Button
-                type="default"
-                style={{
-                  borderColor: '#014898',
-                  color: '#014898',
-                  fontWeight: 500,
-                }}
-                onClick={() => navigate('/reservas/nueva')}
-              >
-                Reservar cancha
-              </Button>
+  type="primary"
+  icon={<PlusOutlined />}
+  onClick={() => navigate('/reservas/nueva')}
+>
+  Reservar cancha
+</Button>
             )}
           </div>
 

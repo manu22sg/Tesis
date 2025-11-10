@@ -1,7 +1,7 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { 
   Modal, Button, Alert, Divider, Popconfirm, InputNumber, Space,
-  Typography, message, Switch, Spin 
+  Typography, message, Switch, Spin, Tooltip
 } from 'antd';
 import { 
   KeyOutlined, LockOutlined, UnlockOutlined, CopyOutlined,
@@ -11,7 +11,6 @@ import dayjs from 'dayjs';
 
 const { Text } = Typography;
 
-// Config global para que no se acumulen mensajes
 message.config({ maxCount: 1 });
 
 const TokenSesionModal = memo(function TokenSesionModal({
@@ -23,13 +22,22 @@ const TokenSesionModal = memo(function TokenSesionModal({
   setTokenLength,
   loadingToken,
   onClose,
-  onActivar,
+  onActivar,      // (params) => void  => ahora recibe { ttlMin, tokenLength, requiereUbicacion, latitudToken?, longitudToken? }
   onDesactivar
 }) {
-  const [incluirUbicacion, setIncluirUbicacion] = useState(false);
+  // 🔑 ahora este switch significa "exigir ubicación a los jugadores"
+  const [requiereUbicacion, setRequiereUbicacion] = useState(false);
   const [ubicacion, setUbicacion] = useState({ latitud: null, longitud: null });
   const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState(null);
+
+  // Reset limpio al abrir/cerrar
+  useEffect(() => {
+    if (!open) return;
+    setRequiereUbicacion(false);
+    setUbicacion({ latitud: null, longitud: null });
+    setErrorUbicacion(null);
+  }, [open]);
 
   const copiarToken = useCallback(() => {
     if (sesion?.token) {
@@ -75,15 +83,28 @@ const TokenSesionModal = memo(function TokenSesionModal({
   }, []);
 
   const handleActivar = useCallback(() => {
-    const datosExtra = { ttlMin, tokenLength };
-    if (incluirUbicacion && ubicacion.latitud && ubicacion.longitud) {
-      datosExtra.latitudToken = ubicacion.latitud;
-      datosExtra.longitudToken = ubicacion.longitud;
+    // Si el técnico exige ubicación, debe existir lat/lon
+    if (requiereUbicacion && !(ubicacion.latitud && ubicacion.longitud)) {
+      message.error('Debes obtener la ubicación para exigirla a los jugadores.');
+      return;
     }
-    onActivar(datosExtra);
-  }, [ttlMin, tokenLength, incluirUbicacion, ubicacion, onActivar]);
 
-  //  No renderizar el contenido hasta que se abra el modal
+    const params = {
+      ttlMin,
+      tokenLength,
+      requiereUbicacion,
+      ...(requiereUbicacion && ubicacion.latitud && ubicacion.longitud
+        ? { latitudToken: ubicacion.latitud, longitudToken: ubicacion.longitud }
+        : {})
+    };
+
+    onActivar(params);
+  }, [ttlMin, tokenLength, requiereUbicacion, ubicacion, onActivar]);
+
+  const botonDeshabilitado =
+    loadingToken ||
+    (requiereUbicacion && !(ubicacion.latitud && ubicacion.longitud));
+
   if (!open) return null;
 
   return (
@@ -100,7 +121,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
         <>
           <Alert
             message="Token de Asistencia"
-            description="Los jugadores usarán este código para registrar su asistencia a la sesión"
+            description="Los jugadores usarán este token para registrar su asistencia a la sesión."
             type="info"
             showIcon
             style={{ marginBottom: 20 }}
@@ -109,15 +130,16 @@ const TokenSesionModal = memo(function TokenSesionModal({
           {sesion.tokenActivo ? (
             <>
               <div className="token-display">
-                <div style={{ fontSize: 14, opacity: 0.9 }}>Código de Asistencia</div>
+                <div style={{ fontSize: 14, opacity: 0.9 }}>Token de Asistencia</div>
                 <div className="token-code">{sesion.token}</div>
                 <div style={{ fontSize: 12, opacity: 0.8 }}>
                   Expira: {dayjs(sesion.tokenExpiracion).format('DD/MM/YYYY HH:mm')}
                 </div>
               </div>
+
               <Space style={{ width: '100%', justifyContent: 'center', marginBottom: 20 }}>
                 <Button icon={<CopyOutlined />} onClick={copiarToken} size="large">
-                  Copiar Código
+                  Copiar Token
                 </Button>
               </Space>
 
@@ -155,7 +177,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
                   </div>
 
                   <div style={{ marginBottom: 12 }}>
-                    <Text>Longitud del código:</Text>
+                    <Text>Longitud del Token:</Text>
                     <InputNumber
                       min={4}
                       max={20}
@@ -185,12 +207,28 @@ const TokenSesionModal = memo(function TokenSesionModal({
               >
                 <Space>
                   <EnvironmentOutlined style={{ fontSize: 16 }} />
-                  <Text strong>Registrar ubicación</Text>
+                  <div>
+                    <Text strong>Exigir ubicación a jugadores</Text>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Si activas esto, deberás fijar un punto y los jugadores deberán estar cerca al marcar.
+                      </Text>
+                    </div>
+                  </div>
                 </Space>
-                <Switch checked={incluirUbicacion} onChange={setIncluirUbicacion} />
+                <Switch
+                  checked={requiereUbicacion}
+                  onChange={(v) => {
+                    setRequiereUbicacion(v);
+                    if (!v) {
+                      setUbicacion({ latitud: null, longitud: null });
+                      setErrorUbicacion(null);
+                    }
+                  }}
+                />
               </div>
 
-              {incluirUbicacion && (
+              {requiereUbicacion && (
                 <div
                   style={{
                     border: '1px solid #d9d9d9',
@@ -208,14 +246,14 @@ const TokenSesionModal = memo(function TokenSesionModal({
                       marginBottom: 12,
                     }}
                   >
-                    <Text strong>Ubicación:</Text>
+                    <Text strong>Punto de referencia (coordenadas):</Text>
                     <Button
                       icon={<AimOutlined />}
                       onClick={obtenerUbicacion}
                       loading={loadingUbicacion}
                       size="small"
                     >
-                      {ubicacion.latitud ? 'Actualizar' : 'Obtener ubicación'}
+                      {ubicacion.latitud ? 'Actualizar ubicación' : 'Obtener ubicación'}
                     </Button>
                   </div>
 
@@ -243,13 +281,13 @@ const TokenSesionModal = memo(function TokenSesionModal({
                         background: '#f6ffed',
                         padding: 12,
                         borderRadius: 8,
-                        border: '1px solid #b7eb8f',
+                        border: '1px solid' 
                       }}
                     >
                       <Space direction="vertical" size={4}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                          <Text strong>Ubicación obtenida</Text>
+                          <Text strong>Ubicación fijada</Text>
                         </div>
                         <Text type="secondary">Lat: {ubicacion.latitud.toFixed(6)}</Text>
                         <Text type="secondary">Lng: {ubicacion.longitud.toFixed(6)}</Text>
@@ -257,7 +295,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
                     </div>
                   ) : (
                     <Alert
-                      message="Haz clic en 'Obtener ubicación' para registrar tu ubicación actual"
+                      message="Haz clic en 'Obtener ubicación' para fijar el punto de referencia"
                       type="info"
                       showIcon
                     />
@@ -265,16 +303,25 @@ const TokenSesionModal = memo(function TokenSesionModal({
                 </div>
               )}
 
-              <Button
-                type="primary"
-                block
-                icon={<UnlockOutlined />}
-                onClick={handleActivar}
-                loading={loadingToken}
-                size="large"
+              <Tooltip
+                title={
+                  requiereUbicacion && !(ubicacion.latitud && ubicacion.longitud)
+                    ? 'Debes fijar la ubicación para activar el token con geofence'
+                    : ''
+                }
               >
-                Generar Token
-              </Button>
+                <Button
+                  type="primary"
+                  block
+                  icon={<UnlockOutlined />}
+                  onClick={handleActivar}
+                  loading={loadingToken}
+                  size="large"
+                  disabled={botonDeshabilitado}
+                >
+                  Generar Token
+                </Button>
+              </Tooltip>
             </>
           )}
         </>

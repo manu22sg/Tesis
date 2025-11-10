@@ -1,3 +1,4 @@
+
 import api from "./root.services.js";
 
 export async function loginRequest(credentials) {
@@ -50,17 +51,13 @@ export async function buscarUsuariosPorRuts(ruts) {
 
 export async function buscarUsuarios(termino, opciones = {}) {
   try {
-    
-
-
+ 
     const params = { termino };
     
-    // Agregar roles si se especifican
     if (opciones.roles && opciones.roles.length > 0) {
       params.roles = JSON.stringify(opciones.roles);
     }
     
-    // 🔥 Agregar excluirJugadores si es true
     if (opciones.excluirJugadores === true) {
       params.excluirJugadores = 'true';
     }
@@ -68,7 +65,7 @@ export async function buscarUsuarios(termino, opciones = {}) {
     const { data } = await api.get("/auth/buscar-usuarios", { params });
     return data.data || [];
   } catch (error) {
-    console.error("❌ Error buscando usuarios:", error);
+    console.error(" Error buscando usuarios:", error);
     return [];
   }
 }

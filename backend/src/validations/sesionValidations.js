@@ -33,7 +33,7 @@ const horaSchema = Joi.string().pattern(TIME_HH_MM)
 // POST /api/sesion
 export const crearSesionBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),  
-  grupoId: Joi.number().integer().positive().optional(),
+  grupoId: Joi.number().integer().positive().optional().allow('',null),
   fecha: fechaSchema,
   horaInicio: horaSchema,
   horaFin: horaSchema,

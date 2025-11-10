@@ -180,7 +180,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
             {resultado.ronda && <div>Nueva ronda: {getRondaNombre(resultado.ronda)}</div>}
             <div>Partidos creados: {resultado.partidosCreados}</div>
           </div>,
-          6
+          4
         );
 
           cargarDatos();

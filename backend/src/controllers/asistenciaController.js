@@ -8,28 +8,44 @@ import { success, error } from "../utils/responseHandler.js";
 import JugadorSchema from "../entity/Jugador.js";
 import { AppDataSource } from '../config/config.db.js';
 
-// ✅ ÚNICO método para marcar asistencia (por token en body)
 export async function postMarcarAsistenciaPorToken(req, res) {
   try {
     const usuarioId = req.user.id;
 
+    // 1) Verificar que el usuario tenga perfil de jugador
     const jugadorRepo = AppDataSource.getRepository(JugadorSchema);
     const jugador = await jugadorRepo.findOne({ where: { usuarioId } });
-    if (!jugador) return error(res, "Este usuario no tiene perfil de jugador", 400);
+    if (!jugador) {
+      return error(res, "Este usuario no tiene perfil de jugador", 400);
+    }
 
-    const { token, estado, latitud, longitud, origen } = req.body;
-    if (!token) return error(res, "Debe proporcionar un token válido", 400);
+    // 2) Desestructurar y normalizar body
+    let { token, estado, latitud, longitud, origen } = req.body;
 
-    const [resultado, err, status = 200] = await marcarAsistenciaPorToken({
+    if (!token || typeof token !== "string" || !token.trim()) {
+      return error(res, "Debe proporcionar un token válido", 400);
+    }
+    token = token.trim().toUpperCase();
+
+    // 3) Determinar si realmente tenemos coordenadas válidas
+    const latNum = Number(latitud);
+    const lonNum = Number(longitud);
+    const tieneLat = latitud !== null && latitud !== undefined && latitud !== "" && Number.isFinite(latNum);
+    const tieneLon = longitud !== null && longitud !== undefined && longitud !== "" && Number.isFinite(lonNum);
+
+    // 4) Construir params sólo con campos relevantes
+    const params = {
       token,
       jugadorId: jugador.id,
       estado,
-      latitud,
-      longitud,
-      origen,
-    });
+      origen: origen || "jugador",
+      ...(tieneLat && { latitud: latNum }),
+      ...(tieneLon && { longitud: lonNum }),
+    };
 
+    const [resultado, err, status = 200] = await marcarAsistenciaPorToken(params);
     if (err) return error(res, err, status);
+
     return success(res, resultado, "Asistencia registrada correctamente", status);
   } catch (e) {
     console.error("postMarcarAsistenciaPorToken:", e);

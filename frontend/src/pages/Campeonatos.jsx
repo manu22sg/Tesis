@@ -31,7 +31,7 @@ import {
   TrophyOutlined,
   TeamOutlined,
   CalendarOutlined,
-  ClearOutlined
+  FilterOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { campeonatoService } from '../services/campeonato.services.js';
@@ -225,8 +225,6 @@ function CampeonatosContent() {
     navigate(`/campeonatos/${campeonato.id}/info`);
   };
 
-  
-
   const getEstadoColor = (estado) => {
     const colors = {
       creado: 'blue',
@@ -244,7 +242,6 @@ function CampeonatosContent() {
       'finalizado': 'Finalizado',
       'cancelado': 'Cancelado'
     };
-    // Devuelve el texto formateado, o el original si no se encuentra
     return map[estado] || estado;
   };
 
@@ -273,15 +270,15 @@ function CampeonatosContent() {
       title: 'Año/Semestre',
       render: (_, record) => `${record.anio} - S${record.semestre}`
     },
-   {
-  title: 'Estado',
-  dataIndex: 'estado',
-  render: (estado) => (
-    <Tag color={getEstadoColor(estado)}>
-      {formatEstadoTexto(estado)}
-    </Tag>
-  )
-},
+    {
+      title: 'Estado',
+      dataIndex: 'estado',
+      render: (estado) => (
+        <Tag color={getEstadoColor(estado)}>
+          {formatEstadoTexto(estado)}
+        </Tag>
+      )
+    },
     {
       title: 'Equipos',
       render: (_, record) => (
@@ -299,116 +296,115 @@ function CampeonatosContent() {
       )
     },
     {
-  title: 'Acciones',
-  key: 'acciones',
-  render: (_, record) => (
-    <Space>
-      <Tooltip title="Ver detalle">
-        <Button type="text" size="middle" icon={<EyeOutlined />} onClick={() => verDetalle(record)} />
-      </Tooltip>
-      <Tooltip title="Editar">
-        <Button type="text" size="middle" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
-      </Tooltip>
-      
-       <Popconfirm
-        title="¿Eliminar campeonato?"
-        onConfirm={() => handleEliminar(record.id)}
-        okText="Aceptar"
-        cancelText="Cancelar"
-        okButtonProps={{ danger: true }}
-      >
-        <Tooltip title="Eliminar">
-          <Button type="text" size="middle" danger icon={<DeleteOutlined  />} />
-        </Tooltip>
-      </Popconfirm>
-    </Space>
-  )
-}
+      title: 'Acciones',
+      key: 'acciones',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Ver detalle">
+            <Button type="text" size="middle" icon={<EyeOutlined />} onClick={() => verDetalle(record)} />
+          </Tooltip>
+          <Tooltip title="Editar">
+            <Button type="text" size="middle" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
+          </Tooltip>
+          
+          <Popconfirm
+            title="¿Eliminar campeonato?"
+            onConfirm={() => handleEliminar(record.id)}
+            okText="Eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Eliminar">
+              <Button type="text" size="middle" danger icon={<DeleteOutlined />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      )
+    }
   ], [handleEliminar]);
 
   return (
     <ConfigProvider locale={locale}>
       <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
-        {/* Filtros y acciones */}
-        <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-          <Row gutter={[16, 16]} align="middle">
-            <Col flex="auto">
-              <Space wrap>
-                <Select
-                  style={{ width: 120 }}
-                  placeholder="Formato"
-                  allowClear
-                  value={filtros.formato}
-                  onChange={(value) => handleFiltroChange('formato', value)}
-                >
-                  <Option value="5v5">5v5</Option>
-                  <Option value="7v7">7v7</Option>
-                  <Option value="11v11">11v11</Option>
-                </Select>
-
-                <Select
-                  style={{ width: 130 }}
-                  placeholder="Género"
-                  allowClear
-                  value={filtros.genero}
-                  onChange={(value) => handleFiltroChange('genero', value)}
-                >
-                  <Option value="masculino">Masculino</Option>
-                  <Option value="femenino">Femenino</Option>
-                  <Option value="mixto">Mixto</Option>
-                </Select>
-
-                <Select
-                  style={{ width: 100 }}
-                  placeholder="Año"
-                  allowClear
-                  value={filtros.anio}
-                  onChange={(value) => handleFiltroChange('anio', value)}
-                >
-                  {aniosDisponibles.map(anio => (
-                    <Option key={anio} value={anio}>{anio}</Option>
-                  ))}
-                </Select>
-
-                <Select
-                  style={{ width: 110 }}
-                  placeholder="Semestre"
-                  allowClear
-                  value={filtros.semestre}
-                  onChange={(value) => handleFiltroChange('semestre', value)}
-                >
-                  <Option value={1}>Semestre 1</Option>
-                  <Option value={2}>Semestre 2</Option>
-                </Select>
-
-                <Select
-                  style={{ width: 130 }}
-                  placeholder="Estado"
-                  allowClear
-                  value={filtros.estado}
-                  onChange={(value) => handleFiltroChange('estado', value)}
-                >
-                  <Option value="creado">Creado</Option>
-                  <Option value="en_juego">En Juego</Option>
-                  <Option value="finalizado">Finalizado</Option>
-                  <Option value="cancelado">Cancelado</Option>
-                </Select>
-
-                <Button 
-                  icon={<ClearOutlined />} 
-                  onClick={limpiarFiltros}
-                  disabled={!Object.values(filtros).some(v => v !== null)}
-                >
-                  Limpiar
-                </Button>
-              </Space>
-            </Col>
-            <Col>
+        {/* Filtros */}
+        <Card
+          title={<span><FilterOutlined /> Filtros</span>}
+          style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+          extra={
+            <Space>
+              <Button 
+                onClick={limpiarFiltros}
+                disabled={!Object.values(filtros).some(v => v !== null)}
+              >
+                Limpiar Filtros
+              </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
                 Nuevo Campeonato
               </Button>
-            </Col>
-          </Row>
+            </Space>
+          }
+        >
+          <Space wrap>
+            <Select
+              style={{ width: 120 }}
+              placeholder="Formato"
+              allowClear
+              value={filtros.formato}
+              onChange={(value) => handleFiltroChange('formato', value)}
+            >
+              <Option value="5v5">5v5</Option>
+              <Option value="7v7">7v7</Option>
+              <Option value="11v11">11v11</Option>
+            </Select>
+
+            <Select
+              style={{ width: 130 }}
+              placeholder="Género"
+              allowClear
+              value={filtros.genero}
+              onChange={(value) => handleFiltroChange('genero', value)}
+            >
+              <Option value="masculino">Masculino</Option>
+              <Option value="femenino">Femenino</Option>
+              <Option value="mixto">Mixto</Option>
+            </Select>
+
+            <Select
+              style={{ width: 100 }}
+              placeholder="Año"
+              allowClear
+              value={filtros.anio}
+              onChange={(value) => handleFiltroChange('anio', value)}
+            >
+              {aniosDisponibles.map(anio => (
+                <Option key={anio} value={anio}>{anio}</Option>
+              ))}
+            </Select>
+
+            <Select
+              style={{ width: 110 }}
+              placeholder="Semestre"
+              allowClear
+              value={filtros.semestre}
+              onChange={(value) => handleFiltroChange('semestre', value)}
+            >
+              <Option value={1}>Semestre 1</Option>
+              <Option value={2}>Semestre 2</Option>
+            </Select>
+
+            <Select
+              style={{ width: 130 }}
+              placeholder="Estado"
+              allowClear
+              value={filtros.estado}
+              onChange={(value) => handleFiltroChange('estado', value)}
+            >
+              <Option value="creado">Creado</Option>
+              <Option value="en_juego">En Juego</Option>
+              <Option value="finalizado">Finalizado</Option>
+              <Option value="cancelado">Cancelado</Option>
+            </Select>
+          </Space>
         </Card>
 
         {/* Tabla principal */}
@@ -419,23 +415,21 @@ function CampeonatosContent() {
             loading={loading}
             rowKey="id"
             pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `Total: ${total} campeonatos`,
-            pageSizeOptions: ['5', '10', '20'],
-            onChange: (page, size) => {
-              setPagination({ ...pagination, current: page, pageSize: size });
-            },
-            position: ['bottomLeft'] // Para que quede centrado como lo tenías
-          }}
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showTotal: (total) => `Total: ${total} campeonatos`,
+              pageSizeOptions: ['5', '10', '20'],
+              onChange: (page, size) => {
+                setPagination({ ...pagination, current: page, pageSize: size });
+              },
+              position: ['bottomLeft']
+            }}
             scroll={{ x: 1000 }}
             size="middle"
             locale={{ emptyText: <Empty description="No hay campeonatos" /> }}
           />
-
-         
         </Card>
 
         {/* Modal Crear/Editar */}

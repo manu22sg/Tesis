@@ -220,7 +220,7 @@ const ListaEstadisticas = ({
                 <Popconfirm
                   title="¿Eliminar estadística?"
                   onConfirm={() => manejarEliminar(record.id)}
-                  okText="Aceptar"
+                  okText="Eliminar"
                   cancelText="Cancelar"
                   okButtonProps={{ danger: true }}
                 >

@@ -220,7 +220,7 @@ export default function MisReservas() {
                 </Button>
 
                 <Button type="primary" onClick={() => navigate('/reservas/nueva')}>
-                  + Nueva Reserva
+                  Nueva Reserva
                 </Button>
               </Space>
             }

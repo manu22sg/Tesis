@@ -133,7 +133,6 @@ export async function obtenerSesiones(filtros = {}) {
       .leftJoinAndSelect('s.grupo', 'g')
       .leftJoinAndSelect('s.cancha', 'c');
 
-    // 👇 solo hacemos join con jugadores si se filtra por jugadorId
     if (jugadorId) {
   qb.leftJoin('g.jugadorGrupos', 'jg')
     .leftJoin('jg.jugador', 'j')
@@ -223,6 +222,18 @@ export async function actualizarSesion(id, datos) {
     const sesion = await sesionRepo.findOne({ where: { id } });
     if (!sesion) return [null, 'Sesión no encontrada'];
 
+    if (datos.grupoId && datos.grupoId !== sesion.grupoId) {
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
+    const tieneAsistencias = await asistenciaRepo.count({ 
+      where: { sesionId: id } 
+    });
+    
+    if (tieneAsistencias > 0) {
+      return [null, 'No se puede cambiar el grupo: ya existen asistencias registradas'];
+    }
+  }
+
+
     // Validar grupo si cambia
     const nuevoGrupoId = datos.grupoId ?? sesion.grupoId;
     if (nuevoGrupoId) {
@@ -282,7 +293,7 @@ export async function actualizarSesion(id, datos) {
       }
     }
 
-    // Actualizar (sin tocar token acá)
+
     Object.keys(datos).forEach(k => {
       if (datos[k] !== undefined && !['token', 'tokenActivo', 'tokenExpiracion'].includes(k)) {
         sesion[k] = datos[k];
@@ -415,27 +426,22 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const jugadorRepo = AppDataSource.getRepository(JugadorSchema);
     const jugadorGrupoRepo = AppDataSource.getRepository(JugadorGrupoSchema);
-    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema); 
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
 
-    //  Obtener jugador asociado al usuario
     const jugador = await jugadorRepo.findOne({ where: { usuarioId } });
     if (!jugador) return [null, 'Este usuario no tiene perfil de jugador'];
 
-    //  Obtener grupos donde participa
     const grupos = await jugadorGrupoRepo.find({
       where: { jugadorId: jugador.id },
       select: ['grupoId'],
     });
     if (grupos.length === 0) return [{ sesiones: [], pagination: null }, null];
 
-    const grupoIds = grupos.map(g => g.grupoId);
-
-    //  Configuración de paginación
+    const grupoIds = grupos.map((g) => g.grupoId);
     const page = Math.max(1, filtros.page ? parseInt(filtros.page) : 1);
     const limit = Math.min(50, filtros.limit ? parseInt(filtros.limit) : 10);
     const skip = (page - 1) * limit;
 
-    //  Consultar sesiones del jugador (solo sus grupos)
     const [sesiones, total] = await sesionRepo.findAndCount({
       where: { grupoId: In(grupoIds) },
       relations: ['grupo', 'cancha'],
@@ -444,36 +450,45 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
       take: limit,
     });
 
-    //  Verificar asistencias del jugador para estas sesiones
-    const sesionIds = sesiones.map(s => s.id);
+    const sesionIds = sesiones.map((s) => s.id);
     const asistencias = await asistenciaRepo.find({
-      where: {
-        jugadorId: jugador.id,
-        sesionId: In(sesionIds)
-      },
-      select: ['sesionId', 'estado'] // Solo necesitamos saber si existe
+      where: { jugadorId: jugador.id, sesionId: In(sesionIds) },
+      select: ['sesionId', 'estado'],
     });
 
-    // Crear mapa de sesionId -> asistencia marcada
-    const asistenciasMap = new Map(
-      asistencias.map(a => [a.sesionId, a.estado])
-    );
+    const asistenciasMap = new Map(asistencias.map((a) => [a.sesionId, a.estado]));
 
-    // 6️⃣ Formatear respuesta
-    const formateadas = sesiones.map(s => ({
-      id: s.id,
-      fecha: s.fecha,
-      horaInicio: s.horaInicio,
-      horaFin: s.horaFin,
-      tipoSesion: s.tipoSesion,
-      grupo: s.grupo?.nombre || 'Sin grupo',
-      cancha: s.cancha?.nombre || 'Sin cancha',
-      tokenActivo: s.tokenActivo || false,
-      token: s.tokenActivo ? s.token : null,
-      tokenExpiracion: s.tokenActivo ? s.tokenExpiracion : null,
-      asistenciaMarcada: asistenciasMap.has(s.id), // 
-      estadoAsistencia: asistenciasMap.get(s.id) || null, 
-    }));
+    const toNum = (v) => {
+      if (v === null || v === undefined || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const formateadas = sesiones.map((s) => {
+      const latTok = toNum(s.latitudToken);
+      const lonTok = toNum(s.longitudToken);
+
+      return {
+        id: s.id,
+        fecha: s.fecha,
+        horaInicio: s.horaInicio,
+        horaFin: s.horaFin,
+        tipoSesion: s.tipoSesion,
+        grupo: s.grupo?.nombre || 'Sin grupo',
+        cancha: s.cancha?.nombre || 'Sin cancha',
+
+        // 🔑 Token y geovinculación
+        tokenActivo: s.tokenActivo || false,
+        token: s.tokenActivo ? s.token : null,
+        tokenExpiracion: s.tokenActivo ? s.tokenExpiracion : null,
+        requiereUbicacion: s.requiereUbicacion ?? false,
+        latitudToken: latTok,
+        longitudToken: lonTok,
+
+        asistenciaMarcada: asistenciasMap.has(s.id),
+        estadoAsistencia: asistenciasMap.get(s.id) || null,
+      };
+    });
 
     const pagination = {
       currentPage: page,

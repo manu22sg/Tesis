@@ -187,8 +187,7 @@ function CampeonatoTablaContent() {
       dataIndex: 'jugados',
       key: 'jugados',
       width: 70,
-      align: 'center',
-      sorter: (a, b) => b.jugados - a.jugados
+      align: 'center'
     },
     {
       title: 'PG',
@@ -196,7 +195,6 @@ function CampeonatoTablaContent() {
       key: 'ganados',
       width: 70,
       align: 'center',
-      sorter: (a, b) => b.ganados - a.ganados,
       render: (ganados) => (
         <Tag color="green" icon={<CheckCircleOutlined />}>
           {ganados}
@@ -209,7 +207,6 @@ function CampeonatoTablaContent() {
       key: 'empatados',
       width: 70,
       align: 'center',
-      sorter: (a, b) => b.empatados - a.empatados,
       render: (empatados) => (
         <Tag color="orange" icon={<SwapOutlined />}>
           {empatados}
@@ -222,7 +219,6 @@ function CampeonatoTablaContent() {
       key: 'perdidos',
       width: 70,
       align: 'center',
-      sorter: (a, b) => b.perdidos - a.perdidos,
       render: (perdidos) => (
         <Tag color="red" icon={<CloseCircleOutlined />}>
           {perdidos}
@@ -235,7 +231,6 @@ function CampeonatoTablaContent() {
       key: 'golesFavor',
       width: 70,
       align: 'center',
-      sorter: (a, b) => b.golesFavor - a.golesFavor,
       render: (gf) => <strong style={{ color: '#52c41a' }}>{gf}</strong>
     },
     {
@@ -244,7 +239,6 @@ function CampeonatoTablaContent() {
       key: 'golesContra',
       width: 70,
       align: 'center',
-      sorter: (a, b) => a.golesContra - b.golesContra,
       render: (gc) => <strong style={{ color: '#ff4d4f' }}>{gc}</strong>
     },
     {
@@ -253,7 +247,6 @@ function CampeonatoTablaContent() {
       key: 'diferencia',
       width: 80,
       align: 'center',
-      sorter: (a, b) => b.diferencia - a.diferencia,
       render: (diferencia) => (
         <Tooltip title="Diferencia de goles">
           <Tag
@@ -272,7 +265,6 @@ function CampeonatoTablaContent() {
       width: 90,
       align: 'center',
       fixed: 'right',
-      sorter: (a, b) => b.puntos - a.puntos,
       render: (puntos) => (
         <Tag color="blue" style={{ fontSize: 16, fontWeight: 'bold', padding: '4px 12px' }}>
           {puntos}
@@ -309,49 +301,7 @@ function CampeonatoTablaContent() {
         </Space>
       </Card>
 
-      {/* Estadísticas Generales */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Equipos"
-              value={campeonato.equipos?.length || 0}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Partidos Totales"
-              value={estadisticasGenerales.total}
-              prefix={<FireOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Finalizados"
-              value={estadisticasGenerales.finalizados}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Goles Totales"
-              value={estadisticasGenerales.totalGoles}
-              prefix={<TrophyOutlined />}
-              valueStyle={{ color: '#ff4d4f' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+     
 
       {/* Tabla de Posiciones */}
       <Card

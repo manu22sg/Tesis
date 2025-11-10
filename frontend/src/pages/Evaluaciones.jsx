@@ -217,7 +217,7 @@ export default function Evaluaciones() {
               <Popconfirm
                 title="¿Eliminar evaluación?"
                 onConfirm={() => handleDelete(record.id)}
-                okText="Aceptar"
+                okText="Eliminar"
                 cancelText="Cancelar"
                   okButtonProps={{ danger: true }}
 
@@ -309,7 +309,7 @@ export default function Evaluaciones() {
                         setModalOpen(true);
                       }}
                     >
-                      Nueva
+                      Nueva evaluación
                     </Button>
                   )}
                 </Space>

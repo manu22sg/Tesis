@@ -229,8 +229,7 @@ const AprobarReservasPage = () => {
       usuarioId: null
     });
     setUsuarios([]);
-    setPagination((p) => ({ ...p, current: 1 })); // vuelve a la página 1
-    message.success('Filtros limpiados');
+    setPagination((p) => ({ ...p, current: 1 })); 
   };
   const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
 

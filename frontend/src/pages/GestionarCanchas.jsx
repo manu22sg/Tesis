@@ -242,10 +242,11 @@ const GestionCanchas = () => {
             <Popconfirm
               title="¿Eliminar esta cancha?"
               onConfirm={() => handleEliminar(record.id)}
-              okText="Sí"
-              cancelText="No"
+              okText="Eliminar"
+              okButtonProps={{ danger: true }}
+              cancelText="Cancelar"
             >
-              <Tooltip title="Eliminar">
+              <Tooltip title="Eliminar" >
                 <Button danger size="medium" icon={<DeleteOutlined />} />
               </Tooltip>
             </Popconfirm>

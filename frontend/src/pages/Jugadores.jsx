@@ -281,7 +281,7 @@ export default function Jugadores() {
       <Popconfirm
         title="¿Eliminar jugador?"
         onConfirm={() => handleEliminar(record.id)}
-        okText="Aceptar"
+        okText="Eliminar"
         cancelText="Cancelar"
         okButtonProps={{ danger: true }}
       >

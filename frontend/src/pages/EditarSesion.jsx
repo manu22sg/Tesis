@@ -74,8 +74,10 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
           tipoSesion: sesion.tipoSesion,
           objetivos: sesion.objetivos,
           fecha: dayjs(sesion.fecha),
-          horaInicio: dayjs(sesion.horaInicio, 'HH:mm'),
-          horaFin: dayjs(sesion.horaFin, 'HH:mm'),
+          horario: [
+            dayjs(sesion.horaInicio, 'HH:mm'),
+            dayjs(sesion.horaFin, 'HH:mm')
+          ],
         });
       } catch (err) {
         console.error('Error cargando sesión:', err);
@@ -94,14 +96,16 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
     try {
       setSaving(true);
 
+      const [horaInicio, horaFin] = values.horario;
+
       const payload = {
         canchaId: values.canchaId,
         grupoId: values.grupoId || null,
         tipoSesion: values.tipoSesion,
         objetivos: values.objetivos,
         fecha: values.fecha.format('YYYY-MM-DD'),
-        horaInicio: values.horaInicio.format('HH:mm'),
-        horaFin: values.horaFin.format('HH:mm'),
+        horaInicio: horaInicio.format('HH:mm'),
+        horaFin: horaFin.format('HH:mm'),
       };
 
       await actualizarSesion(Number(id), payload);
@@ -200,11 +204,11 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
             </Form.Item>
 
             <Form.Item
-              name="horaInicio"
-              label="Hora de inicio"
-              rules={[{ required: true, message: 'Selecciona hora de inicio' }]}
+              name="horario"
+              label="Horario"
+              rules={[{ required: true, message: 'Selecciona el horario' }]}
             >
-              <TimePicker 
+              <TimePicker.RangePicker 
                 format="HH:mm" 
                 style={{ width: '100%' }} 
                 minuteStep={30}
@@ -214,25 +218,7 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
                 })}
                 hideDisabledOptions
                 showNow={false}
-                popupClassName="timepicker-editar"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="horaFin"
-              label="Hora de fin"
-              rules={[{ required: true, message: 'Selecciona hora de fin' }]}
-            >
-              <TimePicker 
-                format="HH:mm" 
-                style={{ width: '100%' }} 
-                minuteStep={30}
-                disabledTime={() => ({
-                  disabledHours: () => [0,1,2,3,4,5,6,7,20,21,22,23],
-                  disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-                })}
-                hideDisabledOptions
-                showNow={false}
+                placeholder={['Hora inicio', 'Hora fin']}
                 popupClassName="timepicker-editar"
               />
             </Form.Item>

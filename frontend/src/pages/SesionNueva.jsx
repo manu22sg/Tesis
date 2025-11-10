@@ -96,7 +96,9 @@ export default function SesionNueva() {
     try {
       setSaving(true);
 
-      if (values.horaInicio.isAfter(values.horaFin) || values.horaInicio.isSame(values.horaFin)) {
+      const [horaInicio, horaFin] = values.horario;
+
+      if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
         message.error('La hora de inicio debe ser anterior a la hora de fin');
         setSaving(false);
         return;
@@ -108,8 +110,8 @@ export default function SesionNueva() {
         tipoSesion: values.tipoSesion,
         objetivos: values.objetivos,
         fecha: values.fecha.format('YYYY-MM-DD'),
-        horaInicio: values.horaInicio.format('HH:mm'),
-        horaFin: values.horaFin.format('HH:mm'),
+        horaInicio: horaInicio.format('HH:mm'),
+        horaFin: horaFin.format('HH:mm'),
       };
 
       const disponibilidad = await verificarDisponibilidad(
@@ -202,11 +204,11 @@ export default function SesionNueva() {
             </Form.Item>
 
             <Form.Item
-              name="horaInicio"
-              label="Hora de inicio"
-              rules={[{ required: true, message: 'Selecciona hora de inicio' }]}
+              name="horario"
+              label="Horario"
+              rules={[{ required: true, message: 'Selecciona el horario' }]}
             >
-              <TimePicker 
+              <TimePicker.RangePicker 
                 format="HH:mm" 
                 style={{ width: '100%' }} 
                 minuteStep={30}
@@ -216,25 +218,7 @@ export default function SesionNueva() {
                 })}
                 hideDisabledOptions
                 showNow={false}
-                classNames={{ popup: 'timepicker-academico' }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="horaFin"
-              label="Hora de fin"
-              rules={[{ required: true, message: 'Selecciona hora de fin' }]}
-            >
-              <TimePicker 
-                format="HH:mm" 
-                style={{ width: '100%' }} 
-                minuteStep={30}
-                disabledTime={() => ({
-                  disabledHours: () => [0,1,2,3,4,5,6,7,15,16,17,18,19,20,21,22,23],
-                  disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-                })}
-                hideDisabledOptions
-                showNow={false}
+                placeholder={['Hora inicio', 'Hora fin']}
                 classNames={{ popup: 'timepicker-academico' }}
               />
             </Form.Item>

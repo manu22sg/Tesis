@@ -79,7 +79,7 @@ const SesionesTable = memo(({ sesiones, loading, verDetalle, handleEliminar, set
           <Tooltip title="Editar">
             <Button icon={<EditOutlined />} onClick={() => navigate(`/sesiones/editar/${r.id}`)} />
           </Tooltip>
-          <Popconfirm title="¿Eliminar sesión?" onConfirm={() => handleEliminar(r.id)} okButtonProps={{ danger: true }}>
+          <Popconfirm title="¿Eliminar sesión?" okText="Eliminar" onConfirm={() => handleEliminar(r.id)} okButtonProps={{ danger: true }}>
             <Tooltip title="Eliminar">
               <Button icon={<DeleteOutlined />} danger />
             </Tooltip>

@@ -1,32 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
-  Card,
-  Table,
-  Input,
-  Button,
-  Space,
-  Tag,
-  message,
-  Modal,
-  Typography,
-  Spin,
-  Pagination,
-  Switch,
-  Alert,
-  ConfigProvider,
-  Tooltip
+  Card, Table, Input, Button, Space, Tag, message, Modal, Typography, Spin,
+  Pagination, Switch, Alert, ConfigProvider, Tooltip
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
-  CheckSquareOutlined,
-  CalendarOutlined,
-  FieldTimeOutlined,
-  KeyOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  QuestionCircleOutlined,
-  EnvironmentOutlined,
-  AimOutlined
+  CheckSquareOutlined, CalendarOutlined, FieldTimeOutlined, KeyOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, QuestionCircleOutlined,
+  EnvironmentOutlined, AimOutlined
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
@@ -36,27 +17,46 @@ import { marcarAsistenciaPorToken } from '../services/asistencia.services.js';
 
 const { Title, Text } = Typography;
 
+// 🔧 Helpers robustos para coord
+const toNum = (v) => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+const hasCoords = (lat, lon) => toNum(lat) !== null && toNum(lon) !== null;
+
 export default function MarcarAsistencia() {
   const { usuario } = useAuth();
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 5,
-    total: 0,
-  });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 5, total: 0 });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [token, setToken] = useState('');
   const [selectedSesion, setSelectedSesion] = useState(null);
   const [marcando, setMarcando] = useState(false);
 
-  // Estado para ubicación manual
+  // Ubicación (opcional o requerida según sesión)
   const [usarUbicacion, setUsarUbicacion] = useState(false);
   const [ubicacion, setUbicacion] = useState({ latitud: null, longitud: null });
   const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState(null);
 
+  // 📍 Detectar si esta sesión exige ubicación
+  const requiereGeoSesion = useMemo(() => {
+    if (!selectedSesion) return false;
+
+    // 1️⃣ Flag explícito del backend
+    if (selectedSesion.requiereUbicacion === true) return true;
+    if (selectedSesion.requiereUbicacion === false) return false;
+
+    // 2️⃣ Fallback: token activo + coords válidas → requiere ubicación
+    const lat = toNum(selectedSesion?.latitudToken);
+    const lon = toNum(selectedSesion?.longitudToken);
+    return Boolean(selectedSesion?.tokenActivo) && lat !== null && lon !== null;
+  }, [selectedSesion]);
+
+  // Cargar sesiones
   const cargarSesiones = async (page = 1, limit = 5) => {
     try {
       setLoading(true);
@@ -75,20 +75,31 @@ export default function MarcarAsistencia() {
     }
   };
 
-  useEffect(() => {
-    cargarSesiones();
-  }, []);
+  useEffect(() => { cargarSesiones(); }, []);
 
   // Abrir modal
   const abrirModal = (sesion) => {
+    console.debug('Sesión seleccionada:', {
+      tokenActivo: sesion?.tokenActivo,
+      requiereUbicacion: sesion?.requiereUbicacion,
+      latitudToken: sesion?.latitudToken,
+      longitudToken: sesion?.longitudToken,
+    });
+
     setSelectedSesion(sesion);
     setModalVisible(true);
     setToken('');
-    setUsarUbicacion(false);
     setUbicacion({ latitud: null, longitud: null });
+    setErrorUbicacion(null);
   };
 
-  // Obtener ubicación manual
+  // 🔄 Sincroniza el switch según lo que exige la sesión
+  useEffect(() => {
+    if (!modalVisible) return;
+    setUsarUbicacion(requiereGeoSesion);
+  }, [modalVisible, requiereGeoSesion]);
+
+  // Obtener ubicación del usuario
   const obtenerUbicacion = () => {
     if (!navigator.geolocation) {
       setErrorUbicacion('Tu navegador no soporta geolocalización');
@@ -101,12 +112,9 @@ export default function MarcarAsistencia() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUbicacion({
-          latitud: pos.coords.latitude,
-          longitud: pos.coords.longitude,
-        });
+        setUbicacion({ latitud: pos.coords.latitude, longitud: pos.coords.longitude });
         setLoadingUbicacion(false);
-        message.success('📍 Ubicación obtenida');
+        message.success('Ubicación obtenida');
       },
       (err) => {
         console.warn('Error obteniendo ubicación:', err);
@@ -120,28 +128,46 @@ export default function MarcarAsistencia() {
   // Confirmar asistencia
   const handleMarcarAsistencia = async () => {
     if (!token) {
-      message.error('Debes ingresar el código de asistencia');
+      message.error('Debes ingresar el token de asistencia');
       return;
     }
 
     try {
       setMarcando(true);
 
-      const payload = {
+      const base = {
         token: token.trim().toUpperCase(),
         estado: 'presente',
         origen: 'jugador',
-        latitud: usarUbicacion ? ubicacion.latitud : null,
-        longitud: usarUbicacion ? ubicacion.longitud : null,
       };
 
-      await marcarAsistenciaPorToken(payload);
+      if (requiereGeoSesion) {
+        // ⚠️ Si es obligatorio, debe tener coordenadas
+        if (!hasCoords(ubicacion.latitud, ubicacion.longitud)) {
+          message.error('Esta sesión exige ubicación para marcar asistencia.');
+          setMarcando(false);
+          return;
+        }
+
+        await marcarAsistenciaPorToken({
+          ...base,
+          latitud: toNum(ubicacion.latitud),
+          longitud: toNum(ubicacion.longitud),
+        });
+      } else {
+        // 🌐 Si es opcional
+        const incluir = usarUbicacion && hasCoords(ubicacion.latitud, ubicacion.longitud);
+        const payload = incluir
+          ? { ...base, latitud: toNum(ubicacion.latitud), longitud: toNum(ubicacion.longitud) }
+          : base;
+
+        await marcarAsistenciaPorToken(payload);
+      }
 
       message.success('¡Asistencia registrada correctamente!');
       setModalVisible(false);
       setToken('');
       setUbicacion({ latitud: null, longitud: null });
-
       await cargarSesiones(pagination.current, pagination.pageSize);
     } catch (error) {
       console.error('Error marcando asistencia:', error);
@@ -157,29 +183,22 @@ export default function MarcarAsistencia() {
     cargarSesiones(page, pageSize);
   };
 
+  // Tabla
   const columns = [
     {
       title: 'Fecha',
       dataIndex: 'fecha',
-      render: (fecha) => {
-        return (<Space>
-          <CalendarOutlined /> {formatearFecha(fecha)}
-        </Space>
-        );
-      },
+      render: (fecha) => (
+        <Space><CalendarOutlined /> {formatearFecha(fecha)}</Space>
+      ),
     },
     {
       title: 'Horario',
       render: (_, r) => (
-        <Space>
-          <FieldTimeOutlined /> {formatearHora(r.horaInicio)} - {formatearHora(r.horaFin)}
-        </Space>
+        <Space><FieldTimeOutlined /> {formatearHora(r.horaInicio)} - {formatearHora(r.horaFin)}</Space>
       ),
     },
-    {
-      title: 'Cancha',
-      dataIndex: 'cancha',
-    },
+    { title: 'Cancha', dataIndex: 'cancha' },
     {
       title: 'Tipo de Sesión',
       dataIndex: 'tipoSesion',
@@ -199,34 +218,30 @@ export default function MarcarAsistencia() {
       },
     },
     {
-  title: 'Acción',
-  align: 'center',
-  width: 160,
-  render: (_, r) =>
-    r.asistenciaMarcada ? (
-      <Tag color="success" icon={<CheckCircleOutlined />}>
-        Asistencia Registrada
-      </Tag>
-    ) : (
-      <Tooltip title="Marcar asistencia">
-        <Button
-          type="primary"
-          size="middle"
-          icon={<CheckSquareOutlined />}
-          onClick={() => abrirModal(r)}
-          disabled={!r.tokenActivo}
-        />
-      </Tooltip>
-    ),
-},
+      title: 'Acción',
+      align: 'center',
+      width: 160,
+      render: (_, r) =>
+        r.asistenciaMarcada ? (
+          <Tag color="success" icon={<CheckCircleOutlined />}>Asistencia Registrada</Tag>
+        ) : (
+          <Tooltip title="Marcar asistencia">
+            <Button
+              type="primary"
+              size="middle"
+              icon={<CheckSquareOutlined />}
+              onClick={() => abrirModal(r)}
+              disabled={!r.tokenActivo}
+            />
+          </Tooltip>
+        ),
+    },
   ];
 
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
         <Card title={<Title level={3}>Marcar Asistencia</Title>} style={{ borderRadius: 12 }}>
-          
-
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
               <Spin size="large" />
@@ -259,16 +274,18 @@ export default function MarcarAsistencia() {
 
           {/* Modal */}
           <Modal
-            title={<span><KeyOutlined /> Ingresar Código de Asistencia</span>}
+            title={<span><KeyOutlined /> Ingresar Token de Asistencia</span>}
             open={modalVisible}
             onCancel={() => setModalVisible(false)}
             onOk={handleMarcarAsistencia}
             okText="Confirmar Asistencia"
             confirmLoading={marcando}
-            okButtonProps={{ disabled: !token }}
+            okButtonProps={{
+              disabled: !token || (requiereGeoSesion && !hasCoords(ubicacion.latitud, ubicacion.longitud))
+            }}
           >
             <p>
-              <strong>Sesión:</strong> {selectedSesion?.tipoSesion} — {selectedSesion?.cancha?.nombre}
+              <strong>Sesión:</strong> {selectedSesion?.tipoSesion} — {selectedSesion?.cancha?.nombre || selectedSesion?.cancha}
             </p>
 
             <Input
@@ -280,23 +297,35 @@ export default function MarcarAsistencia() {
               maxLength={20}
             />
 
+            {requiereGeoSesion && (
+              <Alert
+                message="Esta sesión exige ubicación para marcar asistencia."
+                type="warning"
+                showIcon
+                style={{ marginTop: 16 }}
+              />
+            )}
+
             <div style={{ marginTop: 20, marginBottom: 10 }}>
               <Space>
                 <EnvironmentOutlined />
-                <Text strong>Registrar ubicación</Text>
-                <Switch checked={usarUbicacion} onChange={setUsarUbicacion} />
+                <Text strong>
+                  {requiereGeoSesion ? 'Registrar ubicación (obligatorio)' : 'Registrar ubicación (opcional)'}
+                </Text>
+                {!requiereGeoSesion && (
+                  <Switch
+                    checked={usarUbicacion}
+                    onChange={(v) => {
+                      setUsarUbicacion(v);
+                      if (!v) setUbicacion({ latitud: null, longitud: null });
+                    }}
+                  />
+                )}
               </Space>
             </div>
 
-            {usarUbicacion && (
-              <div
-                style={{
-                  border: '1px solid #d9d9d9',
-                  padding: 12,
-                  borderRadius: 8,
-                  background: '#fafafa',
-                }}
-              >
+            {(requiereGeoSesion || usarUbicacion) && (
+              <div style={{ border: '1px solid #d9d9d9', padding: 12, borderRadius: 8, background: '#fafafa' }}>
                 <Button
                   type="default"
                   icon={<AimOutlined />}
@@ -308,21 +337,16 @@ export default function MarcarAsistencia() {
                 </Button>
 
                 {errorUbicacion && (
-                  <Alert
-                    message={errorUbicacion}
-                    type="error"
-                    showIcon
-                    style={{ marginTop: 12 }}
-                  />
+                  <Alert message={errorUbicacion} type="error" showIcon style={{ marginTop: 12 }} />
                 )}
 
-                {ubicacion.latitud && (
+                {hasCoords(ubicacion.latitud, ubicacion.longitud) && (
                   <div style={{ marginTop: 10 }}>
                     <Text type="secondary" style={{ display: 'block' }}>
-                      Lat: {ubicacion.latitud.toFixed(6)}
+                      Lat: {toNum(ubicacion.latitud).toFixed(6)}
                     </Text>
                     <Text type="secondary" style={{ display: 'block' }}>
-                      Lng: {ubicacion.longitud.toFixed(6)}
+                      Lng: {toNum(ubicacion.longitud).toFixed(6)}
                     </Text>
                   </div>
                 )}

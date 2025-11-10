@@ -25,7 +25,6 @@ export default function Login() {
 
       if (user) {
         login(user);
-        message.success('¡Login exitoso!');
         navigate('/dashboard', { replace: true });
       } else {
         message.error('No se recibió información del usuario');

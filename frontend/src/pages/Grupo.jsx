@@ -231,7 +231,7 @@ export default function Grupos() {
             title="¿Eliminar grupo?"
             description="Los jugadores no se eliminarán"
             onConfirm={() => handleEliminarGrupo(record.id)}
-            okText="Aceptar"
+            okText="Eliminar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
           >

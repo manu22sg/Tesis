@@ -38,7 +38,6 @@ export async function obtenerSesionPorId(id) {
   try {
     const res = await api.post('/sesion/detalle', { id });
     
-    // 🔍 Debug temporal - quítalo después
    
     
     return res.data.data;
@@ -64,9 +63,7 @@ export async function eliminarSesion(id) {
   return res.data.data;
 }
 
-/**
- * Crear sesiones recurrentes
- */
+
 export async function crearSesionesRecurrentes(data) {
   const res = await api.post('/sesion/recurrente', data);
   return res.data.data;
@@ -74,15 +71,16 @@ export async function crearSesionesRecurrentes(data) {
 
 export async function activarTokenSesion(sesionId, params = {}) {
   try {
-    const payload = {
+    const payload = limpiarPayload({
       ttlMin: params.ttlMin || 30,
       tokenLength: params.tokenLength || 6,
-      latitudToken: params.latitudToken ?? null,   // ✅ nombres correctos
-      longitudToken: params.longitudToken ?? null, // ✅ nombres correctos
-    };
+      requiereUbicacion: params.requiereUbicacion ?? false,
+      latitudToken: params.latitudToken ?? null,
+      longitudToken: params.longitudToken ?? null,
+    });
 
     const response = await api.post(`/sesionToken/activar/${sesionId}`, payload);
-    return response.data.data;
+    return response.data?.data;
   } catch (error) {
     console.error('Error activando token:', error);
     throw error;
@@ -93,7 +91,7 @@ export async function activarTokenSesion(sesionId, params = {}) {
 export async function desactivarTokenSesion(sesionId) {
   try {
     const response = await api.patch(`/sesionToken/desactivar/${sesionId}`, {});
-    return response.data.data;
+    return response.data?.data;
   } catch (error) {
     console.error('Error desactivando token:', error);
     throw error;
@@ -114,4 +112,15 @@ export async function obtenerSesionesEstudiante({ page = 1, limit = 10 } = {}) {
     console.error('Error obteniendo sesiones del estudiante:', error);
     throw error;
   }
+}
+
+function limpiarPayload(data) {
+  const limpio = {};
+  for (const key in data) {
+    const valor = data[key];
+    if (valor !== null && valor !== undefined && valor !== '') {
+      limpio[key] = valor;
+    }
+  }
+  return limpio;
 }

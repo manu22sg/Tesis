@@ -5,7 +5,8 @@ const SesionEntrenamientoSchema = new EntitySchema({
   tableName: "sesiones_entrenamiento",
   columns: {
     id: { type: "int", primary: true, generated: true },
-  canchaId: { type: "int", nullable: false },
+
+    canchaId: { type: "int", nullable: false },
 
     fecha: { type: "date" },
     horaInicio: { type: "time" },
@@ -13,59 +14,60 @@ const SesionEntrenamientoSchema = new EntitySchema({
     tipoSesion: { type: "varchar", length: 50 },
     objetivos: { type: "text", nullable: true },
 
-    //  FK al grupo 
+    // FK al grupo
     grupoId: { type: "int", nullable: true },
 
-    // Token (no cambia la estructura)
+    // Token
     token: { type: "varchar", length: 20, nullable: true },
     tokenActivo: { type: "boolean", default: false },
     tokenExpiracion: { type: "timestamp", nullable: true },
-    latitudToken: { type: "decimal", precision: 9, scale: 6, nullable: true },
-    longitudToken: { type: "decimal", precision: 9, scale: 6, nullable: true },
+
+    // 🔑 Si el técnico quiere geofence obligatorio
+    requiereUbicacion: { type: "boolean", default: false },
+
+    // Coords del punto de referencia (si aplica)
+    latitudToken: {
+      type: "decimal",
+      precision: 9,
+      scale: 6,
+      nullable: true,
+      transformer: {
+        to: (v) => v,
+        from: (v) => (v === null || v === undefined ? null : Number(v)),
+      },
+    },
+    longitudToken: {
+      type: "decimal",
+      precision: 9,
+      scale: 6,
+      nullable: true,
+      transformer: {
+        to: (v) => v,
+        from: (v) => (v === null || v === undefined ? null : Number(v)),
+      },
+    },
 
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },
   },
   relations: {
     cancha: {
-    type: "many-to-one",
-    target: "Cancha",
-    joinColumn: { name: "canchaId" },
-    onDelete: "RESTRICT",
-  },
-
+      type: "many-to-one",
+      target: "Cancha",
+      joinColumn: { name: "canchaId" },
+      onDelete: "RESTRICT",
+    },
     grupo: {
       type: "many-to-one",
       target: "GrupoJugador",
       joinColumn: { name: "grupoId" },
       onDelete: "SET NULL",
     },
-
-    entrenamientos: {
-      type: "one-to-many",
-      target: "EntrenamientoSesion",
-      inverseSide: "sesion",
-    },
-    asistencias: {
-      type: "one-to-many",
-      target: "Asistencia",
-      inverseSide: "sesion",
-    },
-    evaluaciones: {
-      type: "one-to-many",
-      target: "Evaluacion",
-      inverseSide: "sesion",
-    },
-    estadisticas: {
-      type: "one-to-many",
-      target: "EstadisticaBasica",
-      inverseSide: "sesion",
-    },
-    alineaciones: {
-      type: "one-to-many",
-      target: "Alineacion",
-      inverseSide: "sesion",
-    },
+    entrenamientos: { type: "one-to-many", target: "EntrenamientoSesion", inverseSide: "sesion" },
+    asistencias:     { type: "one-to-many", target: "Asistencia",          inverseSide: "sesion" },
+    evaluaciones:    { type: "one-to-many", target: "Evaluacion",           inverseSide: "sesion" },
+    estadisticas:    { type: "one-to-many", target: "EstadisticaBasica",    inverseSide: "sesion" },
+    alineaciones:    { type: "one-to-many", target: "Alineacion",           inverseSide: "sesion" },
   },
   indices: [
     { name: "idx_sesiones_fecha", columns: ["fecha"] },
@@ -73,6 +75,8 @@ const SesionEntrenamientoSchema = new EntitySchema({
     { name: "idx_sesiones_token", columns: ["token"] },
     { name: "idx_sesiones_grupo", columns: ["grupoId"] },
     { name: "idx_sesiones_cancha", columns: ["canchaId"] },
+    // Útil para búsquedas de token vigente
+    { name: "idx_sesiones_token_activo", columns: ["tokenActivo", "token"] },
   ],
 });
 

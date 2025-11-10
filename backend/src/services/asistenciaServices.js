@@ -9,36 +9,27 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
     const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
 
-    //  Buscar sesión activa con este token
     const sesiones = await sesionRepo.find({ where: { token, tokenActivo: true } });
-
-    if (sesiones.length === 0)
-      return [null, "Token inválido o sesión no activa", 404];
-    if (sesiones.length > 1)
-      return [null, "Conflicto: más de una sesión usa este token. Contacte al entrenador.", 409];
+    if (sesiones.length === 0) return [null, "Token inválido o sesión no activa", 404];
+    if (sesiones.length > 1) return [null, "Conflicto: más de una sesión usa este token. Contacte al entrenador.", 409];
 
     const sesion = sesiones[0];
     const now = new Date();
 
-    //  Validar expiración del token
-    if (sesion.tokenExpiracion && now > new Date(sesion.tokenExpiracion)) {
-      return [null, "Token expirado", 401];
-    }
-
-    //  Validar que la sesión no haya terminado
+    // Expiración y fin
+    if (sesion.tokenExpiracion && now > new Date(sesion.tokenExpiracion)) return [null, "Token expirado", 401];
     const fechaSesion = parseDateLocal(sesion.fecha);
     const [horaFin, minFin] = sesion.horaFin.split(":").map(Number);
-    const finSesion = new Date(fechaSesion);
-    finSesion.setHours(horaFin, minFin, 0, 0);
+    const finSesion = new Date(fechaSesion); finSesion.setHours(horaFin, minFin, 0, 0);
+    if (finSesion < now) return [null, "No se puede marcar asistencia para una sesión que ya finalizó", 400];
 
-    if (finSesion < now) {
-      return [null, "No se puede marcar asistencia para una sesión que ya finalizó", 400];
-    }
-
-    // Validar ubicación si la sesión tiene coordenadas activas
-    if (sesion.latitudToken !== null && sesion.longitudToken !== null) {
-      // Si el DT activó token con ubicación, el jugador debe enviar la suya obligatoriamente
-      if (latitud === undefined || longitud === undefined) {
+    // 🔑 Requerir ubicación SOLO si la sesión fue activada con geofence (coords presentes)
+    const requiereGeo = sesion.latitudToken != null && sesion.longitudToken != null;
+    if (requiereGeo) {
+      // el jugador DEBE mandar su ubicación
+      const latFaltante = latitud == null || Number.isNaN(Number(latitud));
+      const lngFaltante = longitud == null || Number.isNaN(Number(longitud));
+      if (latFaltante || lngFaltante) {
         return [null, "Debes permitir el acceso a tu ubicación para marcar asistencia", 400];
       }
 
@@ -47,25 +38,22 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
         Number(longitud),
         Number(sesion.latitudToken),
         Number(sesion.longitudToken),
-        100 //  radio permitido en metros
+        100 // metros
       );
-
       if (!dentro) {
-        return [
-          null,
-          `Debes estar cerca del lugar del entrenamiento (distancia: ${Math.round(distancia)} m)`,
-          403,
-        ];
+        return [null, `Debes estar cerca del lugar del entrenamiento (distancia: ${Math.round(distancia)} m)`, 403];
       }
+    } else {
+      // Si NO requiere geofence, ignoramos cualquier lat/lon que venga (no bloqueamos)
+      latitud = undefined;
+      longitud = undefined;
     }
 
     // Crear registro de asistencia
     const nuevaAsistencia = asistenciaRepo.create({
       jugadorId,
       sesionId: sesion.id,
-      estado: estado && ESTADOS_ASISTENCIA.includes(estado)
-        ? estado
-        : "presente",
+      estado: estado && ESTADOS_ASISTENCIA.includes(estado) ? estado : "presente",
       latitud,
       longitud,
       origen: origen || "jugador",
@@ -85,6 +73,7 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
     return [null, "Error al marcar asistencia", 500];
   }
 }
+
 
 
 

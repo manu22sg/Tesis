@@ -47,7 +47,6 @@ export async function getSesiones(req, res) {
       limit: req.query.limit,
     };
 
-    // 👇 Nuevo: permitir filtrar por jugadorId (opcional)
     if (req.query.jugadorId) {
       filtros.jugadorId = parseInt(req.query.jugadorId);
     }
@@ -66,7 +65,6 @@ export async function getSesiones(req, res) {
     return error(res, 'Error interno del servidor', 500);
   }
 }
-/** POST /api/sesiones/detalle */
 export async function getSesionPorId(req, res) {
   try {
     const { id } = req.body;
@@ -82,7 +80,6 @@ export async function getSesionPorId(req, res) {
   }
 }
 
-/** PATCH /api/sesiones */
 export async function patchActualizarSesion(req, res) {
   try {
     const { id, ...rest } = req.body;
@@ -104,7 +101,6 @@ export async function patchActualizarSesion(req, res) {
   }
 }
 
-/** DELETE /api/sesiones/eliminar */
 export async function deleteSesion(req, res) {
   try {
     const { id } = req.body;
@@ -120,7 +116,6 @@ export async function deleteSesion(req, res) {
   }
 }
 
-/** POST /api/sesiones/recurrente */
 export async function postSesionesRecurrentes(req, res) {
   try {
     const [resultado, err] = await crearSesionesRecurrentes(req.body);

@@ -240,7 +240,6 @@ export default function JugadorGrupos() {
           </Space>
         </div>
 
-        {/* Alert si no hay grupos disponibles */}
         {gruposDisponibles.length === 0 && gruposActuales.length > 0 && (
           <Alert
             message="Información"
@@ -329,38 +328,37 @@ export default function JugadorGrupos() {
         <div>
           <Text strong>Selecciona un grupo:</Text>
           <Select
-            value={grupoSeleccionado}
-            onChange={setGrupoSeleccionado}
-            placeholder="Selecciona un grupo"
-            style={{ width: '100%', marginTop: 8 }}
-            size="large"
-            showSearch
-            optionFilterProp="children"
-          >
-            {gruposDisponibles.map(grupo => (
-              <Option key={grupo.id} value={grupo.id}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <TeamOutlined />
-                  <span>{grupo.nombre}</span>
-                  {grupo.categoria && (
-                    <Tag color="blue" style={{ marginLeft: 'auto' }}>
-                      {grupo.categoria}
-                    </Tag>
-                  )}
-                </div>
-              </Option>
-            ))}
-          </Select>
-
-          {gruposDisponibles.length === 0 && (
-            <Alert
-              message="No hay grupos disponibles"
-              description="El jugador ya está en todos los grupos existentes"
-              type="warning"
-              showIcon
-              style={{ marginTop: 16 }}
-            />
-          )}
+  value={grupoSeleccionado}
+  onChange={setGrupoSeleccionado}
+  placeholder="Selecciona un grupo"
+  style={{ width: '100%', marginTop: 8 }}
+  size="large"
+  showSearch
+  filterOption={(input, option) => {
+    const grupo = gruposDisponibles.find(g => g.id === option.value);
+    if (!grupo) return false;
+    const searchText = input.toLowerCase();
+    return (
+      grupo.nombre?.toLowerCase().includes(searchText) ||
+      grupo.descripcion?.toLowerCase().includes(searchText) ||
+      grupo.categoria?.toLowerCase().includes(searchText)
+    );
+  }}
+>
+  {gruposDisponibles.map(grupo => (
+    <Option key={grupo.id} value={grupo.id}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <TeamOutlined />
+        <span>{grupo.nombre}</span>
+        {grupo.categoria && (
+          <Tag color="blue" style={{ marginLeft: 'auto' }}>
+            {grupo.categoria}
+          </Tag>
+        )}
+      </div>
+    </Option>
+  ))}
+</Select>
         </div>
       </Modal>
     </div>
