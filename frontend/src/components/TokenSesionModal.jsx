@@ -57,7 +57,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
         };
         setUbicacion(nuevaUbicacion);
         setLoadingUbicacion(false);
-        message.success('📍 Ubicación obtenida');
+        message.success('Ubicación obtenida');
       },
       (error) => {
         setLoadingUbicacion(false);
@@ -83,7 +83,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
     onActivar(datosExtra);
   }, [ttlMin, tokenLength, incluirUbicacion, ubicacion, onActivar]);
 
-  // 🔒 No renderizar el contenido hasta que se abra el modal
+  //  No renderizar el contenido hasta que se abra el modal
   if (!open) return null;
 
   return (

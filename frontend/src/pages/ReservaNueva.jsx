@@ -38,7 +38,7 @@ export default function ReservaNueva() {
   const [participantes, setParticipantes] = useState([]);
   const [participantesInfo, setParticipantesInfo] = useState({});
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
-  const [capacidadMaxima, setCapacidadMaxima] = useState(12); // Por defecto 12
+  const [capacidadMaxima, setCapacidadMaxima] = useState(12);
   
   // Estados para el autocomplete
   const [opcionesAutoComplete, setOpcionesAutoComplete] = useState([]);
@@ -106,10 +106,7 @@ export default function ReservaNueva() {
   // Buscar sugerencias mientras escribe
   useEffect(() => {
     const buscarSugerencias = async () => {
-      if (valorBusqueda.length < 2) {
-        setOpcionesAutoComplete([]);
-        return;
-      }
+      
 
       setBuscandoSugerencias(true);
       try {
@@ -120,10 +117,10 @@ export default function ReservaNueva() {
           r => !participantes.includes(r.rut)
         );
         
-        // Formatear opciones para el AutoComplete
+        // Formatear opciones para el AutoComplete (Nombre - RUT)
         const opcionesFormateadas = resultadosFiltrados.map(usuario => ({
           value: usuario.rut,
-          label: `${usuario.rut} - ${usuario.nombre}`,
+          label: `${usuario.nombre} - ${usuario.rut}`,
           rut: usuario.rut,
           nombre: usuario.nombre,
           email: usuario.email
@@ -166,7 +163,7 @@ export default function ReservaNueva() {
 
     const nuevosParticipantes = [...participantes, rut];
     setParticipantes(nuevosParticipantes);
-    setValorBusqueda(''); // Limpiar el campo de búsqueda
+    setValorBusqueda('');
     
     // Guardar info del participante
     if (option) {
@@ -208,10 +205,8 @@ export default function ReservaNueva() {
         horaInicio: values.horaInicio.format('HH:mm'),
         horaFin: values.horaFin.format('HH:mm'),
         motivo: values.motivo || '',
-        participantes: participantesCompletos, // Enviar con el solicitante incluido
+        participantes: participantesCompletos,
       };
-
-      
 
       await crearReserva(data);
       message.success('Reserva creada correctamente');
@@ -271,233 +266,230 @@ export default function ReservaNueva() {
     return () => document.head.removeChild(style);
   }, []);
 
-  const participantesRestantes = capacidadMaxima - participantes.length;
-
   return (
     <MainLayout>
-    <ConfigProvider locale={locale}>
-      <div
-        style={{
-          minHeight: '100vh',
-          padding: '2rem',
-          backgroundColor: '#f5f5f5',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Card title="Nueva Reserva de Cancha" style={{ width: 600, borderRadius: 12 }}>
-          {usuario && (
-            <Alert
-              message={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <UserOutlined />
-                  <span>
-                    <strong>Solicitante:</strong> {usuario.nombre} ({usuario.rut || 'Sin RUT'})
-                  </span>
-                </div>
-              }
-              type="info"
-              showIcon={false}
-              style={{ marginBottom: 16 }}
-            />
-          )}
-
-          <Form layout="vertical" form={form} onFinish={handleSubmit}>
-            <Form.Item
-              label="Cancha"
-              name="canchaId"
-              rules={[{ required: true, message: 'Selecciona una cancha' }]}
-            >
-              <Select
-                placeholder="Selecciona una cancha"
-                options={canchas}
-                loading={!canchas.length}
-                onChange={(value) => {
-                  const cancha = canchas.find((c) => c.value === value);
-                  setCanchaSeleccionada(cancha || null);
-                  
-                  // Actualizar capacidad máxima y reiniciar participantes si es necesario
-                  if (cancha) {
-                    const nuevaCapacidad = cancha.capacidad || 12;
-                    setCapacidadMaxima(nuevaCapacidad);
-                    
-                    // Si hay más participantes de los permitidos, recortar la lista
-                    if (participantes.length > nuevaCapacidad - 1) {
-                      setParticipantes(participantes.slice(0, nuevaCapacidad - 1));
-                      message.warning(`La cancha permite máximo ${nuevaCapacidad - 1} compañeros. Se han eliminado los excedentes.`);
-                    }
-                  }
-                }}
+      <ConfigProvider locale={locale}>
+        <div
+          style={{
+            minHeight: '100vh',
+            padding: '2rem',
+            backgroundColor: '#f5f5f5',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Card title="Nueva Reserva de Cancha" style={{ width: 600, borderRadius: 12 }}>
+            {usuario && (
+              <Alert
+                message={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <UserOutlined />
+                    <span>
+                      <strong>Solicitante:</strong> {usuario.nombre} ({usuario.rut || 'Sin RUT'})
+                    </span>
+                  </div>
+                }
+                type="info"
+                showIcon={false}
+                style={{ marginBottom: 16 }}
               />
-            </Form.Item>
-
-            {canchaSeleccionada && (
-              <div
-                style={{
-                  background: '#f0f2f5',
-                  borderRadius: 8,
-                  padding: '8px 12px',
-                  marginBottom: 16,
-                  fontSize: 14,
-                  color: '#333',
-                }}
-              >
-                <p style={{ marginBottom: 4 }}>
-                  <strong>Capacidad máxima:</strong> {canchaSeleccionada.capacidad} jugadores
-                </p>
-                {canchaSeleccionada.descripcion && (
-                  <p style={{ marginBottom: 0 }}>
-                    <strong>Descripción:</strong> {canchaSeleccionada.descripcion}
-                  </p>
-                )}
-              </div>
             )}
 
-            <Form.Item
-              label="Fecha"
-              name="fecha"
-              rules={[{ required: true, message: 'Selecciona la fecha de reserva' }]}
-            >
-              <DatePicker
-                format="DD/MM/YYYY"
-                style={{ width: '100%' }}
-                placeholder="Selecciona una fecha"
-                disabledDate={(current) => {
-                  const today = dayjs().startOf('day');
-                  const minDate = today.add(1, 'day');
-                  const maxDate = today.add(14, 'day');
-                  const day = current.day();
-                  
-                  return !current || current < minDate || current > maxDate || day === 0 || day === 6;
-                }}
-                classNames={{ popup: 'hide-weekends' }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Hora de inicio"
-              name="horaInicio"
-              rules={[{ required: true, message: 'Selecciona la hora de inicio' }]}
-            >
-              <TimePicker
-                format="HH:mm"
-                minuteStep={30}
-                onChange={handleHoraInicioChange}
-                disabledTime={() => ({
-                  disabledHours: () => [0,1,2,3,4,5,6,7,15,16,17,18,19,20,21,22,23],
-                  disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-                })}
-                hideDisabledOptions
-                showNow={false}
-                classNames={{ popup: 'timepicker-academico' }}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Hora de fin"
-              name="horaFin"
-              extra="Se calcula automáticamente (1h 30min después del inicio)"
-            >
-              <TimePicker format="HH:mm" value={horaFin} disabled style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item label="Motivo (opcional)" name="motivo">
-              <TextArea rows={2} placeholder="Motivo de la reserva" />
-            </Form.Item>
-
-            {/* AutoComplete para buscar participantes */}
-            <Form.Item
-              label={`Participantes`}
-            >
-              <AutoComplete
-                value={valorBusqueda}
-                options={opcionesAutoComplete}
-                onSearch={setValorBusqueda}
-                onSelect={(value, option) => agregarParticipante(value, option)}
-                style={{ width: '100%' }}
-                disabled={participantes.length >= capacidadMaxima}
-                notFoundContent={
-                  buscandoSugerencias ? 'Buscando...' :
-                  valorBusqueda.length < 2 ? 'Buscar por nombre o RUT' :
-                  'No se encontraron usuarios'
-                }
+            <Form layout="vertical" form={form} onFinish={handleSubmit}>
+              <Form.Item
+                label="Cancha"
+                name="canchaId"
+                rules={[{ required: true, message: 'Selecciona una cancha' }]}
               >
-                <Input
-                  placeholder={`Buscar por nombre o RUT (${participantes.length}/${capacidadMaxima} agregados)`}
-                  allowClear
+                <Select
+                  placeholder="Selecciona una cancha"
+                  options={canchas}
+                  loading={!canchas.length}
+                  onChange={(value) => {
+                    const cancha = canchas.find((c) => c.value === value);
+                    setCanchaSeleccionada(cancha || null);
+                    
+                    if (cancha) {
+                      const nuevaCapacidad = cancha.capacidad || 12;
+                      setCapacidadMaxima(nuevaCapacidad);
+                      
+                      if (participantes.length > nuevaCapacidad) {
+                        setParticipantes(participantes.slice(0, nuevaCapacidad));
+                        message.warning(`La cancha permite máximo ${nuevaCapacidad} participantes. Se han eliminado los excedentes.`);
+                      }
+                    }
+                  }}
                 />
-              </AutoComplete>
-            </Form.Item>
+              </Form.Item>
 
-            {/* Vista de participantes agregados */}
-            {participantes.length > 0 && (
-              <div style={{ 
-                marginBottom: 16, 
-                padding: 12, 
-                background: '#fafafa', 
-                borderRadius: 8,
-                border: '1px solid #d9d9d9'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <strong>Participantes agregados:</strong>
-                  <span style={{ color: '#666' }}>{participantes.length}/{capacidadMaxima}</span>
+              {canchaSeleccionada && (
+                <div
+                  style={{
+                    background: '#f0f2f5',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    marginBottom: 16,
+                    fontSize: 14,
+                    color: '#333',
+                  }}
+                >
+                  <p style={{ marginBottom: 4 }}>
+                    <strong>Capacidad máxima:</strong> {canchaSeleccionada.capacidad} jugadores
+                  </p>
+                  {canchaSeleccionada.descripcion && (
+                    <p style={{ marginBottom: 0 }}>
+                      <strong>Descripción:</strong> {canchaSeleccionada.descripcion}
+                    </p>
+                  )}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {participantes.map((rut, index) => {
-                    const info = participantesInfo[rut];
-                    const esSolicitante = usuario && usuario.rut === rut;
+              )}
 
-                    return (
-                      <span 
-                        key={index} 
-                        className="participante-tag"
-                        style={esSolicitante ? {
-                          background: '#e6f7ff',
-                          border: '1px solid #91d5ff'
-                        } : {}}
-                      >
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <span>
-                          {rut}
-                          {info && (
-                            <span style={{ marginLeft: 4, fontSize: 12, color: '#666' }}>
-                              ({info.nombre})
-                              {esSolicitante && <strong> - Tú</strong>}
-                            </span>
+              <Form.Item
+                label="Fecha"
+                name="fecha"
+                rules={[{ required: true, message: 'Selecciona la fecha de reserva' }]}
+              >
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  placeholder="Selecciona una fecha"
+                  disabledDate={(current) => {
+                    const today = dayjs().startOf('day');
+                    const minDate = today.add(1, 'day');
+                    const maxDate = today.add(14, 'day');
+                    const day = current.day();
+                    
+                    return !current || current < minDate || current > maxDate || day === 0 || day === 6;
+                  }}
+                  classNames={{ popup: 'hide-weekends' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Hora de inicio"
+                name="horaInicio"
+                rules={[{ required: true, message: 'Selecciona la hora de inicio' }]}
+              >
+                <TimePicker
+                  format="HH:mm"
+                  minuteStep={30}
+                  onChange={handleHoraInicioChange}
+                  disabledTime={() => ({
+                    disabledHours: () => [0,1,2,3,4,5,6,7,15,16,17,18,19,20,21,22,23],
+                    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
+                  })}
+                  hideDisabledOptions
+                  showNow={false}
+                  classNames={{ popup: 'timepicker-academico' }}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Hora de fin"
+                name="horaFin"
+                extra="Se calcula automáticamente (1h 30min después del inicio)"
+              >
+                <TimePicker format="HH:mm" value={horaFin} disabled style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item label="Motivo (opcional)" name="motivo">
+                <TextArea rows={2} placeholder="Motivo de la reserva" />
+              </Form.Item>
+
+              {/* AutoComplete para buscar participantes */}
+              <Form.Item label="Participantes">
+                <AutoComplete
+                  value={valorBusqueda}
+                  options={opcionesAutoComplete}
+                  onSearch={setValorBusqueda}
+                  onSelect={(value, option) => agregarParticipante(value, option)}
+                  style={{ width: '100%' }}
+                  disabled={participantes.length >= capacidadMaxima || !canchaSeleccionada}
+                  notFoundContent={
+                    buscandoSugerencias ? 'Buscando...' : 'No se encontraron usuarios'
+                  }
+                >
+                  <Input
+                    placeholder={
+                      !canchaSeleccionada 
+                        ? 'Selecciona una cancha'
+                        : `Buscar por nombre o RUT (${participantes.length}/${capacidadMaxima} agregados)`
+                    }
+                    allowClear
+                  />
+                </AutoComplete>
+                
+              </Form.Item>
+
+              {/* Vista de participantes agregados */}
+              {participantes.length > 0 && (
+                <div style={{ 
+                  marginBottom: 16, 
+                  padding: 12, 
+                  background: '#fafafa', 
+                  borderRadius: 8,
+                  border: '1px solid #d9d9d9'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <strong>Participantes agregados:</strong>
+                    <span style={{ color: '#666' }}>{participantes.length}/{capacidadMaxima}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {participantes.map((rut, index) => {
+                      const info = participantesInfo[rut];
+                      const esSolicitante = usuario && usuario.rut === rut;
+
+                      return (
+                        <span 
+                          key={index} 
+                          className="participante-tag"
+                          style={esSolicitante ? {
+                            background: '#e6f7ff',
+                            border: '1px solid #91d5ff'
+                          } : {}}
+                        >
+                          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                          <span>
+                            {rut}
+                            {info && (
+                              <span style={{ marginLeft: 4, fontSize: 12, color: '#666' }}>
+                                ({info.nombre})
+                                {esSolicitante && <strong> - Tú</strong>}
+                              </span>
+                            )}
+                          </span>
+                          {!esSolicitante && (
+                            <CloseCircleOutlined 
+                              className="participante-tag-remove"
+                              onClick={() => removerParticipante(rut)}
+                            />
                           )}
                         </span>
-                        {!esSolicitante && (
-                          <CloseCircleOutlined 
-                            className="participante-tag-remove"
-                            onClick={() => removerParticipante(rut)}
-                          />
-                        )}
-                      </span>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <Form.Item>
-              <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button onClick={() => navigate(-1)}>Cancelar</Button>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={loading}
-                  disabled={participantes.length !== capacidadMaxima}
-                >
-                  Reservar cancha
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Card>
-      </div>
-    </ConfigProvider>
+              <Form.Item>
+                <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button onClick={() => navigate(-1)}>Cancelar</Button>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    loading={loading}
+                    disabled={participantes.length !== capacidadMaxima}
+                  >
+                    Reservar cancha
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
+        </div>
+      </ConfigProvider>
     </MainLayout>
   );
 }

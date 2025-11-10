@@ -19,7 +19,6 @@ export async function obtenerSesiones(filtros = {}) {
   if (filtros.horaInicio) params.append('horaInicio', filtros.horaInicio);
   if (filtros.horaFin) params.append('horaFin', filtros.horaFin);
 
-  // 👇 Nuevo: permitir filtro opcional por jugadorId
   if (filtros.jugadorId) params.append('jugadorId', filtros.jugadorId);
 
   const query = params.toString() ? `?${params.toString()}` : '';

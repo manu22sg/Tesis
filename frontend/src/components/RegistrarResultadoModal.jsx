@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, Form, InputNumber, Alert, Space, Typography, Divider,
-  message, Row, Col, Card, Statistic
+  message, Row, Col, Card, Tag
 } from 'antd';
 import {
   TrophyOutlined, FireOutlined, WarningOutlined
 } from '@ant-design/icons';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-const RegistrarResultadoModal = ({ 
-  visible, 
-  onCancel, 
-  onSuccess, 
-  partido, 
-  equipos 
+const capitalize = (str) =>
+  typeof str === 'string' && str.length
+    ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+    : '';
+
+const RegistrarResultadoModal = ({
+  visible,
+  onCancel,
+  onSuccess,
+  partido,
+  equipos
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -23,22 +28,21 @@ const RegistrarResultadoModal = ({
 
   useEffect(() => {
     if (partido && visible) {
-      // Verificar si es eliminación directa
       const rondasEliminatorias = ['octavos', 'cuartos', 'semifinal', 'final'];
       const esEliminatoria = rondasEliminatorias.includes(partido.ronda?.toLowerCase());
       setEsEliminacionDirecta(esEliminatoria);
 
-      // Cargar valores existentes si ya hay resultados
       form.setFieldsValue({
-        golesA: partido.golesA || 0,
-        golesB: partido.golesB || 0,
-        penalesA: partido.penalesA || undefined,
-        penalesB: partido.penalesB || undefined,
+        golesA: partido.golesA !== null ? partido.golesA : null,
+        golesB: partido.golesB !== null ? partido.golesB : null,
+        penalesA: partido.penalesA ?? undefined,
+        penalesB: partido.penalesB ?? undefined,
       });
 
-      // Verificar si hay empate con los valores actuales
       if (partido.golesA !== null && partido.golesB !== null) {
         setHayEmpate(partido.golesA === partido.golesB);
+      } else {
+        setHayEmpate(false);
       }
     }
   }, [partido, visible, form]);
@@ -46,34 +50,38 @@ const RegistrarResultadoModal = ({
   const equipoA = equipos?.find(e => e.id === partido?.equipoAId);
   const equipoB = equipos?.find(e => e.id === partido?.equipoBId);
 
-  const handleValuesChange = (changedValues, allValues) => {
+  const handleValuesChange = (_, allValues) => {
     const { golesA, golesB } = allValues;
-    
-    // Detectar empate en tiempo real
-    if (golesA !== undefined && golesB !== undefined) {
+
+    if (golesA !== null && golesA !== undefined &&
+        golesB !== null && golesB !== undefined) {
       const empate = golesA === golesB;
       setHayEmpate(empate);
-      
-      // Si ya no hay empate, limpiar penales
+
       if (!empate) {
         form.setFieldsValue({
           penalesA: undefined,
           penalesB: undefined,
         });
       }
+    } else {
+      setHayEmpate(false);
     }
   };
 
   const handleSubmit = async (values) => {
     const { golesA, golesB, penalesA, penalesB } = values;
 
-    // Validación: empate en eliminación directa sin penales
+    if (typeof golesA !== 'number' || typeof golesB !== 'number') {
+      message.error('Debe ingresar ambos marcadores');
+      return;
+    }
+
     if (esEliminacionDirecta && golesA === golesB) {
-      if (penalesA === undefined || penalesB === undefined) {
+      if (typeof penalesA !== 'number' || typeof penalesB !== 'number') {
         message.error('Debes definir el resultado por penales');
         return;
       }
-      
       if (penalesA === penalesB) {
         message.error('Los penales no pueden terminar empatados');
         return;
@@ -89,12 +97,11 @@ const RegistrarResultadoModal = ({
         penalesA: hayEmpate ? penalesA : null,
         penalesB: hayEmpate ? penalesB : null,
       });
-      
-      message.success('Resultado registrado exitosamente');
+
       form.resetFields();
       setHayEmpate(false);
     } catch (error) {
-      message.error(error?.response?.data?.error || 'Error al registrar resultado');
+      console.error('Error al registrar:', error);
     } finally {
       setLoading(false);
     }
@@ -118,31 +125,38 @@ const RegistrarResultadoModal = ({
     >
       {partido && (
         <>
-          {/* Info del partido */}
-          <Card size="small" style={{ marginBottom: 16, background: '#f5f5f5' }}>
-            <Row gutter={16}>
-              <Col span={10}>
-                <Statistic
-                  title={equipoA?.nombre || 'Equipo A'}
-                  value={equipoA?.nombre || 'Equipo A'}
-                  valueStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                />
+          {/* Cabecera estilo "programar partido" */}
+          <Card
+            size="small"
+            style={{
+              marginBottom: 16,
+              backgroundColor: '#f0f5ff',
+              border: '1px solid #d6e4ff'
+            }}
+          >
+            {/* Fila de Nombres de Equipo */}
+            <Row gutter={16} align="middle">
+              <Col span={10} style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0, 0, 0, 0.88)' }}>
+                  {equipoA?.nombre || 'Equipo A'}
+                </div>
               </Col>
-              <Col span={4} style={{ textAlign: 'center', paddingTop: 20 }}>
-                <Text strong style={{ fontSize: 18 }}>VS</Text>
+              <Col span={4} style={{ textAlign: 'center' }}>
+                <Text strong style={{ fontSize: 16 }}>VS</Text>
               </Col>
-              <Col span={10}>
-                <Statistic
-                  title={equipoB?.nombre || 'Equipo B'}
-                  value={equipoB?.nombre || 'Equipo B'}
-                  valueStyle={{ fontSize: 16, fontWeight: 'bold' }}
-                />
+              <Col span={10} style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0, 0, 0, 0.88)' }}>
+                  {equipoB?.nombre || 'Equipo B'}
+                </div>
               </Col>
             </Row>
-            <Divider style={{ margin: '12px 0' }} />
-            <Text type="secondary">
-              Ronda: <strong>{partido.ronda?.toUpperCase()}</strong>
-            </Text>
+
+            <Divider style={{ margin: '8px 0' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Tag color="purple">{capitalize(partido.ronda)}</Tag>
+              <span />
+            </div>
           </Card>
 
           {/* Alerta de eliminación directa */}
@@ -156,21 +170,15 @@ const RegistrarResultadoModal = ({
             />
           )}
 
-          {/* Formulario */}
           <Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
             onValuesChange={handleValuesChange}
-            initialValues={{
-              golesA: 0,
-              golesB: 0,
-            }}
           >
-            {/* Marcador Regular */}
-            <Card 
-              title="Marcador Regular" 
-              size="small" 
+            <Card
+              title="Marcador Regular"
+              size="small"
               style={{ marginBottom: 16 }}
             >
               <Row gutter={16}>
@@ -187,7 +195,11 @@ const RegistrarResultadoModal = ({
                       style={{ width: '100%' }}
                       size="large"
                       min={0}
-                      placeholder="0"
+                      max={99}
+                      placeholder="Ingrese goles"
+                      controls={false}
+                      keyboard
+                      parser={(value) => String(value ?? '').replace(/[^\d]/g, '')}
                     />
                   </Form.Item>
                 </Col>
@@ -204,16 +216,20 @@ const RegistrarResultadoModal = ({
                       style={{ width: '100%' }}
                       size="large"
                       min={0}
-                      placeholder="0"
+                      max={99}
+                      placeholder="Ingrese goles"
+                      controls={false}
+                      keyboard
+                      parser={(value) => String(value ?? '').replace(/[^\d]/g, '')}
                     />
                   </Form.Item>
                 </Col>
               </Row>
             </Card>
 
-            {/* Penales (solo si hay empate) */}
+            {/* Penales (solo si hay empate y es eliminación directa) */}
             {hayEmpate && esEliminacionDirecta && (
-              <Card 
+              <Card
                 title={
                   <Space>
                     <TrophyOutlined style={{ color: '#faad14' }} />
@@ -221,7 +237,7 @@ const RegistrarResultadoModal = ({
                   </Space>
                 }
                 size="small"
-                style={{ 
+                style={{
                   marginBottom: 16,
                   borderColor: '#faad14',
                   background: '#fffbe6'
@@ -235,7 +251,7 @@ const RegistrarResultadoModal = ({
                   icon={<WarningOutlined />}
                   style={{ marginBottom: 12 }}
                 />
-                
+
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
@@ -250,7 +266,11 @@ const RegistrarResultadoModal = ({
                         style={{ width: '100%' }}
                         size="large"
                         min={0}
-                        placeholder="0"
+                        max={99}
+                        placeholder="Ingrese penales"
+                        controls={false}
+                        keyboard
+                        parser={(value) => String(value ?? '').replace(/[^\d]/g, '')}
                       />
                     </Form.Item>
                   </Col>
@@ -267,7 +287,11 @@ const RegistrarResultadoModal = ({
                         style={{ width: '100%' }}
                         size="large"
                         min={0}
-                        placeholder="0"
+                        max={99}
+                        placeholder="Ingrese penales"
+                        controls={false}
+                        keyboard
+                        parser={(value) => String(value ?? '').replace(/[^\d]/g, '')}
                       />
                     </Form.Item>
                   </Col>

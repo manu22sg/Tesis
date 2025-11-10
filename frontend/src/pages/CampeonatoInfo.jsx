@@ -32,6 +32,7 @@ import {
 } from '@ant-design/icons';
 import MainLayout, { useCampeonatoActivo } from '../components/MainLayout';
 import { campeonatoService } from '../services/campeonato.services';
+import {formatearFechaHora} from '../utils/formatters'
 
 const { Option } = Select;
 
@@ -206,9 +207,9 @@ function CampeonatoInfoContent() {
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ff4d4f' }}>
                 <ClockCircleOutlined style={{ marginRight: 8 }} />
-                {campeonato.partidos?.filter(p => p.estado === 'pendiente').length || 0}
+                {campeonato.partidos?.filter(p => p.estado === 'programado').length || 0}
               </div>
-              <div style={{ color: '#8c8c8c', fontSize: 12 }}>Pendientes</div>
+              <div style={{ color: '#8c8c8c', fontSize: 12 }}>Programados</div>
             </div>
           </Col>
         </Row>
@@ -281,13 +282,18 @@ function CampeonatoInfoContent() {
             </Tag>
           </Descriptions.Item>
           
-          <Descriptions.Item label="Total Equipos">
+          <Descriptions.Item label="Total de Equipos">
             <Space>
               <TeamOutlined />
               <strong>{campeonato.equipos?.length || 0}</strong>
             </Space>
           </Descriptions.Item>
-          
+            <Descriptions.Item label="Fecha de creación">
+  <Space>
+    <CalendarOutlined />
+     {formatearFechaHora(campeonato.fechaCreacion)}
+  </Space>
+</Descriptions.Item>
        
         </Descriptions>
 

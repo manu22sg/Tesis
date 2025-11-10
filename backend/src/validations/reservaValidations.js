@@ -54,14 +54,13 @@ const horaSchema = Joi.string().pattern(TIME_HH_MM)
   .required()
   .messages({ 'string.pattern.base': 'La hora debe tener formato HH:mm (ej: 09:00)' });
 
-// POST /api/reservas
 export const crearReservaBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
   fecha: fechaReservaSchema,
   horaInicio: horaSchema,
   horaFin: horaSchema,
   motivo: Joi.string().trim().max(500).optional().allow(''),
-  participantes: Joi.array().items(rutSchema).min(11).max(11).unique().required()
+  participantes: Joi.array().items(rutSchema).max(22).unique().required()
 }).custom((value, helpers) => {
   const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
   const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);
@@ -88,14 +87,14 @@ export const crearReservaBody = Joi.object({
 
 // GET /api/reservas (usuario)
 export const obtenerReservasUsuarioQuery = Joi.object({
-  estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada').optional(),
+  estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada', 'expirada').optional(),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(50).default(10)
 });
 
 // GET /api/reservas/todas (entrenador)
 export const obtenerTodasReservasQuery = Joi.object({
-  estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada').optional(),
+  estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada', 'expirada').optional(),
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional(),
   canchaId: Joi.number().integer().positive().optional(),
   page: Joi.number().integer().min(1).default(1),

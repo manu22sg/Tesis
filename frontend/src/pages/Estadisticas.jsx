@@ -26,7 +26,6 @@ const Estadisticas = () => {
   const [tabActiva, setTabActiva] = useState('sesion');
   const [cargando, setCargando] = useState(false);
 
-  // 🔁 Fuerza la recarga de las listas
   const [claveRecarga, setClaveRecarga] = useState(0);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ const Estadisticas = () => {
     setModalVisible(false);
     setEstadisticaEditar(null);
     message.success('Estadística guardada correctamente');
-    // 🔁 Fuerza recarga de la lista
     setClaveRecarga((prev) => prev + 1);
   };
 

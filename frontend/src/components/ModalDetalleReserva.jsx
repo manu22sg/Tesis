@@ -1,6 +1,5 @@
 import React from 'react';
-import { formatearFecha, formatearHora, formatearRangoHoras } from '../utils/formatters.js';
-
+import { formatearFecha, formatearFechaHora, formatearRangoHoras } from '../utils/formatters.js';
 import { Modal, Button, Descriptions, Tag, Badge, Card } from 'antd';
 import { EyeOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -13,11 +12,13 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
       pendiente: 'gold',
       aprobada: 'green',
       rechazada: 'red',
-      cancelada: 'default',
-      completada: 'blue'
+      completada: 'blue',
+      expirada: 'volcano'
     };
     return colors[estado] || 'default';
   };
+
+  const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
 
   return (
     <Modal
@@ -40,20 +41,29 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
             {reserva.usuario?.email}
           </div>
         </Descriptions.Item>
+
         <Descriptions.Item label="Cancha" span={2}>
           {reserva.cancha?.nombre}
         </Descriptions.Item>
-        <Descriptions.Item label="Fecha Solicitud">
-          {dayjs(reserva.fechaSolicitud).format('DD/MM/YYYY')}
+
+        <Descriptions.Item label="Fecha de Reserva">
+          {formatearFecha(reserva.fechaReserva)}
         </Descriptions.Item>
+
+        <Descriptions.Item label="Fecha de Creación">
+          {formatearFechaHora(reserva.fechaCreacion)}
+        </Descriptions.Item>
+
         <Descriptions.Item label="Horario">
           {formatearRangoHoras(reserva.horaInicio, reserva.horaFin)}
         </Descriptions.Item>
+
         <Descriptions.Item label="Estado" span={2}>
           <Tag color={getEstadoColor(reserva.estado)}>
-            {reserva.estado?.toUpperCase()}
+            {ucfirst(reserva.estado || '')}
           </Tag>
         </Descriptions.Item>
+
         <Descriptions.Item label="Participantes" span={2}>
           <Badge count={reserva.participantes?.length || 0} showZero />
           {reserva.participantes?.length > 0 && (
@@ -71,7 +81,7 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
           <h4>Historial:</h4>
           {reserva.historial.map((h, idx) => (
             <Card key={idx} size="small" style={{ marginBottom: '8px' }}>
-              <div><strong>Acción:</strong> {h.accion}</div>
+              <div><strong>Acción:</strong> {ucfirst(h.accion)}</div>
               <div><strong>Observación:</strong> {h.observacion}</div>
               <div style={{ fontSize: '12px', color: '#888' }}>
                 Por: {h.usuario?.nombre || 'Sistema'}

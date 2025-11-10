@@ -313,7 +313,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
 
           {cambiosPendientes && (
             <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '8px 12px', borderRadius: 4 }}>
-              ⚠️ Tienes cambios sin guardar
+               Tienes cambios sin guardar
             </div>
           )}
 
@@ -336,7 +336,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
 
         {modoEdicion && (
           <div style={{ marginTop: 16, padding: 12, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 8 }}>
-            💡 <strong>Instrucciones:</strong> Arrastra jugadores en el campo o hacia la papelera 🗑️ para eliminarlos.
+             <strong>Instrucciones:</strong> Arrastra jugadores en el campo o hacia la papelera 🗑️ para eliminarlos.
           </div>
         )}
 

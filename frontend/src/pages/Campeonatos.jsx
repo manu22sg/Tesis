@@ -40,12 +40,12 @@ import MainLayout, { useCampeonatoActivo } from '../components/MainLayout.jsx';
 
 const { Option } = Select;
 
-// 🔥 Componente interno que usa el hook
+//  Componente interno que usa el hook
 function CampeonatosContent() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   
-  // ✅ Ahora el hook está dentro del Provider
+  //  Ahora el hook está dentro del Provider
   const { setCampeonatoActivo } = useCampeonatoActivo();
   
   const [campeonatos, setCampeonatos] = useState([]);
@@ -204,17 +204,16 @@ function CampeonatosContent() {
     }
   };
 
-  const handleEliminar = async (id) => {
+  const handleEliminar = useCallback(async (id) => {
     try {
       await campeonatoService.eliminar(id);
-      message.success('Campeonato eliminado');
+      message.success('Campeonato eliminado correctamente');
       cargarCampeonatos();
     } catch {
-      message.error('Error al eliminar');
+      message.error('Error al eliminar campeonato');
     }
-  };
+  }, [cargarCampeonatos]);
 
-  // 🌟 Nueva función: Ir a detalle y establecer como activo
   const verDetalle = async (campeonato) => {
     // Establecer campeonato como activo en el sidebar
     setCampeonatoActivo({
@@ -300,32 +299,32 @@ function CampeonatosContent() {
       )
     },
     {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Ver detalle">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => verDetalle(record)} />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button type="text" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
-          </Tooltip>
-        
-          
-          <Popconfirm
-            title="¿Eliminar campeonato?"
-            onConfirm={() => handleEliminar(record.id)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Tooltip title="Eliminar">
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      )
-    }
-  ], []);
+  title: 'Acciones',
+  key: 'acciones',
+  render: (_, record) => (
+    <Space>
+      <Tooltip title="Ver detalle">
+        <Button type="text" size="middle" icon={<EyeOutlined />} onClick={() => verDetalle(record)} />
+      </Tooltip>
+      <Tooltip title="Editar">
+        <Button type="text" size="middle" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
+      </Tooltip>
+      
+       <Popconfirm
+        title="¿Eliminar campeonato?"
+        onConfirm={() => handleEliminar(record.id)}
+        okText="Aceptar"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true }}
+      >
+        <Tooltip title="Eliminar">
+          <Button type="text" size="middle" danger icon={<DeleteOutlined  />} />
+        </Tooltip>
+      </Popconfirm>
+    </Space>
+  )
+}
+  ], [handleEliminar]);
 
   return (
     <ConfigProvider locale={locale}>
@@ -508,7 +507,6 @@ function CampeonatosContent() {
   );
 }
 
-// 🎯 Componente principal que envuelve con MainLayout
 export default function Campeonatos() {
   return (
     <MainLayout>

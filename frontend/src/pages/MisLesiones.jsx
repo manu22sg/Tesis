@@ -142,7 +142,7 @@ export default function MisLesiones() {
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 8,              // 👈 separación bien cortita
+    gap: 8,              
   }}
 >
   <Input
@@ -151,7 +151,7 @@ export default function MisLesiones() {
     onChange={(e) => setBusqueda(e.target.value)}
     prefix={<SearchOutlined />}
     placeholder="Buscar por diagnóstico..."
-    style={{ width: 260 }}   // 👈 tamaño fijo (no crece)
+    style={{ width: 260 }}   
     size="middle"
   />
 
@@ -160,7 +160,7 @@ export default function MisLesiones() {
     onChange={setRangoFechas}
     format="DD/MM/YYYY"
     placeholder={['Fecha inicio', 'Fecha fin']}
-    style={{ width: 260 }}   // 👈 tamaño fijo (no crece)
+    style={{ width: 260 }}   
     size="middle"
   />
 

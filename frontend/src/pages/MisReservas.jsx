@@ -35,13 +35,14 @@ const estadoConfig = {
   pendiente: { color: 'gold', text: 'Pendiente' },
   aprobada: { color: 'green', text: 'Aprobada' },
   rechazada: { color: 'red', text: 'Rechazada' },
-  cancelada: { color: 'default', text: 'Cancelada' },
+  expirada: { color: 'volcano', text: 'Expirada' },
+  completada: { color: 'blue', text: 'Completada' },
 };
 
 export default function MisReservas() {
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtroEstado, setFiltroEstado] = useState(''); // '' = Todos
+  const [filtroEstado, setFiltroEstado] = useState('');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -57,7 +58,7 @@ export default function MisReservas() {
     try {
       setLoading(true);
       const filtros = { page, limit: pageSize };
-      if (estado) filtros.estado = estado; // si '' => no aplica filtro
+      if (estado) filtros.estado = estado;
 
       const { reservas: data, pagination: paginationData } = await obtenerMisReservas(filtros);
 
@@ -108,7 +109,7 @@ export default function MisReservas() {
   const columns = [
     {
       title: 'Fecha',
-      dataIndex: 'fechaSolicitud',
+      dataIndex: 'fechaReserva',
       key: 'fecha',
       render: (fecha) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -206,7 +207,8 @@ export default function MisReservas() {
                     { label: 'Pendiente', value: 'pendiente' },
                     { label: 'Aprobada', value: 'aprobada' },
                     { label: 'Rechazada', value: 'rechazada' },
-                    { label: 'Cancelada', value: 'cancelada' },
+                    { label: 'Expirada', value: 'expirada' },
+                    { label: 'Completada', value: 'completada' },
                   ]}
                 />
 
@@ -293,7 +295,7 @@ export default function MisReservas() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <strong>Fecha:</strong>{' '}
-                      {formatearFecha(reservaDetalle.fechaSolicitud)}
+                      {formatearFecha(reservaDetalle.fechaReserva)}
                     </div>
                     <div>
                       <strong>Horario:</strong> {formatearHora(reservaDetalle.horaInicio)} -{' '}

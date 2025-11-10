@@ -10,7 +10,7 @@ const CampeonatoSchema = new EntitySchema({
     genero: { type: "varchar", length: 20 }, // masculino, femenino, mixto
     anio: { type: "int", nullable: false },
     semestre: { type: "int", nullable: false },
-    estado: { type: "varchar", length: 20, default: "creado" }, // creado, en_curso, finalizado
+    estado: { type: "varchar", length: 20, default: "creado" }, 
     entrenadorId: { type: "int", nullable: false },
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true },

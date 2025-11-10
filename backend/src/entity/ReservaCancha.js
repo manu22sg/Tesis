@@ -13,9 +13,9 @@ const ReservaCanchaSchema = new EntitySchema({
       type: "int",
     },
     canchaId: {
-      type: "int", // ← AGREGAR ESTO
+      type: "int", 
     },
-    fechaSolicitud: {
+    fechaReserva: {
       type: "date",
     },
     horaInicio: {
@@ -31,7 +31,7 @@ const ReservaCanchaSchema = new EntitySchema({
     estado: {
       type: "varchar",
       length: 20,
-      default: "pendiente", // pendiente, aprobada, rechazada, cancelada, completada
+      default: "pendiente", 
     },
     confirmado: {
       type: "boolean",
@@ -86,7 +86,7 @@ const ReservaCanchaSchema = new EntitySchema({
     },
     {
       name: "idx_reservas_fecha",
-      columns: ["fechaSolicitud"],
+      columns: ["fechaReserva"],
     },
     {
       name: "idx_reservas_estado",
@@ -94,7 +94,7 @@ const ReservaCanchaSchema = new EntitySchema({
     },
     {
       name: "idx_reservas_fecha_cancha", 
-      columns: ["fechaSolicitud", "canchaId"],
+      columns: ["fechaReserva", "canchaId"],
     },
   ],
 });

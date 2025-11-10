@@ -64,7 +64,7 @@ export async function crearSesion(datos) {
 
     // 5) Conflicto con reservas de cancha PENDIENTES o APROBADAS (ambas bloquean)
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaSolicitud: fechaLocal, estado: In(['pendiente', 'aprobada']) }
+      where: { canchaId, fechaReserva: fechaLocal, estado: In(['pendiente', 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario(nuevaVentana, r)) {
@@ -264,7 +264,7 @@ export async function actualizarSesion(id, datos) {
 
     // Validar conflicto con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId: nuevaCanchaId, fechaSolicitud: nuevaFecha, estado: In(['pendiente', 'aprobada']) }
+      where: { canchaId: nuevaCanchaId, fechaReserva: nuevaFecha, estado: In(['pendiente', 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario(nuevaSesionHorario, r)) {
@@ -278,7 +278,7 @@ export async function actualizarSesion(id, datos) {
     });
     for (const p of partidos) {
       if (hayConflictoHorario(nuevaSesionHorario, p)) {
-        return [null, `Conflicto con partido de campeonato ID: ${p.id}. Debe reprogramar el partido primero.`];
+        return [null, `Conflicto con partido de campeonato ID: ${p.id}.`];
       }
     }
 
@@ -362,7 +362,7 @@ export async function crearSesionesRecurrentes(datos) {
 
         // 3. Validar conflicto con reservas pendientes/aprobadas
         const reservas = await reservaRepo.find({
-          where: { canchaId, fechaSolicitud: fechaStr, estado: In(['pendiente', 'aprobada']) }
+          where: { canchaId, fechaReserva: fechaStr, estado: In(['pendiente', 'aprobada']) }
         });
         conflicto = reservas.some(r => hayConflictoHorario(nueva, r));
         if (conflicto) {

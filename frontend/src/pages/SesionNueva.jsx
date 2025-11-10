@@ -16,7 +16,6 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import locale from 'antd/locale/es_ES';
 import MainLayout from '../components/MainLayout.jsx';
-// Servicios
 import { crearSesion } from '../services/sesion.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import { obtenerGrupos } from '../services/grupo.services.js';
@@ -33,7 +32,6 @@ export default function SesionNueva() {
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
 
-  // 🔹 Cargar datos iniciales
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -68,7 +66,6 @@ export default function SesionNueva() {
     cargarDatos();
   }, []);
 
-  // 🔹 Estilos para ocultar fines de semana
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -95,12 +92,10 @@ export default function SesionNueva() {
     return () => document.head.removeChild(style);
   }, []);
 
-  // 🔹 Crear nueva sesión con validación de disponibilidad
   const onFinish = async (values) => {
     try {
       setSaving(true);
 
-      // ✅ Validación Frontend: Hora inicio < Hora fin
       if (values.horaInicio.isAfter(values.horaFin) || values.horaInicio.isSame(values.horaFin)) {
         message.error('La hora de inicio debe ser anterior a la hora de fin');
         setSaving(false);
@@ -117,7 +112,6 @@ export default function SesionNueva() {
         horaFin: values.horaFin.format('HH:mm'),
       };
 
-      // 🧩 Verificar disponibilidad antes de crear
       const disponibilidad = await verificarDisponibilidad(
         payload.canchaId,
         payload.fecha,

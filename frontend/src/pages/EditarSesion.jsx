@@ -34,7 +34,7 @@ export default function EditarSesion() {
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
 
-  // 🔹 Cargar datos iniciales
+  //  Cargar datos iniciales
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -89,7 +89,7 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
     cargarDatos();
   }, [id]);
 
-  // 🔹 Guardar cambios (el backend ya valida excluyendo la sesión actual)
+  //Guardar cambios (el backend ya valida excluyendo la sesión actual)
   const onFinish = async (values) => {
     try {
       setSaving(true);
@@ -158,7 +158,6 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
           style={{ maxWidth: 650, margin: '0 auto', borderRadius: 10 }}
         >
           <Form layout="vertical" form={form} onFinish={onFinish}>
-            {/* 🔸 Cancha */}
             <Form.Item
               name="canchaId"
               label="Cancha"
@@ -173,7 +172,6 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
               />
             </Form.Item>
 
-            {/* 🔸 Grupo */}
             <Form.Item name="grupoId" label="Grupo (opcional)">
               <Select
                 allowClear
@@ -185,7 +183,6 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
               />
             </Form.Item>
 
-            {/* 🔸 Fecha */}
             <Form.Item
               name="fecha"
               label="Fecha"
@@ -198,11 +195,10 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
                   const day = current.day();
                   return day === 0 || day === 6; // Deshabilitar sábado y domingo
                 }}
-                popupClassName="hide-weekends"
+                popupClassNames="hide-weekends" 
               />
             </Form.Item>
 
-            {/* 🔸 Hora Inicio */}
             <Form.Item
               name="horaInicio"
               label="Hora de inicio"
@@ -222,7 +218,6 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
               />
             </Form.Item>
 
-            {/* 🔸 Hora Fin */}
             <Form.Item
               name="horaFin"
               label="Hora de fin"
@@ -242,7 +237,6 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
               />
             </Form.Item>
 
-            {/* 🔸 Tipo de sesión */}
             <Form.Item
               name="tipoSesion"
               label="Tipo de sesión"
@@ -255,12 +249,10 @@ const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g)
               />
             </Form.Item>
 
-            {/* 🔸 Objetivos */}
             <Form.Item name="objetivos" label="Objetivos (opcional)">
               <Input.TextArea rows={3} placeholder="Describe los objetivos de la sesión" />
             </Form.Item>
 
-            {/* 🔸 Botones */}
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <Button onClick={() => navigate(-1)}>Cancelar</Button>

@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
         setUsuario(null);
       }
     } catch (error) {
-      console.error("❌ Error verificando sesión:", error);
+      console.error("Error verificando sesión:", error);
       setUsuario(null);
     } finally {
       setLoading(false);
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     try {
       await logoutRequest();
     } catch (error) {
-      console.warn("⚠️ Error en logout (ignorado):", error.message);
+      console.warn("Error en logout (ignorado):", error.message);
     } finally {
       // SIEMPRE limpiar el usuario, incluso si hay error
       setUsuario(null);

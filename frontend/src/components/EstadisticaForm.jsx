@@ -39,7 +39,7 @@ const FormularioEstadistica = ({
     }
   }, [estadistica]);
 
-  // 🔹 Cuando cambia el jugador, cargar solo sus sesiones
+  // Cuando cambia el jugador, cargar solo sus sesiones
   useEffect(() => {
     if (jugadorSeleccionado) {
       cargarSesionesPorJugador(jugadorSeleccionado);
@@ -49,14 +49,14 @@ const FormularioEstadistica = ({
     }
   }, [jugadorSeleccionado]);
 
-  // 🔹 Cargar sesiones filtradas por jugador
+  // Cargar sesiones filtradas por jugador
   const cargarSesionesPorJugador = async (jugadorId) => {
     setCargandoSesiones(true);
     try {
       const resultado = await obtenerSesiones({ jugadorId, limit: 50, page: 1 });
       setSesiones(Array.isArray(resultado.sesiones) ? resultado.sesiones : []);
     } catch (error) {
-      console.error('❌ Error cargando sesiones por jugador:', error);
+      console.error('Error cargando sesiones por jugador:', error);
       message.error('Error al cargar las sesiones del jugador');
       setSesiones([]);
     } finally {

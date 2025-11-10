@@ -280,9 +280,8 @@ export default function Jugadores() {
 
       <Popconfirm
         title="¿Eliminar jugador?"
-        description="Esta acción no se puede deshacer"
         onConfirm={() => handleEliminar(record.id)}
-        okText="Sí, eliminar"
+        okText="Aceptar"
         cancelText="Cancelar"
         okButtonProps={{ danger: true }}
       >

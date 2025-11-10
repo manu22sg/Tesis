@@ -55,12 +55,10 @@ export default function Evaluaciones() {
 
   // Función para formatear fecha a DD/MM/YYYY
  
-  // Cargar solo sesiones recientes (últimos 3 meses)
   const cargarSesiones = async () => {
     setLoadingSesiones(true);
     try {
-      // Cargar primera página de sesiones (ordenadas DESC por fecha)
-      // Como están ordenadas por fecha descendente, las primeras 50 son las más recientes
+      
       const resultado = await obtenerSesiones({ 
         limit: 50, 
         page: 1 
@@ -218,10 +216,11 @@ export default function Evaluaciones() {
               </Tooltip>
               <Popconfirm
                 title="¿Eliminar evaluación?"
-                description="Esta acción no se puede deshacer"
                 onConfirm={() => handleDelete(record.id)}
-                okText="Sí, eliminar"
+                okText="Aceptar"
                 cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+
               >
                 <Tooltip title="Eliminar">
                   <Button 

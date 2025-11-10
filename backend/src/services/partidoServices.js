@@ -31,7 +31,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
 
     // ✅ Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaSolicitud: fechaLocal, estado: In(["pendiente", "aprobada"]) },
+      where: { canchaId, fechaReserva: fechaLocal, estado: In(["pendiente", "aprobada"]) },
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {

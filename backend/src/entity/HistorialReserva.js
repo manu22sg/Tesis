@@ -25,6 +25,7 @@ const HistorialReservaSchema = new EntitySchema({
         },
         usuarioId: {
             type: "int",
+            nullable: "true"
         },
     },
     relations: {

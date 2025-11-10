@@ -47,10 +47,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const token = theme.useToken().token;
   const [collapsed, setCollapsed] = useState(false);
   
-  // 🏆 Estado para campeonato activo
+  //  Estado para campeonato activo
   const [campeonatoActivo, setCampeonatoActivo] = useState(null);
 
-  // 🔐 Determinar rol
+  //  Determinar rol
   const rol = (usuario?.rol?.nombre || usuario?.rol || '').toLowerCase();
   const userRole =
     rol === 'superadmin'
@@ -90,11 +90,11 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
       getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
       
-      // ⭐ Solo aparece si hay campeonato activo
+      //  Solo aparece si hay campeonato activo
       ...(campeonatoActivo ? [
         { type: 'divider', key: 'divider-campeonato' },
         getItem(
-          `⭐ ${campeonatoActivo.nombre}`, 
+          ` ${campeonatoActivo.nombre}`, 
           'sub_campeonato_activo', 
           <StarOutlined />, 
           [
@@ -155,7 +155,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     ]),
   ];
 
-  // 🗺️ Rutas ↔ keys
+  //  Rutas ↔ keys
   const pathToKey = {
     '/dashboard': 'dashboard',
     '/gestion-canchas': 'canchas-gestion',
@@ -192,7 +192,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     }
   }
 
-  // 🔓 Submenús abiertos por defecto
+  // Submenús abiertos por defecto
   const [openKeys, setOpenKeys] = useState(() => {
     if (location.pathname.startsWith('/campeonatos')) return ['sub_campeonatos', 'sub_campeonato_activo'];
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
@@ -203,7 +203,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     return [];
   });
 
-  // 🔀 Navegación al hacer click
+  // Navegación al hacer click
   const onMenuClick = ({ key }) => {
     // Rutas dinámicas de campeonatos
     const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla)$/);

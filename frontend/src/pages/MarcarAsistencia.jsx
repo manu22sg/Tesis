@@ -57,7 +57,6 @@ export default function MarcarAsistencia() {
   const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState(null);
 
-  // 🔹 Cargar sesiones del estudiante
   const cargarSesiones = async (page = 1, limit = 5) => {
     try {
       setLoading(true);

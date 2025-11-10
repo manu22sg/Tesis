@@ -10,7 +10,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
   const [sesiones, setSesiones] = useState([]);
   const [loadingJugadores, setLoadingJugadores] = useState(false);
   const [loadingSesiones, setLoadingSesiones] = useState(false);
-  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null); // 👈 nuevo
+  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null); 
   const editando = !!initialValues;
 
   //  Cargar valores iniciales (modo edición)
@@ -81,7 +81,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
 
   return (
     <Form layout="vertical" form={form} onFinish={onFinish}>
-      {/* 🔍 Jugador */}
+      {/* Jugador */}
       {!editando && (
         <Form.Item
           name="jugadorId"
@@ -106,7 +106,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         </Form.Item>
       )}
 
-      {/* 🔍 Sesión dependiente del jugador */}
+      {/* Sesión dependiente del jugador */}
       {!editando && (
         <Form.Item
           name="sesionId"
@@ -137,7 +137,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         </Form.Item>
       )}
 
-      {/* 🧱 Campos numéricos */}
+      {/*  Campos numéricos */}
       <Form.Item name="tecnica" label="Técnica">
         <InputNumber min={1} max={10} style={{ width: '100%' }} />
       </Form.Item>

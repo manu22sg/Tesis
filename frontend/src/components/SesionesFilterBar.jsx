@@ -2,8 +2,7 @@ import React, { memo, useState, useEffect } from 'react';
 import { Row, Col, Input, Button, DatePicker, TimePicker, Select, message, Card } from 'antd';
 import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 
-// --- Importaciones de tus servicios ---
-// (Asegúrate que las rutas sean correctas)
+
 import { obtenerCanchas } from '../services/cancha.services'; 
 import { obtenerGrupos } from '../services/grupo.services';
 
@@ -19,18 +18,14 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
     const cargarListas = async () => {
       setLoading(true);
       try {
-        // --- AQUÍ ESTÁ LA CORRECCIÓN ---
-        // Usamos los mismos parámetros que en tu componente 'SesionNueva'
         const [dataCanchas, dataGrupos] = await Promise.all([
-          obtenerCanchas({ estado: 'disponible', limit: 100 }), // <-- Corregido
-          obtenerGrupos({ limit: 100 })                       // <-- Corregido
+          obtenerCanchas({ estado: 'disponible', limit: 100 }), 
+          obtenerGrupos({ limit: 100 })                       
         ]);
         
-        // 1. 'obtenerCanchas' devuelve un objeto { canchas: [...] }
         setCanchas(dataCanchas.canchas || []);
 
-        // 2. 'obtenerGrupos' devuelve response.data (prob. { data: { grupos: [...] } })
-        // (Tu código de SesionNueva confirma que es dataGrupos.data.grupos)
+     
         const gruposArray = dataGrupos.data?.grupos || dataGrupos.grupos || dataGrupos || [];
         setGrupos(gruposArray);
 

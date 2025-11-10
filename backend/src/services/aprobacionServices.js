@@ -135,7 +135,7 @@ export async function obtenerReservasPendientes(filtros = {}) {
 
     // Filtros opcionales
     if (filtros.fecha) {
-      whereConditions.fechaSolicitud = filtros.fecha;
+      whereConditions.fechaReserva = filtros.fecha;
     }
 
     if (filtros.canchaId) {
@@ -149,8 +149,8 @@ export async function obtenerReservasPendientes(filtros = {}) {
       where: whereConditions,
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario'],
       order: { 
-        fechaSolicitud: 'DESC',  // ⭐ Más recientes primero
-        horaInicio: 'ASC'        // ⭐ Luego por hora
+        fechaReserva: 'DESC',  
+        horaInicio: 'ASC'        
       },
       skip,
       take: limit
@@ -293,7 +293,7 @@ export async function obtenerEstadisticasReservas() {
     // Estadísticas adicionales - reservas de hoy
     const hoy = getLocalDate();
     const reservasHoy = await reservaRepository.count({
-      where: { fechaSolicitud: hoy }
+      where: { fechaReserva: hoy }
     });
 
     stats.reservasHoy = reservasHoy;

@@ -4,7 +4,6 @@ import {
   Table, 
   Button, 
   Space, 
-  Modal, 
   message, 
   Tag, 
   Pagination, 
@@ -15,7 +14,7 @@ import {
   Typography 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { EditOutlined, DeleteOutlined, TrophyOutlined, UserOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import {
   obtenerEstadisticasPorJugador,
   obtenerEstadisticasPorSesion,
@@ -45,9 +44,6 @@ const ListaEstadisticas = ({
     total: 0,
   });
 
-  // Hook moderno de Modal
-  const [modal, contextHolder] = Modal.useModal();
-
   const cargarEstadisticas = async (pagina = 1, limite = 10) => {
     setCargando(true);
     try {
@@ -69,7 +65,7 @@ const ListaEstadisticas = ({
         total: datos.total || datos.estadisticas?.length || 0,
       });
     } catch (error) {
-      console.error('❌ Error al cargar estadísticas:', error);
+      console.error('Error al cargar estadísticas:', error);
       message.error(error.message || 'Error al cargar las estadísticas');
     } finally {
       setCargando(false);
@@ -84,25 +80,16 @@ const ListaEstadisticas = ({
     cargarEstadisticas(pagina, tamanioPagina);
   };
 
-  const manejarEliminar = (estadisticaId) => {
-    modal.confirm({
-      title: '¿Estás seguro de eliminar esta estadística?',
-      content: 'Esta acción no se puede deshacer',
-      okText: 'Sí, eliminar',
-      okType: 'danger',
-      cancelText: 'Cancelar',
-      onOk: async () => {
-        try {
-          await eliminarEstadistica(estadisticaId);
-          message.success('Estadística eliminada correctamente');
-          setEstadisticas((prev) => prev.filter((e) => e.id !== estadisticaId));
-          setPaginacion((prev) => ({ ...prev, total: prev.total - 1 }));
-        } catch (error) {
-          console.error('❌ Error al eliminar estadística:', error);
-          message.error(error.message || 'Error al eliminar la estadística');
-        }
-      },
-    });
+  const manejarEliminar = async (estadisticaId) => {
+    try {
+      await eliminarEstadistica(estadisticaId);
+      message.success('Estadística eliminada correctamente');
+      setEstadisticas((prev) => prev.filter((e) => e.id !== estadisticaId));
+      setPaginacion((prev) => ({ ...prev, total: prev.total - 1 }));
+    } catch (error) {
+      console.error('Error al eliminar estadística:', error);
+      message.error('Error al eliminar la estadística');
+    }
   };
 
   const columnas = [
@@ -222,7 +209,7 @@ const ListaEstadisticas = ({
                 {onEdit && (
                   <Tooltip title="Editar">
                     <Button
-                      type="primary"
+                      type="text"
                       size="middle"
                       icon={<EditOutlined />}
                       onClick={() => onEdit(record)}
@@ -230,18 +217,17 @@ const ListaEstadisticas = ({
                   </Tooltip>
                 )}
 
-                <Tooltip title="Eliminar">
-                  <Popconfirm
-                    title="¿Eliminar registro?"
-                    description="Esta acción no se puede deshacer"
-                    onConfirm={() => manejarEliminar(record.id)}
-                    okText="Sí, eliminar"
-                    cancelText="Cancelar"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button danger size="middle" icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
+                <Popconfirm
+                  title="¿Eliminar estadística?"
+                  onConfirm={() => manejarEliminar(record.id)}
+                  okText="Aceptar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Tooltip title="Eliminar">
+                    <Button type="text" size="middle" danger icon={<DeleteOutlined />} />
+                  </Tooltip>
+                </Popconfirm>
               </Space>
             ),
           },
@@ -251,7 +237,6 @@ const ListaEstadisticas = ({
 
   return (
     <Card>
-      {contextHolder}
       <ConfigProvider locale={locale}>
         <Table
           columns={columnas}

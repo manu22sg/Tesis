@@ -1,8 +1,8 @@
-import React, { useState, useEffect,useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card, Button, Modal, message, Space, Tag, Descriptions,
   Alert, Spin, Empty, Table, Typography, Form, Select,
-  DatePicker, TimePicker, Row, Col, Tooltip
+  DatePicker, TimePicker, Row, Col, Tooltip,Statistic, Divider
 } from 'antd';
 import {
   ThunderboltOutlined, PlayCircleOutlined, TrophyOutlined,
@@ -13,9 +13,16 @@ import { campeonatoService } from '../services/campeonato.services.js';
 import { partidoService } from '../services/partido.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import RegistrarResultadoModal from './RegistrarResultadoModal.jsx';
+
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/es';
+
+// 🔹 Importa tus helpers desde utils/formatters
+import {
+  formatearFecha,
+  formatearRangoHoras
+} from '../utils/formatters';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('es');
@@ -28,32 +35,34 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
   const [campeonato, setCampeonato] = useState(null);
   const [partidos, setPartidos] = useState([]);
   const [canchas, setCanchas] = useState([]);
-  
+
   // Modales
   const [modalResultado, setModalResultado] = useState(false);
   const [modalProgramar, setModalProgramar] = useState(false);
   const [partidoSeleccionado, setPartidoSeleccionado] = useState(null);
-  
+
   // Formularios
   const [formProgramar] = Form.useForm();
-const nombreGanador = useMemo(() => {
-    // Solo calculamos esto si el campeonato está finalizado
+
+  // Helper para convertir hora (ISO o "HH:mm") a dayjs para TimePicker
+  const toTimeDayjs = (v) => {
+    if (!v) return null;
+    // Si viene ISO (contiene "T"), parsea directo
+    if (typeof v === 'string' && v.includes('T')) return dayjs(v);
+    // Si viene "HH:mm" o "HH:mm:ss"
+    return dayjs(v, v?.length > 5 ? 'HH:mm:ss' : 'HH:mm');
+  };
+
+  const nombreGanador = useMemo(() => {
     if (campeonato?.estado !== 'finalizado' || !partidos || !campeonato?.equipos) {
       return null;
     }
-    
-    // 1. Encontrar el partido de la final
     const partidoFinal = partidos.find(p => p.ronda === 'final');
-    if (!partidoFinal || !partidoFinal.ganadorId) {
-      return null; // Aún no hay ganador registrado
-    }
-
-    // 2. Encontrar el equipo ganador usando el ganadorId
+    if (!partidoFinal || !partidoFinal.ganadorId) return null;
     const equipoGanador = campeonato.equipos.find(e => e.id === partidoFinal.ganadorId);
-    
-    return equipoGanador?.nombre || null; // Devuelve el nombre
-    
+    return equipoGanador?.nombre || null;
   }, [campeonato?.estado, partidos, campeonato?.equipos]);
+
   useEffect(() => {
     if (campeonatoId) {
       cargarDatos();
@@ -95,7 +104,7 @@ const nombreGanador = useMemo(() => {
         setLoading(true);
         try {
           const resultado = await campeonatoService.sortearPrimeraRonda(campeonatoId);
-          
+
           message.success(
             <div>
               <div><strong>¡Primera ronda generada!</strong></div>
@@ -107,7 +116,7 @@ const nombreGanador = useMemo(() => {
             </div>,
             6
           );
-          
+
           cargarDatos();
         } catch (error) {
           message.error(error?.response?.data?.error || 'Error al sortear primera ronda');
@@ -121,14 +130,13 @@ const nombreGanador = useMemo(() => {
   const handleGenerarSiguienteRonda = async () => {
     const partidosAgrupados = agruparPartidosPorRonda();
     const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
-      // 👇 USA LA MISMA LÓGICA QUE ARRIBA
       const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
       return (orden[a] || 99) - (orden[b] || 99);
     });
-  const ultimaRonda = rondasOrdenadas[0];
+    const ultimaRonda = rondasOrdenadas[0];
     const partidosUltimaRonda = partidosAgrupados[ultimaRonda] || [];
     const partidosPendientes = partidosUltimaRonda.filter(p => p.estado !== 'finalizado');
-    
+
     if (partidosPendientes.length > 0) {
       Modal.warning({
         title: 'Partidos pendientes',
@@ -164,25 +172,16 @@ const nombreGanador = useMemo(() => {
         try {
           const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
 
-          if (resultado.fin) {
-            message.success(
-            <div>
-              <div><strong> ¡Campeonato Finalizado!</strong></div>
-              <div>{resultado.mensaje}</div>
-            </div>,
-            6
-          );
-          } else {
-            message.success(
-              <div>
-                <div><strong>¡Siguiente ronda generada!</strong></div>
-                <div>Ronda anterior: {getRondaNombre(resultado.rondaAnterior)}</div>
-                <div>Nueva ronda: {getRondaNombre(resultado.ronda)}</div>
-                <div>Partidos creados: {resultado.partidosCreados}</div>
-              </div>,
-              6
-            );
-          }
+          message.success(
+          <div>
+            <div><strong>¡Siguiente ronda generada!</strong></div>
+            {/* Usamos '&&' para evitar mostrar "Ronda anterior: null" */}
+            {resultado.rondaAnterior && <div>Ronda anterior: {getRondaNombre(resultado.rondaAnterior)}</div>}
+            {resultado.ronda && <div>Nueva ronda: {getRondaNombre(resultado.ronda)}</div>}
+            <div>Partidos creados: {resultado.partidosCreados}</div>
+          </div>,
+          6
+        );
 
           cargarDatos();
         } catch (error) {
@@ -202,70 +201,62 @@ const nombreGanador = useMemo(() => {
   const handleAbrirModalProgramar = (partido) => {
     setPartidoSeleccionado(partido);
     formProgramar.resetFields();
-    
-    if (partido.canchaId) {
-      formProgramar.setFieldsValue({
-        canchaId: partido.canchaId,
-        fecha: partido.fecha ? dayjs(partido.fecha) : null,
-        horaInicio: partido.horaInicio ? dayjs(partido.horaInicio, 'HH:mm') : null,
-        horaFin: partido.horaFin ? dayjs(partido.horaFin, 'HH:mm') : null
-      });
-    }
-    
+
+    // Soporta fecha ISO o YYYY-MM-DD y hora ISO o HH:mm
+    formProgramar.setFieldsValue({
+      canchaId: partido.canchaId || undefined,
+      fecha: partido.fecha ? dayjs(partido.fecha) : null,
+      horaInicio: toTimeDayjs(partido.horaInicio),
+      horaFin: toTimeDayjs(partido.horaFin),
+    });
+
     setModalProgramar(true);
   };
 
   const handleRegistrarResultado = async (datos) => {
-    const { partidoId, golesA, golesB, penalesA, penalesB } = datos;
-    
-    // 👇 1. Verificamos SI este partido es la final ANTES de hacer nada
-    const esLaFinal = partidoSeleccionado?.ronda === 'final';
+  const { partidoId, golesA, golesB, penalesA, penalesB } = datos;
+  const esLaFinal = partidoSeleccionado?.ronda === 'final';
 
-    try {
-      const payload = {
-        golesA: Number(golesA),
-        golesB: Number(golesB),
-        penalesA: penalesA !== null && penalesA !== undefined ? Number(penalesA) : null,
-        penalesB: penalesB !== null && penalesB !== undefined ? Number(penalesB) : null
-      };
+  try {
+    const payload = {
+      golesA: Number(golesA),
+      golesB: Number(golesB),
+      penalesA: penalesA !== null && penalesA !== undefined ? Number(penalesA) : null,
+      penalesB: penalesB !== null && penalesB !== undefined ? Number(penalesB) : null
+    };
+
+    await partidoService.registrarResultado(partidoId, payload);
+
+    
+    if (esLaFinal) {
+      setLoading(true);
       
-      // 2. Registramos el resultado del partido
-      await partidoService.registrarResultado(partidoId, payload);
       
-      message.success('Resultado registrado exitosamente');
-      
-      // 👇 3. ¡NUEVA LÓGICA!
-      // Si fue la final, disparamos la finalización del campeonato
-      if (esLaFinal) {
-        setLoading(true); // Mostramos feedback
-        message.info('Registrando final. Finalizando campeonato...');
-        
-        try {
-          // Llamamos al servicio que finaliza el torneo
-          const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
-          
-          if (resultado.fin) {
-             message.success('🏆 ¡Campeonato finalizado!', 5);
-          }
-        } catch (finError) {
-          message.error('Error al finalizar el campeonato. El resultado se guardó, pero contacta a soporte.');
-        } finally {
-          setLoading(false);
+      try {
+        const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
+        if (resultado.fin) {
+          message.success('¡Campeonato ha finalizado!', 3);
         }
+      } catch (finError) {
+        message.error('Error al llegar a la final del campeonato. ');
+      } finally {
+        setLoading(false);
       }
 
-      // 4. Cerramos modal y recargamos datos (ahora traerá el estado "finalizado")
-      setModalResultado(false);
-      setPartidoSeleccionado(null);
-      cargarDatos();
-
-    } catch (error) {
-      console.error('❌ Error completo:', error);
-      console.error('❌ Response data:', error?.response?.data);
-      message.error(error?.response?.data?.error || error?.message || 'Error al registrar resultado');
+    } else {
+      message.success('Resultado registrado exitosamente');
     }
-  };
 
+    setModalResultado(false);
+    setPartidoSeleccionado(null);
+    cargarDatos();
+
+  } catch (error) {
+    console.error(' Error completo:', error);
+    console.error(' Response data:', error?.response?.data);
+    message.error(error?.response?.data?.error || error?.message || 'Error al registrar resultado');
+  }
+};
   const handleProgramar = async (values) => {
     setLoading(true);
     try {
@@ -275,7 +266,7 @@ const nombreGanador = useMemo(() => {
         horaInicio: values.horaInicio.format('HH:mm'),
         horaFin: values.horaFin.format('HH:mm')
       };
-      
+
       await partidoService.programar(partidoSeleccionado.id, data);
       message.success('Partido programado exitosamente');
       setModalProgramar(false);
@@ -296,6 +287,12 @@ const nombreGanador = useMemo(() => {
       }
       grupos[partido.ronda].push(partido);
     });
+    
+    // Ordenar partidos dentro de cada ronda por ID para mantener orden consistente
+    Object.keys(grupos).forEach(ronda => {
+      grupos[ronda].sort((a, b) => a.id - b.id);
+    });
+    
     return grupos;
   };
 
@@ -343,20 +340,11 @@ const nombreGanador = useMemo(() => {
   const disabledTime = () => ({
     disabledHours: () => {
       const hours = [];
-      // Horas antes de las 8:00 (0-7)
-      for (let i = 0; i < 8; i++) {
-        hours.push(i);
-      }
-      // Horas después de las 18:00 (19-23)
-      for (let i = 19; i < 24; i++) {
-        hours.push(i);
-      }
+      for (let i = 0; i < 8; i++) hours.push(i);     // 00:00 - 07:59
+      for (let i = 19; i < 24; i++) hours.push(i);   // 19:00 - 23:59
       return hours;
     },
-    // No necesitamos deshabilitar minutos específicos dentro de las horas válidas
   });
-
-  
 
   if (!campeonato) {
     return (
@@ -365,19 +353,20 @@ const nombreGanador = useMemo(() => {
       </Card>
     );
   }
+
   const partidosAgrupados = agruparPartidosPorRonda();
   const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
     const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
-    return (orden[a] || 99) - (orden[b] || 99);  });
-const ultimaRonda = rondasOrdenadas[0];
+    return (orden[a] || 99) - (orden[b] || 99);
+  });
+  const ultimaRonda = rondasOrdenadas[0];
   const esRondaFinal = ultimaRonda === 'final';
-  
+
   const totalPartidos = partidos.length;
   const cantidadEquipos = campeonato?.equipos?.length || 0;
   const hayEquiposSuficientes = cantidadEquipos >= 2;
 
-  // Calcular rondas después de verificar que campeonato existe
-  
+  // Columnas (con fechas y horas usando formatters)
   const columns = [
     {
       title: 'N°',
@@ -446,7 +435,7 @@ const ultimaRonda = rondasOrdenadas[0];
         if (!id) return <Text type="secondary">-</Text>;
         const equipo = campeonato.equipos?.find(e => e.id === id);
         return (
-          <Tag color="gold" icon={<TrophyOutlined />}>
+          <Tag color="gold" >
             {equipo?.nombre || `Equipo ${id}`}
           </Tag>
         );
@@ -457,30 +446,24 @@ const ultimaRonda = rondasOrdenadas[0];
       dataIndex: 'canchaId',
       key: 'cancha',
       width: 130,
-      render: (id, record) => {
+      render: (id) => {
         if (!id) return <Text type="secondary">Sin asignar</Text>;
         const cancha = canchas.find(c => c.id === id);
-        return (
-          <Space>
-            <Text>{cancha?.nombre || `Cancha ${id}`}</Text>
-          </Space>
-        );
+        return <Text>{cancha?.nombre || `Cancha ${id}`}</Text>;
       }
     },
     {
       title: 'Fecha/Hora',
       key: 'fechaHora',
-      width: 160,
+      width: 180,
       render: (_, record) => {
         if (!record.fecha) return <Text type="secondary">No programado</Text>;
         return (
           <Space direction="vertical" size={0}>
-            <Text>
-              {dayjs(record.fecha).format('DD/MM/YYYY')}
-            </Text>
-            {record.horaInicio && (
+            <Text>{formatearFecha(record.fecha)}</Text>
+            {(record.horaInicio || record.horaFin) && (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {record.horaInicio} - {record.horaFin || '...'}
+                {formatearRangoHoras(record.horaInicio, record.horaFin || '')}
               </Text>
             )}
           </Space>
@@ -498,43 +481,24 @@ const ultimaRonda = rondasOrdenadas[0];
         </Tag>
       )
     },
-   {
+    {
       title: 'Acciones',
       key: 'acciones',
       width: 180,
       render: (_, record) => (
         <Space size="small">
-          
           {record.estado === 'finalizado' ? (
-            // --- REQ 2: ESTADO FINALIZADO ---
-            // Muestra ambos botones, deshabilitados
             <>
               <Tooltip title="Partido finalizado">
-                <Button
-                  type="text"
-                  size="medium"
-                  icon={<CalendarOutlined />}
-                  disabled
-                >
-                </Button>
+                <Button type="text" size="medium" icon={<CalendarOutlined />} disabled />
               </Tooltip>
               <Tooltip title="Partido finalizado">
-                <Button
-                  type="primary"
-                  size="medium"
-                  icon={<TrophyOutlined />}
-                  disabled
-                >
-                  Resultado
+                <Button type="primary" size="medium" icon={<TrophyOutlined />} disabled>
                 </Button>
               </Tooltip>
             </>
-
           ) : (
-
-            // --- ESTADOS ACTIVOS (pendiente, programado, en_juego) ---
             <>
-              {/* Botón Programar (Solo para pendiente/programado) */}
               {['pendiente', 'programado'].includes(record.estado) && (
                 <Tooltip title="Programar">
                   <Button
@@ -542,27 +506,19 @@ const ultimaRonda = rondasOrdenadas[0];
                     size="medium"
                     icon={<CalendarOutlined />}
                     onClick={() => handleAbrirModalProgramar(record)}
-                  >
-                    
-                  </Button>
+                  />
                 </Tooltip>
               )}
-              
-              {/* Botón Resultado (REQ 1: Deshabilitado si está 'pendiente') */}
               <Tooltip title={record.estado === 'pendiente' ? "Debes programar el partido primero" : "Registrar Resultado"}>
                 <Button
                   type="primary"
                   size="medium"
                   icon={<TrophyOutlined />}
                   onClick={() => handleAbrirModalResultado(record)}
-                  // 👇 REQ 1: AQUÍ ESTÁ LA LÓGICA
                   disabled={record.estado === 'pendiente'}
-                >
-                  
-                </Button>
+                />
               </Tooltip>
             </>
-            
           )}
         </Space>
       )
@@ -572,7 +528,7 @@ const ultimaRonda = rondasOrdenadas[0];
   return (
     <div style={{ padding: 24 }}>
       {/* Información del campeonato */}
-      <Card 
+      <Card
         title={
           <Space>
             <TrophyOutlined />
@@ -592,17 +548,17 @@ const ultimaRonda = rondasOrdenadas[0];
                 Sortear Primera Ronda
               </Button>
             )}
-            
-           {campeonato.estado === 'en_juego' && !esRondaFinal && (
-  <Button
-    type="primary"
-    icon={<PlayCircleOutlined />}
-    onClick={handleGenerarSiguienteRonda}
-    loading={loading}
-  >
-    Generar Siguiente Ronda
-  </Button>
-)}
+
+            {campeonato.estado === 'en_juego' && !esRondaFinal && (
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                onClick={handleGenerarSiguienteRonda}
+                loading={loading}
+              >
+                Generar Siguiente Ronda
+              </Button>
+            )}
           </Space>
         }
         style={{ marginBottom: 16 }}
@@ -616,7 +572,7 @@ const ultimaRonda = rondasOrdenadas[0];
               campeonato.genero === 'masculino' ? 'blue' :
               campeonato.genero === 'femenino' ? 'pink' : 'orange'
             }>
-             {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
+              {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Estado">
@@ -657,25 +613,22 @@ const ultimaRonda = rondasOrdenadas[0];
       )}
 
       {campeonato.estado === 'finalizado' && (
-      <Alert
-        message={ // 👈 Título modificado
-          <Space style={{ fontSize: 15, fontWeight: 'bold' }}>
-            <TrophyOutlined style={{ color: '#faad14' }} />
-            ¡Campeonato Finalizado!
-          </Space>
-        }
-        description={ 
-          nombreGanador ? (
-            `Este campeonato ha concluido. ¡El campeón es ${nombreGanador}!`
-          ) : (
-            "Este campeonato ha concluido. Consulta la ronda final para ver al campeón."
-          )
-        }
-        type="success"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-    )}
+        <Alert
+          message={
+            <Space style={{ fontSize: 15, fontWeight: 'bold' }}>
+              ¡Campeonato Finalizado!
+            </Space>
+          }
+          description={
+            nombreGanador
+              ? `Este campeonato ha concluido. ¡El campeón es ${nombreGanador}!`
+              : "Este campeonato ha concluido. Consulta la ronda final para ver al campeón."
+          }
+          type="success"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       {/* Fixture por rondas */}
       {totalPartidos > 0 ? (
@@ -687,23 +640,23 @@ const ultimaRonda = rondasOrdenadas[0];
 
             return (
               <Card
-  key={ronda}
-  title={
-    <Space>
-      <FireOutlined style={{ color: '#ff4d4f' }} />
-      <span>{getRondaNombre(ronda)}</span>
-      <Tag>
-        {partidosRonda.length} {partidosRonda.length === 1 ? 'partido' : 'partidos'}
-      </Tag>
-      {todosFinalizados && (
-        <Tag icon={<CheckCircleOutlined />} color="success">
-          Completa
-        </Tag>
-      )}
-    </Space>
-  }
-  style={{ marginBottom: 16 }}
->
+                key={ronda}
+                title={
+                  <Space>
+                    <FireOutlined style={{ color: '#ff4d4f' }} />
+                    <span>{getRondaNombre(ronda)}</span>
+                    <Tag>
+                      {partidosRonda.length} {partidosRonda.length === 1 ? 'partido' : 'partidos'}
+                    </Tag>
+                    {todosFinalizados && (
+                      <Tag icon={<CheckCircleOutlined />} color="success">
+                        Completa
+                      </Tag>
+                    )}
+                  </Space>
+                }
+                style={{ marginBottom: 16 }}
+              >
                 <Table
                   dataSource={partidosRonda.map((partido, idx) => ({
                     ...partido,
@@ -771,26 +724,45 @@ const ultimaRonda = rondasOrdenadas[0];
       >
         {partidoSeleccionado && (
           <>
-            <Card size="small" style={{ marginBottom: 16, backgroundColor: '#f0f2f5' }}>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
-                  {campeonato.equipos?.find(e => e.id === partidoSeleccionado.equipoAId)?.nombre || 'Equipo A'} 
-                  <span style={{ margin: '0 16px', color: '#1890ff' }}>VS</span>
-                  {campeonato.equipos?.find(e => e.id === partidoSeleccionado.equipoBId)?.nombre || 'Equipo B'}
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <Tag color="purple">{getRondaNombre(partidoSeleccionado.ronda)}</Tag>
-                </div>
-              </Space>
-            </Card>
+        <Card size="small" style={{ marginBottom: 16, backgroundColor: '#f0f5ff', border: '1px solid #d6e4ff' }}>
+  {/* Fila de Nombres de Equipo */}
+  <Row gutter={16} align="middle">
+    <Col span={10} style={{ textAlign: 'left' }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0, 0, 0, 0.88)' }}>
+        {campeonato.equipos?.find(e => e.id === partidoSeleccionado.equipoAId)?.nombre || 'Equipo A'}
+      </div>
+    </Col>
+    <Col span={4} style={{ textAlign: 'center' }}>
+      <Text strong style={{ fontSize: 16 }}>VS</Text>
+    </Col>
+    <Col span={10} style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0, 0, 0, 0.88)' }}>
+        {campeonato.equipos?.find(e => e.id === partidoSeleccionado.equipoBId)?.nombre || 'Equipo B'}
+      </div>
+    </Col>
+  </Row>
 
-            <Alert
-              message="Horario permitido"
-              description="Los partidos solo pueden programarse entre las 08:00 y las 18:00 horas."
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
+  <Divider style={{ margin: '8px 0' }} />
+
+  {/* Fila de Info */}
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Tag color="purple">{getRondaNombre(partidoSeleccionado.ronda)}</Tag>
+    
+    {(partidoSeleccionado.fecha || partidoSeleccionado.horaInicio) && (
+      <Text type="secondary" style={{ fontSize: 12 }}>
+        {partidoSeleccionado.fecha ? formatearFecha(partidoSeleccionado.fecha) : ''}
+        {partidoSeleccionado.horaInicio ? ` · ${formatearRangoHoras(partidoSeleccionado.horaInicio, partidoSeleccionado.horaFin || '')}` : ''}
+      </Text>
+    )}
+  </div>
+</Card>
+
+           <Alert
+  message="Horario permitido: 08:00 a 18:00"
+  type="info"
+  showIcon
+  style={{ marginBottom: 16 }}
+/>
 
             <Form
               form={formProgramar}
@@ -806,7 +778,7 @@ const ultimaRonda = rondasOrdenadas[0];
                   {canchas.map(cancha => (
                     <Option key={cancha.id} value={cancha.id}>
                       <Space>
-                        <EnvironmentOutlined />
+                        
                         {cancha.nombre}
                         {cancha.estado && (
                           <Tag color={cancha.estado === 'disponible' ? 'green' : 'red'}>
@@ -874,12 +846,12 @@ const ultimaRonda = rondasOrdenadas[0];
                           if (!value) return Promise.resolve();
                           const horaInicio = getFieldValue('horaInicio');
                           if (!horaInicio) return Promise.resolve();
-                          
+
                           const hour = value.hour();
                           if (hour < 8 || hour > 18) {
                             return Promise.reject(new Error('La hora debe estar entre 08:00 y 18:00'));
                           }
-                          
+
                           if (value.isBefore(horaInicio) || value.isSame(horaInicio)) {
                             return Promise.reject(new Error('Debe ser posterior a la hora de inicio'));
                           }
@@ -893,7 +865,7 @@ const ultimaRonda = rondasOrdenadas[0];
                       format="HH:mm"
                       minuteStep={15}
                       placeholder="Entre 08:00 y 18:00"
-                     disabledTime={disabledTime}
+                      disabledTime={disabledTime}
                       hideDisabledOptions
                       showNow={false}
                     />

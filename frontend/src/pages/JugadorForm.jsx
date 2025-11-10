@@ -144,10 +144,8 @@ export default function JugadorForm() {
     // Establecer el ID del usuario en el formulario
     form.setFieldsValue({ usuarioId: option.usuarioId });
     
-    // ✅ Limpiar el campo de búsqueda después de seleccionar
     setValorBusqueda('');
     
-    // ✅ Limpiar las opciones del autocomplete
     setOpcionesAutoComplete([]);
   }
 };

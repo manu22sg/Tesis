@@ -23,16 +23,16 @@ import {
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   EyeOutlined,
-  ReloadOutlined,
   FilterOutlined,
   TeamOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import locale from 'antd/locale/es_ES';
+
 import {
   obtenerEstadisticas,
-  obtenerReservasPendientes,
+  obtenerReservasPendientes, // si luego usas un endpoint general, cámbialo aquí
   aprobarReserva as aprobarReservaService,
   rechazarReserva as rechazarReservaService
 } from '../services/aprobacion.services.js';
@@ -40,7 +40,8 @@ import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import ModalDetalleReserva from '../components/ModalDetalleReserva.jsx';
-import { formatearFecha, formatearHora, formatearRangoHoras } from '../utils/formatters.js';
+import { formatearFecha, formatearRangoHoras } from '../utils/formatters.js';
+
 dayjs.locale('es');
 
 const { TextArea } = Input;
@@ -57,8 +58,8 @@ const AprobarReservasPage = () => {
     pendiente: 0,
     aprobada: 0,
     rechazada: 0,
-    cancelada: 0,
     completada: 0,
+    expirada: 0,
     total: 0,
     reservasHoy: 0
   });
@@ -94,13 +95,11 @@ const AprobarReservasPage = () => {
   const handleBuscarUsuarios = async (value) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-    // Si el valor está vacío, limpiar usuarios
     if (!value || value.trim() === '') {
       setUsuarios([]);
       return;
     }
 
-    // Buscar desde la primera letra (mínimo 1 carácter)
     if (value.trim().length >= 1) {
       searchTimeout.current = setTimeout(async () => {
         setBuscandoUsuarios(true);
@@ -145,8 +144,8 @@ const AprobarReservasPage = () => {
     if (data?.success) setEstadisticas(data.data);
   };
 
-  // Cargar reservas pendientes
-  const cargarReservasPendientes = async (page = 1, limit = 5) => {
+  // Cargar reservas (usa tu servicio actual; si tu backend soporta todos los estados, te sirve igual)
+  const cargarReservas = async (page = 1, limit = 5) => {
     setLoading(true);
     const filtrosFormateados = {};
 
@@ -169,7 +168,7 @@ const AprobarReservasPage = () => {
     if (data?.success) {
       setReservas(data.data.reservas);
       setPagination({
-        current: data.data.pagination.currentPage,
+        current: page, // usamos la que pedimos para evitar desfase
         pageSize: data.data.pagination.itemsPerPage,
         total: data.data.pagination.totalItems
       });
@@ -189,7 +188,7 @@ const AprobarReservasPage = () => {
       message.success('Reserva aprobada exitosamente');
       setModalAprobar({ visible: false, reserva: null });
       setObservacion('');
-      cargarReservasPendientes(pagination.current, pagination.pageSize);
+      cargarReservas(pagination.current, pagination.pageSize);
       cargarEstadisticas();
     }
   };
@@ -212,18 +211,18 @@ const AprobarReservasPage = () => {
       message.success('Reserva rechazada exitosamente');
       setModalRechazar({ visible: false, reserva: null });
       setMotivoRechazo('');
-      cargarReservasPendientes(pagination.current, pagination.pageSize);
+      cargarReservas(pagination.current, pagination.pageSize);
       cargarEstadisticas();
     }
   };
 
   const handlePageChange = (page, pageSize) => {
-    setPagination({ ...pagination, current: page, pageSize });
-    cargarReservasPendientes(page, pageSize);
+    setPagination((p) => ({ ...p, current: page, pageSize }));
+    cargarReservas(page, pageSize);
   };
 
   // Limpiar filtros
-  const limpiarFiltros = async () => {
+  const limpiarFiltros = () => {
     setFiltros({
       fecha: null,
       canchaId: null,
@@ -231,14 +230,16 @@ const AprobarReservasPage = () => {
       usuarioId: null
     });
     setUsuarios([]);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    cargarReservasPendientes(1, pagination.pageSize);
+    setPagination((p) => ({ ...p, current: 1 })); // vuelve a la página 1
     message.success('Filtros limpiados');
   };
+  const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
 
+
+  // Efecto: recargar al cambiar filtros
   useEffect(() => {
-    cargarReservasPendientes(1, pagination.pageSize);
-  }, [filtros.fecha, filtros.canchaId, filtros.estado, filtros.usuarioId]);
+    cargarReservas(1, pagination.pageSize);
+  }, [filtros.fecha, filtros.canchaId, filtros.estado, filtros.usuarioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     cargarEstadisticas();
@@ -265,9 +266,9 @@ const AprobarReservasPage = () => {
       width: 160,
     },
     {
-      title: 'Fecha Solicitud',
-      dataIndex: 'fechaSolicitud',
-      key: 'fechaSolicitud',
+      title: 'Fecha Reserva',
+      dataIndex: 'fechaReserva',
+      key: 'fechaReserva',
       render: (fecha) => formatearFecha(fecha) || 'N/A',
       width: 140,
     },
@@ -286,10 +287,10 @@ const AprobarReservasPage = () => {
           pendiente: 'gold',
           aprobada: 'green',
           rechazada: 'red',
-          cancelada: 'default',
-          completada: 'blue'
+          completada: 'blue',
+          expirada: 'volcano'
         };
-        return <Tag color={colors[estado] || 'default'}>{(estado || '').toUpperCase()}</Tag>;
+       return <Tag color={colors[estado] || 'default'}>{ucfirst(estado || '')}</Tag>;
       },
       width: 130,
       align: 'center',
@@ -364,7 +365,10 @@ const AprobarReservasPage = () => {
                   onSearch={handleBuscarUsuarios}
                   loading={buscandoUsuarios}
                   value={filtros.usuarioId || null}
-                  onChange={(value) => setFiltros({ ...filtros, usuarioId: value })}
+                  onChange={(value) => {
+                    setFiltros({ ...filtros, usuarioId: value });
+                    setPagination((p) => ({ ...p, current: 1 }));
+                  }}
                   notFoundContent={buscandoUsuarios ? 'Buscando...' : (usuarios.length === 0 ? null : 'Sin resultados')}
                   style={{ width: '100%' }}
                   size="medium"
@@ -381,9 +385,12 @@ const AprobarReservasPage = () => {
                 <DatePicker
                   style={{ width: '100%' }}
                   format="DD/MM/YYYY"
-                  placeholder="Seleccionar fecha"
+                  placeholder="Seleccionar fecha de reserva"
                   value={filtros.fecha}
-                  onChange={(date) => setFiltros({ ...filtros, fecha: date })}
+                  onChange={(date) => {
+                    setFiltros({ ...filtros, fecha: date });
+                    setPagination((p) => ({ ...p, current: 1 }));
+                  }}
                   size="medium"
                 />
               </Col>
@@ -394,7 +401,10 @@ const AprobarReservasPage = () => {
                   placeholder="Seleccionar cancha"
                   allowClear
                   value={filtros.canchaId}
-                  onChange={(value) => setFiltros({ ...filtros, canchaId: value })}
+                  onChange={(value) => {
+                    setFiltros({ ...filtros, canchaId: value });
+                    setPagination((p) => ({ ...p, current: 1 }));
+                  }}
                   loading={canchasDisponibles.length === 0}
                   size="medium"
                 >
@@ -411,15 +421,18 @@ const AprobarReservasPage = () => {
                   style={{ width: '100%' }}
                   placeholder="Seleccionar estado"
                   value={filtros.estado}
-                  onChange={(value) => setFiltros({ ...filtros, estado: value })}
+                  onChange={(value) => {
+                    setFiltros({ ...filtros, estado: value });
+                    setPagination((p) => ({ ...p, current: 1 }));
+                  }}
                   size="medium"
                 >
                   <Option value="todas">Todos los estados</Option>
                   <Option value="pendiente">Pendiente</Option>
                   <Option value="aprobada">Aprobada</Option>
                   <Option value="rechazada">Rechazada</Option>
-                  <Option value="cancelada">Cancelada</Option>
                   <Option value="completada">Completada</Option>
+                  <Option value="expirada">Expirada</Option>
                 </Select>
               </Col>
             </Row>
@@ -479,7 +492,7 @@ const AprobarReservasPage = () => {
                     {modalAprobar.reserva.cancha?.nombre}
                   </Descriptions.Item>
                   <Descriptions.Item label="Fecha">
-                    {formatearFecha(modalAprobar.reserva.fechaSolicitud)}
+                    {formatearFecha(modalAprobar.reserva.fechaReserva)}
                   </Descriptions.Item>
                   <Descriptions.Item label="Horario">
                     {formatearRangoHoras(modalAprobar.reserva.horaInicio, modalAprobar.reserva.horaFin)}
@@ -525,7 +538,7 @@ const AprobarReservasPage = () => {
                     {modalRechazar.reserva.cancha?.nombre}
                   </Descriptions.Item>
                   <Descriptions.Item label="Fecha">
-                    {formatearFecha(modalRechazar.reserva.fechaSolicitud)}
+                    {formatearFecha(modalRechazar.reserva.fechaReserva)}
                   </Descriptions.Item>
                   <Descriptions.Item label="Horario">
                     {formatearRangoHoras(modalRechazar.reserva.horaInicio, modalRechazar.reserva.horaFin)}

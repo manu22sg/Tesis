@@ -45,8 +45,6 @@ export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
 
-
-
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
   const [sesionInfo, setSesionInfo] = useState(null);
@@ -57,6 +55,7 @@ export default function AlineacionCompleta() {
   const [vistaActual, setVistaActual] = useState('campo');
   const [form] = Form.useForm();
   const [formEdit] = Form.useForm();
+  const [formularioCompleto, setFormularioCompleto] = useState(false);
 
   useEffect(() => {
     if (sesionId) {
@@ -75,7 +74,6 @@ export default function AlineacionCompleta() {
   const cargarSesion = async () => {
     try {
       const sesion = await obtenerSesionPorId(parseInt(sesionId, 10));
-    
       setSesionInfo(sesion);
     } catch (error) {
       console.error('Error cargando sesión:', error);
@@ -102,7 +100,6 @@ export default function AlineacionCompleta() {
 
   const cargarJugadores = async () => {
     try {
- 
       // Si tenemos info de la sesión Y tiene grupo, filtramos
       if (sesionInfo?.grupo?.id) {
         const data = await obtenerJugadores({ 
@@ -130,7 +127,6 @@ export default function AlineacionCompleta() {
         jugadores: []
       });
       
-      message.success('Alineación creada exitosamente');
       cargarAlineacion();
     } catch (error) {
       console.error('Error al crear alineación:', error);
@@ -140,16 +136,25 @@ export default function AlineacionCompleta() {
     }
   };
 
-  const handleAgregarJugador = async (values) => {
+  const handleAgregarJugador = async (values, continuar = false) => {
     try {
       await agregarJugadorAlineacion({
         alineacionId: alineacion.id,
         ...values
       });
-      message.success('Jugador agregado a la alineación');
-      setModalVisible(false);
-      form.resetFields();
-      cargarAlineacion();
+      
+      await cargarAlineacion();
+      
+      if (continuar) {
+        // Limpiar formulario para agregar otro jugador
+        form.resetFields();
+        setFormularioCompleto(false);
+      } else {
+        // Cerrar modal
+        setModalVisible(false);
+        form.resetFields();
+        setFormularioCompleto(false);
+      }
     } catch (error) {
       message.error(error.response?.data?.message || 'Error al agregar jugador');
       console.error(error);
@@ -174,30 +179,27 @@ export default function AlineacionCompleta() {
     }
   };
 
-const handleQuitarJugador = async (jugadorId) => {
-  try {
-    await quitarJugadorAlineacion(alineacion.id, jugadorId);
-    message.success('Jugador removido de la alineación');
-    
-    // 🔥 Actualiza visualmente
-    setAlineacion(prev => ({
-      ...prev,
-      jugadores: prev.jugadores.filter(j => j.jugadorId !== jugadorId)
-    }));
+  const handleQuitarJugador = async (jugadorId) => {
+    try {
+      await quitarJugadorAlineacion(alineacion.id, jugadorId);
+      
+      // Actualiza visualmente
+      setAlineacion(prev => ({
+        ...prev,
+        jugadores: prev.jugadores.filter(j => j.jugadorId !== jugadorId)
+      }));
 
-    // 🔁 Recarga desde backend para mantener sincronizado
-    cargarAlineacion();
-  } catch (error) {
-    console.error('❌ Error al quitar jugador:', error);
-    message.error(error.response?.data?.message || 'Error al quitar jugador');
-  }
-};
-
+      // Recarga desde backend para mantener sincronizado
+      cargarAlineacion();
+    } catch (error) {
+      console.error('Error al quitar jugador:', error);
+      message.error(error.response?.data?.message || 'Error al quitar jugador');
+    }
+  };
 
   const handleEliminarAlineacion = async () => {
     try {
       await eliminarAlineacion(alineacion.id);
-      message.success('Alineación eliminada');
       setAlineacion(null);
     } catch (error) {
       message.error('Error al eliminar la alineación');
@@ -215,29 +217,17 @@ const handleQuitarJugador = async (jugadorId) => {
     setModalEditVisible(true);
   };
 
+  // Validar que el formulario esté completo
+  const validarFormularioCompleto = () => {
+    const valores = form.getFieldsValue();
+    const completo = valores.jugadorId && valores.posicion;
+    setFormularioCompleto(completo);
+  };
+
   const jugadoresYaEnAlineacion = alineacion?.jugadores?.map(j => j.jugadorId) || [];
   const jugadoresFiltrados = jugadoresDisponibles.filter(
     j => !jugadoresYaEnAlineacion.includes(j.id)
   );
-
-  // Estadísticas
-  const calcularEstadisticas = () => {
-    if (!alineacion?.jugadores) return { total: 0, posiciones: {} };
-    
-    const stats = {
-      total: alineacion.jugadores.length,
-      posiciones: {}
-    };
-
-    alineacion.jugadores.forEach(j => {
-      const pos = j.posicion || 'Sin posición';
-      stats.posiciones[pos] = (stats.posiciones[pos] || 0) + 1;
-    });
-
-    return stats;
-  };
-
-  const stats = calcularEstadisticas();
 
   const columns = [
     {
@@ -281,20 +271,21 @@ const handleQuitarJugador = async (jugadorId) => {
         <Space>
           <Tooltip title="Editar">
             <Button 
-              type="link" 
+              type="text" 
               size="small"
               icon={<EditOutlined />} 
               onClick={() => abrirModalEditar(record)}
             />
           </Tooltip>
           <Popconfirm
-            title="¿Quitar este jugador?"
+            title="¿Quitar jugador?"
             onConfirm={() => handleQuitarJugador(record.jugadorId)}
-            okText="Sí"
-            cancelText="No"
+            okText="Eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
           >
             <Tooltip title="Quitar">
-              <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -344,13 +335,13 @@ const handleQuitarJugador = async (jugadorId) => {
 
             <Card>
               <Empty
-  image={Empty.PRESENTED_IMAGE_SIMPLE}
-  styles={{ image: { height: 100 } }}
-  description={
-    <div>
-      <h3>No hay alineación creada para esta sesión</h3>
-    </div>
-  }
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                styles={{ image: { height: 100 } }}
+                description={
+                  <div>
+                    <h3>No hay alineación creada para esta sesión</h3>
+                  </div>
+                }
               >
                 <Button 
                   type="primary" 
@@ -390,8 +381,6 @@ const handleQuitarJugador = async (jugadorId) => {
             />
           )}
 
-          
-
           {/* Contenido principal */}
           <Card
             title={
@@ -405,16 +394,20 @@ const handleQuitarJugador = async (jugadorId) => {
                 <Button 
                   type="primary" 
                   icon={<UserAddOutlined />}
-                  onClick={() => setModalVisible(true)}
+                  onClick={() => {
+                    setModalVisible(true);
+                    form.resetFields();
+                    setFormularioCompleto(false);
+                  }}
                   disabled={jugadoresFiltrados.length === 0}
                 >
                   Agregar Jugador
                 </Button>
                 <Popconfirm
-                  title="¿Eliminar toda la alineación?"
+                  title="¿Eliminar alineación?"
                   description="Esta acción eliminará todos los jugadores"
                   onConfirm={handleEliminarAlineacion}
-                  okText="Sí, eliminar"
+                  okText="Eliminar"
                   cancelText="Cancelar"
                   okButtonProps={{ danger: true }}
                 >
@@ -431,32 +424,31 @@ const handleQuitarJugador = async (jugadorId) => {
                 onChange={setVistaActual}
                 items={[
                   {
-  key: 'campo',
-  label: (
-    <span>
-      <AimOutlined />
-      Vista Campo
-    </span>
-  ),
-  children: (
-    <CampoAlineacion 
-      jugadores={alineacion.jugadores}
-      onActualizarPosiciones={async (jugadoresActualizados) => {
-        try {
-          const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
-          message.success('✅ Posiciones guardadas correctamente');
-          setAlineacion(response.data);
-        } catch (error) {
-          console.error('Error al guardar posiciones:', error);
-          message.error(error.response?.data?.message || '❌ Error al guardar posiciones');
-        }
-      }}
-      onEliminarJugador={async (jugadorId) => {
-        await handleQuitarJugador(jugadorId);
-      }}
-    />
-  )
-},
+                    key: 'campo',
+                    label: (
+                      <span>
+                        <AimOutlined />
+                        Vista Campo
+                      </span>
+                    ),
+                    children: (
+                      <CampoAlineacion 
+                        jugadores={alineacion.jugadores}
+                        onActualizarPosiciones={async (jugadoresActualizados) => {
+                          try {
+                            const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
+                            setAlineacion(response.data);
+                          } catch (error) {
+                            console.error('Error al guardar posiciones:', error);
+                            message.error(error.response?.data?.message || 'Error al guardar posiciones');
+                          }
+                        }}
+                        onEliminarJugador={async (jugadorId) => {
+                          await handleQuitarJugador(jugadorId);
+                        }}
+                      />
+                    )
+                  },
                   {
                     key: 'tabla',
                     label: (
@@ -483,7 +475,11 @@ const handleQuitarJugador = async (jugadorId) => {
                 <Button 
                   type="primary" 
                   icon={<UserAddOutlined />}
-                  onClick={() => setModalVisible(true)}
+                  onClick={() => {
+                    setModalVisible(true);
+                    form.resetFields();
+                    setFormularioCompleto(false);
+                  }}
                 >
                   Agregar Primer Jugador
                 </Button>
@@ -503,14 +499,48 @@ const handleQuitarJugador = async (jugadorId) => {
             onCancel={() => {
               setModalVisible(false);
               form.resetFields();
+              setFormularioCompleto(false);
             }}
-            footer={null}
+            footer={[
+              <Button 
+                key="cancel" 
+                onClick={() => {
+                  setModalVisible(false);
+                  form.resetFields();
+                  setFormularioCompleto(false);
+                }}
+              >
+                Cancelar
+              </Button>,
+              <Button
+                key="add-continue"
+                type="default"
+                icon={<PlusOutlined />}
+                onClick={() => form.submit()}
+                disabled={!formularioCompleto}
+              >
+                Agregar y Continuar
+              </Button>,
+              <Button
+                key="add-close"
+                type="primary"
+                onClick={() => {
+                  form.validateFields().then(values => {
+                    handleAgregarJugador(values, false);
+                  });
+                }}
+                disabled={!formularioCompleto}
+              >
+                Agregar y Cerrar
+              </Button>
+            ]}
             width={500}
           >
             <Form
               form={form}
               layout="vertical"
-              onFinish={handleAgregarJugador}
+              onFinish={(values) => handleAgregarJugador(values, true)}
+              onValuesChange={validarFormularioCompleto}
             >
               <Form.Item
                 name="jugadorId"
@@ -568,20 +598,6 @@ const handleQuitarJugador = async (jugadorId) => {
                   maxLength={500}
                   showCount
                 />
-              </Form.Item>
-
-              <Form.Item style={{ marginBottom: 0 }}>
-                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                  <Button onClick={() => {
-                    setModalVisible(false);
-                    form.resetFields();
-                  }}>
-                    Cancelar
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    Agregar Jugador
-                  </Button>
-                </Space>
               </Form.Item>
             </Form>
           </Modal>

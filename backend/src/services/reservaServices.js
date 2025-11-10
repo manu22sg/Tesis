@@ -53,9 +53,7 @@ export async function obtenerReservasUsuario(usuarioId, filtros = {}) {
   }
 }
 
-/**
- * Obtener todas las reservas (para entrenadores)
- */
+
 export async function obtenerTodasLasReservas(filtros = {}) {
   try {
     const repo = AppDataSource.getRepository(ReservaCanchaSchema);
@@ -66,7 +64,7 @@ export async function obtenerTodasLasReservas(filtros = {}) {
 
     const whereConditions = {};
     if (filtros.estado) whereConditions.estado = filtros.estado;
-    if (filtros.fecha) whereConditions.fechaSolicitud = filtros.fecha;
+    if (filtros.fecha) whereConditions.fechaReserva = filtros.fecha;
     if (filtros.canchaId) whereConditions.canchaId = filtros.canchaId;
 
     const [reservas, total] = await repo.findAndCount({
@@ -96,13 +94,26 @@ export async function obtenerTodasLasReservas(filtros = {}) {
   }
 }
 
+
 export async function obtenerReservaPorId(id) {
   try {
     const reserva = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
       where: { id },
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario', 'historial', 'historial.usuario']
     });
+    
     if (!reserva) return [null, 'Reserva no encontrada'];
+    
+    if (reserva.historial && reserva.historial.length > 0) {
+      reserva.historial = reserva.historial.map(h => ({
+        ...h,
+        fecha: h.fechaAccion, 
+        accion: h.accion,
+        observacion: h.observacion,
+        usuario: h.usuario
+      }));
+    }
+    
     return [reserva, null];
   } catch (error) {
     console.error('Error obteniendo reserva por ID:', error);
@@ -145,7 +156,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
 
     //  Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
+      where: { canchaId, fechaReserva: fecha, estado: In(['pendiente', 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
@@ -178,7 +189,6 @@ export async function crearReserva(datosReserva, usuarioId) {
   try {
     const { canchaId, fecha, horaInicio, horaFin, motivo, participantes } = datosReserva;
 
-    //  1. Obtener la cancha primero para validar capacidad
     const canchaRepo = queryRunner.manager.getRepository(CanchaSchema);
     const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
     
@@ -188,7 +198,6 @@ export async function crearReserva(datosReserva, usuarioId) {
     }
 
     const capacidadMaxima = cancha.capacidadMaxima;
-    console.log(`Cancha "${cancha.nombre}" - Capacidad máxima: ${capacidadMaxima}`);
 
     // Verificar disponibilidad
     const [ok, errDisp] = await verificarDisponibilidadEspecificaTx(
@@ -209,7 +218,7 @@ export async function crearReserva(datosReserva, usuarioId) {
       .setLock('pessimistic_read')
       .select('r.id')
       .where('r."canchaId" = :canchaId', { canchaId })
-      .andWhere('r."fechaSolicitud" = :fecha', { fecha })
+      .andWhere('r."fechaReserva" = :fecha', { fecha })
       .andWhere('r."estado" IN (:...estados)', { estados: ['pendiente', 'aprobada'] })
       .andWhere('NOT (r."horaFin" <= :inicio OR r."horaInicio" >= :fin)', {
         inicio: horaInicio, fin: horaFin
@@ -263,7 +272,7 @@ export async function crearReserva(datosReserva, usuarioId) {
     const nuevaReserva = reservaRepo.create({
       usuarioId,
       canchaId,
-      fechaSolicitud: fecha,
+      fechaReserva: fecha,
       horaInicio,
       horaFin,
       motivo: motivo || null,

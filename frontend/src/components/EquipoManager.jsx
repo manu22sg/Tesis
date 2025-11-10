@@ -380,7 +380,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
         </div>
 
         {campeonatoInfo?.estado !== 'creado' && (
-          <Tag color="warning" style={{ marginBottom: 16 }}>
+          <Tag color="red" style={{ marginBottom: 16 }}>
             Solo se pueden agregar equipos cuando el campeonato está en estado "Creado"
           </Tag>
         )}

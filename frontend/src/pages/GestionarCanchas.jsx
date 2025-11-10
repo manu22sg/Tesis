@@ -59,7 +59,6 @@ const GestionCanchas = () => {
     total: 0
   });
 
-  // 🔄 Cargar canchas desde backend
   const cargarCanchas = useCallback(async (page = 1, limit = 5, estado = undefined) => {
     setLoading(true);
     try {
@@ -75,7 +74,7 @@ const GestionCanchas = () => {
         total: paginationData?.totalItems || canchasData.length || 0
       });
     } catch (error) {
-      console.error('❌ Error cargando canchas:', error);
+      console.error('Error cargando canchas:', error);
       message.error('No se pudieron obtener las canchas');
     } finally {
       setLoading(false);

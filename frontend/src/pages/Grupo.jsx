@@ -100,7 +100,6 @@ export default function Grupos() {
       });
       
     } catch (error) {
-      console.error('❌ Frontend - Error cargando grupos:', error);
       message.error('Error al cargar los grupos');
     } finally {
       setLoading(false);
@@ -232,7 +231,7 @@ export default function Grupos() {
             title="¿Eliminar grupo?"
             description="Los jugadores no se eliminarán"
             onConfirm={() => handleEliminarGrupo(record.id)}
-            okText="Sí, eliminar"
+            okText="Aceptar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
           >

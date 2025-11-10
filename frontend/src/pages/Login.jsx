@@ -31,7 +31,7 @@ export default function Login() {
         message.error('No se recibió información del usuario');
       }
     } catch (error) {
-      console.error('❌ Error en login:', error);
+      console.error('Error en login:', error);
       let errorMsg = 'Error al iniciar sesión';
 
       if (error.response?.data?.message) errorMsg = error.response.data.message;

@@ -67,7 +67,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     const canchaRepo  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepo  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); 
 
     // Contar total de canchas disponibles
     const totalCanchas = await canchaRepo.count({ where: { estado: 'disponible' } });
@@ -88,22 +88,18 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     for (const cancha of canchas) {
       const bloquesHorarios = generarBloquesHorarios();
 
-      // 1️⃣ Reservas activas (pendiente/aprobada)
       const reservas = await reservaRepo.find({
-        where: { canchaId: cancha.id, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
+        where: { canchaId: cancha.id, fechaReserva: fecha, estado: In(['pendiente', 'aprobada']) }
       });
 
-      // 2️⃣ Sesiones de entrenamiento
       const sesiones = await sesionRepo.find({
         where: { canchaId: cancha.id, fecha }
       });
 
-      // 3️⃣ Partidos de campeonato (programado/en_juego) ✅ NUEVO
       const partidos = await partidoRepo.find({
         where: { canchaId: cancha.id, fecha, estado: In(['programado', 'en_juego']) }
       });
 
-      // Marcar conflictos: reservas
       for (const r of reservas) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, r)) {
@@ -113,7 +109,6 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
         }
       }
 
-      // Marcar conflictos: sesiones
       for (const s of sesiones) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, s)) {
@@ -123,7 +118,6 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
         }
       }
 
-      // Marcar conflictos: partidos ✅ NUEVO
       for (const p of partidos) {
         for (const blk of bloquesHorarios) {
           if (hayConflictoHorario(blk, p)) {
@@ -212,13 +206,11 @@ export async function verificarDisponibilidadEspecifica(canchaId, fechaISO, hora
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
+    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema); 
 
-    // 1️⃣ Cancha debe existir y estar disponible
     const cancha = await canchaRepository.findOne({ where: { id: canchaId, estado: 'disponible' } });
     if (!cancha) return [false, 'Cancha inexistente o no disponible'];
 
-    // 2️⃣ Choques con sesiones de entrenamiento
     const sesiones = await sesionRepository.find({ where: { canchaId, fecha } });
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
@@ -226,9 +218,8 @@ export async function verificarDisponibilidadEspecifica(canchaId, fechaISO, hora
       }
     }
 
-    // 3️⃣ Choques con reservas activas
     const reservas = await reservaRepository.find({
-      where: { canchaId, fechaSolicitud: fecha, estado: In(['pendiente', 'aprobada']) }
+      where: { canchaId, fechaReserva: fecha, estado: In(['pendiente', 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
@@ -236,7 +227,6 @@ export async function verificarDisponibilidadEspecifica(canchaId, fechaISO, hora
       }
     }
 
-    // 4️⃣ Choques con partidos de campeonato ✅ NUEVO
     const partidos = await partidoRepository.find({
       where: { canchaId, fecha, estado: In(['programado', 'en_juego']) }
     });

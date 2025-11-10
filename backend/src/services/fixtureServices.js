@@ -193,7 +193,6 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     
     if (!rondaAUsar) {
       rondaAUsar = await detectarUltimaRonda(partRepo, campId);
-      console.log(`Ronda detectada automáticamente: ${rondaAUsar}`);
     }
 
     // Obtener partidos de la ronda anterior

@@ -30,7 +30,7 @@ export default function DisponibilidadCancha() {
   const [filtroCapacidad, setFiltroCapacidad] = useState(null);
   const [filtrosActivos, setFiltrosActivos] = useState(false);
 
-  // 🔹 Verificar si el usuario puede reservar
+  //Verificar si el usuario puede reservar
   const puedeReservar = usuario && (usuario.rol === 'estudiante' || usuario.rol === 'academico');
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function DisponibilidadCancha() {
     }
   }, [fecha]);
 
-  // 🔹 Aplicar filtros automáticamente cuando cambien
+  // Aplicar filtros automáticamente cuando cambien
   useEffect(() => {
     aplicarFiltros();
   }, [filtroNombre, filtroCapacidad, disponibilidad]);

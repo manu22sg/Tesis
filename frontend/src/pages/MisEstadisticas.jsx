@@ -35,7 +35,6 @@ const MisEstadisticas = () => {
               </Button>
             }
           >
-            {/* El componente ListaEstadisticas hace su propia llamada a la API */}
             <ListaEstadisticas 
               tipo="mias" 
               userRole="estudiante"

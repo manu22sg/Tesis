@@ -24,7 +24,7 @@ const DetalleSesionModal = memo(({ open, loading, sesion, onClose }) => {
       onCancel={onClose}
       footer={[<Button key="close" onClick={onClose}>Cerrar</Button>]}
       width={600}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>

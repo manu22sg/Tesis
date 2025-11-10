@@ -38,15 +38,14 @@ export const crearSesionBody = Joi.object({
   horaInicio: horaSchema,
   horaFin: horaSchema,
   tipoSesion: Joi.string().trim().max(50).required(),
-  objetivos: Joi.string().trim().max(500).optional().allow(''),
+  objetivos: Joi.string().trim().max(500).optional().allow('',null),
 }).custom((v, h) => {
   const res = validaHorario(v, h, HORARIO_FUNCIONAMIENTO);
   return res === true ? v : res;   
 });
 
-// GET /api/sesion - ✅ QUERY PARAMS (corregido)
 export const obtenerSesionesQuery = Joi.object({
-  q: Joi.string().trim().max(100).optional(),  // ✅ AGREGAR búsqueda general
+  q: Joi.string().trim().max(100).optional(),  
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional()
     .messages({ 'string.pattern.base': 'fecha debe estar en formato YYYY-MM-DD' }),
   canchaId: Joi.number().integer().positive().optional(),   
@@ -73,7 +72,7 @@ export const actualizarSesionBody = Joi.object({
   horaInicio: Joi.string().pattern(TIME_HH_MM).optional(),
   horaFin: Joi.string().pattern(TIME_HH_MM).optional(),
   tipoSesion: Joi.string().trim().max(50).optional(),
-  objetivos: Joi.string().trim().max(500).optional().allow(''),
+  objetivos: Joi.string().trim().max(500).optional().allow('',null),
 })
 .with('horaInicio','horaFin').with('horaFin','horaInicio')
 .custom((v, h) => {

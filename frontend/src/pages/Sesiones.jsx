@@ -29,13 +29,12 @@ export default function Sesiones() {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   
-  // --- CAMBIO 1: Estado de filtros actualizado ---
   const [filtros, setFiltros] = useState({
     q: '',
     fecha: null,
     horario: null,
-    canchaId: null, // <-- Nuevo
-    grupoId: null    // <-- Nuevo
+    canchaId: null, 
+    grupoId: null    
   });
 
   const [detalleModal, setDetalleModal] = useState(false);
@@ -62,8 +61,8 @@ export default function Sesiones() {
               horaFin: filtros.horario[1].format('HH:mm'),
             }
           : {}),
-        ...(filtros.canchaId && { canchaId: filtros.canchaId }), // <-- Nuevo
-        ...(filtros.grupoId && { grupoId: filtros.grupoId }),   // <-- Nuevo
+        ...(filtros.canchaId && { canchaId: filtros.canchaId }), 
+        ...(filtros.grupoId && { grupoId: filtros.grupoId }),   
       };
       const { sesiones: data, pagination: p } = await obtenerSesiones(params);
       setSesiones(data);
@@ -73,15 +72,13 @@ export default function Sesiones() {
     } finally {
       setLoading(false);
     }
-  }, [filtros]); // La dependencia [filtros] ya es correcta
+  }, [filtros]); 
 
   useEffect(() => {
-    // Esto se disparará automáticamente cuando 'filtros' cambie,
-    // reiniciando a la página 1.
+    
     cargarSesiones(1, pagination.pageSize);
-  }, [cargarSesiones]); // La dependencia [cargarSesiones] es correcta
+  }, [cargarSesiones]); 
 
-  // 🔍 Detalle
   const verDetalle = useCallback(async (id) => {
     try {
       setLoadingDetalle(true);
@@ -95,7 +92,6 @@ export default function Sesiones() {
     }
   }, []);
 
-  // 🗑 Eliminar
   const handleEliminar = useCallback(async (id) => {
     try {
       await eliminarSesion(id);
@@ -106,7 +102,6 @@ export default function Sesiones() {
     }
   }, [pagination, cargarSesiones]);
 
-  // 🔐 Tokens
   const handleActivarToken = useCallback(async (extra = {}) => {
     if (!sesionToken?.id) return;
     try {

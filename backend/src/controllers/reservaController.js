@@ -59,11 +59,11 @@ export async function getReservasUsuario(req, res) {
 export async function getTodasLasReservas(req, res) {
   try {
     const filtros = {
-      estado: req.query.estado,               // ?estado=aprobada
-      fecha: req.query.fecha,                 // ?fecha=2025-10-20
-      canchaId: parseInt(req.query.canchaId), // ?canchaId=5
-      page: parseInt(req.query.page),         // ?page=1
-      limit: parseInt(req.query.limit)        // ?limit=10
+      estado: req.query.estado,              
+      fecha: req.query.fecha,                 
+      canchaId: parseInt(req.query.canchaId), 
+      page: parseInt(req.query.page),         
+      limit: parseInt(req.query.limit)        
     };
 
     const [result, err] = await obtenerTodasLasReservas(filtros);
