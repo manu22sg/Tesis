@@ -4,7 +4,6 @@ import { Card, Breadcrumb, Button, Space, message, Spin, Tabs, ConfigProvider } 
 import { ArrowLeftOutlined, CalendarOutlined, FireOutlined } from '@ant-design/icons';
 import MainLayout, { useCampeonatoActivo } from '../components/MainLayout';
 import FixtureManager from '../components/FixtureManager';
-import PartidoManager from '../components/PartidoManager';
 import { campeonatoService } from '../services/campeonato.services';
 import { obtenerCanchas } from '../services/cancha.services';
 import esES from 'antd/locale/es_ES';

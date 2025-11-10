@@ -32,14 +32,28 @@ const horaSchema = Joi.string().pattern(TIME_HH_MM)
 
 // POST /api/sesion
 export const crearSesionBody = Joi.object({
-  canchaId: Joi.number().integer().positive().required(),  
+  // ✅ Ahora opcional - se valida que al menos uno exista (cancha O ubicación externa)
+  canchaId: Joi.number().integer().positive().optional().allow(null),
+  
+  // ✅ NUEVO - Ubicación externa
+  ubicacionExterna: Joi.string().trim().max(255).optional().allow('', null),
+  
   grupoId: Joi.number().integer().positive().optional().allow('',null),
   fecha: fechaSchema,
   horaInicio: horaSchema,
   horaFin: horaSchema,
   tipoSesion: Joi.string().trim().max(50).required(),
   objetivos: Joi.string().trim().max(500).optional().allow('',null),
-}).custom((v, h) => {
+})
+.custom((v, h) => {
+  // ✅ Validar que exista cancha O ubicación externa
+  if (!v.canchaId && (!v.ubicacionExterna || v.ubicacionExterna.trim() === '')) {
+    return h.error('any.invalid', { 
+      message: 'Debe especificar una cancha o una ubicación externa' 
+    });
+  }
+  
+  // Validar horario
   const res = validaHorario(v, h, HORARIO_FUNCIONAMIENTO);
   return res === true ? v : res;   
 });
@@ -54,8 +68,7 @@ export const obtenerSesionesQuery = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(50).default(10),
   horaInicio: Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-horaFin: Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-
+  horaFin: Joi.string().pattern(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
 });
 
 // POST /api/sesion/detalle
@@ -66,7 +79,13 @@ export const obtenerSesionPorIdBody = Joi.object({
 // PATCH /api/sesion
 export const actualizarSesionBody = Joi.object({
   id: Joi.number().integer().positive().required(),
-  canchaId: Joi.number().integer().positive().optional(),    
+  
+  // ✅ Ahora puede ser null
+  canchaId: Joi.number().integer().positive().optional().allow(null),
+  
+  // ✅ NUEVO
+  ubicacionExterna: Joi.string().trim().max(255).optional().allow('', null),
+  
   grupoId: Joi.number().integer().positive().optional(),
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional(),  
   horaInicio: Joi.string().pattern(TIME_HH_MM).optional(),
@@ -90,17 +109,30 @@ export const eliminarSesionBody = Joi.object({
 
 // POST /api/sesion/recurrente
 export const crearSesionesRecurrentesBody = Joi.object({
-  canchaId: Joi.number().integer().positive().required(),   
+  // ✅ Ahora opcional
+  canchaId: Joi.number().integer().positive().optional().allow(null),
+  
+  // ✅ NUEVO
+  ubicacionExterna: Joi.string().trim().max(255).optional().allow('', null),
+  
   grupoId: Joi.number().integer().positive().optional(),
   fechaInicio: fechaSchema,
   fechaFin: Joi.string().pattern(DATE_YYYY_MM_DD).required(),
-  diasSemana: Joi.array().items(Joi.number().integer().min(1).max(5)) // L-V
+  diasSemana: Joi.array().items(Joi.number().integer().min(1).max(5))
               .min(1).max(5).unique().required(),
   horaInicio: horaSchema,
   horaFin: horaSchema,
   tipoSesion: Joi.string().trim().max(50).required(),
   objetivos: Joi.string().trim().max(500).optional().allow(''),
-}).custom((v, h) => {
+})
+.custom((v, h) => {
+  // ✅ Validar que exista cancha O ubicación externa
+  if (!v.canchaId && (!v.ubicacionExterna || v.ubicacionExterna.trim() === '')) {
+    return h.error('any.invalid', { 
+      message: 'Debe especificar una cancha o una ubicación externa' 
+    });
+  }
+  
   const inicio = parseDateLocal(v.fechaInicio);
   const fin = parseDateLocal(v.fechaFin);
   if (fin <= inicio) return h.error('any.invalid', { message: 'La fecha fin debe ser mayor a la fecha inicio' });
@@ -135,7 +167,7 @@ export function validateQuery(schema) {
     const { error, value } = schema.validate(req.query, {
       abortEarly: false,
       stripUnknown: true,
-      convert: true // Convierte strings a números automáticamente
+      convert: true
     });
 
     if (error) {
@@ -146,7 +178,6 @@ export function validateQuery(schema) {
       return validationError(res, errores);
     }
 
-    // ✅ NO reasignar req.query, copiar los valores validados individualmente
     Object.keys(value).forEach(key => {
       req.query[key] = value[key];
     });

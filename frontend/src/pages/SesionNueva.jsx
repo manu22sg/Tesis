@@ -9,7 +9,9 @@ import {
   Button,
   message,
   Spin,
-  ConfigProvider
+  ConfigProvider,
+  Radio,
+  Space
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -31,6 +33,7 @@ export default function SesionNueva() {
   const [saving, setSaving] = useState(false);
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [tipoUbicacion, setTipoUbicacion] = useState('cancha'); // 'cancha' o 'externa'
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -38,7 +41,7 @@ export default function SesionNueva() {
         setLoading(true);
 
         // Obtener canchas disponibles
-           const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
+        const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
         const listaCanchas = (canchasRes?.canchas || []).map((c) => ({
           label: c.nombre,
           value: c.id,
@@ -92,6 +95,15 @@ export default function SesionNueva() {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Limpiar campos cuando cambia el tipo de ubicación
+  useEffect(() => {
+    if (tipoUbicacion === 'cancha') {
+      form.setFieldValue('ubicacionExterna', undefined);
+    } else {
+      form.setFieldValue('canchaId', undefined);
+    }
+  }, [tipoUbicacion, form]);
+
   const onFinish = async (values) => {
     try {
       setSaving(true);
@@ -105,7 +117,6 @@ export default function SesionNueva() {
       }
 
       const payload = {
-        canchaId: values.canchaId,
         grupoId: values.grupoId || null,
         tipoSesion: values.tipoSesion,
         objetivos: values.objetivos,
@@ -114,17 +125,25 @@ export default function SesionNueva() {
         horaFin: horaFin.format('HH:mm'),
       };
 
-      const disponibilidad = await verificarDisponibilidad(
-        payload.canchaId,
-        payload.fecha,
-        payload.horaInicio,
-        payload.horaFin
-      );
+      // Agregar cancha o ubicación externa según el tipo
+      if (tipoUbicacion === 'cancha') {
+        payload.canchaId = values.canchaId;
+        
+        // Solo verificar disponibilidad si hay cancha
+        const disponibilidad = await verificarDisponibilidad(
+          payload.canchaId,
+          payload.fecha,
+          payload.horaInicio,
+          payload.horaFin
+        );
 
-      if (!disponibilidad.disponible) {
-        message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');
-        setSaving(false);
-        return;
+        if (!disponibilidad.disponible) {
+          message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');
+          setSaving(false);
+          return;
+        }
+      } else {
+        payload.ubicacionExterna = values.ubicacionExterna;
       }
 
       // Crear sesión
@@ -158,22 +177,55 @@ export default function SesionNueva() {
           style={{ maxWidth: 650, margin: '0 auto' }}
         >
           <Form layout="vertical" form={form} onFinish={onFinish}>
-            {/* Cancha */}
-            <Form.Item
-              name="canchaId"
-              label="Cancha"
-              rules={[{ required: true, message: 'Selecciona una cancha' }]}
-            >
-              <Select
-                placeholder="Selecciona una cancha"
-                options={canchas}
-                loading={!canchas.length}
-                showSearch
-                optionFilterProp="label"
-              />
+            {/* Tipo de Ubicación */}
+            <Form.Item label="Ubicación">
+              <Radio.Group 
+                value={tipoUbicacion} 
+                onChange={(e) => setTipoUbicacion(e.target.value)}
+              >
+                <Space direction="vertical">
+                  <Radio value="cancha">Cancha del club</Radio>
+                  <Radio value="externa">Ubicación externa</Radio>
+                </Space>
+              </Radio.Group>
             </Form.Item>
 
-            {/*  Grupo */}
+            {/* Cancha (solo si tipo === 'cancha') */}
+            {tipoUbicacion === 'cancha' && (
+              <Form.Item
+                name="canchaId"
+                label="Cancha"
+                rules={[{ required: true, message: 'Selecciona una cancha' }]}
+              >
+                <Select
+                  placeholder="Selecciona una cancha"
+                  options={canchas}
+                  loading={!canchas.length}
+                  showSearch
+                  optionFilterProp="label"
+                />
+              </Form.Item>
+            )}
+
+            {/* Ubicación Externa (solo si tipo === 'externa') */}
+            {tipoUbicacion === 'externa' && (
+              <Form.Item
+                name="ubicacionExterna"
+                label="Ubicación Externa"
+                rules={[
+                  { required: true, message: 'Ingresa la ubicación externa' },
+                  { max: 200, message: 'Máximo 200 caracteres' }
+                ]}
+              >
+                <Input
+                  showCount
+                  maxLength={200}
+                  placeholder="Ejemplo: Estadio Municipal, Cancha Parque O'Higgins..."
+                />
+              </Form.Item>
+            )}
+
+            {/* Grupo */}
             <Form.Item name="grupoId" label="Grupo (opcional)">
               <Select
                 allowClear
@@ -185,7 +237,7 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/*  Fecha - Solo días de semana */}
+            {/* Fecha - Solo días de semana */}
             <Form.Item
               name="fecha"
               label="Fecha"
@@ -203,6 +255,7 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
+            {/* Horario */}
             <Form.Item
               name="horario"
               label="Horario"
@@ -223,6 +276,7 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
+            {/* Tipo de sesión */}
             <Form.Item
               name="tipoSesion"
               label="Tipo de sesión"
@@ -235,12 +289,12 @@ export default function SesionNueva() {
               />
             </Form.Item>
 
-            {/*  Objetivos */}
+            {/* Objetivos */}
             <Form.Item name="objetivos" label="Objetivos (opcional)">
               <Input.TextArea rows={3} placeholder="Describe los objetivos de la sesión" />
             </Form.Item>
 
-            {/*  Botones */}
+            {/* Botones */}
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <Button onClick={() => navigate(-1)}>Cancelar</Button>

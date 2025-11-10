@@ -9,12 +9,13 @@ import {
 } from '../services/sesionServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
-/** POST /api/sesiones */
 export async function postCrearSesion(req, res) {
   try {
     const [sesion, err] = await crearSesion(req.body);
     if (err) {
-      if (err.includes('Cancha no encontrada') || err.includes('Grupo no encontrado')) {
+      if (err.includes('Cancha no encontrada') || 
+          err.includes('Grupo no encontrado') ||
+          err.includes('Debe especificar una cancha o una ubicación externa')) {
         return error(res, err, 400);
       }
       if (err.includes('Ya existe') || 
@@ -65,6 +66,7 @@ export async function getSesiones(req, res) {
     return error(res, 'Error interno del servidor', 500);
   }
 }
+
 export async function getSesionPorId(req, res) {
   try {
     const { id } = req.body;
@@ -89,7 +91,9 @@ export async function patchActualizarSesion(req, res) {
       if (err.includes('Conflicto') || 
           err.includes('Grupo no encontrado') ||
           err.includes('partido de campeonato') ||
-          err.includes('reserva')) {
+          err.includes('reserva') ||
+          err.includes('Debe especificar una cancha o una ubicación externa') ||
+          err.includes('No se puede cambiar el grupo')) {
         return conflict(res, err);
       }
       return error(res, err, 500);
@@ -119,7 +123,14 @@ export async function deleteSesion(req, res) {
 export async function postSesionesRecurrentes(req, res) {
   try {
     const [resultado, err] = await crearSesionesRecurrentes(req.body);
-    if (err) return error(res, err, 500);
+    if (err) {
+      if (err.includes('Debe especificar una cancha o una ubicación externa') ||
+          err.includes('Grupo no encontrado') ||
+          err.includes('Cancha no encontrada')) {
+        return error(res, err, 400);
+      }
+      return error(res, err, 500);
+    }
 
     const { sesionesCreadas, errores } = resultado;
     let msg = `${sesionesCreadas} sesión(es) creada(s)`;

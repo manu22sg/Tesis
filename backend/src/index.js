@@ -28,7 +28,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 cron.schedule('*/30 * * * *', async () => {
-  console.log('ejecutando job: rechazar reservas expiradas...');
   await actualizarEstadosReservas();
 });
 

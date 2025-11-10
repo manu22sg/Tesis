@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
   message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
@@ -24,7 +24,6 @@ dayjs.locale('es');
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 export default function GestionLesiones() {
   const { usuario } = useAuth();
@@ -52,6 +51,7 @@ export default function GestionLesiones() {
   useEffect(() => {
     if (puedeEditar) cargarJugadores();
     cargarLesiones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.current, pagination.pageSize, filtroJugadorId, rangoFechas]);
 
   const cargarJugadores = async () => {
@@ -79,11 +79,11 @@ export default function GestionLesiones() {
       }
 
       const response = await obtenerLesiones(params);
-      setLesiones(response.data.lesiones || []);
+      setLesiones(response.data?.lesiones || []);
       setPagination(prev => ({
         ...prev,
-        total: response.data.total,
-        totalPages: response.data.totalPaginas
+        total: response.data?.total || 0,
+        totalPages: response.data?.totalPaginas,
       }));
     } catch (error) {
       console.error('Error al cargar lesiones:', error);
@@ -168,7 +168,15 @@ export default function GestionLesiones() {
     setPagination({ ...pagination, current: page, pageSize });
   };
 
-  // Filtrado local
+  // Opciones memoizadas para Select (evita ReactNode -> toLowerCase error)
+  const opcionesJugadores = useMemo(() => {
+    return (jugadores || []).map((j) => ({
+      value: j.id,
+      label: `${j.usuario?.nombre || `Jugador #${j.id}`} - ${j.usuario?.rut || ''}`.trim(),
+    }));
+  }, [jugadores]);
+
+  // Filtrado local para la tabla (búsqueda rápida)
   const lesionesFiltradas = lesiones.filter(lesion => {
     if (!busqueda) return true;
     const searchLower = busqueda.toLowerCase();
@@ -183,115 +191,110 @@ export default function GestionLesiones() {
   });
 
   const columns = [
-  {
-    title: 'Jugador',
-    key: 'jugador',
-    render: (_, record) => {
-      const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
-      const rut = record.jugador?.usuario?.rut || '';
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
-          <div>
-            <div style={{ fontWeight: 500 }}>{nombre}</div>
-            {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
+    {
+      title: 'Jugador',
+      key: 'jugador',
+      render: (_, record) => {
+        const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
+        const rut = record.jugador?.usuario?.rut || '';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+            <div>
+              <div style={{ fontWeight: 500 }}>{nombre}</div>
+              {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
+            </div>
           </div>
-        </div>
-      );
+        );
+      },
+      width: 200,
     },
-    width: 200,
-  },
-  {
-    title: 'Diagnóstico',
-    dataIndex: 'diagnostico',
-    key: 'diagnostico',
-    ellipsis: { showTitle: false },
-    render: (texto) => (
-      <Tooltip title={texto}>
-        <span>{texto}</span>
-      </Tooltip>
-    ),
-  },
-  {
-    title: 'Fecha Inicio',
-    dataIndex: 'fechaInicio',
-    key: 'fechaInicio',
-    render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
-    align: 'center',
-    width: 120,
-  },
-  {
-    title: 'Alta Estimada',
-    dataIndex: 'fechaAltaEstimada',
-    key: 'fechaAltaEstimada',
-    render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-    align: 'center',
-    width: 130,
-  },
-  {
-    title: 'Alta Real',
-    dataIndex: 'fechaAltaReal',
-    key: 'fechaAltaReal',
-    render: (fecha) => fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—',
-    align: 'center',
-    width: 130,
-  },
-  {
-    title: 'Estado',
-    key: 'estado',
-    render: (_, record) =>
-      record.fechaAltaReal ? (
-        <Tag icon={<CheckCircleOutlined />} color="success">
-          Recuperado
-        </Tag>
-      ) : (
-        <Tag icon={<ClockCircleOutlined />} color="warning">
-          Activa
-        </Tag>
+    {
+      title: 'Diagnóstico',
+      dataIndex: 'diagnostico',
+      key: 'diagnostico',
+      ellipsis: { showTitle: false },
+      render: (texto) => (
+        <Tooltip title={texto}>
+          <span>{texto}</span>
+        </Tooltip>
       ),
-    align: 'center',
-    width: 120,
-  },
-  ...(puedeEditar
-    ? [
-        {
-          title: 'Acciones',
-          key: 'acciones',
-          align: 'center',
-          width: 150,
-          render: (_, record) => (
-            <Space size="small">
-              <Tooltip title="Editar">
-                <Button
-                  size="middle"
-                  icon={<EditOutlined />}
-                  onClick={() => abrirModalEditar(record)}
-                />
-              </Tooltip>
-
-              <Popconfirm
-                title="¿Eliminar lesión?"
-                description="Esta acción no se puede deshacer"
-                onConfirm={() => handleEliminar(record.id)}
-                okText="Sí, eliminar"
-                cancelText="Cancelar"
-                okButtonProps={{ danger: true }}
-              >
-                <Tooltip title="Eliminar">
+    },
+    {
+      title: 'Fecha Inicio',
+      dataIndex: 'fechaInicio',
+      key: 'fechaInicio',
+      render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
+      align: 'center',
+      width: 120,
+    },
+    {
+      title: 'Alta Estimada',
+      dataIndex: 'fechaAltaEstimada',
+      key: 'fechaAltaEstimada',
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Alta Real',
+      dataIndex: 'fechaAltaReal',
+      key: 'fechaAltaReal',
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Estado',
+      key: 'estado',
+      render: (_, record) =>
+        record.fechaAltaReal ? (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Recuperado
+          </Tag>
+        ) : (
+          <Tag icon={<ClockCircleOutlined />} color="warning">
+            Activa
+          </Tag>
+        ),
+      align: 'center',
+      width: 120,
+    },
+    ...(puedeEditar
+      ? [
+          {
+            title: 'Acciones',
+            key: 'acciones',
+            align: 'center',
+            width: 150,
+            render: (_, record) => (
+              <Space size="small">
+                <Tooltip title="Editar">
                   <Button
-                    danger
                     size="middle"
-                    icon={<DeleteOutlined />}
+                    icon={<EditOutlined />}
+                    onClick={() => abrirModalEditar(record)}
                   />
                 </Tooltip>
-              </Popconfirm>
-            </Space>
-          ),
-        },
-      ]
-    : []),
-];
 
+                <Popconfirm
+                  title="¿Eliminar lesión?"
+                  description="Esta acción no se puede deshacer"
+                  onConfirm={() => handleEliminar(record.id)}
+                  okText="Sí, eliminar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Tooltip title="Eliminar">
+                    <Button danger size="middle" icon={<DeleteOutlined />} />
+                  </Tooltip>
+                </Popconfirm>
+              </Space>
+            ),
+          },
+        ]
+      : []),
+  ];
 
   const hayFiltrosActivos = busqueda || filtroJugadorId || rangoFechas;
 
@@ -319,12 +322,14 @@ export default function GestionLesiones() {
             }
           >
             {/* Filtros */}
-            <div style={{
-              marginBottom: 16,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 12
-            }}>
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 12,
+              }}
+            >
               <AntInput
                 allowClear
                 value={busqueda}
@@ -340,17 +345,10 @@ export default function GestionLesiones() {
                   value={filtroJugadorId}
                   onChange={setFiltroJugadorId}
                   placeholder="Filtrar por jugador"
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {jugadores.map(jugador => (
-                    <Option key={jugador.id} value={jugador.id}>
-                      {jugador.usuario?.nombre || `Jugador #${jugador.id}`} - {jugador.usuario?.rut}
-                    </Option>
-                  ))}
-                </Select>
+                  options={opcionesJugadores}
+                  optionFilterProp="label"
+                  style={{ width: '100%' }}
+                />
               )}
 
               <RangePicker
@@ -361,9 +359,7 @@ export default function GestionLesiones() {
                 style={{ width: '100%' }}
               />
 
-              {hayFiltrosActivos && (
-                <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
-              )}
+              {hayFiltrosActivos && <Button onClick={limpiarFiltros}>Limpiar filtros</Button>}
             </div>
 
             {/* Tabla */}
@@ -373,7 +369,7 @@ export default function GestionLesiones() {
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={ false}
+              scroll={false}
               size="middle"
               locale={{
                 emptyText: (
@@ -427,11 +423,7 @@ export default function GestionLesiones() {
             footer={null}
             width={600}
           >
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={modalEditando ? handleEditar : handleCrear}
-            >
+            <Form form={form} layout="vertical" onFinish={modalEditando ? handleEditar : handleCrear}>
               {!modalEditando && !esEstudiante && (
                 <Form.Item
                   label="Jugador"
@@ -441,17 +433,9 @@ export default function GestionLesiones() {
                   <Select
                     showSearch
                     placeholder="Seleccione un jugador"
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {jugadores.map(jugador => (
-                      <Option key={jugador.id} value={jugador.id}>
-                        {jugador.usuario?.nombre || `Jugador #${jugador.id}`} - {jugador.usuario?.rut}
-                      </Option>
-                    ))}
-                  </Select>
+                    options={opcionesJugadores}
+                    optionFilterProp="label"
+                  />
                 </Form.Item>
               )}
 
@@ -460,7 +444,7 @@ export default function GestionLesiones() {
                 name="diagnostico"
                 rules={[
                   { required: true, message: 'Ingrese el diagnóstico' },
-                  { max: 2000, message: 'Máximo 2000 caracteres' }
+                  { max: 2000, message: 'Máximo 2000 caracteres' },
                 ]}
               >
                 <TextArea rows={4} placeholder="Descripción de la lesión" />
@@ -485,7 +469,7 @@ export default function GestionLesiones() {
               <Form.Item>
                 <Space>
                   <Button type="primary" htmlType="submit">
-                    {modalEditando ? 'Actualizar' : 'Crear'}
+                    {modalEditando ? 'Actualizar' : 'Registrar'}
                   </Button>
                   <Button
                     onClick={() => {

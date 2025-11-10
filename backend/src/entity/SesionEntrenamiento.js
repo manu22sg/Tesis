@@ -6,7 +6,9 @@ const SesionEntrenamientoSchema = new EntitySchema({
   columns: {
     id: { type: "int", primary: true, generated: true },
 
-    canchaId: { type: "int", nullable: false },
+    canchaId: { type: "int", nullable: true },
+
+    ubicacionExterna: { type: "varchar", length: 255, nullable: true },
 
     fecha: { type: "date" },
     horaInicio: { type: "time" },
@@ -22,10 +24,8 @@ const SesionEntrenamientoSchema = new EntitySchema({
     tokenActivo: { type: "boolean", default: false },
     tokenExpiracion: { type: "timestamp", nullable: true },
 
-    // 🔑 Si el técnico quiere geofence obligatorio
     requiereUbicacion: { type: "boolean", default: false },
 
-    // Coords del punto de referencia (si aplica)
     latitudToken: {
       type: "decimal",
       precision: 9,
@@ -56,6 +56,7 @@ const SesionEntrenamientoSchema = new EntitySchema({
       target: "Cancha",
       joinColumn: { name: "canchaId" },
       onDelete: "RESTRICT",
+      nullable: true, 
     },
     grupo: {
       type: "many-to-one",
@@ -75,7 +76,6 @@ const SesionEntrenamientoSchema = new EntitySchema({
     { name: "idx_sesiones_token", columns: ["token"] },
     { name: "idx_sesiones_grupo", columns: ["grupoId"] },
     { name: "idx_sesiones_cancha", columns: ["canchaId"] },
-    // Útil para búsquedas de token vigente
     { name: "idx_sesiones_token_activo", columns: ["tokenActivo", "token"] },
   ],
 });
