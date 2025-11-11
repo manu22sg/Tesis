@@ -229,7 +229,6 @@ export async function obtenerSesionPorId(id) {
 
     if (!sesion) return [null, 'Sesión no encontrada'];
 
-    // ✅ Agregar tokenVigente
     const ahora = new Date();
     const tokenVigente = sesion.tokenActivo && 
                         sesion.tokenExpiracion && 

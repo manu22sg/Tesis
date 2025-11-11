@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Avatar, Tag, Tooltip, Button, Space, Switch, message, Modal } from 'antd';
-import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { Avatar, Tag, Tooltip, Button, Space, Switch, message, Modal,Popconfirm } from 'antd';
+import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined,DeleteOutlined } from '@ant-design/icons';
 
 const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJugador }) => {
   
@@ -336,7 +336,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
 
         {modoEdicion && (
           <div style={{ marginTop: 16, padding: 12, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 8 }}>
-             <strong>Instrucciones:</strong> Arrastra jugadores en el campo o hacia la papelera 🗑️ para eliminarlos.
+             <strong>Instrucciones:</strong> Arrastra jugadores hacia la papelera para eliminarlos.
           </div>
         )}
 
@@ -349,41 +349,42 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           <div className="zona-eliminacion-texto">Eliminar</div>
         </div>
 
-        {/* ✅ Modal controlado sin warnings */}
-        <Modal
-          title="¿Eliminar jugador de la alineación?"
-          open={confirmVisible}
-          onCancel={() => {
-            setConfirmVisible(false);
-            setJugadorParaEliminar(null);
-          }}
-          okText="Sí, eliminar"
-          cancelText="Cancelar"
-          okButtonProps={{ danger: true }}
-          onOk={async () => {
-            if (!jugadorParaEliminar || !onEliminarJugador) return;
-            try {
-              await onEliminarJugador(jugadorParaEliminar.jugadorId);
-              message.success('Jugador eliminado exitosamente');
-            } catch (error) {
-              console.error(error);
-              message.error('Error al eliminar el jugador');
-            } finally {
-              setConfirmVisible(false);
-              setJugadorParaEliminar(null);
-            }
-          }}
-        >
-          <p>
-            ¿Estás seguro de quitar a{' '}
-            <strong>
-              {jugadorParaEliminar?.jugador?.usuario?.nombre || ''}{' '}
-              {jugadorParaEliminar?.jugador?.usuario?.apellido || ''}
-              {jugadorParaEliminar?.jugador?.usuario?.rut}
-            </strong>{' '}
-            de la alineación?
-          </p>
-        </Modal>
+     <Popconfirm
+  title="¿Eliminar jugador de la alineación?"
+  description={
+    <span>
+      ¿Estás seguro de quitar a{' '}
+      <strong>
+        {jugadorParaEliminar?.jugador?.usuario?.nombre || ''}{' '}
+        {jugadorParaEliminar?.jugador?.usuario?.apellido || ''}
+      </strong>{' '}
+      de la alineación?
+    </span>
+  }
+  open={confirmVisible}
+  onConfirm={async () => {
+    if (!jugadorParaEliminar || !onEliminarJugador) return;
+    try {
+      await onEliminarJugador(jugadorParaEliminar.jugadorId);
+    } catch (error) {
+      console.error(error);
+      message.error('Error al eliminar el jugador');
+    } finally {
+      setConfirmVisible(false);
+      setJugadorParaEliminar(null);
+    }
+  }}
+  onCancel={() => {
+    setConfirmVisible(false);
+    setJugadorParaEliminar(null);
+  }}
+  okText="Sí, eliminar"
+  cancelText="Cancelar"
+  okButtonProps={{ danger: true }}
+>
+  {/* Aquí va el botón o elemento que dispara el popconfirm */}
+  <Button danger icon={<DeleteOutlined />} />
+</Popconfirm>
       </div>
     </div>
   );

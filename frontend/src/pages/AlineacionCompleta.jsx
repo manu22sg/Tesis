@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Table, Tag, Button, Space, message, Empty, Tooltip,
   Modal, Form, Select, InputNumber, Input, Spin, Popconfirm,
-  Tabs, Row, Col, Statistic, ConfigProvider, Typography, Alert
+  Tabs, ConfigProvider, Typography, Alert
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
   UserAddOutlined, FieldTimeOutlined, TableOutlined,
-  AimOutlined, TrophyOutlined, ArrowLeftOutlined
+  AimOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
 import {
   crearAlineacion,
@@ -25,6 +25,7 @@ import { obtenerSesionPorId } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import CampoAlineacion from '../components/CampoAlineacion.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
+
 const { TextArea } = Input;
 const { Text } = Typography;
 
@@ -100,15 +101,13 @@ export default function AlineacionCompleta() {
 
   const cargarJugadores = async () => {
     try {
-      // Si tenemos info de la sesión Y tiene grupo, filtramos
       if (sesionInfo?.grupo?.id) {
-        const data = await obtenerJugadores({ 
+        const data = await obtenerJugadores({
           limite: 100,
           grupoId: sesionInfo.grupo.id
         });
         setJugadoresDisponibles(data.jugadores || []);
       } else {
-        // Si no hay grupo, traer todos
         const data = await obtenerJugadores({ limite: 100 });
         setJugadoresDisponibles(data.jugadores || []);
       }
@@ -126,7 +125,6 @@ export default function AlineacionCompleta() {
         generadaAuto: false,
         jugadores: []
       });
-      
       cargarAlineacion();
     } catch (error) {
       console.error('Error al crear alineación:', error);
@@ -142,15 +140,13 @@ export default function AlineacionCompleta() {
         alineacionId: alineacion.id,
         ...values
       });
-      
+
       await cargarAlineacion();
-      
+
       if (continuar) {
-        // Limpiar formulario para agregar otro jugador
         form.resetFields();
         setFormularioCompleto(false);
       } else {
-        // Cerrar modal
         setModalVisible(false);
         form.resetFields();
         setFormularioCompleto(false);
@@ -182,14 +178,12 @@ export default function AlineacionCompleta() {
   const handleQuitarJugador = async (jugadorId) => {
     try {
       await quitarJugadorAlineacion(alineacion.id, jugadorId);
-      
-      // Actualiza visualmente
+
       setAlineacion(prev => ({
         ...prev,
         jugadores: prev.jugadores.filter(j => j.jugadorId !== jugadorId)
       }));
 
-      // Recarga desde backend para mantener sincronizado
       cargarAlineacion();
     } catch (error) {
       console.error('Error al quitar jugador:', error);
@@ -228,6 +222,14 @@ export default function AlineacionCompleta() {
   const jugadoresFiltrados = jugadoresDisponibles.filter(
     j => !jugadoresYaEnAlineacion.includes(j.id)
   );
+
+  // Opciones de Select de jugadores (label/value) para evitar errores de filtrado
+  const opcionesJugadores = useMemo(() => {
+    return jugadoresFiltrados.map(j => ({
+      value: j.id,
+      label: `${j.usuario?.nombre || `Jugador #${j.id}`} ${j.usuario?.rut || ''}`.trim()
+    }));
+  }, [jugadoresFiltrados]);
 
   const columns = [
     {
@@ -270,10 +272,10 @@ export default function AlineacionCompleta() {
       render: (_, record) => (
         <Space>
           <Tooltip title="Editar">
-            <Button 
-              type="text" 
+            <Button
+              type="text"
               size="small"
-              icon={<EditOutlined />} 
+              icon={<EditOutlined />}
               onClick={() => abrirModalEditar(record)}
             />
           </Tooltip>
@@ -310,13 +312,16 @@ export default function AlineacionCompleta() {
     );
   }
 
+  // Helper para mostrar cancha o ubicación externa
+  const getLugarSesion = (s) => s?.cancha?.nombre || s?.ubicacionExterna || 'Sin ubicación';
+
   if (!alineacion) {
     return (
       <MainLayout>
         <ConfigProvider locale={locale}>
           <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-            <Button 
-              icon={<ArrowLeftOutlined />} 
+            <Button
+              icon={<ArrowLeftOutlined />}
               onClick={() => navigate('/sesiones')}
               style={{ marginBottom: 16 }}
             >
@@ -325,8 +330,8 @@ export default function AlineacionCompleta() {
 
             {sesionInfo && (
               <Alert
-                message={`Sesión: ${sesionInfo.fecha} - ${sesionInfo.horaInicio} a ${sesionInfo.horaFin}`}
-                description={`Grupo: ${sesionInfo.grupo?.nombre || 'Sin grupo'} | Cancha: ${sesionInfo.cancha?.nombre || 'Sin cancha'}`}
+                message={`Sesión: ${formatearFecha(sesionInfo.fecha)} - ${formatearHora(sesionInfo.horaInicio)} - ${formatearHora(sesionInfo.horaFin)}`}
+                description={`Grupo: ${sesionInfo.grupo?.nombre || 'Sin grupo'} | Lugar: ${getLugarSesion(sesionInfo)}`}
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
@@ -343,10 +348,10 @@ export default function AlineacionCompleta() {
                   </div>
                 }
               >
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="large"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={handleCrearAlineacion}
                 >
                   Crear Alineación
@@ -363,8 +368,8 @@ export default function AlineacionCompleta() {
     <MainLayout>
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-          <Button 
-            icon={<ArrowLeftOutlined />} 
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/sesiones')}
             style={{ marginBottom: 16 }}
           >
@@ -374,7 +379,7 @@ export default function AlineacionCompleta() {
           {sesionInfo && (
             <Alert
               message={`Sesión: ${formatearFecha(sesionInfo.fecha)} - ${formatearHora(sesionInfo.horaInicio)} - ${formatearHora(sesionInfo.horaFin)}`}
-              description={`Grupo: ${sesionInfo.grupo?.nombre || 'Sin grupo'} | Cancha: ${sesionInfo.cancha?.nombre || 'Sin cancha'}`}
+              description={`Grupo: ${sesionInfo.grupo?.nombre || 'Sin grupo'} | Lugar: ${getLugarSesion(sesionInfo)}`}
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
@@ -391,15 +396,15 @@ export default function AlineacionCompleta() {
             }
             extra={
               <Space wrap>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   icon={<UserAddOutlined />}
                   onClick={() => {
                     setModalVisible(true);
                     form.resetFields();
                     setFormularioCompleto(false);
                   }}
-                  disabled={jugadoresFiltrados.length === 0}
+                  disabled={opcionesJugadores.length === 0}
                 >
                   Agregar Jugador
                 </Button>
@@ -419,8 +424,8 @@ export default function AlineacionCompleta() {
             }
           >
             {alineacion.jugadores && alineacion.jugadores.length > 0 ? (
-              <Tabs 
-                activeKey={vistaActual} 
+              <Tabs
+                activeKey={vistaActual}
                 onChange={setVistaActual}
                 items={[
                   {
@@ -432,7 +437,7 @@ export default function AlineacionCompleta() {
                       </span>
                     ),
                     children: (
-                      <CampoAlineacion 
+                      <CampoAlineacion
                         jugadores={alineacion.jugadores}
                         onActualizarPosiciones={async (jugadoresActualizados) => {
                           try {
@@ -472,8 +477,8 @@ export default function AlineacionCompleta() {
               />
             ) : (
               <Empty description="No hay jugadores en la alineación">
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   icon={<UserAddOutlined />}
                   onClick={() => {
                     setModalVisible(true);
@@ -502,8 +507,8 @@ export default function AlineacionCompleta() {
               setFormularioCompleto(false);
             }}
             footer={[
-              <Button 
-                key="cancel" 
+              <Button
+                key="cancel"
                 onClick={() => {
                   setModalVisible(false);
                   form.resetFields();
@@ -550,16 +555,9 @@ export default function AlineacionCompleta() {
                 <Select
                   placeholder="Selecciona un jugador"
                   showSearch
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {jugadoresFiltrados.map(j => (
-                    <Select.Option key={j.id} value={j.id}>
-                      {j.usuario?.nombre} {j.usuario?.rut}
-                    </Select.Option>
-                  ))}
-                </Select>
+                  options={opcionesJugadores}
+                  optionFilterProp="label"
+                />
               </Form.Item>
 
               <Form.Item
@@ -581,9 +579,9 @@ export default function AlineacionCompleta() {
                 label="Número / Orden"
                 tooltip="Número de dorsal o posición en el orden (opcional)"
               >
-                <InputNumber 
-                  min={1} 
-                  style={{ width: '100%' }} 
+                <InputNumber
+                  min={1}
+                  style={{ width: '100%' }}
                   placeholder="Ej: 1, 2, 3..."
                 />
               </Form.Item>
@@ -592,8 +590,8 @@ export default function AlineacionCompleta() {
                 name="comentario"
                 label="Comentario"
               >
-                <TextArea 
-                  rows={3} 
+                <TextArea
+                  rows={3}
                   placeholder="Ej: Capitán, Suplente, Titular, etc."
                   maxLength={500}
                   showCount
@@ -641,9 +639,9 @@ export default function AlineacionCompleta() {
                 name="orden"
                 label="Número / Orden"
               >
-                <InputNumber 
-                  min={1} 
-                  style={{ width: '100%' }} 
+                <InputNumber
+                  min={1}
+                  style={{ width: '100%' }}
                   placeholder="Número de orden"
                 />
               </Form.Item>
@@ -652,8 +650,8 @@ export default function AlineacionCompleta() {
                 name="comentario"
                 label="Comentario"
               >
-                <TextArea 
-                  rows={3} 
+                <TextArea
+                  rows={3}
                   placeholder="Comentario adicional"
                   maxLength={500}
                   showCount

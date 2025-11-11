@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Card, 
   Table, 
@@ -26,7 +26,6 @@ import { formatearHora, formatearFecha } from '../utils/formatters.js';
 import 'dayjs/locale/es';
 
 dayjs.locale('es');
-
 const { Text } = Typography;
 
 const ListaEstadisticas = ({
@@ -55,14 +54,12 @@ const ListaEstadisticas = ({
       } else if (tipo === 'sesion' && id) {
         respuesta = await obtenerEstadisticasPorSesion(id, pagina, limite);
       }
-
       const datos = respuesta?.data || respuesta;
-
       setEstadisticas(datos.estadisticas || []);
       setPaginacion({
         actual: datos.pagina || pagina,
         tamanioPagina: limite,
-        total: datos.total || datos.estadisticas?.length || 0,
+        total: datos.total || (datos.estadisticas?.length ?? 0),
       });
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
@@ -74,6 +71,7 @@ const ListaEstadisticas = ({
 
   useEffect(() => {
     cargarEstadisticas(paginacion.actual, paginacion.tamanioPagina);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo, id, reloadKey]);
 
   const manejarCambioTabla = (pagina, tamanioPagina) => {
@@ -85,13 +83,36 @@ const ListaEstadisticas = ({
       await eliminarEstadistica(estadisticaId);
       message.success('Estadística eliminada correctamente');
       setEstadisticas((prev) => prev.filter((e) => e.id !== estadisticaId));
-      setPaginacion((prev) => ({ ...prev, total: prev.total - 1 }));
+      setPaginacion((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
     } catch (error) {
       console.error('Error al eliminar estadística:', error);
       message.error('Error al eliminar la estadística');
     }
   };
 
+  // ===== Totales (para sesion, jugador o mias) =====
+  const mostrarResumen = tipo === 'sesion' || tipo === 'jugador' || tipo === 'mias';
+  const totales = useMemo(() => {
+    const acc = {
+      goles: 0,
+      asistencias: 0,
+      minutosJugados: 0,
+      tarjetasAmarillas: 0,
+      tarjetasRojas: 0,
+      arcosInvictos: 0,
+    };
+    for (const e of estadisticas) {
+      acc.goles += Number(e.goles) || 0;
+      acc.asistencias += Number(e.asistencias) || 0;
+      acc.minutosJugados += Number(e.minutosJugados) || 0;
+      acc.tarjetasAmarillas += Number(e.tarjetasAmarillas) || 0;
+      acc.tarjetasRojas += Number(e.tarjetasRojas) || 0;
+      acc.arcosInvictos += Number(e.arcosInvictos) || 0;
+    }
+    return acc;
+  }, [estadisticas]);
+
+  // ===== Columnas =====
   const columnas = [
     ...(tipo === 'sesion'
       ? [
@@ -102,15 +123,9 @@ const ListaEstadisticas = ({
               const usuario = record.jugador?.usuario;
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Avatar 
-                    size={40} 
-                    icon={<UserOutlined />} 
-                    style={{ backgroundColor: '#1890ff' }}
-                  />
+                  <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
                   <div>
-                    <div style={{ fontWeight: 500 }}>
-                      {usuario?.nombre || 'Sin nombre'}
-                    </div>
+                    <div style={{ fontWeight: 500 }}>{usuario?.nombre || 'Sin nombre'}</div>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       {usuario?.rut || 'Sin RUT'}
                     </Text>
@@ -133,7 +148,6 @@ const ListaEstadisticas = ({
               const fecha = formatearFecha(record.sesion?.fecha);
               const horainicio = formatearHora(record.sesion?.horaInicio);
               const horafin = formatearHora(record.sesion?.horaFin);
-
               return (
                 <div>
                   <strong>{nombre || 'Sin nombre'}</strong>
@@ -144,59 +158,22 @@ const ListaEstadisticas = ({
                 </div>
               );
             },
+            width: 250,
           },
         ]
       : []),
 
-    {
-      title: 'Goles',
-      dataIndex: 'goles',
-      key: 'goles',
-      align: 'center',
-      render: (goles) => <Tag color={goles > 0 ? 'green' : 'default'}>{goles}</Tag>,
-    },
-    {
-      title: 'Asistencias',
-      dataIndex: 'asistencias',
-      key: 'asistencias',
-      align: 'center',
-      render: (asistencias) => (
-        <Tag color={asistencias > 0 ? 'blue' : 'default'}>{asistencias}</Tag>
-      ),
-    },
-    {
-      title: 'Minutos',
-      dataIndex: 'minutosJugados',
-      key: 'minutosJugados',
-      align: 'center',
-    },
-    {
-      title: 'T. Amarillas',
-      dataIndex: 'tarjetasAmarillas',
-      key: 'tarjetasAmarillas',
-      align: 'center',
-      render: (tarjetas) => (
-        <Tag color={tarjetas > 0 ? 'gold' : 'default'}>{tarjetas}</Tag>
-      ),
-    },
-    {
-      title: 'T. Rojas',
-      dataIndex: 'tarjetasRojas',
-      key: 'tarjetasRojas',
-      align: 'center',
-      render: (tarjetas) => (
-        <Tag color={tarjetas > 0 ? 'red' : 'default'}>{tarjetas}</Tag>
-      ),
-    },
-    {
-      title: 'Arcos Invictos',
-      dataIndex: 'arcosInvictos',
-      key: 'arcosInvictos',
-      align: 'center',
-      render: (arcos) => (
-        <Tag color={arcos > 0 ? 'cyan' : 'default'}>{arcos}</Tag>
-      ),
-    },
+    { title: 'Goles', dataIndex: 'goles', key: 'goles', align: 'center', width: 100,
+      render: (v) => <Tag color={v > 0 ? 'green' : 'default'}>{v}</Tag> },
+    { title: 'Asistencias', dataIndex: 'asistencias', key: 'asistencias', align: 'center', width: 120,
+      render: (v) => <Tag color={v > 0 ? 'blue' : 'default'}>{v}</Tag> },
+    { title: 'Minutos', dataIndex: 'minutosJugados', key: 'minutosJugados', align: 'center', width: 100 },
+    { title: 'T. Amarillas', dataIndex: 'tarjetasAmarillas', key: 'tarjetasAmarillas', align: 'center', width: 120,
+      render: (v) => <Tag color={v > 0 ? 'gold' : 'default'}>{v}</Tag> },
+    { title: 'T. Rojas', dataIndex: 'tarjetasRojas', key: 'tarjetasRojas', align: 'center', width: 100,
+      render: (v) => <Tag color={v > 0 ? 'red' : 'default'}>{v}</Tag> },
+    { title: 'Arcos Invictos', dataIndex: 'arcosInvictos', key: 'arcosInvictos', align: 'center', width: 140,
+      render: (v) => <Tag color={v > 0 ? 'cyan' : 'default'}>{v}</Tag> },
 
     ...(userRole !== 'estudiante'
       ? [
@@ -204,19 +181,14 @@ const ListaEstadisticas = ({
             title: 'Acciones',
             key: 'acciones',
             align: 'center',
+            width: 120,
             render: (_, record) => (
               <Space size="small">
                 {onEdit && (
                   <Tooltip title="Editar">
-                    <Button
-                      type="text"
-                      size="middle"
-                      icon={<EditOutlined />}
-                      onClick={() => onEdit(record)}
-                    />
+                    <Button type="text" size="middle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
                   </Tooltip>
                 )}
-
                 <Popconfirm
                   title="¿Eliminar estadística?"
                   onConfirm={() => manejarEliminar(record.id)}
@@ -235,8 +207,11 @@ const ListaEstadisticas = ({
       : []),
   ];
 
+  // ¿hay columna de acciones al final?
+  const tieneAcciones = userRole !== 'estudiante';
+
   return (
-    <Card>
+    <Card bodyStyle={{ paddingBottom: 0 }}>
       <ConfigProvider locale={locale}>
         <Table
           columns={columnas}
@@ -244,10 +219,115 @@ const ListaEstadisticas = ({
           rowKey="id"
           loading={cargando}
           pagination={false}
-          scroll={{ x: 'max-content' }}
+          scroll={false}
+          summary={
+            mostrarResumen && estadisticas.length > 0
+              ? () => {
+                  return (
+                    <Table.Summary>
+                      <Table.Summary.Row>
+                        {/* Primera celda: "Totales" */}
+                        <Table.Summary.Cell 
+                          index={0}
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          <div style={{ textAlign: 'left', paddingLeft: 8 }}>
+                            Totales
+                          </div>
+                        </Table.Summary.Cell>
+
+                        {/* Stats */}
+                        <Table.Summary.Cell 
+                          index={1}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.goles}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell 
+                          index={2}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.asistencias}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell 
+                          index={3}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.minutosJugados}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell 
+                          index={4}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.tarjetasAmarillas}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell 
+                          index={5}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.tarjetasRojas}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell 
+                          index={6}
+                          align="center"
+                          style={{ 
+                            background: '#e8e8e8', 
+                            fontWeight: 700,
+                            borderTop: '2px solid #d0d0d0'
+                          }}
+                        >
+                          {totales.arcosInvictos}
+                        </Table.Summary.Cell>
+
+                        {/* Acciones (si existe) */}
+                        {tieneAcciones && (
+                          <Table.Summary.Cell 
+                            index={7}
+                            style={{ 
+                              background: '#e8e8e8',
+                              borderTop: '2px solid #d0d0d0'
+                            }}
+                          />
+                        )}
+                      </Table.Summary.Row>
+                    </Table.Summary>
+                  );
+                }
+              : undefined
+          }
         />
+
         {estadisticas.length > 0 && (
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <div style={{ textAlign: 'center', marginTop: 16, padding: '12px 0' }}>
             <Pagination
               current={paginacion.actual}
               pageSize={paginacion.tamanioPagina}

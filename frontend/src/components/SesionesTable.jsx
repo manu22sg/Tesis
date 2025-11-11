@@ -44,7 +44,7 @@ const SesionesTable = memo(({
       width: 130,
     },
     {
-      title: 'Cancha/UE',
+      title: 'Lugar',
       render: (_, r) => {
         if (r.ubicacionExterna) {
           return (
