@@ -49,7 +49,6 @@ const DetalleSesionModal = memo(({ open, loading, sesion, onClose }) => {
                 <strong>Horario:</strong> {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
               </div>
               
-              {/* Ubicación: Cancha o Ubicación Externa */}
               <div style={{ gridColumn: '1 / -1' }}>
                 <strong>Ubicación:</strong>{' '}
                 {sesion.ubicacionExterna ? (
@@ -59,7 +58,6 @@ const DetalleSesionModal = memo(({ open, loading, sesion, onClose }) => {
                   </Space>
                 ) : (
                   <Space>
-                    <Tag color="green">Cancha del club</Tag>
                     <span>{sesion.cancha?.nombre || 'Sin cancha'}</span>
                   </Space>
                 )}

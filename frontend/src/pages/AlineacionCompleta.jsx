@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Table, Tag, Button, Space, message, Empty, Tooltip,
   Modal, Form, Select, InputNumber, Input, Spin, Popconfirm,
-  Tabs, ConfigProvider, Typography, Alert
+  Tabs, ConfigProvider, Typography, Alert, Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
-  PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
+  UserOutlined,  PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
   UserAddOutlined, FieldTimeOutlined, TableOutlined,
   AimOutlined, ArrowLeftOutlined
 } from '@ant-design/icons';
@@ -227,7 +227,7 @@ export default function AlineacionCompleta() {
   const opcionesJugadores = useMemo(() => {
     return jugadoresFiltrados.map(j => ({
       value: j.id,
-      label: `${j.usuario?.nombre || `Jugador #${j.id}`} ${j.usuario?.rut || ''}`.trim()
+      label: `${j.usuario?.nombre || `Jugador #${j.id}`} - ${j.usuario?.rut || ''}`.trim()
     }));
   }, [jugadoresFiltrados]);
 
@@ -245,9 +245,15 @@ export default function AlineacionCompleta() {
       key: 'jugador',
       render: (_, record) => (
         <Space>
-          <TeamOutlined />
+           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar 
+          size={40} 
+          icon={<UserOutlined />} 
+          style={{ backgroundColor: '#1890ff' }}
+        />
+        </div>
           <span>
-            {record.jugador?.usuario?.nombre} {record.jugador?.usuario?.rut}
+            {record.jugador?.usuario?.nombre} - {record.jugador?.usuario?.rut}
           </span>
         </Space>
       )

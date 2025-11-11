@@ -13,10 +13,11 @@ import {
   Row,
   Col,
   ConfigProvider,
-  Tooltip
+  Tooltip,Typography,Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { 
+  UserOutlined,
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined, 
@@ -50,6 +51,7 @@ export default function Evaluaciones() {
   // Filtros
   const [busqueda, setBusqueda] = useState('');
   const [sesionFiltro, setSesionFiltro] = useState(undefined);
+const { Text } = Typography;
 
   const esEstudiante = usuario?.rol === 'estudiante';
 
@@ -134,13 +136,27 @@ export default function Evaluaciones() {
 
   const columns = [
     {
-      title: 'Jugador',
-      dataIndex: ['jugador', 'usuario', 'nombre'],
-      key: 'jugador',
-      width: 180,
-      ellipsis: true,
-      render: (nombre) => nombre || '—'
-    },
+    title: 'Jugador',
+    key: 'jugador',
+    render: (_, record) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar 
+          size={40} 
+          icon={<UserOutlined />} 
+          style={{ backgroundColor: '#1890ff' }}
+        />
+        <div>
+          <div style={{ fontWeight: 500 }}>
+            {record.jugador?.usuario?.nombre || 'Sin nombre'}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.jugador?.usuario?.rut || 'Sin RUT'}
+          </Text>
+        </div>
+      </div>
+    ),
+    width: 220,
+  },
     {
       title: 'Sesión',
       render: (_, record) => {
@@ -150,7 +166,7 @@ export default function Evaluaciones() {
         const horaFin = formatearHora(record.sesion.horaFin);
         return `${fechaFormateada} - ${horaFormateada} - ${horaFin}`;
       },
-      width: 180
+      width: 200
     },
     { 
       title: 'Técnica', 
@@ -158,7 +174,7 @@ export default function Evaluaciones() {
       key: 'tecnica', 
       align: 'center',
       width: 90,
-      render: (val) => <strong style={{ color: '#1890ff' }}>{val ?? '—'}</strong>
+      render: (val) => < >{val ?? '—'}</>
     },
     { 
       title: 'Táctica', 
@@ -166,7 +182,7 @@ export default function Evaluaciones() {
       key: 'tactica', 
       align: 'center',
       width: 90,
-      render: (val) => <strong style={{ color: '#52c41a' }}>{val ?? '—'}</strong>
+      render: (val) => < >{val ?? '—'}</>
     },
     { 
       title: 'Actitudinal', 
@@ -174,7 +190,7 @@ export default function Evaluaciones() {
       key: 'actitudinal', 
       align: 'center',
       width: 110,
-      render: (val) => <strong style={{ color: '#faad14' }}>{val ?? '—'}</strong>
+      render: (val) => <>{val ?? '—'}</>
     },
     { 
       title: 'Física', 
@@ -182,7 +198,7 @@ export default function Evaluaciones() {
       key: 'fisica', 
       align: 'center',
       width: 90,
-      render: (val) => <strong style={{ color: '#f5222d' }}>{val ?? '—'}</strong>
+      render: (val) => <>{val ?? '—'}</>
     },
     { 
       title: 'Fecha Registro', 
@@ -254,7 +270,7 @@ export default function Evaluaciones() {
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12} md={8}>
                 <Input
-                  placeholder="Buscar por nombre de jugador"
+                  placeholder="Buscar por nombre o RUT del jugador"
                   allowClear
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}

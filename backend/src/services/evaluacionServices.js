@@ -33,17 +33,19 @@ export async function obtenerEvaluaciones({ page = 1, limit = 10, jugadorId, ses
     const repo = AppDataSource.getRepository(EvaluacionSchema);
     const qb = repo.createQueryBuilder('e')
       .leftJoinAndSelect('e.jugador', 'jugador')
-      .leftJoinAndSelect('jugador.usuario', 'usuario')  // 🔥 JOIN con usuario para obtener nombre
+      .leftJoinAndSelect('jugador.usuario', 'usuario') 
       .leftJoinAndSelect('e.sesion', 'sesion')
       .orderBy('e.fechaRegistro', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
-    // 🔍 Búsqueda por nombre de jugador
-    if (q) {
-      const busqueda = q.trim().toLowerCase();
-      qb.andWhere('LOWER(usuario.nombre) LIKE :q', { q: `%${busqueda}%` });
-    }
+   if (q) {
+  const busqueda = q.trim().toLowerCase();
+  qb.andWhere(
+    '(LOWER(usuario.nombre) LIKE :q OR LOWER(usuario.rut) LIKE :q)',
+    { q: `%${busqueda}%` }
+  );
+}
 
     if (jugadorId) qb.andWhere('e.jugadorId = :jugadorId', { jugadorId });
     if (sesionId) qb.andWhere('e.sesionId = :sesionId', { sesionId });

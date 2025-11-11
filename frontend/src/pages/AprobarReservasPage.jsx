@@ -358,7 +358,7 @@ const AprobarReservasPage = () => {
                 <Select
   showSearch
   allowClear
-  placeholder="Nombre o RUT"
+  placeholder=" Buscar por nombre o RUT"
   filterOption={false}
   onSearch={handleBuscarUsuarios}
   loading={buscandoUsuarios}

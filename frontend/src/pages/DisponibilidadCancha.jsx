@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DatePicker, Button, Card, Table, Tag, message, Spin, ConfigProvider, Pagination, Input, Select, Space } from 'antd';
-import { SearchOutlined, FilterOutlined,PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { useNavigate } from 'react-router-dom';
@@ -14,40 +14,67 @@ dayjs.locale('es');
 export default function DisponibilidadCancha() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
+
   const [fecha, setFecha] = useState(dayjs());
   const [loading, setLoading] = useState(false);
   const [disponibilidad, setDisponibilidad] = useState([]);
   const [disponibilidadFiltrada, setDisponibilidadFiltrada] = useState([]);
+
+  // 🔹 Paginación
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 5,
     total: 0,
     totalPages: 0
   });
-  
-  // Estados para filtros
+
+  // 🔹 Filtros
   const [filtroNombre, setFiltroNombre] = useState('');
   const [filtroCapacidad, setFiltroCapacidad] = useState(null);
+
+  // 🔹 NUEVOS: Select de canchas con búsqueda
+  const [canchasDisponibles, setCanchasDisponibles] = useState([]); // {label, value}
+  const [canchaSeleccionada, setCanchaSeleccionada] = useState(null); // id de cancha
+
   const [filtrosActivos, setFiltrosActivos] = useState(false);
 
-  //Verificar si el usuario puede reservar
-  const puedeReservar = usuario && (usuario.rol === 'estudiante' || usuario.rol === 'academico');
+  const puedeReservar =
+    usuario && (usuario.rol === 'estudiante' || usuario.rol === 'academico');
 
+  // Cargar data principal al cambiar la fecha
   useEffect(() => {
     if (fecha) {
       handleBuscar(1, pagination.pageSize);
     }
   }, [fecha]);
 
-  // Aplicar filtros automáticamente cuando cambien
+  // Cargar opciones de canchas PARA ESA FECHA (literalmente como tu snippet)
+  useEffect(() => {
+    const cargarCanchas = async () => {
+      try {
+        const fechaStr = (fecha || dayjs()).format('YYYY-MM-DD');
+        const response = await getDisponibilidadPorFecha(fechaStr, 1, 100);
+        const lista = (response.data || []).map((d) => ({
+          label: d.cancha?.nombre ?? `Cancha ${d.cancha?.id ?? ''}`,
+          value: d.cancha?.id
+        }));
+        setCanchasDisponibles(lista);
+      } catch (err) {
+        console.error('Error cargando canchas:', err);
+      }
+    };
+    cargarCanchas();
+  }, [fecha]);
+
+  // Reaplica filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtroNombre, filtroCapacidad, disponibilidad]);
+  }, [filtroNombre, filtroCapacidad, canchaSeleccionada, disponibilidad]);
 
   const columns = [
-    { 
-      title: 'Bloque', 
-      dataIndex: 'bloque', 
+    {
+      title: 'Bloque',
+      dataIndex: 'bloque',
       key: 'bloque',
       width: '40%'
     },
@@ -61,18 +88,18 @@ export default function DisponibilidadCancha() {
           <Tag color="green">Disponible</Tag>
         ) : (
           <Tag color="red">{record.motivo || 'Ocupado'}</Tag>
-        ),
-    },
+        )
+    }
   ];
 
   const handleBuscar = async (page = 1, pageSize = 5) => {
     if (!fecha) return;
-    
+
     try {
       setLoading(true);
       const fechaStr = fecha.format('YYYY-MM-DD');
       const response = await getDisponibilidadPorFecha(fechaStr, page, pageSize);
-      
+
       setDisponibilidad(response.data || []);
       setDisponibilidadFiltrada(response.data || []);
       setPagination({
@@ -92,28 +119,41 @@ export default function DisponibilidadCancha() {
   const aplicarFiltros = (data = disponibilidad) => {
     let resultado = [...data];
 
+    // 🔎 por nombre de cancha
     if (filtroNombre) {
-      resultado = resultado.filter(c => 
+      resultado = resultado.filter((c) =>
         c.cancha.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
       );
     }
 
+    // 🧮 por capacidad
     if (filtroCapacidad) {
-      resultado = resultado.filter(c => {
-        if (filtroCapacidad === 'pequena') return c.cancha.capacidadMaxima <= 8;
-        if (filtroCapacidad === 'mediana') return c.cancha.capacidadMaxima > 8 && c.cancha.capacidadMaxima <= 15;
-        if (filtroCapacidad === 'grande') return c.cancha.capacidadMaxima > 15;
+      resultado = resultado.filter((c) => {
+        const cap = c.cancha.capacidadMaxima;
+        if (filtroCapacidad === 'pequena') return cap <= 8;
+        if (filtroCapacidad === 'mediana') return cap > 8 && cap <= 15;
+        if (filtroCapacidad === 'grande') return cap > 15;
         return true;
       });
     }
 
+    // ✅ NUEVO: por cancha seleccionada en el Select
+    if (canchaSeleccionada) {
+      resultado = resultado.filter((c) => c.cancha.id === canchaSeleccionada);
+    }
+
     setDisponibilidadFiltrada(resultado);
-    setFiltrosActivos(filtroNombre || filtroCapacidad);
+    setFiltrosActivos(
+      Boolean(
+        filtroNombre || filtroCapacidad || canchaSeleccionada
+      )
+    );
   };
 
   const limpiarFiltros = () => {
     setFiltroNombre('');
     setFiltroCapacidad(null);
+    setCanchaSeleccionada(null);
     setDisponibilidadFiltrada(disponibilidad);
     setFiltrosActivos(false);
   };
@@ -123,23 +163,19 @@ export default function DisponibilidadCancha() {
   };
 
   const handleDateChange = (newDate) => {
-    // Si newDate es null, mantener la fecha actual
     setFecha(newDate || dayjs());
   };
 
   const opcionesCapacidad = [
     { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
     { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
-    { label: 'Grande (>15 jugadores)', value: 'grande' },
+    { label: 'Grande (>15 jugadores)', value: 'grande' }
   ];
 
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <Card
-          title="Disponibilidad de Canchas"
-          style={{ border: 'none' }}
-        >
+        <Card title="Disponibilidad de Canchas" style={{ border: 'none' }}>
           {/* 🔹 Barra superior: fecha y botón de reserva */}
           <div
             style={{
@@ -148,10 +184,12 @@ export default function DisponibilidadCancha() {
               alignItems: 'center',
               marginBottom: '1rem',
               flexWrap: 'wrap',
-              gap: '1rem',
+              gap: '1rem'
             }}
           >
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div
+              style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}
+            >
               <Button
                 onClick={() => {
                   if (!fecha) return;
@@ -174,7 +212,7 @@ export default function DisponibilidadCancha() {
                   const day = current.day();
                   return day === 0 || day === 6;
                 }}
-                classNames={{ popup: { root: "hide-weekends" } }} 
+                classNames={{ popup: { root: 'hide-weekends' } }}
               />
 
               <Button
@@ -200,16 +238,13 @@ export default function DisponibilidadCancha() {
             </div>
 
             {puedeReservar && (
-              <Button
-  type="primary"
-  icon={<PlusOutlined />}
-  onClick={() => navigate('/reservas/nueva')}
->
-  Reservar cancha
-</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/reservas/nueva')}>
+                Reservar cancha
+              </Button>
             )}
           </div>
 
+          {/* 🔻 Filtros */}
           <Card
             type="inner"
             title={
@@ -228,17 +263,19 @@ export default function DisponibilidadCancha() {
                 width: '100%',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                flexWrap: 'wrap',
+                flexWrap: 'wrap'
               }}
             >
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Input
-                  placeholder="Nombre de cancha"
-                  prefix={<SearchOutlined />}
-                  value={filtroNombre}
-                  onChange={(e) => setFiltroNombre(e.target.value)}
+                <Select
+                  placeholder="Buscar cancha"
+                  value={canchaSeleccionada}
+                  onChange={setCanchaSeleccionada}
                   allowClear
-                  style={{ width: 220 }}
+                  showSearch
+                  optionFilterProp="label"
+                  options={canchasDisponibles}
+                  style={{ width: 260 }}
                 />
 
                 <Select
@@ -246,14 +283,16 @@ export default function DisponibilidadCancha() {
                   value={filtroCapacidad}
                   onChange={setFiltroCapacidad}
                   allowClear
-                  options={[
-                    { label: 'Pequeña (≤8 jugadores)', value: 'pequena' },
-                    { label: 'Mediana (9-15 jugadores)', value: 'mediana' },
-                    { label: 'Grande (>15 jugadores)', value: 'grande' },
-                  ]}
+                  options={opcionesCapacidad}
                   style={{ width: 200 }}
                 />
+
+                
               </div>
+
+              {(filtrosActivos || disponibilidad.length > 0) && (
+                <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
+              )}
             </Space>
           </Card>
 
@@ -271,11 +310,13 @@ export default function DisponibilidadCancha() {
                   style={{ marginBottom: '1rem' }}
                 >
                   {c.cancha.descripcion && (
-                    <p style={{ 
-                      marginBottom: '1rem', 
-                      color: '#666',
-                      fontSize: 14 
-                    }}>
+                    <p
+                      style={{
+                        marginBottom: '1rem',
+                        color: '#666',
+                        fontSize: 14
+                      }}
+                    >
                       {c.cancha.descripcion}
                     </p>
                   )}
@@ -285,14 +326,15 @@ export default function DisponibilidadCancha() {
                       key: j,
                       bloque: `${b.horaInicio} - ${b.horaFin}`,
                       disponible: b.disponible,
-                      motivo: b.motivo,
+                      motivo: b.motivo
                     }))}
                     pagination={false}
                     size="small"
                   />
                 </Card>
               ))}
-              
+
+              {/* Ocultamos paginación si hay filtros activos (incluye select de canchas) */}
               {!filtrosActivos && (
                 <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                   <Pagination
@@ -310,7 +352,7 @@ export default function DisponibilidadCancha() {
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
-              {filtrosActivos 
+              {filtrosActivos
                 ? 'No se encontraron canchas con los filtros aplicados'
                 : 'No hay canchas disponibles para esta fecha'}
             </div>
@@ -323,7 +365,7 @@ export default function DisponibilidadCancha() {
             .hide-weekends .ant-picker-cell:nth-child(7n+7) {
               display: none !important;
             }
-            
+
             .hide-weekends thead tr th:nth-child(6),
             .hide-weekends thead tr th:nth-child(7) {
               display: none !important;

@@ -18,6 +18,7 @@ import {
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
 import {
+  TeamOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   QuestionCircleOutlined,
@@ -303,7 +304,8 @@ export default function GestionarAsistencias() {
 )}
                     {sesion.grupo && (
                       <Text type="secondary">
-                        👥 {sesion.grupo.nombre}
+                        <TeamOutlined />
+                         {sesion.grupo.nombre}
                       </Text>
                     )}
                   </Space>
@@ -323,25 +325,25 @@ export default function GestionarAsistencias() {
                 borderRadius: 8
               }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#52c41a' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
                     {estadisticas.presente}
                   </div>
                   <Text type="secondary">Presentes</Text>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#ff4d4f' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
                     {estadisticas.ausente}
                   </div>
                   <Text type="secondary">Ausentes</Text>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#faad14' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
                     {estadisticas.justificado}
                   </div>
                   <Text type="secondary">Justificados</Text>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold', color: '#1890ff' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
                     {pagination.total}
                   </div>
                   <Text type="secondary">Total</Text>
