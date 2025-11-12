@@ -85,3 +85,16 @@ export const getEstadisticasPorUsuarioEnCampeonato = async (req, res) => {
   }
 };
 
+export const listarJugadoresPorEquipoYCampeonato = async (req, res) => {
+  try {
+    const { equipoId, campeonatoId } = req.params;
+    const jugadores = await service.listarJugadoresPorEquipoYCampeonato(
+      Number(equipoId),
+      Number(campeonatoId)
+    );
+    return success(res, jugadores, "Jugadores obtenidos correctamente");
+  } catch (err) {
+    console.error("Error obteniendo jugadores:", err);
+    return error(res, err.message, 400);
+  }
+};

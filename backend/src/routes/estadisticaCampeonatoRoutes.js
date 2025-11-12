@@ -29,5 +29,9 @@ router.get("/jugadorcampeonato/:jugadorCampId/campeonato/:campId", ctrl.getEstad
 
 router.get("/usuario/:usuarioId/campeonato/:campId", ctrl.getEstadisticasPorUsuarioEnCampeonato);
 
+router.get("/equipo/:equipoId/campeonato/:campeonatoId", 
+  ctrl.listarJugadoresPorEquipoYCampeonato
+);
+
 
 export default router;

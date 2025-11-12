@@ -19,6 +19,7 @@ import {
   Breadcrumb
 } from 'antd';
 import {
+  ThunderboltOutlined,
   TrophyOutlined,
   EditOutlined,
   TeamOutlined,
@@ -242,6 +243,14 @@ function CampeonatoInfoContent() {
           >
             Ver Tabla
           </Button>
+           <Button
+    type="default"
+    size="large"
+    icon={<ThunderboltOutlined />}
+    onClick={() => navigate(`/campeonatos/${id}/estadisticas`)}
+  >
+    Ver Estadísticas
+  </Button>
         </Space>
       </Card>
 

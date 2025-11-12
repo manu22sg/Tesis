@@ -3,7 +3,58 @@ import PartidoCampeonatoSchema from "../entity/PartidoCampeonato.js";
 import JugadorCampeonatoSchema from "../entity/JugadorCampeonato.js";
 import EstadisticaCampeonatoSchema from "../entity/EstadisticaCampeonato.js";
 
- // Crear estadísticas por partido
+// ⭐ Calcular total de goles por equipo en estadísticas
+const calcularGolesEquipo = async (manager, partidoId, equipoId, excluirEstadisticaId = null) => {
+  const estadRepo = manager.getRepository(EstadisticaCampeonatoSchema);
+  const jugadorRepo = manager.getRepository(JugadorCampeonatoSchema);
+
+  const estadisticas = await estadRepo.find({
+    where: { partidoId },
+    relations: ["jugadorCampeonato"],
+  });
+
+  let totalGoles = 0;
+  for (const est of estadisticas) {
+    if (excluirEstadisticaId && est.id === excluirEstadisticaId) continue;
+
+    const jugador = await jugadorRepo.findOne({
+      where: { id: est.jugadorCampeonatoId },
+    });
+
+    if (jugador && jugador.equipoId === equipoId) {
+      totalGoles += est.goles;
+    }
+  }
+
+  return totalGoles;
+};
+
+// ⭐ Calcular total de asistencias por equipo en estadísticas
+const calcularAsistenciasEquipo = async (manager, partidoId, equipoId, excluirEstadisticaId = null) => {
+  const estadRepo = manager.getRepository(EstadisticaCampeonatoSchema);
+  const jugadorRepo = manager.getRepository(JugadorCampeonatoSchema);
+
+  const estadisticas = await estadRepo.find({
+    where: { partidoId },
+    relations: ["jugadorCampeonato"],
+  });
+
+  let totalAsistencias = 0;
+  for (const est of estadisticas) {
+    if (excluirEstadisticaId && est.id === excluirEstadisticaId) continue;
+
+    const jugador = await jugadorRepo.findOne({
+      where: { id: est.jugadorCampeonatoId },
+    });
+
+    if (jugador && jugador.equipoId === equipoId) {
+      totalAsistencias += est.asistencias;
+    }
+  }
+
+  return totalAsistencias;
+};
+
 export const crearEstadistica = async (payload) => {
   return await AppDataSource.transaction(async (trx) => {
     const partidoRepo = trx.getRepository(PartidoCampeonatoSchema);
@@ -21,32 +72,89 @@ export const crearEstadistica = async (payload) => {
       minutosJugados = 0,
     } = payload;
 
-    //  Verificar partido
+    if (tarjetasAmarillas < 0 || tarjetasAmarillas > 2) {
+      throw new Error("Las tarjetas amarillas deben ser 0, 1 o 2");
+    }
+    if (tarjetasRojas < 0 || tarjetasRojas > 1) {
+      throw new Error("Las tarjetas rojas deben ser 0 o 1");
+    }
+    
+
+    // Verificar partido
     const partido = await partidoRepo.findOne({
       where: { id: partidoId },
       relations: ["equipoA", "equipoB"],
     });
     if (!partido) throw new Error("El partido no existe");
 
-    //  Verificar jugador inscrito en campeonato
+    // Verificar jugador inscrito en campeonato
     const jugador = await jugadorCampRepo.findOne({
       where: { id: jugadorCampeonatoId },
       relations: ["equipo"],
     });
     if (!jugador) throw new Error("El jugador no está inscrito en el campeonato");
 
-    //  Validar que el jugador pertenezca a uno de los equipos del partido
+    // Validar que el jugador pertenezca a uno de los equipos del partido
     if (![partido.equipoAId, partido.equipoBId].includes(jugador.equipoId)) {
       throw new Error("El jugador no pertenece a los equipos que disputan este partido");
     }
 
-    //  Evitar duplicado (gracias a unique ya definido)
+    // Evitar duplicado
     const existe = await estadisticaRepo.findOne({
       where: { jugadorCampeonatoId, partidoId },
     });
     if (existe) throw new Error("Este jugador ya tiene estadísticas registradas en este partido");
 
-    //  Crear registro
+    const esEquipoA = jugador.equipoId === partido.equipoAId;
+    const golesEquipo = esEquipoA ? partido.golesA : partido.golesB;
+    
+    // ⭐ VALIDAR GOLES
+    if (goles > golesEquipo) {
+      throw new Error(
+        `El jugador no puede tener ${goles} goles cuando su equipo solo marcó ${golesEquipo}`
+      );
+    }
+    
+
+    const golesActualesEquipo = await calcularGolesEquipo(trx, partidoId, jugador.equipoId);
+    const nuevoTotalGoles = golesActualesEquipo + goles;
+
+    if (nuevoTotalGoles > golesEquipo) {
+      throw new Error(
+        `No se pueden agregar ${goles} goles. El equipo marcó ${golesEquipo} goles y ya hay ${golesActualesEquipo} registrados. Faltan ${golesEquipo - golesActualesEquipo} por asignar`
+      );
+    }
+
+    // ⭐ VALIDAR ASISTENCIAS (no pueden ser más que los goles del equipo)
+    if (asistencias > golesEquipo) {
+      throw new Error(
+        `El jugador no puede tener ${asistencias} asistencias cuando su equipo solo marcó ${golesEquipo} goles`
+      );
+    }
+
+    const asistenciasActualesEquipo = await calcularAsistenciasEquipo(trx, partidoId, jugador.equipoId);
+    const nuevoTotalAsistencias = asistenciasActualesEquipo + asistencias;
+    const maxAsistenciasJugador = Math.max(0, golesEquipo - goles); // goles del equipo que NO los hizo él
+    if (asistencias > maxAsistenciasJugador) {
+    throw new Error(
+    `El jugador no puede tener ${asistencias} asistencias cuando convirtió ${goles} de los ${golesEquipo} goles del equipo`
+    );
+  }
+    if (nuevoTotalAsistencias > golesEquipo) {
+  throw new Error(
+    `No se pueden agregar ${asistencias} asistencias. El equipo marcó ${golesEquipo} goles y ya hay ${asistenciasActualesEquipo} asistencias registradas`
+  );
+}
+
+
+    // Las asistencias pueden ser igual o menor a los goles (no todos los goles tienen asistencia)
+    if (nuevoTotalAsistencias > golesEquipo) {
+      throw new Error(
+        `No se pueden agregar ${asistencias} asistencias. El equipo marcó ${golesEquipo} goles y ya hay ${asistenciasActualesEquipo} asistencias registradas`
+      );
+    }
+
+    // Crear registro
     const nueva = estadisticaRepo.create({
       jugadorCampeonatoId,
       partidoId,
@@ -59,17 +167,7 @@ export const crearEstadistica = async (payload) => {
     });
     const guardada = await estadisticaRepo.save(nueva);
 
-    //  Actualizar marcador del partido si corresponde
-    if (goles > 0) {
-      if (jugador.equipoId === partido.equipoAId) {
-        partido.golesA += goles;
-      } else if (jugador.equipoId === partido.equipoBId) {
-        partido.golesB += goles;
-      }
-      await partidoRepo.save(partido);
-    }
-
-    //  Actualizar acumulados del jugador
+    // Actualizar acumulados del jugador
     jugador.golesCampeonato += goles;
     jugador.asistenciasCampeonato += asistencias;
     jugador.atajadasCampeonato += atajadas;
@@ -79,17 +177,147 @@ export const crearEstadistica = async (payload) => {
   });
 };
 
- // Actualizar estadísticas de un partido
 export const actualizarEstadistica = async (id, cambios) => {
-  const repo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
-  const registro = await repo.findOne({ where: { id } });
-  if (!registro) throw new Error("Estadística no encontrada");
+  return await AppDataSource.transaction(async (trx) => {
+    const estadisticaRepo = trx.getRepository(EstadisticaCampeonatoSchema);
+    const partidoRepo = trx.getRepository(PartidoCampeonatoSchema);
+    const jugadorCampRepo = trx.getRepository(JugadorCampeonatoSchema);
 
-  Object.assign(registro, cambios);
-  return await repo.save(registro);
+    const registro = await estadisticaRepo.findOne({ 
+      where: { id },
+      relations: ["jugadorCampeonato", "partido"]
+    });
+    if (!registro) throw new Error("Estadística no encontrada");
+
+    const partido = await partidoRepo.findOne({
+      where: { id: registro.partidoId },
+    });
+    if (!partido) throw new Error("Partido no encontrado");
+
+    const jugador = await jugadorCampRepo.findOne({
+      where: { id: registro.jugadorCampeonatoId },
+    });
+    if (!jugador) throw new Error("Jugador no encontrado");
+
+    const nuevasAmarillas = (cambios.tarjetasAmarillas !== undefined)
+      ? Number(cambios.tarjetasAmarillas) : registro.tarjetasAmarillas;
+    const nuevasRojas = (cambios.tarjetasRojas !== undefined)
+      ? Number(cambios.tarjetasRojas) : registro.tarjetasRojas;
+
+    if (nuevasAmarillas < 0 || nuevasAmarillas > 2) {
+      throw new Error("Las tarjetas amarillas deben ser 0, 1 o 2");
+    }
+    if (nuevasRojas < 0 || nuevasRojas > 1) {
+      throw new Error("Las tarjetas rojas deben ser 0 o 1");
+    }
+
+    const esEquipoA = jugador.equipoId === partido.equipoAId;
+    const golesEquipo = esEquipoA ? partido.golesA : partido.golesB;
+
+    // Determinar los goles del jugador tras la actualización (si viene en cambios)
+    const golesJugadorActualizado = (cambios.goles !== undefined)
+      ? Number(cambios.goles)
+      : registro.goles;
+
+    // ✅ Validar GOLES si se están actualizando
+    if (cambios.goles !== undefined) {
+      const nuevosGoles = golesJugadorActualizado;
+
+      if (nuevosGoles > golesEquipo) {
+        throw new Error(
+          `El jugador no puede tener ${nuevosGoles} goles cuando su equipo solo marcó ${golesEquipo}`
+        );
+      }
+
+      const golesActualesEquipo = await calcularGolesEquipo(
+        trx, registro.partidoId, jugador.equipoId, id
+      );
+      const nuevoTotalGoles = golesActualesEquipo + nuevosGoles;
+
+      if (nuevoTotalGoles > golesEquipo) {
+        throw new Error(
+          `No se pueden asignar ${nuevosGoles} goles. El equipo marcó ${golesEquipo} y ya hay ${golesActualesEquipo} registrados en otras estadísticas`
+        );
+      }
+
+      // Actualizar acumulados del jugador
+      const diferenciaGoles = nuevosGoles - registro.goles;
+      jugador.golesCampeonato += diferenciaGoles;
+    }
+
+    // ✅ Validar ASISTENCIAS si se están actualizando
+    if (cambios.asistencias !== undefined) {
+      const nuevasAsistencias = Number(cambios.asistencias);
+
+      // (1) Tope por jugador: no puede asistirse sus propios goles
+      const maxAsistenciasJugador = Math.max(0, golesEquipo - golesJugadorActualizado);
+      if (nuevasAsistencias > maxAsistenciasJugador) {
+        throw new Error(
+          `El jugador no puede tener ${nuevasAsistencias} asistencias cuando convirtió ` +
+          `${golesJugadorActualizado} de los ${golesEquipo} goles del equipo`
+        );
+      }
+
+      // (2) Tope por equipo: la suma de asistencias del equipo no puede superar sus goles
+      const asistenciasActualesEquipo = await calcularAsistenciasEquipo(
+        trx, registro.partidoId, jugador.equipoId, id
+      );
+      const nuevoTotalAsistencias = asistenciasActualesEquipo + nuevasAsistencias;
+
+      if (nuevoTotalAsistencias > golesEquipo) {
+        throw new Error(
+          `No se pueden asignar ${nuevasAsistencias} asistencias. El equipo marcó ${golesEquipo} ` +
+          `goles y ya hay ${asistenciasActualesEquipo} registradas en otras estadísticas`
+        );
+      }
+
+      // Actualizar acumulados del jugador
+      const diferencia = nuevasAsistencias - registro.asistencias;
+      jugador.asistenciasCampeonato += diferencia;
+    }
+
+    // Actualizar atajadas si cambian
+    if (cambios.atajadas !== undefined) {
+      const diferencia = Number(cambios.atajadas) - registro.atajadas;
+      jugador.atajadasCampeonato += diferencia;
+    }
+
+    // Guardar cambios
+    Object.assign(registro, cambios);
+    await estadisticaRepo.save(registro);
+    await jugadorCampRepo.save(jugador);
+
+    return registro;
+  });
 };
 
- // Listar estadísticas con filtros
+// ⭐ ELIMINAR con actualización de acumulados
+export const eliminarEstadistica = async (id) => {
+  return await AppDataSource.transaction(async (trx) => {
+    const estadisticaRepo = trx.getRepository(EstadisticaCampeonatoSchema);
+    const jugadorCampRepo = trx.getRepository(JugadorCampeonatoSchema);
+
+    const registro = await estadisticaRepo.findOne({ where: { id } });
+    if (!registro) throw new Error("Estadística no encontrada");
+
+    // Restar acumulados del jugador
+    const jugador = await jugadorCampRepo.findOne({
+      where: { id: registro.jugadorCampeonatoId },
+    });
+
+    if (jugador) {
+      jugador.golesCampeonato -= registro.goles;
+      jugador.asistenciasCampeonato -= registro.asistencias;
+      jugador.atajadasCampeonato -= registro.atajadas;
+      await jugadorCampRepo.save(jugador);
+    }
+
+    await estadisticaRepo.delete({ id });
+    return { ok: true };
+  });
+};
+
+// Listar estadísticas con filtros
 export const listarEstadisticas = async (filtros = {}) => {
   const repo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
 
@@ -105,16 +333,6 @@ export const listarEstadisticas = async (filtros = {}) => {
   });
 
   return { total, items };
-};
-
- // Eliminar registro
-export const eliminarEstadistica = async (id) => {
-  const repo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
-  const registro = await repo.findOne({ where: { id } });
-  if (!registro) throw new Error("Estadística no encontrada");
-
-  await repo.delete({ id });
-  return { ok: true };
 };
 
 // Obtener estadística por ID
@@ -163,12 +381,10 @@ export const obtenerEstadisticaPorId = async (id) => {
   };
 };
 
- // Obtener estadísticas detalladas por jugadorCampeonatoId
 export const obtenerEstadisticasPorJugadorCampeonatoId = async (jugadorCampId, campeonatoId) => {
   const estadRepo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
   const jugadorRepo = AppDataSource.getRepository(JugadorCampeonatoSchema);
 
-  // 🔍 Validar jugadorCampeonato en el torneo correspondiente
   const jugador = await jugadorRepo.findOne({
     where: { id: jugadorCampId, campeonatoId },
     relations: ["equipo"],
@@ -225,7 +441,7 @@ export const obtenerEstadisticasPorJugadorCampeonatoId = async (jugadorCampId, c
     })),
   };
 };
-// Obtener estadísticas detalladas por usuarioId en un campeonato
+
 export const obtenerEstadisticasJugadorCampeonato = async (usuarioId, campeonatoId) => {
   const estadRepo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
   const jugadorRepo = AppDataSource.getRepository(JugadorCampeonatoSchema);
@@ -285,4 +501,21 @@ export const obtenerEstadisticasJugadorCampeonato = async (usuarioId, campeonato
       minutos: r.minutosJugados,
     })),
   };
+};
+
+export const listarJugadoresPorEquipoYCampeonato = async (equipoId, campeonatoId) => {
+  const repo = AppDataSource.getRepository(JugadorCampeonatoSchema);
+  
+  const jugadores = await repo.find({
+    where: {
+      equipoId: Number(equipoId),
+      campeonatoId: Number(campeonatoId)
+    },
+    relations: ["usuario", "equipo"],
+    order: {
+      numeroCamiseta: "ASC"
+    }
+  });
+
+  return jugadores;
 };

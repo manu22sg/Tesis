@@ -29,7 +29,6 @@ export default function DisponibilidadCancha() {
   });
 
   // 🔹 Filtros
-  const [filtroNombre, setFiltroNombre] = useState('');
   const [filtroCapacidad, setFiltroCapacidad] = useState(null);
 
   // 🔹 NUEVOS: Select de canchas con búsqueda
@@ -69,7 +68,7 @@ export default function DisponibilidadCancha() {
   // Reaplica filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtroNombre, filtroCapacidad, canchaSeleccionada, disponibilidad]);
+  }, [filtroCapacidad, canchaSeleccionada, disponibilidad]);
 
   const columns = [
     {
@@ -119,14 +118,8 @@ export default function DisponibilidadCancha() {
   const aplicarFiltros = (data = disponibilidad) => {
     let resultado = [...data];
 
-    // 🔎 por nombre de cancha
-    if (filtroNombre) {
-      resultado = resultado.filter((c) =>
-        c.cancha.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
-      );
-    }
+    
 
-    // 🧮 por capacidad
     if (filtroCapacidad) {
       resultado = resultado.filter((c) => {
         const cap = c.cancha.capacidadMaxima;
@@ -137,7 +130,6 @@ export default function DisponibilidadCancha() {
       });
     }
 
-    // ✅ NUEVO: por cancha seleccionada en el Select
     if (canchaSeleccionada) {
       resultado = resultado.filter((c) => c.cancha.id === canchaSeleccionada);
     }
@@ -145,13 +137,12 @@ export default function DisponibilidadCancha() {
     setDisponibilidadFiltrada(resultado);
     setFiltrosActivos(
       Boolean(
-        filtroNombre || filtroCapacidad || canchaSeleccionada
+         filtroCapacidad || canchaSeleccionada
       )
     );
   };
 
   const limpiarFiltros = () => {
-    setFiltroNombre('');
     setFiltroCapacidad(null);
     setCanchaSeleccionada(null);
     setDisponibilidadFiltrada(disponibilidad);
@@ -176,7 +167,6 @@ export default function DisponibilidadCancha() {
     <MainLayout>
       <ConfigProvider locale={locale}>
         <Card title="Disponibilidad de Canchas" style={{ border: 'none' }}>
-          {/* 🔹 Barra superior: fecha y botón de reserva */}
           <div
             style={{
               display: 'flex',

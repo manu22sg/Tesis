@@ -6,13 +6,14 @@ import {
 } from 'antd';
 import {
   ThunderboltOutlined, PlayCircleOutlined, TrophyOutlined,
-  FireOutlined, CheckCircleOutlined, EditOutlined, CalendarOutlined,
-  EnvironmentOutlined, ClockCircleOutlined, TeamOutlined
+  FireOutlined, CheckCircleOutlined, CalendarOutlined,
+  TeamOutlined,BarChartOutlined 
 } from '@ant-design/icons';
 import { campeonatoService } from '../services/campeonato.services.js';
 import { partidoService } from '../services/partido.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import RegistrarResultadoModal from './RegistrarResultadoModal.jsx';
+import EstadisticasPartidoModal from './EstadisticasPartidoModal';
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -35,6 +36,7 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
   const [campeonato, setCampeonato] = useState(null);
   const [partidos, setPartidos] = useState([]);
   const [canchas, setCanchas] = useState([]);
+  const [modalEstadisticas, setModalEstadisticas] = useState(false);
 
   // Modales
   const [modalResultado, setModalResultado] = useState(false);
@@ -496,6 +498,17 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
                 <Button type="primary" size="medium" icon={<TrophyOutlined />} disabled>
                 </Button>
               </Tooltip>
+               <Tooltip title="Ver/Editar Estadísticas">
+            <Button
+              type="default"
+              size="medium"
+              icon={<BarChartOutlined />}
+              onClick={() => {
+                setPartidoSeleccionado(record);
+                setModalEstadisticas(true);
+              }}
+            />
+          </Tooltip>
             </>
           ) : (
             <>
@@ -876,6 +889,17 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
           </>
         )}
       </Modal>
+      <EstadisticasPartidoModal
+  visible={modalEstadisticas}
+  onCancel={() => {
+    setModalEstadisticas(false);
+    setPartidoSeleccionado(null);
+  }}
+  partido={partidoSeleccionado}
+  campeonatoId={campeonatoId}
+  equipos={campeonato.equipos}
+  getRondaNombre={getRondaNombre}
+/>
     </div>
   );
 };
