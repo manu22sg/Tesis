@@ -18,31 +18,62 @@ const JugadorSchema = new EntitySchema({
       length: 100,
       nullable: true,
     },
-    telefono: {
-      type: "varchar",
-      length: 20,
+    anioIngreso: {
+      type: "int",
       nullable: true,
     },
+
+    fechaNacimiento: {
+      type: "date",
+      nullable: true,
+    },
+    
+    posicion: {
+      type: "varchar",
+      length: 50,
+      nullable: true, 
+    },
+    
+    piernaHabil: {
+      type: "varchar",
+      length: 10,
+      nullable: true, 
+    },
+    altura: {
+      type: "decimal",
+      precision: 5,
+      scale: 2,
+      nullable: true,
+    },
+    peso: {
+      type: "decimal",
+      precision: 5,
+      scale: 2,
+      nullable: true, 
+    },
+    imc: {
+      type: "decimal",
+      precision: 5,
+      scale: 2,
+      nullable: true,
+    },
+
     estado: {
       type: "varchar",
       length: 20,
       default: "activo",
     },
-    fechaNacimiento: {
-      type: "date",
-      nullable: true,
-    },
-    anioIngreso: {
-      type: "int",
-      nullable: true,
-    },
+    
     fechaCreacion: {
       type: "timestamp",
       createDate: true,
     },
     fechaActualizacion: {
-       type: "timestamp", updateDate: true },
+      type: "timestamp",
+      updateDate: true,
+    },
   },
+
   relations: {
     // relación uno a uno con Usuario
     usuario: {
@@ -52,7 +83,6 @@ const JugadorSchema = new EntitySchema({
       onDelete: "CASCADE",
     },
 
-    // todas tus relaciones one-to-many
     asistencias: {
       type: "one-to-many",
       target: "Asistencia",
@@ -78,24 +108,17 @@ const JugadorSchema = new EntitySchema({
       target: "AlineacionJugador",
       inverseSide: "jugador",
     },
-
-    // 🔥 ahora la relación con grupos se hace vía JugadorGrupo
     jugadorGrupos: {
       type: "one-to-many",
       target: "JugadorGrupo",
       inverseSide: "jugador",
     },
   },
+
   indices: [
-    {
-      name: "idx_jugadores_usuario_id",
-      columns: ["usuarioId"],
-      unique: true,
-    },
-    {
-      name: "idx_jugadores_estado",
-      columns: ["estado"],
-    },
+    { name: "idx_jugadores_usuario_id", columns: ["usuarioId"], unique: true },
+    { name: "idx_jugadores_estado", columns: ["estado"] },
+    { name: "idx_jugadores_posicion", columns: ["posicion"] },
   ],
 });
 

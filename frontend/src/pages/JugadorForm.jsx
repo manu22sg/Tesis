@@ -44,7 +44,7 @@ export default function JugadorForm() {
   const [valorBusqueda, setValorBusqueda] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
 
-  // ✅ aplicar debounce al valor de búsqueda
+  // aplicar debounce al valor de búsqueda
   const valorDebounced = useDebounce(valorBusqueda, 500);
 
   // Cargar jugador si es edición

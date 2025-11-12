@@ -230,7 +230,7 @@ export const actualizarEstadistica = async (id, cambios) => {
       ? Number(cambios.goles)
       : registro.goles;
 
-    // ✅ Validar GOLES si se están actualizando
+    //Validar GOLES si se están actualizando
     if (cambios.goles !== undefined) {
       const nuevosGoles = golesJugadorActualizado;
 
@@ -269,7 +269,7 @@ export const actualizarEstadistica = async (id, cambios) => {
       jugador.golesCampeonato += diferenciaGoles;
     }
 
-    // ✅ Validar ASISTENCIAS si se están actualizando
+    // Validar ASISTENCIAS si se están actualizando
     if (cambios.asistencias !== undefined) {
       const nuevasAsistencias = Number(cambios.asistencias);
 

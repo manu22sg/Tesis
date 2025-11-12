@@ -36,6 +36,8 @@ import CampeonatoEquipos from './pages/CampeonatoEquipos';
 import CampeonatoFixture from './pages/CampeonatoFixture';
 import CampeonatoTabla from './pages/CampeonatoTabla';
 import EstadisticaCampeonato from './pages/EstadisticaCampeonato.jsx';
+import CampeonatoPublico from './pages/CampeonatoPublico.jsx';
+import DetalleCampeonatoPublico from './pages/DetalleCampeonatoPublico.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -84,6 +86,8 @@ function AppRoutes() {
   <Route path="/campeonatos/:id/tabla" element={<CampeonatoTabla />} />
   <Route path="/campeonatos/:id/estadisticas" element={<EstadisticaCampeonato />} />
   
+  <Route path="/campeonatos/publico" element={<CampeonatoPublico />} />
+<Route path="/campeonatos/:id/publico" element={<DetalleCampeonatoPublico />} />
       {/* Alineación Completa - Entrenador y SuperAdmin */}
       
 

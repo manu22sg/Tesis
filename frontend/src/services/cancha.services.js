@@ -52,6 +52,7 @@ export async function obtenerCanchas(filtros = {}) {
   if (filtros.estado) params.estado = filtros.estado;
   if (filtros.page) params.page = filtros.page;
   if (filtros.limit) params.limit = filtros.limit;
+  if (filtros.q) params.q= filtros.q;
 
   const res = await api.get('/canchas', { params });
   

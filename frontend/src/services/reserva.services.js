@@ -46,3 +46,8 @@ export async function obtenerReservaPorId(id) {
   const res = await api.post('/reservas/detalle', { id });
   return res.data.data;
 }
+
+export async function cancelarReserva(id) {
+  const res = await api.put(`/reservas/${id}/cancelar`);
+  return res.data.data;
+}

@@ -119,7 +119,7 @@ export const crearSesionesRecurrentesBody = Joi.object({
   objetivos: Joi.string().trim().max(500).optional().allow(''),
 })
 .custom((v, h) => {
-  // ✅ Validar que exista cancha O ubicación externa
+  //Validar que exista cancha O ubicación externa
   if (!v.canchaId && (!v.ubicacionExterna || v.ubicacionExterna.trim() === '')) {
     return h.error('any.invalid', { 
       message: 'Debe especificar una cancha o una ubicación externa' 

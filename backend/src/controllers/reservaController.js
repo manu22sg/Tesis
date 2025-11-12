@@ -2,7 +2,7 @@ import {
   crearReserva,
   obtenerReservasUsuario,
   obtenerTodasLasReservas,
-  obtenerReservaPorId
+  obtenerReservaPorId,cancelarReserva
 } from '../services/reservaServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
@@ -93,6 +93,34 @@ export async function getReservaPorId(req, res) {
     return success(res, reserva, 'Reserva encontrada');
   } catch (e) {
     console.error('getReservaPorId:', e);
+    return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+export async function putCancelarReserva(req, res) {
+  try {
+    const reservaId = parseInt(req.params.id);
+    const usuarioId = req.user?.id; 
+
+    if (!reservaId || isNaN(reservaId)) {
+      return error(res, 'ID de reserva inválido', 400);
+    }
+
+    const [reserva, err] = await cancelarReserva(reservaId, usuarioId);
+    
+    if (err) {
+      if (err.includes('no encontrada')) {
+        return notFound(res, err);
+      }
+      if (err.includes('No tienes permiso') || err.includes('No se puede cancelar')) {
+        return error(res, err, 403);
+      }
+      return error(res, err, 500);
+    }
+
+    return success(res, reserva, 'Reserva cancelada exitosamente');
+  } catch (e) {
+    console.error('putCancelarReserva:', e);
     return error(res, 'Error interno del servidor', 500);
   }
 }

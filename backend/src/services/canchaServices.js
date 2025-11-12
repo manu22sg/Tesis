@@ -50,49 +50,52 @@ export async function obtenerCanchas(filtros = {}) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
 
-    // Parámetros de paginación
     const page = Math.max(1, filtros.page || 1);
     const limit = Math.min(100, Math.max(1, filtros.limit || 10));
     const skip = (page - 1) * limit;
 
-    const queryOptions = {
-      order: { nombre: 'ASC' },
-      skip,
-      take: limit
-    };
+    const qb = canchaRepository
+      .createQueryBuilder('cancha')
+      .orderBy('cancha.nombre', 'ASC')
+      .skip(skip)
+      .take(limit);
 
-    // Aplicar filtro por estado si se proporciona
+    // 🔹 Filtro por estado (si viene)
     if (filtros.estado) {
-      queryOptions.where = { estado: filtros.estado };
+      qb.andWhere('cancha.estado = :estado', { estado: filtros.estado });
     }
 
-    // Obtener canchas y total para la paginación
-    const [canchas, total] = await canchaRepository.findAndCount(queryOptions);
+    // 🔹 Filtro de búsqueda (por nombre o descripción)
+    if (filtros.q && filtros.q.trim() !== '') {
+      const q = `%${filtros.q.trim().toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(cancha.nombre) LIKE :q OR LOWER(cancha.descripcion) LIKE :q)',
+        { q }
+      );
+    }
 
-    // Calcular metadatos de paginación
+    // 🔹 Ejecutar consulta y contar
+    const [canchas, total] = await qb.getManyAndCount();
+
+    // 🔹 Paginar
     const totalPages = Math.ceil(total / limit);
-    const hasNext = page < totalPages;
-    const hasPrev = page > 1;
-
     const paginationMeta = {
       currentPage: page,
       totalPages,
       totalItems: total,
       itemsPerPage: limit,
-      hasNext,
-      hasPrev,
-      nextPage: hasNext ? page + 1 : null,
-      prevPage: hasPrev ? page - 1 : null
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+      nextPage: page < totalPages ? page + 1 : null,
+      prevPage: page > 1 ? page - 1 : null
     };
 
     return [{ canchas, pagination: paginationMeta }, null];
-
   } catch (error) {
     console.error('Error obteniendo canchas:', error);
     return [null, 'Error interno del servidor'];
   }
 }
-
  // Obtener una cancha por ID
 export async function obtenerCanchaPorId(id) {
   try {

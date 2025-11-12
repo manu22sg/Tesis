@@ -46,6 +46,7 @@ const SesionEntrenamientoSchema = new EntitySchema({
         from: (v) => (v === null || v === undefined ? null : Number(v)),
       },
     },
+    recordatorio24hEnviado: {type: "boolean", default: false},
 
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },

@@ -13,7 +13,7 @@ const NUM_MIN_ZERO = Joi.number().integer().min(0).messages({
   'number.min': 'No puede ser negativo',
 });
 
-// ✅ Reglas comunes
+// Reglas comunes
 const tarjetasSchema = {
   tarjetasAmarillas: Joi.number().integer().min(0).max(2).default(0).messages({
     'number.max': 'No puede tener más de 2 tarjetas amarillas',
@@ -23,7 +23,7 @@ const tarjetasSchema = {
   }),
 };
 
-// ✅ Crear estadística
+// Crear estadística
 export const crearEstadisticaBody = Joi.object({
   partidoId: NUM_POSITIVE.required().messages({
     'any.required': 'El ID del partido es requerido',
@@ -42,7 +42,7 @@ export const crearEstadisticaBody = Joi.object({
   const y = value.tarjetasAmarillas;
   const r = value.tarjetasRojas;
 
-  // ✅ Lógica futbolística
+  //Lógica futbolística
   if (y === 2 && r !== 1) {
     return helpers.message('Con 2 amarillas debe haber 1 roja (expulsión por doble amarilla)');
   }
@@ -53,7 +53,7 @@ export const crearEstadisticaBody = Joi.object({
   return value;
 });
 
-// ✅ Actualizar estadística (valores opcionales)
+// Actualizar estadística (valores opcionales)
 export const actualizarEstadisticaBody = Joi.object({
   goles: NUM_MIN_ZERO.optional(),
   asistencias: NUM_MIN_ZERO.optional(),

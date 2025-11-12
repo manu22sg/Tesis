@@ -154,7 +154,7 @@ export const eliminarEquipo = async (equipoId) => {
   const equipo = await repo.findOne({ where: { id: Number(equipoId) } });
   if (!equipo) throw new Error("El equipo no existe");
 
-  // ✅ BUSCAR PARTIDOS DONDE EL EQUIPO YA JUGÓ (con resultados)
+  // BUSCAR PARTIDOS DONDE EL EQUIPO YA JUGÓ (con resultados)
   const partidosJugados = await partRepo.find({
     where: [
       { equipoAId: Number(equipoId) }, 

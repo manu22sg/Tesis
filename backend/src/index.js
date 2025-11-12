@@ -6,6 +6,9 @@ import cookieParser from "cookie-parser"
 import {connectDB} from "./config/config.db.js"
 import { createUsers } from './config/initialSetup.js';
 import { actualizarEstadosReservas } from './utils/reserva.job.js';
+import {enviarRecordatoriosSesiones} from './utils/recordatorioSesiones.js'
+import {enviarRecordatoriosReservas} from './utils/recordatorioReservas.js'
+
 
 import cron from 'node-cron';
 
@@ -29,6 +32,8 @@ app.use(express.urlencoded({ extended: true }));
 
 cron.schedule('*/30 * * * *', async () => {
   await actualizarEstadosReservas();
+  await enviarRecordatoriosSesiones();
+  await enviarRecordatoriosReservas();
 });
 
    

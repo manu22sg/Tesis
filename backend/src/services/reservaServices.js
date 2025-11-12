@@ -323,3 +323,67 @@ export async function crearReserva(datosReserva, usuarioId) {
     await queryRunner.release();
   }
 }
+
+export async function cancelarReserva(reservaId, usuarioId) {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
+    const histRepo = queryRunner.manager.getRepository(HistorialReservaSchema);
+
+    // 1. Buscar la reserva con lock
+    const reserva = await reservaRepo.createQueryBuilder('r')
+      .setLock('pessimistic_write')
+      .where('r.id = :id', { id: reservaId })
+      .getOne();
+
+    if (!reserva) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Reserva no encontrada'];
+    }
+
+    // 2. Verificar que el usuario es el creador de la reserva
+    if (reserva.usuarioId !== usuarioId) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'No tienes permiso para cancelar esta reserva'];
+    }
+
+    // 3. Verificar que la reserva esté en un estado cancelable
+    if (!['pendiente', 'aprobada'].includes(reserva.estado)) {
+      await queryRunner.rollbackTransaction();
+      return [null, `No se puede cancelar una reserva con estado "${reserva.estado}"`];
+    }
+
+    // 4. Actualizar estado a cancelada
+    reserva.estado = 'cancelada';
+    await reservaRepo.save(reserva);
+
+    // 5. Registrar en historial
+    await histRepo.save(histRepo.create({
+      reservaId: reserva.id,
+      accion: 'cancelada',
+      observacion: 'Reserva cancelada por el usuario',
+      usuarioId
+    }));
+
+    await queryRunner.commitTransaction();
+
+    // 6. Retornar la reserva actualizada con relaciones
+    const reservaActualizada = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
+      where: { id: reserva.id },
+      relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario']
+    });
+
+    return [reservaActualizada, null];
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    console.error('Error cancelando reserva:', error);
+    return [null, 'Error interno del servidor'];
+  } finally {
+    await queryRunner.release();
+  }
+}
+

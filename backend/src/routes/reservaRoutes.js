@@ -4,7 +4,8 @@ import {
   postCrearReserva,
   getReservasUsuario,
   getTodasLasReservas,
-  getReservaPorId
+  getReservaPorId,
+  putCancelarReserva
 } from '../controllers/reservaController.js';
 
 import {
@@ -47,5 +48,7 @@ router.post('/detalle',
   validate(obtenerReservaPorIdBody),
   getReservaPorId
 );
+
+router.put('/:id/cancelar', authenticateToken, putCancelarReserva);
 
 export default router;

@@ -31,12 +31,12 @@ export async function crearSesion(datos) {
     // 0) Normalizar fecha
     const fechaLocal = formatYMD(parseDateLocal(fecha));
 
-    // ✅ 1) Validar que haya cancha O ubicación externa (ya validado en Joi, pero doble check)
+    //  1) Validar que haya cancha O ubicación externa (ya validado en Joi, pero doble check)
     if (!canchaId && (!ubicacionExterna || ubicacionExterna.trim() === '')) {
       return [null, 'Debe especificar una cancha o una ubicación externa'];
     }
 
-    // ✅ 2) Validar cancha SOLO si viene
+    //  2) Validar cancha SOLO si viene
     if (canchaId) {
       const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
       if (!cancha) return [null, 'Cancha no encontrada'];
@@ -50,7 +50,7 @@ export async function crearSesion(datos) {
 
     const nuevaVentana = { horaInicio, horaFin };
 
-    // ✅ 4) Validaciones de conflictos SOLO si hay cancha
+    //  4) Validaciones de conflictos SOLO si hay cancha
     if (canchaId) {
       // Solape con otras sesiones en misma cancha
       const sesionesMismaCancha = await sesionRepo.find({ 
@@ -83,7 +83,7 @@ export async function crearSesion(datos) {
       }
     }
 
-    // ✅ 5) Solape con sesiones del MISMO grupo (aplica con o sin cancha)
+    //  5) Solape con sesiones del MISMO grupo (aplica con o sin cancha)
     if (grupoId) {
       const sesionesMismoGrupo = await sesionRepo.find({ 
         where: { grupoId, fecha: fechaLocal } 
@@ -95,7 +95,7 @@ export async function crearSesion(datos) {
       }
     }
 
-    // ✅ 6) Crear sesión
+    //  6) Crear sesión
     const sesion = sesionRepo.create({
       canchaId: canchaId || null,
       ubicacionExterna: ubicacionExterna || null,
@@ -187,7 +187,7 @@ export async function obtenerSesiones(filtros = {}) {
 
     const [sesiones, total] = await qb.getManyAndCount();
 
-    // ✅ NUEVO: Agregar campo tokenVigente calculado
+    //  NUEVO: Agregar campo tokenVigente calculado
     const ahora = new Date();
     const sesionesProcesadas = sesiones.map(sesion => {
       const tokenVigente = sesion.tokenActivo && 
@@ -196,7 +196,7 @@ export async function obtenerSesiones(filtros = {}) {
       
       return {
         ...sesion,
-        tokenVigente, // ✅ Campo calculado
+        tokenVigente, //  Campo calculado
       };
     });
 
@@ -254,40 +254,42 @@ export async function actualizarSesion(id, datos) {
     const sesion = await sesionRepo.findOne({ where: { id } });
     if (!sesion) return [null, 'Sesión no encontrada'];
 
-    // Validar cambio de grupo con asistencias
+    //  Validar cambio de grupo con asistencias
     if (datos.grupoId && datos.grupoId !== sesion.grupoId) {
-      const tieneAsistencias = await asistenciaRepo.count({ 
-        where: { sesionId: id } 
+      const tieneAsistencias = await asistenciaRepo.count({
+        where: { sesionId: id },
       });
-      
+
       if (tieneAsistencias > 0) {
         return [null, 'No se puede cambiar el grupo: ya existen asistencias registradas'];
       }
     }
 
-    // Validar grupo si cambia
+    //  Validar grupo si cambia
     const nuevoGrupoId = datos.grupoId ?? sesion.grupoId;
     if (nuevoGrupoId) {
       const grupo = await grupoRepo.findOne({ where: { id: nuevoGrupoId } });
       if (!grupo) return [null, 'Grupo no encontrado'];
     }
 
-    // ✅ Validar cancha SOLO si viene y no es null
-    const nuevaCanchaId = datos.canchaId !== undefined ? datos.canchaId : sesion.canchaId;
-    const nuevaUbicacion = datos.ubicacionExterna !== undefined ? datos.ubicacionExterna : sesion.ubicacionExterna;
+    //  Validar cancha / ubicación
+    const nuevaCanchaId =
+      datos.canchaId !== undefined ? datos.canchaId : sesion.canchaId;
+    const nuevaUbicacion =
+      datos.ubicacionExterna !== undefined
+        ? datos.ubicacionExterna
+        : sesion.ubicacionExterna;
 
-    // ✅ Validar que haya cancha O ubicación
     if (!nuevaCanchaId && (!nuevaUbicacion || nuevaUbicacion.trim() === '')) {
       return [null, 'Debe especificar una cancha o una ubicación externa'];
     }
 
-    // ✅ Validar que la cancha existe si se proporciona
     if (nuevaCanchaId) {
       const cancha = await canchaRepo.findOne({ where: { id: nuevaCanchaId } });
       if (!cancha) return [null, 'Cancha no encontrada'];
     }
 
-    // Datos actualizados
+    //  Datos “virtuales” para validar conflictos
     const nuevaFecha = datos.fecha || sesion.fecha;
     const horaInicio = datos.horaInicio || sesion.horaInicio;
     const horaFin = datos.horaFin || sesion.horaFin;
@@ -295,11 +297,10 @@ export async function actualizarSesion(id, datos) {
 
     const nuevaSesionHorario = { horaInicio, horaFin };
 
-    // ✅ Validaciones de conflictos SOLO si hay cancha
+    //  Validaciones de conflictos SOLO si hay cancha
     if (nuevaCanchaId) {
-      // Validar solapamiento con otras sesiones de la misma cancha
       const sesionesMismaCancha = await sesionRepo.find({
-        where: { canchaId: nuevaCanchaId, fecha: nuevaFecha }
+        where: { canchaId: nuevaCanchaId, fecha: nuevaFecha },
       });
 
       for (const s of sesionesMismaCancha) {
@@ -308,19 +309,28 @@ export async function actualizarSesion(id, datos) {
         }
       }
 
-      // Validar conflicto con reservas
       const reservas = await reservaRepo.find({
-        where: { canchaId: nuevaCanchaId, fechaReserva: nuevaFecha, estado: In(['pendiente', 'aprobada']) }
+        where: {
+          canchaId: nuevaCanchaId,
+          fechaReserva: nuevaFecha,
+          estado: In(['pendiente', 'aprobada']),
+        },
       });
       for (const r of reservas) {
         if (hayConflictoHorario(nuevaSesionHorario, r)) {
-          return [null, `Conflicto con reserva (${r.estado}) ID: ${r.id}. Debe gestionar la reserva primero.`];
+          return [
+            null,
+            `Conflicto con reserva (${r.estado}) ID: ${r.id}. Debe gestionar la reserva primero.`,
+          ];
         }
       }
 
-      // Validar conflicto con partidos
       const partidos = await partidoRepo.find({
-        where: { canchaId: nuevaCanchaId, fecha: nuevaFecha, estado: In(['programado', 'en_juego']) }
+        where: {
+          canchaId: nuevaCanchaId,
+          fecha: nuevaFecha,
+          estado: In(['programado', 'en_juego']),
+        },
       });
       for (const p of partidos) {
         if (hayConflictoHorario(nuevaSesionHorario, p)) {
@@ -329,9 +339,11 @@ export async function actualizarSesion(id, datos) {
       }
     }
 
-    // Validar solapamiento con sesiones del mismo grupo
+    //  Validar solapamiento con sesiones del mismo grupo
     if (grupoId) {
-      const mismas = await sesionRepo.find({ where: { grupoId, fecha: nuevaFecha } });
+      const mismas = await sesionRepo.find({
+        where: { grupoId, fecha: nuevaFecha },
+      });
       for (const s of mismas) {
         if (s.id !== id && hayConflictoHorario(nuevaSesionHorario, s)) {
           return [null, `Conflicto con otra sesión del grupo (id: ${s.id})`];
@@ -339,12 +351,32 @@ export async function actualizarSesion(id, datos) {
       }
     }
 
-    // Actualizar campos
-    Object.keys(datos).forEach(k => {
-      if (datos[k] !== undefined && !['token', 'tokenActivo', 'tokenExpiracion'].includes(k)) {
+    //  Detectar si cambia fecha u horario respecto a BD
+    const cambioFecha =
+      nuevaFecha && sesion.fecha && String(nuevaFecha) !== String(sesion.fecha);
+    const cambioHoraInicio =
+      horaInicio &&
+      sesion.horaInicio &&
+      String(horaInicio) !== String(sesion.horaInicio);
+    const cambioHoraFin =
+      horaFin && sesion.horaFin && String(horaFin) !== String(sesion.horaFin);
+
+    const debeResetearRecordatorio =
+      cambioFecha || cambioHoraInicio || cambioHoraFin;
+
+    //  Aplicar cambios reales desde datos
+    Object.keys(datos).forEach((k) => {
+      if (
+        datos[k] !== undefined &&
+        !['token', 'tokenActivo', 'tokenExpiracion'].includes(k)
+      ) {
         sesion[k] = datos[k];
       }
     });
+
+    if (debeResetearRecordatorio) {
+      sesion.recordatorio24hEnviado = false;
+    }
 
     const actualizada = await sesionRepo.save(sesion);
     return [actualizada, null];
@@ -353,6 +385,7 @@ export async function actualizarSesion(id, datos) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function eliminarSesion(id) {
   try {
@@ -379,7 +412,7 @@ export async function crearSesionesRecurrentes(datos) {
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
     const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema);
 
-    // ✅ Validar que haya cancha O ubicación externa
+    //  Validar que haya cancha O ubicación externa
     if (!canchaId && (!ubicacionExterna || ubicacionExterna.trim() === '')) {
       return [null, 'Debe especificar una cancha o una ubicación externa'];
     }
@@ -390,7 +423,7 @@ export async function crearSesionesRecurrentes(datos) {
       if (!grupo) return [null, 'Grupo no encontrado'];
     }
 
-    // ✅ Validar cancha si existe
+    //  Validar cancha si existe
     if (canchaId) {
       const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
       if (!cancha) return [null, 'Cancha no encontrada'];
@@ -409,7 +442,7 @@ export async function crearSesionesRecurrentes(datos) {
         const nueva = { horaInicio, horaFin };
         let conflicto = false;
 
-        // ✅ Validaciones SOLO si hay cancha
+        //  Validaciones SOLO si hay cancha
         if (canchaId) {
           // Validar con otras sesiones
           const mismasCancha = await sesionRepo.find({ where: { canchaId, fecha: fechaStr } });
@@ -524,14 +557,14 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
       return Number.isFinite(n) ? n : null;
     };
 
-    // ✅ Calcular tokenVigente
+    //  Calcular tokenVigente
     const ahora = new Date();
 
     const formateadas = sesiones.map((s) => {
       const latTok = toNum(s.latitudToken);
       const lonTok = toNum(s.longitudToken);
       
-      // ✅ Token vigente solo si está activo Y no ha expirado
+      //  Token vigente solo si está activo Y no ha expirado
       const tokenVigente = s.tokenActivo && 
                           s.tokenExpiracion && 
                           new Date(s.tokenExpiracion) > ahora;
@@ -547,7 +580,7 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
         ubicacionExterna: s.ubicacionExterna || null,
 
         tokenActivo: s.tokenActivo || false,
-        tokenVigente, // ✅ Campo calculado
+        tokenVigente, //  Campo calculado
         token: tokenVigente ? s.token : null, // Solo mostrar si está vigente
         tokenExpiracion: tokenVigente ? s.tokenExpiracion : null,
         requiereUbicacion: s.requiereUbicacion ?? false,

@@ -13,6 +13,7 @@ import {
   Spin,
   Pagination,
   ConfigProvider,
+  Popconfirm,
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -22,9 +23,14 @@ import {
   UserOutlined,
   EyeOutlined,
   ReloadOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { obtenerMisReservas, obtenerReservaPorId } from '../services/reserva.services.js';
+import { 
+  obtenerMisReservas, 
+  obtenerReservaPorId, 
+  cancelarReserva 
+} from '../services/reserva.services.js';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout.jsx';
@@ -35,6 +41,7 @@ const estadoConfig = {
   pendiente: { color: 'gold', text: 'Pendiente' },
   aprobada: { color: 'green', text: 'Aprobada' },
   rechazada: { color: 'red', text: 'Rechazada' },
+  cancelada: { color: 'default', text: 'Cancelada' },
   expirada: { color: 'volcano', text: 'Expirada' },
   completada: { color: 'blue', text: 'Completada' },
 };
@@ -51,6 +58,7 @@ export default function MisReservas() {
   const [detalleModal, setDetalleModal] = useState(false);
   const [reservaDetalle, setReservaDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
+  const [loadingCancelar, setLoadingCancelar] = useState(false);
 
   const navigate = useNavigate();
 
@@ -104,6 +112,26 @@ export default function MisReservas() {
     } finally {
       setLoadingDetalle(false);
     }
+  };
+
+  const handleCancelarReserva = async (reservaId) => {
+    try {
+      setLoadingCancelar(true);
+      await cancelarReserva(reservaId);
+      message.success('Reserva cancelada exitosamente');
+      // Recargar la lista de reservas
+      await cargarReservas(pagination.current, pagination.pageSize, filtroEstado);
+    } catch (error) {
+      console.error('Error cancelando reserva:', error);
+      message.error(error.message || 'Error al cancelar la reserva');
+    } finally {
+      setLoadingCancelar(false);
+    }
+  };
+
+  // Función para verificar si se puede cancelar
+  const puedeCancelar = (estado) => {
+    return ['pendiente', 'aprobada'].includes(estado);
   };
 
   const columns = [
@@ -170,15 +198,39 @@ export default function MisReservas() {
     {
       title: 'Acciones',
       key: 'acciones',
+      align: 'left',
+      width: 150,
       render: (_, record) => (
-        <Space>
+        <Space size="small">
           <Tooltip title="Ver detalle">
-            <Button type="link" icon={<EyeOutlined />} onClick={() => verDetalle(record.id)} />
+            <Button
+              size="middle"
+              icon={<EyeOutlined />}
+              onClick={() => verDetalle(record.id)}
+            />
           </Tooltip>
+          
+          {puedeCancelar(record.estado) && (
+            <Popconfirm
+              title="¿Cancelar reserva?"
+              description="Esta acción no se puede deshacer"
+              onConfirm={() => handleCancelarReserva(record.id)}
+              okText="Sí, cancelar"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Cancelar reserva">
+                <Button
+                  danger
+                  size="middle"
+                  icon={<CloseCircleOutlined />}
+                  loading={loadingCancelar}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </Space>
       ),
-      width: 100,
-      align: 'center',
     },
   ];
 
@@ -207,6 +259,7 @@ export default function MisReservas() {
                     { label: 'Pendiente', value: 'pendiente' },
                     { label: 'Aprobada', value: 'aprobada' },
                     { label: 'Rechazada', value: 'rechazada' },
+                    { label: 'Cancelada', value: 'cancelada' },
                     { label: 'Expirada', value: 'expirada' },
                     { label: 'Completada', value: 'completada' },
                   ]}

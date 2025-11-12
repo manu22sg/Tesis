@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -18,7 +18,8 @@ import {
   Badge,
   Alert,
   ConfigProvider,
-  Pagination
+  Pagination,
+  Empty
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -30,7 +31,9 @@ import {
   CloseCircleOutlined,
   ToolOutlined,
   UndoOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  SearchOutlined,
+  ClearOutlined
 } from '@ant-design/icons';
 import {
   crearCancha,
@@ -44,7 +47,7 @@ import MainLayout from '../components/MainLayout.jsx';
 const { TextArea } = Input;
 const { Option } = Select;
 
-const GestionCanchas = () => {
+export default function GestionCanchas() {
   const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -53,47 +56,61 @@ const GestionCanchas = () => {
   const [form] = Form.useForm();
 
   const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [busqueda, setBusqueda] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 5,
     total: 0
   });
 
-  const cargarCanchas = useCallback(async (page = 1, limit = 5, estado = undefined) => {
+  // 🔹 Debounce búsqueda
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(busqueda.trim()), 400);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  // 🔹 Cargar canchas desde backend
+  const cargarCanchas = useCallback(async (page = 1, limit = 5, estado = undefined, q = '') => {
     setLoading(true);
     try {
-      const resultado = await obtenerCanchas({ page, limit, estado });
-      
-      const canchasData = resultado?.canchas || [];
-      const paginationData = resultado?.pagination || {};
-      
-      setCanchas(canchasData);
+      const { canchas, pagination } = await obtenerCanchas({
+        page,
+        limit,
+        estado,
+        q
+      });
+
+      setCanchas(canchas);
       setPagination({
-        current: page,
-        pageSize: limit,
-        total: paginationData?.totalItems || canchasData.length || 0
+        current: pagination.currentPage || page,
+        pageSize: pagination.itemsPerPage || limit,
+        total: pagination.totalItems || canchas.length
       });
     } catch (error) {
       console.error('Error cargando canchas:', error);
-      message.error('No se pudieron obtener las canchas');
+      message.error(error.message || 'Error al cargar canchas');
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // 🔹 Re-cargar al cambiar filtros o paginación
   useEffect(() => {
-    cargarCanchas(1, 5, undefined); 
-  }, [cargarCanchas]);
+    const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
+    cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
+  }, [filtroEstado, qDebounced, pagination.current, pagination.pageSize, cargarCanchas]);
 
-  // Crear / Editar
-  const abrirModalCrear = useCallback(() => {
+  // 🔹 Modal crear/editar
+  const abrirModalCrear = () => {
     setModalMode('crear');
     setCanchaSeleccionada(null);
     form.resetFields();
     setModalVisible(true);
-  }, [form]);
+  };
 
-  const abrirModalEditar = useCallback((cancha) => {
+  const abrirModalEditar = (cancha) => {
     setModalMode('editar');
     setCanchaSeleccionada(cancha);
     form.setFieldsValue({
@@ -103,13 +120,13 @@ const GestionCanchas = () => {
       estado: cancha.estado
     });
     setModalVisible(true);
-  }, [form]);
+  };
 
-  const cerrarModal = useCallback(() => {
+  const cerrarModal = () => {
     setModalVisible(false);
     setCanchaSeleccionada(null);
     form.resetFields();
-  }, [form]);
+  };
 
   const handleSubmit = async (values) => {
     try {
@@ -121,22 +138,22 @@ const GestionCanchas = () => {
         message.success('Cancha actualizada exitosamente');
       }
       cerrarModal();
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
-      cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
+      const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
+      cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
     } catch (error) {
-      message.error(error);
+      message.error(error?.message || 'Error al guardar la cancha');
     }
   };
 
-  // Eliminar / Reactivar
+  // 🔹 Eliminar / Reactivar
   const handleEliminar = async (id) => {
     try {
       await eliminarCancha(id);
       message.success('Cancha eliminada exitosamente');
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
-      cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
+      const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
+      cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
     } catch (error) {
-      message.error(error);
+      message.error(error?.message || 'Error al eliminar cancha');
     }
   };
 
@@ -144,61 +161,67 @@ const GestionCanchas = () => {
     try {
       await reactivarCancha(id);
       message.success('Cancha reactivada exitosamente');
-      const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
-      cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
+      const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
+      cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
     } catch (error) {
-      message.error(error);
+      message.error(error?.message || 'Error al reactivar cancha');
     }
   };
 
-  const handlePageChange = useCallback((page, pageSize) => {
-    setPagination({ current: page, pageSize, total: pagination.total });
-    const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
-    cargarCanchas(page, pageSize, estadoFiltro);
-  }, [filtroEstado, cargarCanchas, pagination.total]);
+  // 🔹 Paginación / filtros
+  const handlePageChange = (page, pageSize) => {
+    setPagination(prev => ({ ...prev, current: page, pageSize }));
+  };
 
-  const aplicarFiltro = useCallback((estado) => {
+  const aplicarFiltro = (estado) => {
     setFiltroEstado(estado);
-    const estadoFiltro = estado === 'todos' ? undefined : estado;
-    cargarCanchas(1, pagination.pageSize, estadoFiltro);
-  }, [cargarCanchas, pagination.pageSize]);
+    setPagination(prev => ({ ...prev, current: 1 }));
+  };
 
+  const limpiarFiltros = () => {
+    setFiltroEstado('todos');
+    setBusqueda('');
+    setQDebounced('');
+    setPagination(prev => ({ ...prev, current: 1 }));
+  };
+
+  const handleActualizar = () => {
+    const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
+    cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
+  };
+
+  // 🔹 Render estado
   const renderEstadoTag = useCallback((estado) => {
-    const estados = {
+    const map = {
       disponible: { color: 'green', icon: <CheckCircleOutlined />, text: 'Disponible' },
       mantenimiento: { color: 'orange', icon: <ToolOutlined />, text: 'Mantenimiento' },
-      fuera_servicio: { color: 'red', icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' }
+      fuera_servicio: { color: 'red', icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' },
     };
-    const config = estados[estado] || estados.disponible;
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {config.text}
-      </Tag>
-    );
+    const { color, icon, text } = map[estado] || map.disponible;
+    return <Tag color={color} icon={icon}>{text}</Tag>;
   }, []);
 
+  // 🔹 Columnas tabla
   const columns = useMemo(() => [
     {
       title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
-      render: (nombre) => <strong>{nombre}</strong>
+      render: (v) => <strong>{v}</strong>
     },
     {
       title: 'Descripción',
       dataIndex: 'descripcion',
       key: 'descripcion',
       ellipsis: true,
-      render: (descripcion) => descripcion || <span style={{ color: '#999' }}>Sin descripción</span>
+      render: (v) => v || <span style={{ color: '#999' }}>Sin descripción</span>
     },
     {
       title: 'Capacidad',
       dataIndex: 'capacidadMaxima',
       key: 'capacidadMaxima',
       align: 'center',
-      render: (capacidad) => (
-        <Badge count={capacidad} showZero color="#1890ff" style={{ fontSize: 14 }} />
-      )
+      render: (cap) => <Badge count={cap} showZero color="#1890ff" />
     },
     {
       title: 'Estado',
@@ -211,28 +234,27 @@ const GestionCanchas = () => {
       title: 'Acciones',
       key: 'acciones',
       align: 'center',
-      render: (_, record) => (
+      render: (_, r) => (
         <Space size="small">
           <Tooltip title="Editar">
             <Button
               type="primary"
-              size="medium"
+              size="middle"
               icon={<EditOutlined />}
-              onClick={() => abrirModalEditar(record)}
+              onClick={() => abrirModalEditar(r)}
             />
           </Tooltip>
-
-          {record.estado === 'fuera_servicio' ? (
+          {r.estado === 'fuera_servicio' ? (
             <Popconfirm
               title="¿Reactivar esta cancha?"
-              onConfirm={() => handleReactivar(record.id)}
+              onConfirm={() => handleReactivar(r.id)}
               okText="Sí"
               cancelText="No"
             >
               <Tooltip title="Reactivar">
                 <Button
                   type="default"
-                  size="medium"
+                  size="middle"
                   icon={<UndoOutlined />}
                   style={{ color: '#52c41a', borderColor: '#52c41a' }}
                 />
@@ -241,55 +263,57 @@ const GestionCanchas = () => {
           ) : (
             <Popconfirm
               title="¿Eliminar esta cancha?"
-              onConfirm={() => handleEliminar(record.id)}
+              onConfirm={() => handleEliminar(r.id)}
               okText="Eliminar"
               okButtonProps={{ danger: true }}
               cancelText="Cancelar"
             >
-              <Tooltip title="Eliminar" >
-                <Button danger size="medium" icon={<DeleteOutlined />} />
+              <Tooltip title="Eliminar">
+                <Button danger size="middle" icon={<DeleteOutlined />} />
               </Tooltip>
             </Popconfirm>
           )}
         </Space>
       )
     }
-  ], [renderEstadoTag, abrirModalEditar]);
+  ], [renderEstadoTag]);
 
-  const handleActualizar = useCallback(() => {
-    const estadoFiltro = filtroEstado === 'todos' ? undefined : filtroEstado;
-    cargarCanchas(pagination.current, pagination.pageSize, estadoFiltro);
-  }, [filtroEstado, pagination.current, pagination.pageSize, cargarCanchas]);
+  const noResults = !loading && canchas.length === 0;
 
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
         <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} variant="filled">
-          {/* Filtros y acciones */}
+          
+          {/* 🔹 Filtros */}
           <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-            <Row gutter={16} align="middle">
-              <Col flex="auto">
-                <Space>
-                  <span>Filtrar por estado:</span>
-                  <Select
-                    style={{ width: 180 }}
-                    value={filtroEstado}  
-                    onChange={aplicarFiltro}
-                  >
-                    <Option value="todos">Todos los estados</Option>
-                    <Option value="disponible">Disponible</Option>
-                    <Option value="mantenimiento">Mantenimiento</Option>
-                    <Option value="fuera_servicio">Fuera de Servicio</Option>
-                  </Select>
-                </Space>
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} sm={12} md={8}>
+                <Input
+                  placeholder="Buscar por nombre o descripción..."
+                  prefix={<SearchOutlined />}
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  onPressEnter={() => setQDebounced(busqueda.trim())}
+                  allowClear
+                />
               </Col>
-              <Col>
-                <Space>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={handleActualizar}
-                    loading={loading}
-                  >
+              <Col xs={24} sm={12} md={8}>
+                <Select style={{ width: '100%' }} value={filtroEstado} onChange={aplicarFiltro}>
+                  <Option value="todos">Todos los estados</Option>
+                  <Option value="disponible">Disponible</Option>
+                  <Option value="mantenimiento">Mantenimiento</Option>
+                  <Option value="fuera_servicio">Fuera de Servicio</Option>
+                </Select>
+              </Col>
+              <Col xs={24} md={8} style={{ textAlign: 'right' }}>
+                <Space wrap>
+                  {(qDebounced || filtroEstado !== 'todos') && (
+                    <Button icon={<ClearOutlined />} onClick={limpiarFiltros}>
+                      Limpiar filtros
+                    </Button>
+                  )}
+                  <Button icon={<ReloadOutlined />} onClick={handleActualizar} loading={loading}>
                     Actualizar
                   </Button>
                   <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalCrear}>
@@ -300,7 +324,7 @@ const GestionCanchas = () => {
             </Row>
           </Card>
 
-          {/* Tabla */}
+          {/* 🔹 Tabla */}
           <Card>
             <Table
               columns={columns}
@@ -310,10 +334,24 @@ const GestionCanchas = () => {
               pagination={false}
               scroll={{ x: 900 }}
               size="middle"
+              locale={{
+                emptyText: noResults ? (
+                  <Empty
+                    description="Sin resultados para los filtros actuales"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  >
+                    {(qDebounced || filtroEstado !== 'todos') && (
+                      <Button onClick={limpiarFiltros} icon={<ClearOutlined />}>
+                        Limpiar filtros
+                      </Button>
+                    )}
+                  </Empty>
+                ) : undefined
+              }}
             />
 
-            {/* Paginación uniforme */}
-            {canchas.length > 0 && (
+            {/* 🔹 Paginación */}
+            {pagination.total > 0 && (
               <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                 <Pagination
                   current={pagination.current}
@@ -329,19 +367,9 @@ const GestionCanchas = () => {
             )}
           </Card>
 
-          {/* Modal Crear/Editar */}
+          {/* 🔹 Modal Crear/Editar */}
           <Modal
-            title={
-              modalMode === 'crear' ? (
-                <>
-                  <PlusOutlined /> Nueva Cancha
-                </>
-              ) : (
-                <>
-                  <EditOutlined /> Editar Cancha
-                </>
-              )
-            }
+            title={modalMode === 'crear' ? (<><PlusOutlined /> Nueva Cancha</>) : (<><EditOutlined /> Editar Cancha</>)}
             open={modalVisible}
             onCancel={cerrarModal}
             footer={null}
@@ -353,11 +381,7 @@ const GestionCanchas = () => {
               onFinish={handleSubmit}
               initialValues={{ estado: 'disponible', capacidadMaxima: 12 }}
             >
-              <Form.Item
-                label="Nombre de la Cancha"
-                name="nombre"
-                rules={[{ required: true, message: 'El nombre es obligatorio' }]}
-              >
+              <Form.Item label="Nombre de la Cancha" name="nombre" rules={[{ required: true, message: 'El nombre es obligatorio' }]}>
                 <Input placeholder="Ej: Cancha de Fútbol Principal" />
               </Form.Item>
 
@@ -365,11 +389,7 @@ const GestionCanchas = () => {
                 <TextArea rows={3} placeholder="Descripción de la cancha (opcional)" />
               </Form.Item>
 
-              <Form.Item
-                label="Capacidad Máxima"
-                name="capacidadMaxima"
-                rules={[{ required: true, message: 'La capacidad es obligatoria' }]}
-              >
+              <Form.Item label="Capacidad Máxima" name="capacidadMaxima" rules={[{ required: true, message: 'La capacidad es obligatoria' }]}>
                 <InputNumber style={{ width: '100%' }} min={1} max={100} />
               </Form.Item>
 
@@ -405,6 +425,4 @@ const GestionCanchas = () => {
       </ConfigProvider>
     </MainLayout>
   );
-};
-
-export default GestionCanchas;
+}

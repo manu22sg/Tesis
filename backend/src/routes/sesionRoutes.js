@@ -31,7 +31,7 @@ router.post('/',
   postCrearSesion
 );
 
-// ✅ GET usa validateQuery
+//GET usa validateQuery
 router.get('/',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),

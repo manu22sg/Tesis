@@ -28,6 +28,7 @@ export async function getCanchas(req, res) {
   try {
     const filtros = {
       estado: req.query.estado || undefined,
+      q: req.query.q || undefined,
       page: req.query.page ? parseInt(req.query.page) : 1,
       limit: req.query.limit ? parseInt(req.query.limit) : 20
     };

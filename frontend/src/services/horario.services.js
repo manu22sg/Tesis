@@ -1,9 +1,9 @@
 import axios from './root.services.js';
 
-export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 5) {
+export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 5, extra = {}) {
   try {
     const response = await axios.get('/horario/disponibilidad', {
-      params: { fecha, page, limit }
+      params: { fecha, page, limit, ...extra } // 👈 ahora viajan canchaId / capacidad
     });
     return response.data;
   } catch (error) {

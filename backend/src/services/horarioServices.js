@@ -4,7 +4,7 @@ import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; 
 
-import { In } from 'typeorm';
+import { In,LessThanOrEqual,Between,MoreThan } from 'typeorm';
 
 const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '16:00', duracionBloque: 90 };
 
@@ -60,69 +60,102 @@ function hayConflictoHorario(b1, b2) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 10) {
+export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 10, filtros = {}) {
   try {
     const fecha = toISODateSafe(fechaISO);
+    const { canchaId, capacidad } = filtros;
 
     const canchaRepo  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepo  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema); 
+    const partidoRepo = AppDataSource.getRepository(PartidoCampeonatoSchema);
 
-    // Contar total de canchas disponibles
-    const totalCanchas = await canchaRepo.count({ where: { estado: 'disponible' } });
-    
-    if (!totalCanchas) return [{ data: [], total: 0, page, limit, totalPages: 0 }, null];
+    // Filtros de canchas
+    const whereCanchas = { estado: 'disponible' };
+    if (capacidad === 'pequena') whereCanchas.capacidadMaxima = LessThanOrEqual(8);
+    else if (capacidad === 'mediana') whereCanchas.capacidadMaxima = Between(9, 15);
+    else if (capacidad === 'grande') whereCanchas.capacidadMaxima = MoreThan(15);
 
-    // Obtener canchas con paginación
-    const skip = (page - 1) * limit;
-    const canchas = await canchaRepo.find({ 
-      where: { estado: 'disponible' },
-      skip,
-      take: limit,
-      order: { nombre: 'ASC' }
-    });
+    // Paginación / cancha específica
+    let totalCanchas = 0;
+    let canchas = [];
+    if (canchaId) {
+      const cancha = await canchaRepo.findOne({ where: { id: canchaId, ...whereCanchas } });
+      totalCanchas = cancha ? 1 : 0;
+      canchas = cancha ? [cancha] : [];
+    } else {
+      totalCanchas = await canchaRepo.count({ where: whereCanchas });
+      if (!totalCanchas) return [{ data: [], total: 0, page, limit, totalPages: 0 }, null];
+
+      const skip = (page - 1) * limit;
+      canchas = await canchaRepo.find({ where: whereCanchas, skip, take: limit, order: { nombre: 'ASC' } });
+    }
+
+    // ⚡ Batch: trae TODO para estas canchas en 3 queries
+    const canchaIds = canchas.map(c => c.id);
+    let reservas = [], sesiones = [], partidos = [];
+    if (canchaIds.length) {
+      [reservas, sesiones, partidos] = await Promise.all([
+        reservaRepo.find({
+          where: { canchaId: In(canchaIds), fechaReserva: fecha, estado: In(['pendiente','aprobada']) },
+          select: ['canchaId','horaInicio','horaFin'] // solo lo que usas
+        }),
+        sesionRepo.find({
+          where: { canchaId: In(canchaIds), fecha },
+          select: ['canchaId','horaInicio','horaFin']
+        }),
+        partidoRepo.find({
+          where: { canchaId: In(canchaIds), fecha, estado: In(['programado','en_juego']) },
+          select: ['canchaId','horaInicio','horaFin']
+        })
+      ]);
+    }
+
+    // Agrupa por canchaId
+    const groupBy = (arr) => {
+      const m = new Map();
+      for (const it of arr) {
+        if (!m.has(it.canchaId)) m.set(it.canchaId, []);
+        m.get(it.canchaId).push(it);
+      }
+      return m;
+    };
+    const reservasBy = groupBy(reservas);
+    const sesionesBy = groupBy(sesiones);
+    const partidosBy = groupBy(partidos);
+
+    // Plantilla de bloques (una vez) y clon por cancha
+    const plantilla = generarBloquesHorarios();
+    const clonarBloques = () => plantilla.map(b => ({ ...b }));
 
     const disponibilidadPorCancha = [];
-
     for (const cancha of canchas) {
-      const bloquesHorarios = generarBloquesHorarios();
+      const bloques = clonarBloques();
 
-      const reservas = await reservaRepo.find({
-        where: { canchaId: cancha.id, fechaReserva: fecha, estado: In(['pendiente', 'aprobada']) }
-      });
-
-      const sesiones = await sesionRepo.find({
-        where: { canchaId: cancha.id, fecha }
-      });
-
-      const partidos = await partidoRepo.find({
-        where: { canchaId: cancha.id, fecha, estado: In(['programado', 'en_juego']) }
-      });
-
-      for (const r of reservas) {
-        for (const blk of bloquesHorarios) {
-          if (hayConflictoHorario(blk, r)) {
-            blk.disponible = false;
-            blk.motivo = 'Ya reservado';
+      // Marca reservas
+      for (const r of (reservasBy.get(cancha.id) || [])) {
+        for (const blk of bloques) {
+          if (hayConflictoHorario(blk, r)) { 
+            blk.disponible = false; 
+            if (!blk.motivo) blk.motivo = 'Ya reservado'; 
           }
         }
       }
-
-      for (const s of sesiones) {
-        for (const blk of bloquesHorarios) {
-          if (hayConflictoHorario(blk, s)) {
-            blk.disponible = false;
-            blk.motivo = 'Sesión de entrenamiento';
+      // Marca sesiones
+      for (const s of (sesionesBy.get(cancha.id) || [])) {
+        for (const blk of bloques) {
+          if (hayConflictoHorario(blk, s)) { 
+            blk.disponible = false; 
+            if (!blk.motivo) blk.motivo = 'Sesión de entrenamiento'; 
           }
         }
       }
-
-      for (const p of partidos) {
-        for (const blk of bloquesHorarios) {
-          if (hayConflictoHorario(blk, p)) {
-            blk.disponible = false;
-            blk.motivo = 'Partido de campeonato';
+      // Marca partidos
+      for (const p of (partidosBy.get(cancha.id) || [])) {
+        for (const blk of bloques) {
+          if (hayConflictoHorario(blk, p)) { 
+            blk.disponible = false; 
+            if (!blk.motivo) blk.motivo = 'Partido de campeonato'; 
           }
         }
       }
@@ -135,17 +168,16 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
           capacidadMaxima: cancha.capacidadMaxima
         },
         fecha,
-        bloques: bloquesHorarios
+        bloques
       });
     }
 
-    const totalPages = Math.ceil(totalCanchas / limit);
-
+    const totalPages = canchaId ? 1 : Math.ceil(totalCanchas / limit);
     return [{
       data: disponibilidadPorCancha,
       total: totalCanchas,
-      page,
-      limit,
+      page: canchaId ? 1 : page,
+      limit: canchaId ? disponibilidadPorCancha.length : limit,
       totalPages
     }, null];
   } catch (err) {
@@ -153,6 +185,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function obtenerDisponibilidadPorRango(fechaInicioISO, fechaFinISO, page = 1, limit = 10) {
   try {

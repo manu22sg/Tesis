@@ -3,23 +3,22 @@ import {
   obtenerDisponibilidadPorRango,
   verificarDisponibilidadEspecifica 
 } from '../services/horarioServices.js';
-
 export async function getDisponibilidadPorFecha(req, res) {
   try {
-    const { fecha } = req.query;
-    const page = parseInt(req.query.page) || 1;
+    const { fecha, canchaId, capacidad } = req.query;
+    const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    if (!fecha) {
-      return res.status(400).json({ message: 'Falta el parámetro fecha' });
-    }
+    if (!fecha) return res.status(400).json({ message: 'Falta el parámetro fecha' });
 
-    const [resultado, error] = await obtenerDisponibilidadPorFecha(fecha, page, limit);
-    
-    if (error) {
-      return res.status(500).json({ message: error });
-    }
+    const [resultado, error] = await obtenerDisponibilidadPorFecha(
+      fecha,
+      page,
+      limit,
+      { canchaId: canchaId ? Number(canchaId) : undefined, capacidad }
+    );
 
+    if (error) return res.status(500).json({ message: error });
     return res.status(200).json(resultado);
   } catch (err) {
     console.error(err);

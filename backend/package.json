@@ -21,6 +21,7 @@
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.10",
     "pg": "^8.16.3",
     "typeorm": "^0.3.26"
   },

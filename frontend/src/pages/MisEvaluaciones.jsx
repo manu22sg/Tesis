@@ -109,7 +109,6 @@ export default function MisEvaluaciones() {
       hasta: null,
       sesionId: null
     });
-    message.success('Filtros limpiados'); 
   };
 
   const handlePageChange = (page, pageSize) => {

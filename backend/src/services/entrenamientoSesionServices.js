@@ -15,7 +15,6 @@ export async function crearEntrenamiento(datos) {
       return [null, 'El título es obligatorio'];
     }
 
-    // ✅ Si se proporciona sesionId, validar que exista y no sea pasada
     if (sesionId) {
       const sesion = await sesionRepo.findOne({ where: { id: sesionId } });
       if (!sesion) return [null, 'Sesión no encontrada'];
@@ -40,7 +39,6 @@ export async function crearEntrenamiento(datos) {
       }
     }
 
-    // ✅ Crear el entrenamiento (global o asignado)
     const entrenamiento = entrenamientoRepo.create({
       sesionId: sesionId || null,
       titulo: titulo.trim(),
