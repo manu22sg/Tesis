@@ -1,8 +1,7 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo, useRef } from 'react';
 import { Row, Col, Input, Button, DatePicker, TimePicker, Select, message, Card } from 'antd';
 import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
-
-import { obtenerCanchas } from '../services/cancha.services'; 
+import { obtenerCanchas } from '../services/cancha.services';
 import { obtenerGrupos } from '../services/grupo.services';
 
 const { Option } = Select;
@@ -12,80 +11,141 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // estado local para debounce de q
+  const [busqueda, setBusqueda] = useState(filtros.q || '');
+  const mountedRef = useRef(true);
+  const debounceRef = useRef(null);
+
+  // sync si filtros.q cambia desde afuera
+  useEffect(() => {
+    setBusqueda(filtros.q || '');
+  }, [filtros.q]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const cargarListas = async () => {
       setLoading(true);
       try {
         const [dataCanchas, dataGrupos] = await Promise.all([
-          obtenerCanchas({ estado: 'disponible', limit: 100 }), 
-          obtenerGrupos({ limit: 100 })                       
+          obtenerCanchas({ estado: 'disponible', limit: 100 }),
+          obtenerGrupos({ limit: 100 }),
         ]);
-        
-        setCanchas(dataCanchas.canchas || []);
-        const gruposArray = dataGrupos.data?.grupos || dataGrupos.grupos || dataGrupos || [];
-        setGrupos(gruposArray);
+        if (!mountedRef.current) return;
 
+        setCanchas(dataCanchas?.canchas || []);
+        const gruposArray = dataGrupos?.data?.grupos || dataGrupos?.grupos || dataGrupos || [];
+        setGrupos(Array.isArray(gruposArray) ? gruposArray : []);
       } catch (error) {
-        console.error("Error al cargar listas de filtros", error);
+        console.error('Error al cargar listas de filtros', error);
         message.error('Error al cargar filtros');
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
     cargarListas();
   }, []);
 
+  // Debounce para q
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setFiltros(prev => ({ ...prev, q: busqueda.trim() }));
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [busqueda, setFiltros]);
+
   const handleFiltroChange = (key, value) => {
     setFiltros(prev => ({ ...prev, [key]: value }));
   };
 
-  const limpiar = () => setFiltros({
-    q: '',
-    fecha: null,
-    horario: null,
-    canchaId: null,
-    grupoId: null
-  });
+  const limpiar = () => {
+    setBusqueda('');
+    setFiltros({
+      q: '',
+      fecha: null,
+      horario: null,
+      canchaId: null,
+      grupoId: null,
+    });
+  };
 
-  const hayFiltros = filtros.q || filtros.fecha || filtros.horario || filtros.canchaId || filtros.grupoId;
+  const hayFiltros = !!(filtros.q || filtros.fecha || filtros.horario || filtros.canchaId || filtros.grupoId);
 
-  const filterOption = (input, option) =>
-    (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
+  const filterOption = (input, option) => {
+    const text =
+      (option?.label ?? option?.children ?? '').toString().toLowerCase();
+    return text.includes((input || '').toLowerCase());
+  };
+
+  // Opciones memoizadas para evitar renders innecesarios
+  const canchaOptions = useMemo(
+    () =>
+      canchas.map(c => (
+        <Option key={c.id} value={c.id}>
+          {c.nombre}
+        </Option>
+      )),
+    [canchas]
+  );
+
+  const grupoOptions = useMemo(
+    () =>
+      grupos.map(g => (
+        <Option key={g.id} value={g.id}>
+          {g.nombre}
+        </Option>
+      )),
+    [grupos]
+  );
 
   return (
     <Card
-      title={<span><FilterOutlined /> Filtros</span>}
+      title={
+        <span>
+          <FilterOutlined /> Filtros
+        </span>
+      }
       style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
       extra={hayFiltros && <Button onClick={limpiar}>Limpiar Filtros</Button>}
     >
       <Row gutter={[16, 16]} align="middle">
-        
-        {/* Búsqueda general - incluye ubicacionExterna */}
+        {/* Búsqueda general con debounce (Enter aplica de inmediato) */}
         <Col xs={24} md={8}>
           <Input
             placeholder="Buscar por tipo, grupo, cancha o ubicación..."
             prefix={<SearchOutlined />}
-            value={filtros.q}
-            onChange={(e) => handleFiltroChange('q', e.target.value)}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            onPressEnter={() => setFiltros(prev => ({ ...prev, q: busqueda.trim() }))}
             allowClear
-            size="medium"
+            size="middle"
           />
         </Col>
 
         {/* Fecha */}
-        <Col xs={24} sm={8} md={4}>
+        <Col xs={24} sm={8} md={3}>
           <DatePicker
             placeholder="Fecha"
             value={filtros.fecha}
             onChange={(v) => handleFiltroChange('fecha', v)}
             format="DD/MM/YYYY"
             style={{ width: '100%' }}
-            size="medium"
+            size="middle"
           />
         </Col>
-        
-        {/* Horario con rango limitado 08:00 - 22:00 */}
-        <Col xs={24} sm={8} md={6}>
+
+        {/* Horario 08:00 - 22:00 */}
+        <Col xs={5} sm={5} md={4}>
           <TimePicker.RangePicker
             placeholder={['Inicio', 'Fin']}
             value={filtros.horario}
@@ -97,12 +157,12 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
             })}
             hideDisabledOptions
             style={{ width: '100%' }}
-            size="medium"
+            size="middle"
           />
         </Col>
 
         {/* Cancha */}
-        <Col xs={24} sm={12} md={3}>
+        <Col xs={30} sm={15} md={5}>
           <Select
             placeholder="Cancha"
             value={filtros.canchaId}
@@ -112,9 +172,9 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
             style={{ width: '100%' }}
             showSearch
             filterOption={filterOption}
-            size="medium"
+            size="middle"
           >
-            {canchas.map(c => <Option key={c.id} value={c.id}>{c.nombre}</Option>)}
+            {canchaOptions}
           </Select>
         </Col>
 
@@ -129,9 +189,9 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
             style={{ width: '100%' }}
             showSearch
             filterOption={filterOption}
-            size="medium"
+            size="middle"
           >
-            {grupos.map(g => <Option key={g.id} value={g.id}>{g.nombre}</Option>)}
+            {grupoOptions}
           </Select>
         </Col>
       </Row>

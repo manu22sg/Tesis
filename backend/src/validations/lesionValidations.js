@@ -12,21 +12,24 @@ export const crearLesionBody = Joi.object({
 });
 
 export const actualizarLesionBody = Joi.object({
-  id: idNum.label('id'),
-  diagnostico: Joi.string().trim().max(2000).optional(),
-  fechaInicio: Joi.date().iso().optional(),
-  fechaAltaEstimada: Joi.date().iso().optional().allow(null),
-  fechaAltaReal: Joi.date().iso().optional().allow(null),
-}).custom((v,h)=>{
-  // si viene fechaAltaReal y fechaInicio, validar orden
-  if (v.fechaAltaReal && v.fechaInicio && new Date(v.fechaAltaReal) <= new Date(v.fechaInicio)) {
-    return h.error('any.invalid', { message: 'fechaAltaReal debe ser mayor a fechaInicio' });
-  }
-  if (v.fechaAltaEstimada && v.fechaInicio && new Date(v.fechaAltaEstimada) <= new Date(v.fechaInicio)) {
-    return h.error('any.invalid', { message: 'fechaAltaEstimada debe ser mayor a fechaInicio' });
-  }
-  return v;
-}).min(1).messages({ 'object.min':'Debe enviar al menos un campo para actualizar' });
+  diagnostico: Joi.string().trim().max(2000),
+  fechaInicio: Joi.date().iso(),
+  fechaAltaEstimada: Joi.date().iso().allow(null),
+  fechaAltaReal: Joi.date().iso().allow(null),
+})
+  .custom((v, helpers) => {
+    if (v.fechaInicio && v.fechaAltaReal && new Date(v.fechaAltaReal) <= new Date(v.fechaInicio)) {
+      return helpers.message('fechaAltaReal debe ser mayor a fechaInicio');
+    }
+    if (v.fechaInicio && v.fechaAltaEstimada && new Date(v.fechaAltaEstimada) <= new Date(v.fechaInicio)) {
+      return helpers.message('fechaAltaEstimada debe ser mayor a fechaInicio');
+    }
+    return v;
+  })
+  .or('diagnostico', 'fechaInicio', 'fechaAltaEstimada', 'fechaAltaReal') // al menos uno
+  .messages({
+    'object.missing': 'Debe enviar al menos un campo para actualizar',
+  });
 
 export const obtenerLesionesQuery = Joi.object({
   pagina: Joi.number().integer().min(1).default(1),

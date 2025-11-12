@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   Table,
@@ -47,6 +47,12 @@ const EstadisticasPartidoModal = ({
   const [todosLosJugadores, setTodosLosJugadores] = useState([]);
   const [form] = Form.useForm();
 
+  // ➕ Máximo de minutos según si hubo penales
+  const maxMinutos = useMemo(() => {
+    if (!partido) return 90;
+    return partido.definidoPorPenales ? 120 : 90;
+  }, [partido]);
+
   useEffect(() => {
     if (visible && partido) {
       cargarEstadisticas();
@@ -78,7 +84,6 @@ const EstadisticasPartidoModal = ({
       ]);
 
       const todos = [...(jugadoresA || []), ...(jugadoresB || [])];
-
       setTodosLosJugadores(todos);
 
       const jugadoresConEstadisticas = estadisticasActuales.map(e => e.jugadorCampeonatoId);
@@ -109,6 +114,8 @@ const EstadisticasPartidoModal = ({
     } else {
       setEditingId(null);
       form.resetFields();
+      // setea valor inicial de minutos según si hubo penales
+      form.setFieldsValue({ minutosJugados: maxMinutos });
     }
     setModalForm(true);
   };
@@ -171,49 +178,12 @@ const EstadisticasPartidoModal = ({
         );
       }
     },
-    // ⬇️ Estadísticas sin Tag: solo números
-    {
-      title: '⚽',
-      dataIndex: 'goles',
-      width: 60,
-      align: 'center',
-      render: (g) => g ?? 0
-    },
-    {
-      title: '🎯',
-      dataIndex: 'asistencias',
-      width: 60,
-      align: 'center',
-      render: (a) => a ?? 0
-    },
-    {
-      title: '🧤',
-      dataIndex: 'atajadas',
-      width: 60,
-      align: 'center',
-      render: (a) => a ?? 0
-    },
-    {
-      title: '🟨',
-      dataIndex: 'tarjetasAmarillas',
-      width: 60,
-      align: 'center',
-      render: (t) => t ?? 0
-    },
-    {
-      title: '🟥',
-      dataIndex: 'tarjetasRojas',
-      width: 60,
-      align: 'center',
-      render: (t) => t ?? 0
-    },
-    {
-      title: '⏱️',
-      dataIndex: 'minutosJugados',
-      width: 70,
-      align: 'center',
-      render: (m) => (m != null ? `${m}'` : "0'")
-    },
+    { title: '⚽', dataIndex: 'goles', width: 60, align: 'center', render: (g) => g ?? 0 },
+    { title: '🎯', dataIndex: 'asistencias', width: 60, align: 'center', render: (a) => a ?? 0 },
+    { title: '🧤', dataIndex: 'atajadas', width: 60, align: 'center', render: (a) => a ?? 0 },
+    { title: '🟨', dataIndex: 'tarjetasAmarillas', width: 60, align: 'center', render: (t) => t ?? 0 },
+    { title: '🟥', dataIndex: 'tarjetasRojas', width: 60, align: 'center', render: (t) => t ?? 0 },
+    { title: '⏱️', dataIndex: 'minutosJugados', width: 70, align: 'center', render: (m) => (m != null ? `${m}'` : "0'") },
     {
       title: 'Acciones',
       key: 'acciones',
@@ -235,12 +205,7 @@ const EstadisticasPartidoModal = ({
             cancelText="Cancelar"
           >
             <Tooltip title="Eliminar">
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-              />
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -252,6 +217,9 @@ const EstadisticasPartidoModal = ({
 
   const equipoA = equipos?.find(e => e.id === partido.equipoAId);
   const equipoB = equipos?.find(e => e.id === partido.equipoBId);
+
+  const fueAPenales = !!partido.definidoPorPenales;
+  const hayPenales = partido.penalesA != null && partido.penalesB != null;
 
   return (
     <>
@@ -275,9 +243,16 @@ const EstadisticasPartidoModal = ({
               </Text>
             </Col>
             <Col span={4} style={{ textAlign: 'center' }}>
-              <Text strong style={{ fontSize: 20 }}>
-                {partido.golesA} - {partido.golesB}
-              </Text>
+              <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                <Text strong style={{ fontSize: 20 }}>
+                  {partido.golesA} - {partido.golesB}
+                </Text>
+                {fueAPenales && (
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {hayPenales ? `(Penales: ${partido.penalesA} - ${partido.penalesB})` : '(Definido por penales)'}
+                  </Text>
+                )}
+              </Space>
             </Col>
             <Col span={10} style={{ textAlign: 'center' }}>
               <Text strong style={{ fontSize: 16 }}>
@@ -285,16 +260,35 @@ const EstadisticasPartidoModal = ({
               </Text>
             </Col>
           </Row>
+
           <Divider style={{ margin: '8px 0' }} />
+
           <div style={{ textAlign: 'center' }}>
-            <Tag color="purple">
-              {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
-            </Tag>
-            {partido.fecha && (
-              <Text type="secondary" style={{ marginLeft: 8 }}>
-                {formatearFecha(partido.fecha)}
-              </Text>
-            )}
+            <Space size="small" wrap>
+              <Tag color="purple">
+                {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
+              </Tag>
+
+              {partido.fecha && (
+                <Tag>
+                  {formatearFecha(partido.fecha)}
+                </Tag>
+              )}
+
+              {partido.estado && (
+                <Tag color={partido.estado === 'finalizado' ? 'green' : partido.estado === 'en_juego' ? 'blue' : 'default'}>
+                  {partido.estado}
+                </Tag>
+              )}
+
+              {fueAPenales && (
+                <Tag color="red">
+                  {hayPenales
+                    ? `Definido por penales: ${partido.penalesA} - ${partido.penalesB}`
+                    : 'Definido por penales'}
+                </Tag>
+              )}
+            </Space>
           </div>
         </Card>
 
@@ -362,20 +356,20 @@ const EstadisticasPartidoModal = ({
             atajadas: 0,
             tarjetasAmarillas: 0,
             tarjetasRojas: 0,
-            minutosJugados: 90
+            minutosJugados: maxMinutos
           }}
         >
           <Form.Item
             name="jugadorCampeonatoId"
             label="Jugador"
-            rules={[{ required: true, message: 'Selecciona un jugador' }]}
+            rules={[{ required: true, message: 'Selecciona a un jugador' }]}
           >
             <Select
               placeholder="Seleccionar jugador"
               showSearch
               disabled={editingId}
               filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
+                (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
               }
             >
               {(editingId ? todosLosJugadores : jugadoresDisponibles).map(jugador => (
@@ -421,7 +415,7 @@ const EstadisticasPartidoModal = ({
             </Col>
             <Col span={8}>
               <Form.Item name="minutosJugados" label="⏱️ Minutos">
-                <InputNumber style={{ width: '100%' }} min={0} max={120} />
+                <InputNumber style={{ width: '100%' }} min={0} max={maxMinutos} />
               </Form.Item>
             </Col>
           </Row>

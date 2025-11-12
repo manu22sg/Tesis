@@ -28,8 +28,9 @@ export const equipoService = {
 
   // Listar jugadores de un equipo
   listarJugadores: async (equipoId) => {
-    const response = await api.get(`/equipos/${equipoId}/jugadores`);
-    return response.data;
+    const res = await api.get(`/equipos/${equipoId}/jugadores`);
+    const jugadores = res.data?.data?.jugadores;
+    return Array.isArray(jugadores) ? jugadores : [];
   },
 
   // Agregar usuario a equipo

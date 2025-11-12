@@ -186,7 +186,7 @@ const ListaEstadisticas = ({
               <Space size="small">
                 {onEdit && (
                   <Tooltip title="Editar">
-                    <Button type="text" size="middle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
+                    <Button type="primary" size="middle" icon={<EditOutlined />} onClick={() => onEdit(record)} />
                   </Tooltip>
                 )}
                 <Popconfirm

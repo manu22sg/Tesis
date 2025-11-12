@@ -39,6 +39,10 @@ export default function SesionNueva() {
   const [tipoUbicacion, setTipoUbicacion] = useState('cancha');
   const [esRecurrente, setEsRecurrente] = useState(false);
 
+  // 🔎 Estado para verificación en vivo (debounced)
+  const [checkingDisp, setCheckingDisp] = useState(false);
+  const [dispOk, setDispOk] = useState(null); // true | false | null
+
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -104,9 +108,11 @@ export default function SesionNueva() {
     } else {
       form.setFieldValue('canchaId', undefined);
     }
+    // al cambiar el modo de ubicación, reseteamos el indicador de disponibilidad
+    setDispOk(null);
   }, [tipoUbicacion, form]);
 
-  // Limpiar campos según modo
+  // Limpiar campos según modo (única vs recurrente)
   useEffect(() => {
     if (!form) return;
     if (esRecurrente) {
@@ -116,7 +122,58 @@ export default function SesionNueva() {
       form.setFieldValue('fechaFin', undefined);
       form.setFieldValue('diasSemana', undefined);
     }
+    // cambiar modo también resetea indicador
+    setDispOk(null);
   }, [esRecurrente, form]);
+
+  // ====== Debounce de verificación en vivo ======
+  const canchaId = Form.useWatch('canchaId', form);
+  const fecha = Form.useWatch('fecha', form);
+  const horario = Form.useWatch('horario', form);
+
+  useEffect(() => {
+    // Solo aplica para sesión única en cancha
+    if (esRecurrente || tipoUbicacion !== 'cancha') {
+      setDispOk(null);
+      return;
+    }
+
+    const canCheck =
+      canchaId && fecha && Array.isArray(horario) && horario[0] && horario[1];
+
+    if (!canCheck) {
+      setDispOk(null);
+      return;
+    }
+
+    const t = setTimeout(async () => {
+      try {
+        setCheckingDisp(true);
+        const [h1, h2] = horario;
+        // Validación local simple por si eligen horas iguales o invertidas
+        if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
+          setDispOk(null);
+          setCheckingDisp(false);
+          return;
+        }
+
+        const res = await verificarDisponibilidad(
+          Number(canchaId),
+          fecha.format('YYYY-MM-DD'),
+          h1.format('HH:mm'),
+          h2.format('HH:mm')
+        );
+        setDispOk(!!res?.disponible);
+      } catch (e) {
+        console.error('Error verificando disponibilidad en vivo:', e);
+        setDispOk(null);
+      } finally {
+        setCheckingDisp(false);
+      }
+    }, 500); // ⏱️ debounce 500 ms
+
+    return () => clearTimeout(t);
+  }, [esRecurrente, tipoUbicacion, canchaId, fecha, horario]);
 
   const onFinish = async (values) => {
     try {
@@ -204,7 +261,6 @@ export default function SesionNueva() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        {/* Mantiene el Form montado SIEMPRE */}
         <Spin spinning={loading}>
           <Card
             title="Nueva Sesión de Entrenamiento"
@@ -378,6 +434,17 @@ export default function SesionNueva() {
                 name="horario"
                 label="Horario"
                 rules={[{ required: true, message: 'Selecciona el horario' }]}
+                extra={
+                  tipoUbicacion === 'cancha' && !esRecurrente && (
+                    checkingDisp
+                      ? 'Verificando disponibilidad…'
+                      : dispOk === true
+                        ? '✅ Cancha disponible'
+                        : dispOk === false
+                          ? '❌ Cancha NO disponible en este horario'
+                          : null
+                  )
+                }
               >
                 <TimePicker.RangePicker
                   format="HH:mm"
@@ -416,7 +483,16 @@ export default function SesionNueva() {
               <Form.Item>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                   <Button onClick={() => navigate(-1)}>Cancelar</Button>
-                  <Button type="primary" htmlType="submit" loading={saving}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={saving}
+                    disabled={
+                      !esRecurrente &&
+                      tipoUbicacion === 'cancha' &&
+                      dispOk === false
+                    }
+                  >
                     {esRecurrente ? 'Crear sesiones' : 'Crear sesión'}
                   </Button>
                 </div>

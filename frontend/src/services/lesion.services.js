@@ -52,12 +52,13 @@ export const obtenerLesionPorId = async (id) => {
 
 export const actualizarLesion = async (id, data) => {
   try {
-    const response = await api.patch('/lesiones', { id, ...data });
+    const response = await api.patch(`/lesiones/${id}`, data);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
   }
 };
+
 
 
 export const eliminarLesion = async (id) => {

@@ -7,7 +7,7 @@ const router = Router();
 
 // POST, PATCH, DELETE
 router.post('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(crearLesionBody), postCrearLesion);
-router.patch('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(actualizarLesionBody), patchLesion);
+router.patch('/:id', authenticateToken, requireRole(['entrenador','superadmin']),validarParams(idParamSchema),validarBody(actualizarLesionBody), patchLesion);
 router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), deleteLesion);
 
 // Para que el estudiante vea solo sus lesiones

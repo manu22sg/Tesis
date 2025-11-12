@@ -13,7 +13,9 @@ import {
   Row,
   Col,
   ConfigProvider,
-  Tooltip,Typography,Avatar
+  Tooltip,
+  Typography,
+  Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { 
@@ -40,8 +42,8 @@ export default function Evaluaciones() {
   const [loadingSesiones, setLoadingSesiones] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  
-  // Paginación estandarizada
+
+  // Paginación controlada
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -50,22 +52,17 @@ export default function Evaluaciones() {
 
   // Filtros
   const [busqueda, setBusqueda] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [sesionFiltro, setSesionFiltro] = useState(undefined);
-const { Text } = Typography;
+  const { Text } = Typography;
 
   const esEstudiante = usuario?.rol === 'estudiante';
 
-  // Función para formatear fecha a DD/MM/YYYY
- 
+  // 🔹 Cargar sesiones para filtro
   const cargarSesiones = async () => {
     setLoadingSesiones(true);
     try {
-      
-      const resultado = await obtenerSesiones({ 
-        limit: 50, 
-        page: 1 
-      });
-      
+      const resultado = await obtenerSesiones({ limit: 50, page: 1 });
       setSesiones(resultado?.sesiones || []);
     } catch (err) {
       console.error('Error cargando sesiones:', err);
@@ -79,26 +76,28 @@ const { Text } = Typography;
     cargarSesiones();
   }, []);
 
+  // 🔹 Debounce búsqueda
+  useEffect(() => {
+    const timeout = setTimeout(() => setQDebounced(busqueda.trim()), 400);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
+
+  // 🔹 Cargar evaluaciones
   const cargarEvaluaciones = async (page = 1, pageSize = 10) => {
     setLoading(true);
     try {
-      const params = { 
-        page, 
-        limit: pageSize 
-      };
-      
-      if (busqueda) params.q = busqueda;
+      const params = { page, limit: pageSize };
+      if (qDebounced) params.q = qDebounced;
       if (sesionFiltro) params.sesionId = sesionFiltro;
 
       const resultado = await obtenerEvaluaciones(params);
-      
       const evaluacionesData = resultado?.evaluaciones || [];
       const paginationData = resultado?.pagination || {};
-      
+
       setEvaluaciones(evaluacionesData);
       setPagination({
         current: page,
-        pageSize: pageSize,
+        pageSize,
         total: paginationData?.totalItems || evaluacionesData.length || 0
       });
     } catch (err) {
@@ -109,10 +108,12 @@ const { Text } = Typography;
     }
   };
 
-  useEffect(() => { 
-    cargarEvaluaciones(1, pagination.pageSize); 
-  }, [busqueda, sesionFiltro]);
+  // 🔹 Efecto principal que carga evaluaciones al cambiar filtros o paginación
+  useEffect(() => {
+    cargarEvaluaciones(pagination.current, pagination.pageSize);
+  }, [qDebounced, sesionFiltro, pagination.current, pagination.pageSize]);
 
+  // 🔹 Eliminar evaluación
   const handleDelete = async (id) => {
     try {
       await eliminarEvaluacion(id);
@@ -124,39 +125,38 @@ const { Text } = Typography;
     }
   };
 
+  // 🔹 Cambiar página
   const handlePageChange = (page, pageSize) => {
-    setPagination({ ...pagination, current: page, pageSize });
-    cargarEvaluaciones(page, pageSize);
+    setPagination(prev => ({ ...prev, current: page, pageSize }));
   };
 
+  // 🔹 Limpiar filtros
   const limpiarFiltros = () => {
     setBusqueda('');
+    setQDebounced('');
     setSesionFiltro(undefined);
+    setPagination(prev => ({ ...prev, current: 1 }));
   };
 
   const columns = [
     {
-    title: 'Jugador',
-    key: 'jugador',
-    render: (_, record) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Avatar 
-          size={40} 
-          icon={<UserOutlined />} 
-          style={{ backgroundColor: '#1890ff' }}
-        />
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {record.jugador?.usuario?.nombre || 'Sin nombre'}
+      title: 'Jugador',
+      key: 'jugador',
+      render: (_, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          <div>
+            <div style={{ fontWeight: 500 }}>
+              {record.jugador?.usuario?.nombre || 'Sin nombre'}
+            </div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.jugador?.usuario?.rut || 'Sin RUT'}
+            </Text>
           </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.jugador?.usuario?.rut || 'Sin RUT'}
-          </Text>
         </div>
-      </div>
-    ),
-    width: 220,
-  },
+      ),
+      width: 220,
+    },
     {
       title: 'Sesión',
       render: (_, record) => {
@@ -168,47 +168,16 @@ const { Text } = Typography;
       },
       width: 200
     },
-    { 
-      title: 'Técnica', 
-      dataIndex: 'tecnica', 
-      key: 'tecnica', 
-      align: 'center',
-      width: 90,
-      render: (val) => < >{val ?? '—'}</>
-    },
-    { 
-      title: 'Táctica', 
-      dataIndex: 'tactica', 
-      key: 'tactica', 
-      align: 'center',
-      width: 90,
-      render: (val) => < >{val ?? '—'}</>
-    },
-    { 
-      title: 'Actitudinal', 
-      dataIndex: 'actitudinal', 
-      key: 'actitudinal', 
-      align: 'center',
-      width: 110,
-      render: (val) => <>{val ?? '—'}</>
-    },
-    { 
-      title: 'Física', 
-      dataIndex: 'fisica', 
-      key: 'fisica', 
-      align: 'center',
-      width: 90,
-      render: (val) => <>{val ?? '—'}</>
-    },
-    { 
-      title: 'Fecha Registro', 
-      dataIndex: 'fechaRegistro', 
+    { title: 'Técnica', dataIndex: 'tecnica', key: 'tecnica', align: 'center', width: 90, render: val => <>{val ?? '—'}</> },
+    { title: 'Táctica', dataIndex: 'tactica', key: 'tactica', align: 'center', width: 90, render: val => <>{val ?? '—'}</> },
+    { title: 'Actitudinal', dataIndex: 'actitudinal', key: 'actitudinal', align: 'center', width: 110, render: val => <>{val ?? '—'}</> },
+    { title: 'Física', dataIndex: 'fisica', key: 'fisica', align: 'center', width: 90, render: val => <>{val ?? '—'}</> },
+    {
+      title: 'Fecha Registro',
+      dataIndex: 'fechaRegistro',
       key: 'fechaRegistro',
       width: 120,
-      render: (fecha) => {
-        if (!fecha) return '—';
-        return formatearFecha(fecha);
-      }
+      render: (fecha) => fecha ? formatearFecha(fecha) : '—'
     },
     {
       title: 'Acciones',
@@ -222,7 +191,7 @@ const { Text } = Typography;
               <Tooltip title="Editar">
                 <Button 
                   type="primary"
-                  size="medium"
+                  size="middle"
                   icon={<EditOutlined />} 
                   onClick={() => { 
                     setEditing(record); 
@@ -235,15 +204,10 @@ const { Text } = Typography;
                 onConfirm={() => handleDelete(record.id)}
                 okText="Eliminar"
                 cancelText="Cancelar"
-                  okButtonProps={{ danger: true }}
-
+                okButtonProps={{ danger: true }}
               >
                 <Tooltip title="Eliminar">
-                  <Button 
-                    danger 
-                    size="medium"
-                    icon={<DeleteOutlined />} 
-                  />
+                  <Button danger size="middle" icon={<DeleteOutlined />} />
                 </Tooltip>
               </Popconfirm>
             </>
@@ -256,24 +220,21 @@ const { Text } = Typography;
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <Card
-          title={<><StarOutlined /> Evaluaciones de Jugadores</>}
-          variant="outlined"
-        >
-          {/* Filtros y acciones */}
-          <Card 
-            style={{ 
-              marginBottom: '1rem', 
-              backgroundColor: '#fafafa' 
-            }}
-          >
+        <Card title={<><StarOutlined /> Evaluaciones de Jugadores</>} variant="outlined">
+          
+          {/* 🔹 Filtros y acciones */}
+          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} sm={12} md={8}>
                 <Input
                   placeholder="Buscar por nombre o RUT del jugador"
                   allowClear
                   value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBusqueda(val);
+                    if (val === '') setQDebounced('');
+                  }}
                   prefix={<SearchOutlined />}
                   style={{ width: '100%' }}
                 />
@@ -304,18 +265,10 @@ const { Text } = Typography;
               </Col>
               <Col xs={24} md={8} style={{ textAlign: 'right' }}>
                 <Space wrap>
-                  {(busqueda || sesionFiltro) && (
-                    <Button onClick={limpiarFiltros}>
-                      Limpiar filtros
-                    </Button>
+                  {(qDebounced || sesionFiltro) && (
+                    <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
                   )}
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={() => cargarEvaluaciones(pagination.current, pagination.pageSize)}
-                    loading={loading}
-                  >
-                    Actualizar
-                  </Button>
+                  
                   {!esEstudiante && (
                     <Button 
                       type="primary" 
@@ -333,7 +286,7 @@ const { Text } = Typography;
             </Row>
           </Card>
 
-          {/* Tabla */}
+          {/* 🔹 Tabla */}
           <Card>
             <Table
               dataSource={evaluaciones}
@@ -344,7 +297,7 @@ const { Text } = Typography;
               scroll={{ x: 1000 }}
             />
 
-            {/* Paginación uniforme */}
+            {/* 🔹 Paginación externa */}
             {evaluaciones.length > 0 && (
               <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                 <Pagination
@@ -361,7 +314,7 @@ const { Text } = Typography;
             )}
           </Card>
 
-          {/* Modal Crear/Editar */}
+          {/* 🔹 Modal Crear/Editar */}
           <Modal
             open={modalOpen}
             onCancel={() => { 
@@ -369,7 +322,7 @@ const { Text } = Typography;
               setEditing(null); 
             }}
             footer={null}
-            destroyOnHidden
+            destroyOnClose
             title={editing ? <><EditOutlined /> Editar Evaluación</> : <><PlusOutlined /> Nueva Evaluación</>}
             width={600}
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Card,
   Table,
@@ -17,7 +17,7 @@ import {
   ConfigProvider
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import {
+import {FilterOutlined,
   UserOutlined,
   EyeOutlined,
   EditOutlined,
@@ -49,70 +49,119 @@ const ESTADO_COLORS = {
 export default function Jugadores() {
   const navigate = useNavigate();
 
+  // Data y carga
   const [jugadores, setJugadores] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Paginación (consistente con backend)
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  // Filtros
+  // Filtros (server-side)
   const [busqueda, setBusqueda] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [filtroEstado, setFiltroEstado] = useState(null);
   const [filtroCarrera, setFiltroCarrera] = useState(null);
   const [filtroAnio, setFiltroAnio] = useState(null);
+
+  // Opciones estables (acumuladas) para selects
+  const [carrerasOpts, setCarrerasOpts] = useState([]); // string[]
+  const [aniosOpts, setAniosOpts] = useState([]);       // number[]
 
   // Modal detalle
   const [detalleModal, setDetalleModal] = useState(false);
   const [jugadorDetalle, setJugadorDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  // Obtener carreras y años únicos de los jugadores cargados
-  const carrerasUnicas = useMemo(() => {
-    const carreras = jugadores
-      .map(j => j.carrera)
-      .filter(c => c && c.trim() !== '');
-    return [...new Set(carreras)].sort();
-  }, [jugadores]);
+  // Control de carreras de requests
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
-  const aniosUnicos = useMemo(() => {
-    const anios = jugadores
-      .map(j => j.anioIngreso)
-      .filter(a => a);
-    return [...new Set(anios)].sort((a, b) => b - a);
-  }, [jugadores]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-  const cargarJugadores = async (page = 1, pageSize = 10) => {
+  // Debounce para la búsqueda
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(busqueda.trim()), 500);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  // Cargar jugadores (server-side)
+  const cargarJugadores = async (page = 1, pageSize = pagination.pageSize, q = qDebounced) => {
+    const currentReq = ++requestIdRef.current;
     try {
       setLoading(true);
 
-      const params = {
-        pagina: page,
-        limite: pageSize
-      };
-
+      const params = { pagina: page, limite: pageSize };
+      if (q) params.q = q;
       if (filtroEstado) params.estado = filtroEstado;
       if (filtroCarrera) params.carrera = filtroCarrera;
       if (filtroAnio) params.anioIngreso = filtroAnio;
 
       const data = await obtenerJugadores(params);
+      if (currentReq !== requestIdRef.current) return;
 
-      setJugadores(data.jugadores || []);
+      const lista = data.jugadores || [];
+
+      setJugadores(lista);
       setPagination({
-        current: data.pagina,
+        current: data.pagina ?? page,
         pageSize: pageSize,
-        total: data.total,
+        total: data.total ?? 0,
         totalPages: data.totalPaginas
       });
+
+      // Actualiza opciones estables (acumula sin duplicar)
+      if (lista.length) {
+        const nuevasCarreras = [
+          ...new Set([
+            ...carrerasOpts,
+            ...lista
+              .map(j => j.carrera)
+              .filter(c => typeof c === 'string' && c.trim() !== '')
+          ])
+        ].sort((a, b) => a.localeCompare(b));
+
+        const nuevosAnios = [
+          ...new Set([
+            ...aniosOpts,
+            ...lista.map(j => j.anioIngreso).filter(a => !!a)
+          ])
+        ].sort((a, b) => b - a);
+
+        if (JSON.stringify(nuevasCarreras) !== JSON.stringify(carrerasOpts)) {
+          setCarrerasOpts(nuevasCarreras);
+        }
+        if (JSON.stringify(nuevosAnios) !== JSON.stringify(aniosOpts)) {
+          setAniosOpts(nuevosAnios);
+        }
+      }
     } catch (error) {
+      if (!mountedRef.current) return;
       console.error('Error cargando jugadores:', error);
       message.error('Error al cargar los jugadores');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
+  // Efecto único: mount + cambios de filtros/búsqueda + cambio de pageSize
   useEffect(() => {
-    cargarJugadores(1, pagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroEstado, filtroCarrera, filtroAnio]);
+    cargarJugadores(1, pagination.pageSize, qDebounced);
+  }, [filtroEstado, filtroCarrera, filtroAnio, qDebounced, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination(prev => ({ ...prev, current: page, pageSize }));
+    cargarJugadores(page, pageSize, qDebounced);
+  };
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroEstado(null);
+    setFiltroCarrera(null);
+    setFiltroAnio(null);
+  };
 
   const verDetalle = async (jugadorId) => {
     try {
@@ -133,53 +182,20 @@ export default function Jugadores() {
     try {
       await eliminarJugador(jugadorId);
       message.success('Jugador eliminado correctamente');
-      cargarJugadores(pagination.current, pagination.pageSize);
+      cargarJugadores(pagination.current, pagination.pageSize, qDebounced);
     } catch (error) {
       console.error('Error eliminando jugador:', error);
       message.error(error.response?.data?.message || 'Error al eliminar el jugador');
     }
   };
 
-  const limpiarFiltros = () => {
-    setBusqueda('');
-    setFiltroEstado(null);
-    setFiltroCarrera(null);
-    setFiltroAnio(null);
-  };
-
-  const handlePageChange = (page, pageSize) => {
-    setPagination({ ...pagination, current: page, pageSize });
-    cargarJugadores(page, pageSize);
-  };
-
-  const cerrarModal = () => {
-    setDetalleModal(false);
-    setJugadorDetalle(null);
-  };
-
-  // Filtrar localmente por búsqueda
-  const jugadoresFiltrados = jugadores.filter(jugador => {
-    if (!busqueda) return true;
-    const searchLower = busqueda.toLowerCase();
-    return (
-      jugador.usuario?.nombre?.toLowerCase().includes(searchLower) ||
-      jugador.usuario?.rut?.toLowerCase().includes(searchLower) ||
-      jugador.carrera?.toLowerCase().includes(searchLower) ||
-      jugador.posicion?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const columns = [
+  const columns = useMemo(() => [
     {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar 
-            size={40} 
-            icon={<UserOutlined />} 
-            style={{ backgroundColor: '#1890ff' }}
-          />
+          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
               {record.usuario?.nombre || 'Sin nombre'}
@@ -190,28 +206,40 @@ export default function Jugadores() {
           </div>
         </div>
       ),
-      width: 220,
+      // sin width fijo para que respire
+      ellipsis: false,
     },
     {
       title: 'Posición',
       dataIndex: 'posicion',
       key: 'posicion',
       render: (posicion) => posicion || '—',
-      width: 100,
+      width: 120,
+      ellipsis: true,
     },
     {
       title: 'Carrera',
       dataIndex: 'carrera',
       key: 'carrera',
-      render: (carrera) => carrera || '—',
-      width: 150,
+      // Más espacio + wrap + Tooltip
+      render: (carrera) => {
+        if (!carrera) return '—';
+        return (
+          <Tooltip title={carrera}>
+            <span style={{ display: 'inline-block', maxWidth: 320, whiteSpace: 'normal', lineHeight: 1.2 }}>
+              {carrera}
+            </span>
+          </Tooltip>
+        );
+      },
+      width: 300, // más ancho que antes
     },
     {
       title: 'Año',
       dataIndex: 'anioIngreso',
       key: 'anioIngreso',
       align: 'center',
-      width: 80,
+      width: 90,
     },
     {
       title: 'Grupos',
@@ -224,14 +252,19 @@ export default function Jugadores() {
         return (
           <Space size={4} wrap>
             {grupos.map((jg) => (
-              <Tag key={jg.grupo?.id} icon={<TeamOutlined />} color="blue" style={{ fontSize: 12 }}>
+              <Tag
+                key={`${jg.grupo?.id}-${jg.grupo?.nombre}`}
+                icon={<TeamOutlined />}
+                color="blue"
+                style={{ fontSize: 12 }}
+              >
                 {jg.grupo?.nombre}
               </Tag>
             ))}
           </Space>
         );
       },
-      width: 180,
+      // sin width fijo, que se adapte
     },
     {
       title: 'Estado',
@@ -243,102 +276,115 @@ export default function Jugadores() {
         </Tag>
       ),
       align: 'center',
-      width: 90,
+      width: 110,
     },
     {
-  title: 'Acciones',
-  key: 'acciones',
-  align: 'center',
-  width: 220,
-  fixed: 'right',
-  render: (_, record) => (
-    <Space size="small">
-      <Tooltip title="Ver Detalle" placement="top">
-        <Button
-          type="primary"
-          size="middle"
-          icon={<EyeOutlined />}
-          onClick={() => verDetalle(record.id)}
-        />
-      </Tooltip>
+      title: 'Acciones',
+      key: 'acciones',
+      align: 'center',
+      width: 230,
+      render: (_, record) => (
+        <Space size="small" wrap>
+          <Tooltip title="Ver Detalle" placement="top">
+            <Button
+              type="primary"
+              size="middle"
+              icon={<EyeOutlined />}
+              onClick={() => verDetalle(record.id)}
+            />
+          </Tooltip>
 
-      <Tooltip title="Editar" placement="top">
-        <Button
-          size="middle"
-          icon={<EditOutlined />}
-          onClick={() => navigate(`/jugadores/editar/${record.id}`)}
-        />
-      </Tooltip>
+          <Tooltip title="Editar" placement="top">
+            <Button
+              size="middle"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/jugadores/editar/${record.id}`)}
+            />
+          </Tooltip>
 
-      <Tooltip title="Grupos" placement="top">
-        <Button
-          size="middle"
-          icon={<TeamOutlined />}
-          onClick={() => navigate(`/jugadores/${record.id}/grupos`)}
-        />
-      </Tooltip>
+          <Tooltip title="Grupos" placement="top">
+            <Button
+              size="middle"
+              icon={<TeamOutlined />}
+              onClick={() => navigate(`/jugadores/${record.id}/grupos`)}
+            />
+          </Tooltip>
 
-      <Popconfirm
-        title="¿Eliminar jugador?"
-        onConfirm={() => handleEliminar(record.id)}
-        okText="Eliminar"
-        cancelText="Cancelar"
-        okButtonProps={{ danger: true }}
-      >
-        <Tooltip title="Eliminar" placement="top">
-          <Button
-            danger
-            size="middle"
-            icon={<DeleteOutlined />}
-          />
-        </Tooltip>
-      </Popconfirm>
-    </Space>
-  ),
-},
-  ];
+          <Popconfirm
+            title="¿Eliminar jugador?"
+            description="Esta acción no se puede deshacer."
+            onConfirm={() => handleEliminar(record.id)}
+            okText="Eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+            placement="left"
+          >
+            <Tooltip title="Eliminar" placement="top">
+              <Button danger size="middle" icon={<DeleteOutlined />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [navigate]);
 
-  const hayFiltrosActivos = busqueda || filtroEstado || filtroCarrera || filtroAnio;
+  const hayFiltrosActivos = !!(qDebounced || filtroEstado || filtroCarrera || filtroAnio);
 
-  return (
-    <MainLayout>
-      <ConfigProvider locale={locale}>
-        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+ return (
+  <MainLayout>
+    <ConfigProvider locale={locale}>
+      <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+        <Card
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <TrophyOutlined style={{ fontSize: 24 }} />
+              <span>Jugadores</span>
+            </div>
+          }
+          extra={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/jugadores/nuevo')}
+            >
+              Nuevo Jugador
+            </Button>
+          }
+        >
+          {/* Card de Filtros */}
           <Card
             title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <TrophyOutlined style={{ fontSize: 24 }} />
-                <span>Jugadores</span>
-              </div>
+              <span>
+                <FilterOutlined /> Filtros
+              </span>
             }
+            style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
             extra={
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('/jugadores/nuevo')}
-              >
-                Nuevo Jugador
-              </Button>
+              hayFiltrosActivos && (
+                <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+              )
             }
           >
-            {/* Barra de filtros */}
-            <div style={{ 
-              marginBottom: 16, 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 12 
-            }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr auto',
+                gap: 12,
+                alignItems: 'center'
+              }}
+            >
               <Input
                 allowClear
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 prefix={<SearchOutlined />}
-                placeholder="Buscar por nombre o RUT..."
+                placeholder="Buscar por nombre, RUT, carrera o posición…"
               />
-              
+
               <Select
                 allowClear
-                placeholder="Filtrar por estado"
+                placeholder="Estado"
                 value={filtroEstado}
                 onChange={setFiltroEstado}
               >
@@ -351,91 +397,91 @@ export default function Jugadores() {
               <Select
                 allowClear
                 showSearch
-                placeholder="Filtrar por carrera"
+                placeholder="Carrera"
                 value={filtroCarrera}
                 onChange={setFiltroCarrera}
                 filterOption={(input, option) =>
                   (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
                 }
               >
-                {carrerasUnicas.map(carrera => (
+                {carrerasOpts.map(carrera => (
                   <Option key={carrera} value={carrera}>{carrera}</Option>
                 ))}
               </Select>
 
               <Select
                 allowClear
-                placeholder="Año de ingreso"
+                placeholder="Año"
                 value={filtroAnio}
                 onChange={setFiltroAnio}
                 showSearch
+                filterOption={(input, option) =>
+                  (String(option?.children ?? '')).toLowerCase().includes(input.toLowerCase())
+                }
               >
-                {aniosUnicos.map(year => (
+                {aniosOpts.map(year => (
                   <Option key={year} value={year}>{year}</Option>
                 ))}
               </Select>
-
-              {hayFiltrosActivos && (
-                <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
-              )}
             </div>
-
-            <Table
-              columns={columns}
-              dataSource={jugadoresFiltrados}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              size="middle"
-              scroll={{ x: 1100 }}
-              locale={{
-                emptyText: (
-                  <Empty
-                    description={
-                      hayFiltrosActivos
-                        ? 'No se encontraron jugadores con los filtros aplicados'
-                        : 'No hay jugadores registrados'
-                    }
-                  >
-                    {!hayFiltrosActivos && (
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => navigate('/jugadores/nuevo')}
-                      >
-                        Registrar primer jugador
-                      </Button>
-                    )}
-                  </Empty>
-                ),
-              }}
-            />
-
-            {jugadoresFiltrados.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                <Pagination
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  total={pagination.total}
-                  onChange={handlePageChange}
-                  onShowSizeChange={handlePageChange}
-                  showSizeChanger
-                  showTotal={(total) => `Total: ${total} jugadores`}
-                  pageSizeOptions={['5', '10', '20', '50']}
-                />
-              </div>
-            )}
           </Card>
 
-          {/* Modal Detalle */}
-          <JugadorDetalleModal
-            visible={detalleModal}
-            onClose={cerrarModal}
-            jugador={jugadorDetalle}
-            loading={loadingDetalle}
+          {/* Tabla */}
+          <Table
+            columns={columns}
+            dataSource={jugadores}
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+            size="middle"
+            locale={{
+              emptyText: (
+                <Empty
+                  description={
+                    hayFiltrosActivos
+                      ? 'No se encontraron jugadores con los filtros aplicados'
+                      : 'No hay jugadores registrados'
+                  }
+                >
+                  {!hayFiltrosActivos && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => navigate('/jugadores/nuevo')}
+                    >
+                      Registrar primer jugador
+                    </Button>
+                  )}
+                </Empty>
+              ),
+            }}
           />
-        </div>
-      </ConfigProvider>
-    </MainLayout>
-  );
+
+          {jugadores.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
+              <Pagination
+                current={pagination.current}
+                pageSize={pagination.pageSize}
+                total={pagination.total}
+                onChange={handlePageChange}
+                onShowSizeChange={handlePageChange}
+                showSizeChanger
+                showTotal={(total) => `Total: ${total} jugadores`}
+                pageSizeOptions={['5', '10', '20', '50']}
+              />
+            </div>
+          )}
+        </Card>
+
+        {/* Modal Detalle */}
+        <JugadorDetalleModal
+          visible={detalleModal}
+          onClose={() => { setDetalleModal(false); setJugadorDetalle(null); }}
+          jugador={jugadorDetalle}
+          loading={loadingDetalle}
+        />
+      </div>
+    </ConfigProvider>
+  </MainLayout>
+);
 }

@@ -145,6 +145,17 @@ export const crearEstadistica = async (payload) => {
     `No se pueden agregar ${asistencias} asistencias. El equipo marcó ${golesEquipo} goles y ya hay ${asistenciasActualesEquipo} asistencias registradas`
   );
 }
+const mins = Number(minutosJugados ?? 0);
+    if (isNaN(mins) || mins < 0) {
+      throw new Error("Los minutos jugados deben ser un número válido y no negativo");
+    }
+    if (!partido.definidoPorPenales && mins > 90) {
+      throw new Error("Los minutos jugados no pueden superar 90 si el partido no se definió por penales");
+    }
+    // (opcional) si sí hubo penales, limita a 120 (90 + 30 de alargue)
+    if (partido.definidoPorPenales && mins > 120) {
+      throw new Error("Los minutos jugados no pueden superar 120 en un partido definido por penales");
+    }
 
 
     // Las asistencias pueden ser igual o menor a los goles (no todos los goles tienen asistencia)
@@ -228,6 +239,19 @@ export const actualizarEstadistica = async (id, cambios) => {
           `El jugador no puede tener ${nuevosGoles} goles cuando su equipo solo marcó ${golesEquipo}`
         );
       }
+        if (cambios.minutosJugados !== undefined) {
+      const minsAct = Number(cambios.minutosJugados);
+      if (isNaN(minsAct) || minsAct < 0) {
+        throw new Error("Los minutos jugados deben ser un número válido y no negativo");
+      }
+      if (!partido.definidoPorPenales && minsAct > 90) {
+        throw new Error("Los minutos jugados no pueden superar 90 si el partido no se definió por penales");
+      }
+      // (opcional) si sí hubo penales, limita a 120
+      if (partido.definidoPorPenales && minsAct > 120) {
+        throw new Error("Los minutos jugados no pueden superar 120 en un partido definido por penales");
+      }
+    }
 
       const golesActualesEquipo = await calcularGolesEquipo(
         trx, registro.partidoId, jugador.equipoId, id

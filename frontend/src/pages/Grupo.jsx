@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
   Table,
@@ -9,7 +9,6 @@ import {
   Form,
   Input,
   Popconfirm,
-  Tag,
   Empty,
   Row,
   Col,
@@ -50,61 +49,85 @@ export default function Grupos() {
   const [grupoEditando, setGrupoEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
-  // Filtros
+  // Filtro de búsqueda
   const [filtroNombre, setFiltroNombre] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
 
-  // Paginación
+  // Paginación (consistente con backend)
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0
   });
 
+  // Evitar carreras de requests
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
   useEffect(() => {
-    cargarGrupos(1, 10, filtroNombre);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
   }, []);
 
-  // Búsqueda en tiempo real con debounce
+  // Debounce búsqueda
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPagination({ ...pagination, current: 1 });
-      cargarGrupos(1, pagination.pageSize, filtroNombre);
-    }, 300); // Espera 300ms después de que el usuario deja de escribir
-
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setQDebounced(filtroNombre.trim()), 500);
+    return () => clearTimeout(t);
   }, [filtroNombre]);
 
-  const cargarGrupos = async (page = 1, limit = 10, nombre = '') => {
+  // Cargar grupos (envía params compatibles con distintos backends)
+  const cargarGrupos = async (page = 1, limit = pagination.pageSize, nombre = qDebounced) => {
+    const reqId = ++requestIdRef.current;
+    setLoading(true);
     try {
-      setLoading(true);
-      const resultado = await obtenerGrupos({ page, limit, nombre });
-      
-     
-      
-      // Manejar diferentes formatos de respuesta
-      const gruposData = resultado?.grupos || resultado?.data?.grupos || resultado?.data || [];
-      const paginationData = resultado?.pagination || resultado?.data?.pagination || {
-        currentPage: page,
-        totalPages: 1,
-        totalItems: Array.isArray(gruposData) ? gruposData.length : 0,
-        itemsPerPage: limit
+      // Compatibilidad: algunos servicios usan page/limit/nombre; otros pagina/limite/q
+      const params = {
+        page,
+        limit,
+        nombre: nombre || undefined,
+        pagina: page,
+        limite: limit,
+        q: nombre || undefined,
       };
-      
-    
-      
+
+      const resultado = await obtenerGrupos(params);
+      if (reqId !== requestIdRef.current) return; // ignora respuestas viejas
+
+      // Formatos de respuesta soportados
+      const gruposData = resultado?.grupos
+        || resultado?.data?.grupos
+        || resultado?.data
+        || [];
+
+      const paginationData = resultado?.pagination
+        || resultado?.data?.pagination
+        || {
+          currentPage: resultado?.pagina ?? page,
+          itemsPerPage: resultado?.limite ?? limit,
+          totalItems: resultado?.total ?? (Array.isArray(gruposData) ? gruposData.length : 0),
+          totalPages: resultado?.totalPaginas ?? 1,
+        };
+
       setGrupos(Array.isArray(gruposData) ? gruposData : []);
       setPagination({
         current: paginationData.currentPage || page,
         pageSize: paginationData.itemsPerPage || limit,
-        total: paginationData.totalItems || 0
+        total: paginationData.totalItems || 0,
       });
-      
     } catch (error) {
-      message.error('Error al cargar los grupos');
+      if (!mountedRef.current) return;
+      console.error('Error al cargar grupos:', error);
+      message.error(error?.response?.data?.message || 'Error al cargar los grupos');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
+
+  // Efecto único: primera carga + cambios de búsqueda (debounced) + cambio de pageSize
+  useEffect(() => {
+    // siempre reinicia a página 1 cuando cambia búsqueda o pageSize
+    cargarGrupos(1, pagination.pageSize, qDebounced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qDebounced, pagination.pageSize]);
 
   const handleNuevoGrupo = () => {
     setEditando(false);
@@ -138,14 +161,12 @@ export default function Grupos() {
 
       setModalVisible(false);
       form.resetFields();
-      cargarGrupos(pagination.current, pagination.pageSize, filtroNombre);
+      cargarGrupos(pagination.current, pagination.pageSize, qDebounced);
     } catch (error) {
-      if (error.errorFields) {
-        return;
-      }
+      if (error?.errorFields) return; // validación del form
       console.error('Error guardando grupo:', error);
       message.error(
-        error.response?.data?.message || 
+        error?.response?.data?.message ||
         `Error al ${editando ? 'actualizar' : 'crear'} el grupo`
       );
     } finally {
@@ -157,11 +178,16 @@ export default function Grupos() {
     try {
       await eliminarGrupo(id);
       message.success('Grupo eliminado correctamente');
-      cargarGrupos(pagination.current, pagination.pageSize, filtroNombre);
+      // si eliminas el último de la página, intenta retroceder de página
+      const nextPage = grupos.length === 1 && pagination.current > 1
+        ? pagination.current - 1
+        : pagination.current;
+      setPagination(prev => ({ ...prev, current: nextPage }));
+      cargarGrupos(nextPage, pagination.pageSize, qDebounced);
     } catch (error) {
       console.error('Error eliminando grupo:', error);
       message.error(
-        error.response?.data?.message || 
+        error?.response?.data?.message ||
         'Error al eliminar el grupo'
       );
     }
@@ -173,7 +199,7 @@ export default function Grupos() {
 
   const handlePageChange = (page, pageSize) => {
     setPagination({ ...pagination, current: page, pageSize });
-    cargarGrupos(page, pageSize, filtroNombre);
+    cargarGrupos(page, pageSize, qDebounced);
   };
 
   const handleLimpiarFiltro = () => {
@@ -181,7 +207,6 @@ export default function Grupos() {
   };
 
   const columns = [
-    
     {
       title: 'Nombre del Grupo',
       dataIndex: 'nombre',
@@ -193,17 +218,27 @@ export default function Grupos() {
       dataIndex: 'descripcion',
       key: 'descripcion',
       ellipsis: true,
-      render: (descripcion) => descripcion || <span style={{ color: '#999' }}>Sin descripción</span>
+      render: (descripcion) =>
+        descripcion ? (
+          <Tooltip title={descripcion}>
+            <span>{descripcion}</span>
+          </Tooltip>
+        ) : (
+          <span style={{ color: '#999' }}>Sin descripción</span>
+        ),
     },
     {
       title: 'Miembros',
       key: 'miembros',
-      render: (_, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-          <UserOutlined style={{ color: '#52c41a' }} />
-          <strong style={{ fontSize: 16 }}>{record.jugadorGrupos?.length || 0}</strong>
-        </div>
-      ),
+      render: (_, record) => {
+        const count = Array.isArray(record.jugadorGrupos) ? record.jugadorGrupos.length : 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+            <UserOutlined style={{ color: '#52c41a' }} />
+            <strong style={{ fontSize: 16 }}>{count}</strong>
+          </div>
+        );
+      },
       width: 120,
       align: 'center',
     },
@@ -236,11 +271,7 @@ export default function Grupos() {
             okButtonProps={{ danger: true }}
           >
             <Tooltip title="Eliminar" placement="top">
-              <Button 
-                danger 
-                size="middle" 
-                icon={<DeleteOutlined />}
-              />
+              <Button danger size="middle" icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -249,13 +280,12 @@ export default function Grupos() {
     },
   ];
 
+  const hayFiltrosActivos = !!qDebounced;
+
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <Card 
-          title={<><TeamOutlined /> Gestión de Grupos</>} 
-          variant="filled"
-        >
+        <Card title={<><TeamOutlined />{' '}Gestión de Grupos</>} variant="filled">
           {/* Filtros y Acciones */}
           <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
             <Row gutter={16} align="middle">
@@ -266,19 +296,19 @@ export default function Grupos() {
                   onChange={(e) => setFiltroNombre(e.target.value)}
                   prefix={<SearchOutlined />}
                   allowClear
-                  style={{ maxWidth: '400px' }}
+                  style={{ maxWidth: 400 }}
                 />
               </Col>
               <Col>
                 <Space>
-                  {filtroNombre && (
+                  {qDebounced && (
                     <Button onClick={handleLimpiarFiltro}>
                       Limpiar Filtro
                     </Button>
                   )}
                   <Button
                     icon={<ReloadOutlined />}
-                    onClick={() => cargarGrupos(pagination.current, pagination.pageSize, filtroNombre)}
+                    onClick={() => cargarGrupos(pagination.current, pagination.pageSize, qDebounced)}
                     loading={loading}
                   >
                     Actualizar
@@ -305,22 +335,30 @@ export default function Grupos() {
               pagination={false}
               locale={{
                 emptyText: (
-                  <Empty description="No hay grupos creados">
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleNuevoGrupo}
-                    >
-                      Crear Grupo
-                    </Button>
+                  <Empty
+                    description={
+                      hayFiltrosActivos
+                        ? 'No se encontraron grupos con el filtro aplicado'
+                        : 'No hay grupos creados'
+                    }
+                  >
+                    {!hayFiltrosActivos && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleNuevoGrupo}
+                      >
+                        Crear Grupo
+                      </Button>
+                    )}
                   </Empty>
                 ),
               }}
             />
 
-            {/* Paginación externa */}
+            {/* Paginación externa (a la izquierda) */}
             {pagination.total > 0 && (
-              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
                 <Pagination
                   current={pagination.current}
                   pageSize={pagination.pageSize}
@@ -369,11 +407,7 @@ export default function Grupos() {
             ]}
             width={600}
           >
-            <Form
-              form={form}
-              layout="vertical"
-              style={{ marginTop: 16 }}
-            >
+            <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
               <Form.Item
                 label="Nombre del Grupo"
                 name="nombre"

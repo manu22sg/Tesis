@@ -84,6 +84,7 @@ export default function Sesiones() {
       setLoadingDetalle(true);
       setDetalleModal(true);
       const detalle = await obtenerSesionPorId(id);
+      console.log(detalle)
       setSesionDetalle(detalle);
     } catch {
       message.error('Error al cargar detalle');

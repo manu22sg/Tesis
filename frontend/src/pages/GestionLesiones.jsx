@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
   message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
@@ -33,13 +33,16 @@ export default function GestionLesiones() {
   const [lesiones, setLesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [modalEditando, setModalEditando] = useState(false);
   const [lesionActual, setLesionActual] = useState(null);
+
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  // Filtros
+  // Filtros (server-side)
   const [busqueda, setBusqueda] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
   const [filtroJugadorId, setFiltroJugadorId] = useState(null);
   const [rangoFechas, setRangoFechas] = useState(null);
 
@@ -48,11 +51,24 @@ export default function GestionLesiones() {
   const esEstudiante = rolUsuario === 'estudiante';
   const puedeEditar = ['entrenador', 'superadmin'].includes(rolUsuario);
 
+  // control de carreras de requests
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Debounce de búsqueda (500 ms)
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(busqueda.trim()), 500);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
   useEffect(() => {
     if (puedeEditar) cargarJugadores();
-    cargarLesiones();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.current, pagination.pageSize, filtroJugadorId, rangoFechas]);
+  }, [puedeEditar]);
 
   const cargarJugadores = async () => {
     try {
@@ -64,33 +80,57 @@ export default function GestionLesiones() {
     }
   };
 
-  const cargarLesiones = async () => {
+  const cargarLesiones = async (
+    page = 1,
+    pageSize = pagination.pageSize,
+    q = qDebounced,
+    jugador = filtroJugadorId,
+    rango = rangoFechas
+  ) => {
+    const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
       const params = {
-        pagina: pagination.current,
-        limite: pagination.pageSize,
+        pagina: page,
+        limite: pageSize,
       };
-
-      if (filtroJugadorId) params.jugadorId = filtroJugadorId;
-      if (rangoFechas) {
-        params.desde = rangoFechas[0].format('YYYY-MM-DD');
-        params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+      if (q) params.q = q; // 🔹 búsqueda server-side
+      if (jugador) params.jugadorId = jugador;
+      if (rango) {
+        params.desde = rango[0].format('YYYY-MM-DD');
+        params.hasta = rango[1].format('YYYY-MM-DD');
       }
 
       const response = await obtenerLesiones(params);
-      setLesiones(response.data?.lesiones || []);
+      if (reqId !== requestIdRef.current) return; // ignora respuestas viejas
+
+      const lista = response.data?.lesiones || [];
+      setLesiones(lista);
       setPagination(prev => ({
         ...prev,
-        total: response.data?.total || 0,
+        current: response.data?.pagina ?? page,
+        pageSize,
+        total: response.data?.total ?? 0,
         totalPages: response.data?.totalPaginas,
       }));
     } catch (error) {
+      if (!mountedRef.current) return;
       console.error('Error al cargar lesiones:', error);
       message.error(error.message || 'Error al cargar lesiones');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
+  };
+
+  // Efecto único: carga inicial + cambios de filtros/búsqueda/tamaño -> vuelve a página 1
+  useEffect(() => {
+    cargarLesiones(1, pagination.pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qDebounced, filtroJugadorId, rangoFechas, pagination.pageSize]);
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination(prev => ({ ...prev, current: page, pageSize }));
+    cargarLesiones(page, pageSize, qDebounced, filtroJugadorId, rangoFechas);
   };
 
   const handleCrear = async (values) => {
@@ -107,7 +147,7 @@ export default function GestionLesiones() {
       message.success('Lesión registrada exitosamente');
       setModalVisible(false);
       form.resetFields();
-      cargarLesiones();
+      cargarLesiones(pagination.current, pagination.pageSize);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al crear lesión');
@@ -128,7 +168,7 @@ export default function GestionLesiones() {
       setModalEditando(false);
       setLesionActual(null);
       form.resetFields();
-      cargarLesiones();
+      cargarLesiones(pagination.current, pagination.pageSize);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al actualizar lesión');
@@ -139,7 +179,7 @@ export default function GestionLesiones() {
     try {
       await eliminarLesion(id);
       message.success('Lesión eliminada exitosamente');
-      cargarLesiones();
+      cargarLesiones(pagination.current, pagination.pageSize);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al eliminar lesión');
@@ -162,10 +202,7 @@ export default function GestionLesiones() {
     setBusqueda('');
     setFiltroJugadorId(null);
     setRangoFechas(null);
-  };
-
-  const handlePageChange = (page, pageSize) => {
-    setPagination({ ...pagination, current: page, pageSize });
+    // qDebounced se vacía tras 500ms y dispara la recarga
   };
 
   // Opciones memoizadas para Select (evita ReactNode -> toLowerCase error)
@@ -175,20 +212,6 @@ export default function GestionLesiones() {
       label: `${j.usuario?.nombre || `Jugador #${j.id}`} - ${j.usuario?.rut || ''}`.trim(),
     }));
   }, [jugadores]);
-
-  // Filtrado local para la tabla (búsqueda rápida)
-  const lesionesFiltradas = lesiones.filter(lesion => {
-    if (!busqueda) return true;
-    const searchLower = busqueda.toLowerCase();
-    const nombreJugador = lesion.jugador?.usuario?.nombre?.toLowerCase() || '';
-    const rutJugador = lesion.jugador?.usuario?.rut?.toLowerCase() || '';
-    const diagnostico = lesion.diagnostico?.toLowerCase() || '';
-    return (
-      nombreJugador.includes(searchLower) ||
-      rutJugador.includes(searchLower) ||
-      diagnostico.includes(searchLower)
-    );
-  });
 
   const columns = [
     {
@@ -207,7 +230,7 @@ export default function GestionLesiones() {
           </div>
         );
       },
-      width: 200,
+      width: 220,
     },
     {
       title: 'Diagnóstico',
@@ -216,7 +239,7 @@ export default function GestionLesiones() {
       ellipsis: { showTitle: false },
       render: (texto) => (
         <Tooltip title={texto}>
-          <span>{texto}</span>
+          <span>{texto || '—'}</span>
         </Tooltip>
       ),
     },
@@ -224,7 +247,7 @@ export default function GestionLesiones() {
       title: 'Fecha Inicio',
       dataIndex: 'fechaInicio',
       key: 'fechaInicio',
-      render: (fecha) => dayjs(fecha).format('DD/MM/YYYY'),
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
       align: 'center',
       width: 120,
     },
@@ -296,7 +319,7 @@ export default function GestionLesiones() {
       : []),
   ];
 
-  const hayFiltrosActivos = busqueda || filtroJugadorId || rangoFechas;
+  const hayFiltrosActivos = !!(qDebounced || filtroJugadorId || rangoFechas);
 
   return (
     <MainLayout>
@@ -365,11 +388,10 @@ export default function GestionLesiones() {
             {/* Tabla */}
             <Table
               columns={columns}
-              dataSource={lesionesFiltradas}
+              dataSource={lesiones}
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={false}
               size="middle"
               locale={{
                 emptyText: (
@@ -394,8 +416,8 @@ export default function GestionLesiones() {
               }}
             />
 
-            {lesionesFiltradas.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+            {lesiones.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
                 <Pagination
                   current={pagination.current}
                   pageSize={pagination.pageSize}

@@ -18,11 +18,9 @@ const PartidoCampeonatoSchema = new EntitySchema({
     horaInicio: { type: "time", nullable: true },
     horaFin: { type: "time", nullable: true },
 
-    // Marcador neutral
     golesA: { type: "int", default: null },
     golesB: { type: "int", default: null },
 
-    // 🆕 PENALES
     penalesA: { type: "int", nullable: true, default: null },
     penalesB: { type: "int", nullable: true, default: null },
     definidoPorPenales: { type: "boolean", default: false }, // indica si se fue a penales

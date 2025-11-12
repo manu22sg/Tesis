@@ -115,7 +115,7 @@ const AprobarReservasPage = () => {
         } finally {
           setBuscandoUsuarios(false);
         }
-      }, 300);
+      }, 500);
     }
   };
 

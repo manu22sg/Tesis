@@ -20,28 +20,43 @@ export async function crearLesion(data) {
   }
 }
 
-export async function obtenerLesiones({ pagina=1, limite=10, jugadorId, desde, hasta }) {
+export async function obtenerLesiones({ pagina=1, limite=10, jugadorId, desde, hasta, q }) {
   try {
     const repo = AppDataSource.getRepository(LesionSchema);
+
+    // ⚠️ Convierte params (vienen como string desde req.query)
+    const page = Math.max(parseInt(pagina, 10) || 1, 1);
+    const size = Math.min(Math.max(parseInt(limite, 10) || 10, 1), 100); // cap 100
+
     const qb = repo.createQueryBuilder('l')
       .leftJoinAndSelect('l.jugador','jugador')
       .leftJoinAndSelect('jugador.usuario','usuario')
-
       .orderBy('l.fechaInicio','DESC')
-      .skip((pagina-1)*limite)
-      .take(limite);
+      .skip((page-1)*size)
+      .take(size);
 
-    if (jugadorId) qb.andWhere('l.jugadorId = :jugadorId', { jugadorId });
+    if (jugadorId) qb.andWhere('l.jugadorId = :jugadorId', { jugadorId: Number(jugadorId) });
     if (desde) qb.andWhere('l.fechaInicio >= :desde', { desde });
     if (hasta) qb.andWhere('l.fechaInicio <= :hasta', { hasta });
 
+    if (q && String(q).trim() !== '') {
+      const term = `%${q.trim()}%`;
+      // Postgres: ILIKE; si usas otro, cambia a LOWER(...)
+      qb.andWhere(`
+        (l.diagnostico ILIKE :term
+         OR usuario.nombre ILIKE :term
+         OR usuario.rut ILIKE :term)
+      `, { term });
+    }
+
     const [rows, total] = await qb.getManyAndCount();
-    return [{ lesiones: rows, total, pagina, totalPaginas: Math.ceil(total/limite) }, null];
+    return [{ lesiones: rows, total, pagina: page, totalPaginas: Math.ceil(total/size) }, null];
   } catch (e) {
     console.error('Error listando lesiones:', e);
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function obtenerLesionPorId(id) {
   try {

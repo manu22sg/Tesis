@@ -1,7 +1,6 @@
 import React, { useState, createContext, useContext } from 'react';
 import { Layout, Menu, theme, Avatar, Dropdown } from 'antd';
 import {
-  DashboardOutlined,
   CalendarOutlined,
   UserOutlined,
   TeamOutlined,
@@ -63,7 +62,27 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   // 🏋️ Menús según rol
   const entrenadorItems = [
-    getItem('Dashboard', 'dashboard', <DashboardOutlined />),
+    // 🏆 Campeonatos PRIMERO
+    getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
+      getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
+      
+      ...(campeonatoActivo ? [
+        { type: 'divider', key: 'divider-campeonato' },
+        getItem(
+          `★ ${campeonatoActivo.nombre}`, 
+          'sub_campeonato_activo', 
+          <StarOutlined />, 
+          [
+            getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
+            getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
+            getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
+            getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
+            getItem('Estadísticas', `campeonato-${campeonatoActivo.id}-estadisticas`, <BarChartOutlined />),
+          ]
+        ),
+      ] : [])
+    ]),
+    
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -85,32 +104,9 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
-    
-    // 🏆 Campeonatos con submenu dinámico
-    getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
-      getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
-      
-      //  Solo aparece si hay campeonato activo
-      ...(campeonatoActivo ? [
-        { type: 'divider', key: 'divider-campeonato' },
-        getItem(
-          ` ${campeonatoActivo.nombre}`, 
-          'sub_campeonato_activo', 
-          <StarOutlined />, 
-          [
-            getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
-            getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
-            getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
-            getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
-          ]
-        ),
-      ] : [])
-    ]),
   ];
 
   const superAdminItems = [
-    getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -134,7 +130,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   ];
 
   const estudianteItems = [
-    getItem('Dashboard', 'dashboard', <DashboardOutlined />),
     getItem('Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
@@ -147,7 +142,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   ];
 
   const academicoItems = [
-    getItem('Dashboard', 'dashboard', <DashboardOutlined />),
     getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
@@ -157,7 +151,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   //  Rutas ↔ keys
   const pathToKey = {
-    '/dashboard': 'dashboard',
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
     '/campeonatos': 'campeonatos-lista',
@@ -181,14 +174,14 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   // Detectar rutas dinámicas de campeonatos
   let selectedKey = selectedKeyOverride;
   if (!selectedKey) {
-    const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla)$/);
+    const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla|estadisticas)$/);
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       selectedKey = `campeonato-${id}-${seccion}`;
     } else if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
       selectedKey = 'entrenamientos';
     } else {
-      selectedKey = pathToKey[location.pathname] || 'dashboard';
+      selectedKey = pathToKey[location.pathname] || 'campeonatos-lista';
     }
   }
 
@@ -206,7 +199,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   // Navegación al hacer click
   const onMenuClick = ({ key }) => {
     // Rutas dinámicas de campeonatos
-    const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla)$/);
+    const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla|estadisticas)$/);
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       navigate(`/campeonatos/${id}/${seccion}`);
@@ -214,7 +207,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     }
 
     const keyToPath = {
-      dashboard: '/dashboard',
       'canchas-gestion': '/gestion-canchas',
       'canchas-ver': '/canchas',
       canchas: '/canchas',
@@ -240,7 +232,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     if (route) navigate(route);
   };
 
-  // 🧩 Menús por rol
   const itemsByRole = {
     superadmin: superAdminItems,
     entrenador: entrenadorItems,
@@ -248,7 +239,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     academico: academicoItems,
   };
 
-  // 👤 Menú usuario superior derecho
   const userMenuItems = [
     {
       key: 'profile',
@@ -270,33 +260,37 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     <CampeonatoActivoContext.Provider value={{ campeonatoActivo, setCampeonatoActivo }}>
       <Layout style={{ minHeight: '100vh' }}>
         <Sider
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          collapsedWidth={80}
-          style={{
-            position: 'fixed',
-            height: '100vh',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            zIndex: 100,
-            overflow: 'auto',
-          }}
-        >
+  collapsible
+  collapsed={collapsed}
+  onCollapse={setCollapsed}
+  collapsedWidth={80}
+  style={{
+    position: 'fixed',
+    height: '100vh',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 100,
+    overflow: 'auto',
+    // 👇 ESTAS LÍNEAS OCULTAN LA BARRA DE SCROLL
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE y Edge
+  }}
+  className="hide-scrollbar" // Para Chrome/Safari
+>
           <div
             style={{
-              height: 64,
+              height: 48,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#fff',
-              fontSize: collapsed ? '16px' : '20px',
+              fontSize: collapsed ? '14px' : '18px',
               fontWeight: 'bold',
               padding: '0 16px',
             }}
           >
-            {collapsed ? '⚽' : '⚽ Sistema Deportivo'}
+            {collapsed ? '⚽' : 'Sistema Deportivo'}
           </div>
 
           <Menu
