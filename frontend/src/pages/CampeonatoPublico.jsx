@@ -1,28 +1,13 @@
 // src/pages/CampeonatosPublico.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Card,
-  Row,
-  Col,
-  Tag,
-  Button,
-  Space,
-  Empty,
-  Spin,
-  Select,
-  Badge,
-  Statistic,
-  Divider,
-  ConfigProvider
+  Card, Row, Col, Tag, Button, Space, Empty, Spin, Select,
+  Statistic, Divider, ConfigProvider
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
-  TrophyOutlined,
-  TeamOutlined,
-  CalendarOutlined,
-  FireOutlined,
-  EyeOutlined,
-  FilterOutlined
+  TrophyOutlined, TeamOutlined, CalendarOutlined,
+  FireOutlined, EyeOutlined, FilterOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { campeonatoService } from '../services/campeonato.services.js';
@@ -32,62 +17,50 @@ const { Option } = Select;
 
 export default function CampeonatosPublico() {
   const navigate = useNavigate();
-  const [campeonatos, setCampeonatos] = useState([]);
   const [campeonatosOriginales, setCampeonatosOriginales] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Filtros
+  // ⭐ FILTROS – INCLUYE POR DEFECTO SOLO “creado” & “en_juego”
   const [filtros, setFiltros] = useState({
     formato: null,
     genero: null,
     anio: null,
     semestre: null,
-    estado: null
+    estado: ['creado', 'en_juego']
   });
 
+  // === CARGAR CAMPEONATOS ===
   useEffect(() => {
-    cargarCampeonatos();
+    const cargar = async () => {
+      setLoading(true);
+      try {
+        const data = await campeonatoService.listar();
+        setCampeonatosOriginales(data || []);
+      } catch (error) {
+        console.error('Error cargando campeonatos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    cargar();
   }, []);
 
-  const cargarCampeonatos = async () => {
-    setLoading(true);
-    try {
-      const data = await campeonatoService.listar();
-      setCampeonatos(data);
-      setCampeonatosOriginales(data);
-    } catch (error) {
-      console.error('Error cargando campeonatos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // === CALCULAR FILTRADOS SIN TOCAR ESTADO ===
+  const campeonatosFiltrados = useMemo(() => {
+    let res = [...campeonatosOriginales];
 
-  // Aplicar filtros
-  useEffect(() => {
-    let resultado = [...campeonatosOriginales];
-
-    if (filtros.formato) {
-      resultado = resultado.filter(c => c.formato === filtros.formato);
-    }
-    if (filtros.genero) {
-      resultado = resultado.filter(c => c.genero === filtros.genero);
-    }
-    if (filtros.anio) {
-      resultado = resultado.filter(c => c.anio === filtros.anio);
-    }
-    if (filtros.semestre) {
-      resultado = resultado.filter(c => c.semestre === filtros.semestre);
-    }
-    if (filtros.estado) {
-      resultado = resultado.filter(c => c.estado === filtros.estado);
+    // estado es array (creado / en_juego)
+    if (filtros.estado?.length > 0) {
+      res = res.filter(c => filtros.estado.includes(c.estado));
     }
 
-    setCampeonatos(resultado);
+    if (filtros.formato) res = res.filter(c => c.formato === filtros.formato);
+    if (filtros.genero) res = res.filter(c => c.genero === filtros.genero);
+    if (filtros.anio) res = res.filter(c => c.anio === filtros.anio);
+    if (filtros.semestre) res = res.filter(c => c.semestre === filtros.semestre);
+
+    return res;
   }, [filtros, campeonatosOriginales]);
-
-  const handleFiltroChange = (campo, valor) => {
-    setFiltros(prev => ({ ...prev, [campo]: valor }));
-  };
 
   const limpiarFiltros = () => {
     setFiltros({
@@ -95,11 +68,10 @@ export default function CampeonatosPublico() {
       genero: null,
       anio: null,
       semestre: null,
-      estado: null
+      estado: ['creado', 'en_juego']
     });
   };
 
-  // Años disponibles
   const aniosDisponibles = useMemo(() => {
     const anios = [...new Set(campeonatosOriginales.map(c => c.anio))];
     return anios.sort((a, b) => b - a);
@@ -120,48 +92,41 @@ export default function CampeonatosPublico() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: '24px', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-          {/* Header */}
-          <Card
-            style={{ marginBottom: 24 }}
-            bodyStyle={{ padding: '24px 32px' }}
-          >
-            <Space size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Space>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 24 }}>Campeonatos Universitarios</h2>
-                  <p style={{ margin: 0, color: '#666' }}>
-                    Explora los campeonatos y sigue los resultados
-                  </p>
-                </div>
-              </Space>
+        <div style={{ padding: 24, backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+          
+          {/* HEADER */}
+          <Card style={{ marginBottom: 24 }} bodyStyle={{ padding: '24px 32px' }}>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ margin: 0 }}>Campeonatos Universitarios</h2>
+                <p style={{ margin: 0, color: '#666' }}>
+                  Explora los campeonatos activos y próximos
+                </p>
+              </div>
               <Statistic
-                title="Campeonatos Activos"
-                value={campeonatos.filter(c => c.estado === 'en_juego').length}
+                title="En Curso"
+                value={campeonatosFiltrados.filter(c => c.estado === 'en_juego').length}
                 prefix={<FireOutlined />}
                 valueStyle={{ color: '#52c41a' }}
               />
             </Space>
           </Card>
 
-          {/* Filtros */}
+          {/* FILTROS */}
           <Card
             title={<Space><FilterOutlined /> Filtros</Space>}
             style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
-            extra={
-              <Button onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>
-                Limpiar Filtros
-              </Button>
-            }
+            extra={<Button onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>Limpiar</Button>}
           >
             <Row gutter={[16, 16]}>
+              
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
+                  allowClear
                   style={{ width: '100%' }}
                   placeholder="Formato"
-                  allowClear
                   value={filtros.formato}
-                  onChange={(value) => handleFiltroChange('formato', value)}
+                  onChange={v => setFiltros(p => ({ ...p, formato: v }))}
                 >
                   <Option value="5v5">5v5</Option>
                   <Option value="7v7">7v7</Option>
@@ -171,11 +136,11 @@ export default function CampeonatosPublico() {
 
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
+                  allowClear
                   style={{ width: '100%' }}
                   placeholder="Género"
-                  allowClear
                   value={filtros.genero}
-                  onChange={(value) => handleFiltroChange('genero', value)}
+                  onChange={v => setFiltros(p => ({ ...p, genero: v }))}
                 >
                   <Option value="masculino">Masculino</Option>
                   <Option value="femenino">Femenino</Option>
@@ -185,151 +150,135 @@ export default function CampeonatosPublico() {
 
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
+                  allowClear
                   style={{ width: '100%' }}
                   placeholder="Año"
-                  allowClear
                   value={filtros.anio}
-                  onChange={(value) => handleFiltroChange('anio', value)}
+                  onChange={v => setFiltros(p => ({ ...p, anio: v }))}
                 >
-                  {aniosDisponibles.map(anio => (
-                    <Option key={anio} value={anio}>{anio}</Option>
+                  {aniosDisponibles.map(a => (
+                    <Option key={a} value={a}>{a}</Option>
                   ))}
                 </Select>
               </Col>
 
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
+                  allowClear
                   style={{ width: '100%' }}
                   placeholder="Semestre"
-                  allowClear
                   value={filtros.semestre}
-                  onChange={(value) => handleFiltroChange('semestre', value)}
+                  onChange={v => setFiltros(p => ({ ...p, semestre: v }))}
                 >
                   <Option value={1}>Semestre 1</Option>
                   <Option value={2}>Semestre 2</Option>
                 </Select>
               </Col>
 
+              {/* ⭐ ESTADO MULTISELECT (mostrando solo próximos/en curso por defecto) */}
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
+                  mode="multiple"
+                  allowClear
                   style={{ width: '100%' }}
                   placeholder="Estado"
-                  allowClear
                   value={filtros.estado}
-                  onChange={(value) => handleFiltroChange('estado', value)}
+                  onChange={v => setFiltros(p => ({ ...p, estado: v }))}
                 >
                   <Option value="creado">Próximamente</Option>
                   <Option value="en_juego">En Curso</Option>
                   <Option value="finalizado">Finalizado</Option>
+                  <Option value="cancelado">Cancelado</Option>
                 </Select>
               </Col>
             </Row>
           </Card>
 
-          {/* Grid de Campeonatos */}
+          {/* RESULTADO */}
           {loading ? (
             <Card>
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <Spin size="large" tip="Cargando campeonatos..." />
+                <Spin size="large" />
               </div>
             </Card>
-          ) : campeonatos.length > 0 ? (
+          ) : campeonatosFiltrados.length > 0 ? (
             <Row gutter={[24, 24]}>
-              {campeonatos.map(campeonato => {
-                const estadoConfig = getEstadoConfig(campeonato.estado);
-                const cantidadEquipos = campeonato.equipos?.length || 0;
-                const cantidadPartidos = campeonato.partidos?.length || 0;
-                const partidosFinalizados = campeonato.partidos?.filter(p => p.estado === 'finalizado').length || 0;
+              {campeonatosFiltrados.map(c => {
+                const estadoConfig = getEstadoConfig(c.estado);
+                const equiposCount = c.equipos?.length || 0;
+                const totalPartidos = c.partidos?.length || 0;
+                const finalizados = c.partidos?.filter(p => p.estado === 'finalizado').length || 0;
 
                 return (
-                  <Col xs={24} sm={12} lg={8} key={campeonato.id}>
+                  <Col xs={24} sm={12} lg={8} key={c.id}>
                     <Card
                       hoverable
-                      style={{
-                        height: '100%',
-                        borderRadius: 8,
-                        overflow: 'hidden'
-                      }}
                       bodyStyle={{ padding: 0 }}
+                      style={{ borderRadius: 8 }}
                     >
-                      {/* Header del card */}
-                      <div
-                        style={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          padding: '24px',
-                          color: 'white'
-                        }}
-                      >
+                      {/* HEADER */}
+                      <div style={{
+                        padding: 24,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white'
+                      }}>
                         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                           <TrophyOutlined style={{ fontSize: 32 }} />
-                          <Tag color={estadoConfig.color} style={{ fontSize: 12 }}>
-                            {estadoConfig.text}
-                          </Tag>
+                          <Tag color={estadoConfig.color}>{estadoConfig.text}</Tag>
                         </Space>
-                        <h3 style={{ color: 'white', marginTop: 12, marginBottom: 0 }}>
-                          {campeonato.nombre}
-                        </h3>
+                        <h3 style={{ marginTop: 12 }}>{c.nombre}</h3>
                       </div>
 
-                      {/* Body del card */}
-                      <div style={{ padding: '20px' }}>
-                        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                          {/* Info básica */}
-                          <Row gutter={16}>
+                      {/* BODY */}
+                      <div style={{ padding: 20 }}>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                           <Row gutter={12}>
+
+      {/* Formato */}
+      <Col span={12}>
+        <span style={{ color: '#999' }}>Formato</span>
+        <Tag color="purple">
+          {(c.formato || "").charAt(0).toUpperCase() + (c.formato || "").slice(1)}
+        </Tag>
+      </Col>
+
+      {/* Género con colores dinámicos */}
+      <Col span={12}>
+        <span style={{ color: '#999' }}>Género </span>
+        <Tag color={
+          c.genero === "masculino" ? "blue" :
+          c.genero === "femenino" ? "pink" : "orange"
+        }>
+          {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
+        </Tag>
+      </Col>
+
+    </Row>
+
+                          <Divider />
+
+                          <Row gutter={12}>
                             <Col span={12}>
-                              <Space direction="vertical" size={0}>
-                                <span style={{ fontSize: 12, color: '#999' }}>Formato</span>
-                                <Tag color="purple">{campeonato.formato}</Tag>
-                              </Space>
+                              <TeamOutlined style={{ color: '#1890ff' }} />
+                              <strong style={{ marginLeft: 8 }}>{equiposCount}</strong> Equipos
                             </Col>
                             <Col span={12}>
-                              <Space direction="vertical" size={0}>
-                                <span style={{ fontSize: 12, color: '#999' }}>Género</span>
-                                <Tag color={
-                                  campeonato.genero === 'masculino' ? 'blue' :
-                                  campeonato.genero === 'femenino' ? 'pink' : 'orange'
-                                }>
-                                  {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
-                                </Tag>
-                              </Space>
+                              <CalendarOutlined style={{ color: '#52c41a' }} />
+                              <strong style={{ marginLeft: 8 }}>
+                                {finalizados}/{totalPartidos}
+                              </strong> Partidos
                             </Col>
                           </Row>
 
-                          <Divider style={{ margin: '8px 0' }} />
-
-                          {/* Estadísticas */}
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Space>
-                                <TeamOutlined style={{ color: '#1890ff' }} />
-                                <div>
-                                  <div style={{ fontSize: 20, fontWeight: 'bold' }}>{cantidadEquipos}</div>
-                                  <div style={{ fontSize: 12, color: '#999' }}>Equipos</div>
-                                </div>
-                              </Space>
-                            </Col>
-                            <Col span={12}>
-                              <Space>
-                                <CalendarOutlined style={{ color: '#52c41a' }} />
-                                <div>
-                                  <div style={{ fontSize: 20, fontWeight: 'bold' }}>
-                                    {partidosFinalizados}/{cantidadPartidos}
-                                  </div>
-                                  <div style={{ fontSize: 12, color: '#999' }}>Partidos</div>
-                                </div>
-                              </Space>
-                            </Col>
-                          </Row>
-
-                          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
-                            {campeonato.anio} • Semestre {campeonato.semestre}
+                          <div style={{ color: '#999' }}>
+                            {c.anio} • Semestre {c.semestre}
                           </div>
 
                           <Button
                             type="primary"
-                            icon={<EyeOutlined />}
                             block
-                            onClick={() => navigate(`/campeonatos/${campeonato.id}/publico`)}
+                            icon={<EyeOutlined />}
+                            onClick={() => navigate(`/campeonatos/${c.id}/publico`)}
                           >
                             Ver Detalles
                           </Button>
@@ -342,21 +291,10 @@ export default function CampeonatosPublico() {
             </Row>
           ) : (
             <Card>
-              <Empty
-                description={
-                  hayFiltrosActivos
-                    ? 'No se encontraron campeonatos con los filtros aplicados'
-                    : 'No hay campeonatos disponibles'
-                }
-              >
-                {hayFiltrosActivos && (
-                  <Button type="primary" onClick={limpiarFiltros}>
-                    Limpiar Filtros
-                  </Button>
-                )}
-              </Empty>
+              <Empty description="No hay campeonatos disponibles" />
             </Card>
           )}
+
         </div>
       </ConfigProvider>
     </MainLayout>

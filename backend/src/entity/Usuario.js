@@ -18,6 +18,11 @@ const UsuarioSchema = new EntitySchema({
       type: "varchar",
       length: 100,
     },
+    apellido: {
+      type: "varchar",
+      length: 100,
+      nullable:true
+    },
     email: {
       type: "varchar",
       length: 100,
@@ -35,6 +40,16 @@ const UsuarioSchema = new EntitySchema({
       length: 20,
       default: "activo",
     },
+    carreraId: {
+      type: "int",
+      nullable: true, // alumnos la usan, académicos/admin pueden tenerla null
+    },
+    verificado: {
+      type: "boolean",
+      default: false, // ← NUEVO CAMPO
+      nullable: true,
+    },
+
     fechaCreacion: {
       type: "timestamp",
       createDate: true,
@@ -45,11 +60,16 @@ const UsuarioSchema = new EntitySchema({
     },
   },
   relations: {
+    carrera: {
+      type: "many-to-one",
+      target: "Carrera",
+      joinColumn: { name: "carreraId" },
+    },
     jugadoresCampeonato: {
-  type: "one-to-many",
-  target: "JugadorCampeonato",
-  inverseSide: "usuario",
-},
+      type: "one-to-many",
+      target: "JugadorCampeonato",
+      inverseSide: "usuario",
+    },
     jugador: {
       type: "one-to-one",
       target: "Jugador",
@@ -88,6 +108,10 @@ const UsuarioSchema = new EntitySchema({
     {
       name: "idx_usuarios_rol",
       columns: ["rol"],
+    },
+    {
+      name: "idx_usuarios_carrera",
+      columns: ["carreraId"],
     },
   ],
 });

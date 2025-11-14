@@ -6,8 +6,11 @@ import api from './root.services.js';
 export const listarEstadisticas = async (filtros = {}) => {
   try {
     const params = {};
+
     if (filtros.partidoId) params.partidoId = filtros.partidoId;
     if (filtros.jugadorCampeonatoId) params.jugadorCampeonatoId = filtros.jugadorCampeonatoId;
+
+    if (filtros.campeonatoId) params.campeonatoId = filtros.campeonatoId;
 
     const res = await api.get('/estadisticaCampeonato', { params });
     return res.data.data;
@@ -15,6 +18,7 @@ export const listarEstadisticas = async (filtros = {}) => {
     throw error.response?.data?.message || 'Error al obtener estadísticas';
   }
 };
+
 
 //  Crear nueva estadística
 export const crearEstadistica = async (payload) => {

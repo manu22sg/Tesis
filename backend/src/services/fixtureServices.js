@@ -80,21 +80,21 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     const eqRepo = trx.getRepository("EquipoCampeonato");
     const partRepo = trx.getRepository("PartidoCampeonato");
     const campRepo = trx.getRepository("Campeonato");
+    const jugRepo = trx.getRepository("JugadorCampeonato");
 
-    // Validar que el campeonato existe
+    // 1) Validar que el campeonato existe
     const camp = await campRepo.findOne({ where: { id: Number(campeonatoId) } });
     if (!camp) throw new Error("Campeonato no existe");
 
-    // Validar estado del campeonato
+    // 2) Validar estado del campeonato
     if (camp.estado !== "creado") {
-      throw new Error("El campeonato no está en estado creado");
+      throw new Error("El campeonato no está en estado 'creado'");
     }
 
-    // Verificar que no existan partidos ya sorteados
+    // 3) Verificar que no existan partidos ya sorteados
     const partidosExistentes = await partRepo.count({ 
       where: { campeonatoId: Number(campeonatoId) } 
     });
-    
     if (partidosExistentes > 0) {
       throw new Error(
         `Ya se sorteó la primera ronda de este campeonato. ` +
@@ -102,13 +102,63 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       );
     }
 
-    // Validar equipos mínimos
-    const equipos = await eqRepo.find({ where: { campeonatoId: Number(campeonatoId) } });
+    // 4) Traer equipos con su carrera
+    const equipos = await eqRepo.find({ 
+      where: { campeonatoId: Number(campeonatoId) },
+      relations: ["carrera"],
+    });
+
     if (equipos.length < 2) {
       throw new Error("Se requieren al menos 2 equipos para sortear la primera ronda");
     }
 
-    // Barajar equipos
+    // 5) Calcular mínimo de jugadores por equipo según formato
+    const minPorEquipo =
+      camp.formato === "11v11" ? 11 :
+      camp.formato === "7v7" ? 7 : 5;
+
+    // 6) Validar cada equipo: mínimo de jugadores + carrera correcta
+    for (const equipo of equipos) {
+      if (!equipo.carreraId || !equipo.carrera) {
+        throw new Error(`El equipo "${equipo.nombre}" no tiene una carrera asociada`);
+      }
+
+      const jugadores = await jugRepo.find({
+        where: {
+          campeonatoId: Number(campeonatoId),
+          equipoId: equipo.id,
+        },
+        relations: ["usuario", "usuario.carrera"],
+      });
+
+      // 6.1) Mínimo de jugadores
+      if (jugadores.length < minPorEquipo) {
+        throw new Error(
+          `El equipo "${equipo.nombre}" tiene solo ${jugadores.length} jugadores. ` +
+          `Debe tener al menos ${minPorEquipo} para sortear la primera ronda.`
+        );
+      }
+
+      // 6.2) Todos los jugadores deben ser de la misma carrera
+      for (const j of jugadores) {
+        if (!j.usuario?.carrera || !j.usuario.carreraId) {
+          throw new Error(
+            `El jugador ${j.usuario?.nombre || j.id} del equipo "${equipo.nombre}" ` +
+            `no tiene carrera configurada en el sistema`
+          );
+        }
+
+        if (j.usuario.carreraId !== equipo.carreraId) {
+          throw new Error(
+            `El jugador ${j.usuario.nombre} pertenece a "${j.usuario.carrera.nombre}" ` +
+            `y no puede jugar en el equipo de "${equipo.carrera.nombre}"`
+          );
+        }
+      }
+    }
+
+    // 7) Si todo ok → barajar equipos y crear partidos
+
     const shuffled = shuffle(equipos.map(e => e.id));
     const n = shuffled.length;
     const target = nextPow2(n);
@@ -120,7 +170,6 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     let orden = 1;
     const partidos = [];
 
-    // Crear partidos de la primera ronda
     for (let i = 0; i < aSortear.length; i += 2) {
       const equipoAId = aSortear[i];
       const equipoBId = aSortear[i + 1];
@@ -144,6 +193,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
 
     const creados = await partRepo.save(partidos);
 
+    // 8) Cambiar estado del campeonato a "en_juego"
     await campRepo.update(
       { id: Number(campeonatoId) },
       { estado: "en_juego" }
@@ -155,11 +205,10 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       byes: avanzan,
       totalEquipos: n,
       objetivoPotencia2: target,
-      mensaje: `Primera ronda sorteada exitosamente. El campeonato ahora está en juego.`
+      mensaje: `Primera ronda sorteada exitosamente. El campeonato ahora está en juego.`,
     };
   });
 };
-
 /**
  * Endpoint para generar la siguiente ronda (con detección automática)
  */

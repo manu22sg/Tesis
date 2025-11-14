@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import {
-  Card, Form, Input, Select, Button, message, Spin,
-  AutoComplete, DatePicker, ConfigProvider
+  Card,
+  Form,
+  Input,
+  Select,
+  Button,
+  message,
+  Spin,
+  AutoComplete,
+  DatePicker,
+  ConfigProvider,
+  InputNumber
 } from 'antd';
 import { UserOutlined, SaveOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -15,7 +24,6 @@ import {
 } from '../services/jugador.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
-import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 const { Option } = Select;
 dayjs.locale('es');
@@ -58,19 +66,23 @@ export default function JugadorForm() {
       const jugador = await obtenerJugadorPorId(parseInt(id));
 
       form.setFieldsValue({
-        carrera: jugador.carrera,
-        telefono: jugador.telefono,
+        posicion: jugador.posicion,
+        piernaHabil: jugador.piernaHabil,
+        altura: jugador.altura,
+        peso: jugador.peso,
         estado: jugador.estado,
         fechaNacimiento: jugador.fechaNacimiento ? dayjs(jugador.fechaNacimiento) : null,
         anioIngreso: jugador.anioIngreso
       });
 
+      // Usuario con carrera
       if (jugador.usuario) {
         setUsuarioSeleccionado({
           id: jugador.usuario.id,
           nombre: jugador.usuario.nombre,
           rut: jugador.usuario.rut,
-          email: jugador.usuario.email
+          email: jugador.usuario.email,
+          carrera: jugador.usuario.carrera?.nombre || 'Sin carrera'
         });
         setValorBusqueda(`${jugador.usuario.rut} - ${jugador.usuario.nombre}`);
       }
@@ -83,7 +95,7 @@ export default function JugadorForm() {
     }
   };
 
-  // 🔹 Buscar sugerencias con debounce aplicado
+  // Buscar sugerencias con debounce aplicado
   useEffect(() => {
     const buscarSugerencias = async () => {
       if (!valorDebounced || valorDebounced.length < 2 || isEdit) {
@@ -100,10 +112,13 @@ export default function JugadorForm() {
 
         const opcionesFormateadas = resultados.map((usuario) => ({
           value: usuario.rut,
-          label: `${usuario.nombre} - ${usuario.rut}`,
+          label: `${usuario.nombre} - ${usuario.rut}${
+            usuario.carrera?.nombre ? ` - ${usuario.carrera.nombre}` : ''
+          }`,
           rut: usuario.rut,
           nombre: usuario.nombre,
           email: usuario.email,
+          carrera: usuario.carrera?.nombre || 'Sin carrera',
           usuarioId: usuario.id
         }));
 
@@ -124,7 +139,8 @@ export default function JugadorForm() {
         id: option.usuarioId,
         rut: option.rut,
         nombre: option.nombre,
-        email: option.email
+        email: option.email,
+        carrera: option.carrera
       };
       setUsuarioSeleccionado(usuario);
       form.setFieldsValue({ usuarioId: option.usuarioId });
@@ -224,6 +240,7 @@ export default function JugadorForm() {
                           <div style={{ fontSize: 12, color: '#666' }}>
                             {usuarioSeleccionado.rut}
                             {usuarioSeleccionado.email && ` • ${usuarioSeleccionado.email}`}
+                            {usuarioSeleccionado.carrera && ` • ${usuarioSeleccionado.carrera}`}
                           </div>
                         </div>
                       </div>
@@ -254,7 +271,7 @@ export default function JugadorForm() {
                         onSearch={setValorBusqueda}
                         onSelect={(value, option) => seleccionarUsuario(value, option)}
                         style={{ width: '100%' }}
-                        placeholder="Buscar por nombre o RUT"
+                        placeholder="Buscar por nombre, RUT o carrera"
                         allowClear
                         onClear={() => {
                           setValorBusqueda('');
@@ -293,32 +310,87 @@ export default function JugadorForm() {
                         {usuarioSeleccionado.email}
                       </div>
                     )}
+                    {usuarioSeleccionado.carrera && (
+                      <div style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
+                        📚 {usuarioSeleccionado.carrera}
+                      </div>
+                    )}
                   </div>
                 )
               )}
 
-              {/* Campos adicionales */}
-              <Form.Item name="carrera" label="Carrera">
-                <Input placeholder="Ej: Ingeniería Civil Informática" maxLength={100} />
-              </Form.Item>
-
+              {/* Campos actualizados */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item name="telefono" label="Teléfono">
-                  <Input placeholder="Ej: +56912345678" maxLength={20} />
+                <Form.Item name="posicion" label="Posición">
+                  <Select placeholder="Selecciona una posición" allowClear>
+                    <Option value="Portero">Portero</Option>
+                    <Option value="Defensa">Defensa</Option>
+                    <Option value="Mediocampista">Mediocampista</Option>
+                    <Option value="Delantero">Delantero</Option>
+                  </Select>
                 </Form.Item>
-                <Form.Item
-                  name="estado"
-                  label="Estado"
-                  rules={[{ required: true, message: 'Selecciona el estado' }]}
-                >
-                  <Select placeholder="Selecciona el estado">
-                    <Option value="activo">Activo</Option>
-                    <Option value="inactivo">Inactivo</Option>
-                    <Option value="lesionado">Lesionado</Option>
-                    <Option value="suspendido">Suspendido</Option>
+
+                <Form.Item name="piernaHabil" label="Pierna Hábil">
+                  <Select placeholder="Selecciona pierna hábil" allowClear>
+                    <Option value="Derecha">Derecha</Option>
+                    <Option value="Izquierda">Izquierda</Option>
+                    <Option value="Ambas">Ambas</Option>
                   </Select>
                 </Form.Item>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Form.Item
+                  name="altura"
+                  label="Altura (cm)"
+                  rules={[
+                    {
+                      type: 'number',
+                      min: 100,
+                      max: 250,
+                      message: 'Altura debe estar entre 100-250 cm'
+                    }
+                  ]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="Ej: 175"
+                    addonAfter="cm"
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="peso"
+                  label="Peso (kg)"
+                  rules={[
+                    {
+                      type: 'number',
+                      min: 30,
+                      max: 200,
+                      message: 'Peso debe estar entre 30-200 kg'
+                    }
+                  ]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    placeholder="Ej: 70"
+                    addonAfter="kg"
+                  />
+                </Form.Item>
+              </div>
+
+              <Form.Item
+                name="estado"
+                label="Estado"
+                rules={[{ required: true, message: 'Selecciona el estado' }]}
+              >
+                <Select placeholder="Selecciona el estado">
+                  <Option value="activo">Activo</Option>
+                  <Option value="inactivo">Inactivo</Option>
+                  <Option value="lesionado">Lesionado</Option>
+                  <Option value="suspendido">Suspendido</Option>
+                </Select>
+              </Form.Item>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Form.Item name="fechaNacimiento" label="Fecha de Nacimiento">

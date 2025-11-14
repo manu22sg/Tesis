@@ -185,7 +185,8 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       roles = null,
       estado = 'activo',
       limite = 20,
-      excluirJugadores = false
+      excluirJugadores = false,
+      carreraId = null 
     } = opciones;
      
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
@@ -193,10 +194,26 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
      
     const queryBuilder = userRepository
       .createQueryBuilder('usuario')
-      .select(['usuario.id', 'usuario.rut', 'usuario.nombre', 'usuario.email', 'usuario.rol'])
-      .where('(usuario.rut LIKE :terminoRut OR LOWER(usuario.nombre) LIKE LOWER(:terminoNombre))', {
+      // 🆕 Incluir campos de usuario y carrera
+      .select([
+        'usuario.id', 
+        'usuario.rut', 
+        'usuario.nombre', 
+        'usuario.email', 
+        'usuario.rol',
+        'usuario.carreraId'
+      ])
+      // 🆕 Join con carrera para incluir el nombre
+      .leftJoinAndSelect('usuario.carrera', 'carrera')
+      // 🆕 Búsqueda mejorada: también busca en el nombre de la carrera
+      .where(`(
+        usuario.rut LIKE :terminoRut 
+        OR LOWER(usuario.nombre) LIKE LOWER(:terminoNombre)
+        OR LOWER(carrera.nombre) LIKE LOWER(:terminoCarrera)
+      )`, {
         terminoRut: `%${terminoLimpio}%`,
-        terminoNombre: `%${terminoLimpio}%`
+        terminoNombre: `%${terminoLimpio}%`,
+        terminoCarrera: `%${terminoLimpio}%`
       })
       .andWhere('usuario.estado = :estado', { estado });
      
@@ -207,6 +224,11 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       } else {
         queryBuilder.andWhere('usuario.rol IN (:...roles)', { roles });
       }
+    }
+
+    // 🆕 Filtrar por carrera específica
+    if (carreraId) {
+      queryBuilder.andWhere('usuario.carreraId = :carreraId', { carreraId });
     }
  
     // Excluir usuarios que ya son jugadores
@@ -225,10 +247,12 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       .limit(limite)
       .getMany();
      
-     
     return [users, null];
   } catch (error) {
     console.error('Error buscando usuarios por término:', error);
     return [null, 'Error interno del servidor'];
   }
 }
+
+
+

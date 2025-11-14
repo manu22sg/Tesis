@@ -346,18 +346,33 @@ export const listarEstadisticas = async (filtros = {}) => {
   const repo = AppDataSource.getRepository(EstadisticaCampeonatoSchema);
 
   const where = {};
-  if (filtros.partidoId) where.partidoId = Number(filtros.partidoId);
+
+  if (filtros.partidoId)
+    where.partidoId = Number(filtros.partidoId);
+
   if (filtros.jugadorCampeonatoId)
     where.jugadorCampeonatoId = Number(filtros.jugadorCampeonatoId);
 
-  const [items, total] = await repo.findAndCount({
-    where,
-    relations: ["jugadorCampeonato", "partido"],
-    order: { id: "DESC" },
-  });
+  const query = repo
+    .createQueryBuilder("estad")
+    .leftJoinAndSelect("estad.jugadorCampeonato", "jug")
+    .leftJoinAndSelect("estad.partido", "partido")
+    .leftJoinAndSelect("jug.equipo", "equipo");
+
+  // ⭐⭐ AQUI FILTRAMOS POR CAMPEONATO CORRECTAMENTE ⭐⭐
+  if (filtros.campeonatoId) {
+    query.andWhere("jug.campeonatoId = :campId", {
+      campId: Number(filtros.campeonatoId),
+    });
+  }
+
+  query.orderBy("estad.id", "DESC");
+
+  const [items, total] = await query.getManyAndCount();
 
   return { total, items };
 };
+
 
 // Obtener estadística por ID
 export const obtenerEstadisticaPorId = async (id) => {

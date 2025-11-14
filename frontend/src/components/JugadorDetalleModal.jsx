@@ -56,10 +56,7 @@ export default function JugadorDetalleModal({
               <Text strong>Email:</Text>
               <div>{jugador.usuario?.email || '—'}</div>
             </div>
-            <div>
-              <Text strong>Teléfono:</Text>
-              <div>{jugador.telefono || '—'}</div>
-            </div>
+          
             <div>
               <Text strong>Fecha de Nacimiento:</Text>
               <div>
@@ -124,7 +121,7 @@ export default function JugadorDetalleModal({
           }}>
             <div>
               <Text strong>Carrera:</Text>
-              <div>{jugador.carrera || '—'}</div>
+              <div>{jugador.usuario?.carrera?.nombre || '—'}</div>
             </div>
             <div>
               <Text strong>Año de Ingreso:</Text>

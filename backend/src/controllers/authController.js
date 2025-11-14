@@ -203,9 +203,20 @@ export async function buscarUsuariosPorRuts(req, res) {
   
 export async function buscarUsuarios(req, res) {
   try {
-    const { termino, roles, excluirJugadores } = req.query; // <-- Nuevo parámetro
+    const { 
+      termino, 
+      roles, 
+      excluirJugadores,
+      carreraId  
+    } = req.query;
     
-   
+    // Validación básica
+    if (!termino || termino.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'El término de búsqueda debe tener al menos 2 caracteres'
+      });
+    }
 
     // Preparar opciones
     const opciones = {};
@@ -219,9 +230,14 @@ export async function buscarUsuarios(req, res) {
       }
     }
 
-    // Agregar opción para excluir jugadores (opcional)
+    // Agregar opción para excluir jugadores
     if (excluirJugadores === 'true') {
       opciones.excluirJugadores = true;
+    }
+
+    // 🆕 Agregar filtro por carrera
+    if (carreraId) {
+      opciones.carreraId = parseInt(carreraId);
     }
 
     const [users, error] = await buscarUsuariosPorTermino(termino, opciones);
@@ -235,12 +251,17 @@ export async function buscarUsuarios(req, res) {
 
     const resultados = users.map(user => ({
       value: user.rut,
-      label: `${user.rut} - ${user.nombre}`,
+      label: `${user.rut} - ${user.nombre}${user.carrera?.nombre ? ` - ${user.carrera.nombre}` : ''}`,
       rut: user.rut,
       id: user.id,
       nombre: user.nombre,
       email: user.email,
-      rol: user.rol
+      rol: user.rol,
+      carrera: user.carrera ? {
+        id: user.carrera.id,
+        nombre: user.carrera.nombre
+      } : null,
+      carreraId: user.carreraId || null
     }));
 
     return success(res, resultados, 'Usuarios encontrados');

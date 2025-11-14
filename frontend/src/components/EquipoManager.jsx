@@ -7,36 +7,43 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined,
   UserAddOutlined, UserDeleteOutlined, EyeOutlined, TrophyOutlined,
-  NumberOutlined, EnvironmentOutlined
+  NumberOutlined
 } from '@ant-design/icons';
+
+// SERVICES
 import { equipoService } from '../services/equipo.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
+import { carreraService } from '../services/carrera.services.js';
 
 const { Option } = Select;
 
 const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   const [equipos, setEquipos] = useState([]);
+  const [carreras, setCarreras] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [modalJugadorVisible, setModalJugadorVisible] = useState(false);
+
   const [editingId, setEditingId] = useState(null);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [jugadoresEquipo, setJugadoresEquipo] = useState([]);
+
   const [form] = Form.useForm();
   const [formJugador] = Form.useForm();
-  
-  // Estados para el autocomplete de jugadores
+
   const [opcionesAutoComplete, setOpcionesAutoComplete] = useState([]);
   const [buscandoSugerencias, setBuscandoSugerencias] = useState(false);
   const [valorBusqueda, setValorBusqueda] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [formularioCompleto, setFormularioCompleto] = useState(false);
 
+  // --------------------------
+  // 📌 Cargar equipos
+  // --------------------------
   useEffect(() => {
-    if (campeonatoId) {
-      cargarEquipos();
-    }
+    if (campeonatoId) cargarEquipos();
   }, [campeonatoId]);
 
   const cargarEquipos = async () => {
@@ -51,22 +58,43 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     }
   };
 
+  // --------------------------
+  // 📌 Cargar carreras
+  // --------------------------
+  useEffect(() => {
+    const getCarreras = async () => {
+      try {
+        const data = await carreraService.listar();
+        setCarreras(data);
+      } catch (error) {
+        message.error("Error al cargar carreras");
+      }
+    };
+
+    getCarreras();
+  }, []);
+
+  // --------------------------
+  // 📌 Abrir modal de equipo
+  // --------------------------
   const abrirModal = (equipo = null) => {
     if (equipo) {
       setEditingId(equipo.id);
       form.setFieldsValue({
         nombre: equipo.nombre,
-        carrera: equipo.carrera,
+        carreraId: equipo.carreraId,
         tipo: equipo.tipo
       });
     } else {
       setEditingId(null);
       form.resetFields();
-      // Preseleccionar el tipo según el género del campeonato
+
+      // Preseleccionar tipo según el género del campeonato
       if (campeonatoInfo?.genero) {
         form.setFieldsValue({ tipo: campeonatoInfo.genero });
       }
     }
+
     setModalVisible(true);
   };
 
@@ -76,6 +104,9 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     form.resetFields();
   };
 
+  // --------------------------
+  // 📌 Guardar equipo
+  // --------------------------
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
@@ -91,7 +122,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       }
       cerrarModal();
       cargarEquipos();
-      if (onUpdate) onUpdate();
+      onUpdate && onUpdate();
     } catch (error) {
       message.error(error?.response?.data?.error || 'Error al guardar equipo');
     } finally {
@@ -99,13 +130,16 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     }
   };
 
+  // --------------------------
+  // 📌 Eliminar equipo
+  // --------------------------
   const handleEliminar = async (id) => {
     setLoading(true);
     try {
       await equipoService.eliminar(id);
       message.success('Equipo eliminado exitosamente');
       cargarEquipos();
-      if (onUpdate) onUpdate();
+      onUpdate && onUpdate();
     } catch (error) {
       message.error(error?.response?.data?.error || 'Error al eliminar equipo');
     } finally {
@@ -113,26 +147,36 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     }
   };
 
-  const verJugadores = async (equipo) => {
-    setLoading(true);
-    setEquipoSeleccionado(equipo);
-    try {
-      const response = await equipoService.listarJugadores(equipo.id);
-      // El backend devuelve { success: true, data: { equipo, totalJugadores, jugadores } }
-      const data = response.data || response;
-      setJugadoresEquipo(data.jugadores || []);
-      setDrawerVisible(true);
-    } catch (error) {
-      message.error(error?.response?.data?.error || 'Error al cargar jugadores');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --------------------------
+  // 📌 Ver jugadores
+  // --------------------------
+ const verJugadores = async (equipo) => {
+  setLoading(true);
+  setEquipoSeleccionado(equipo);
 
-  const abrirModalJugador = (equipo = null) => {
-    if (equipo) {
-      setEquipoSeleccionado(equipo);
-    }
+  try {
+    const response = await equipoService.listarJugadores(equipo.id);
+
+    const data = response.data?.data || response.data || response;
+
+    console.log("DATA:", data); 
+
+    setJugadoresEquipo(Array.isArray(data) ? data : data.jugadores || []);
+
+    setDrawerVisible(true);
+  } catch (error) {
+    message.error('Error al cargar jugadores');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // --------------------------
+  // 📌 Abrir modal jugador
+  // --------------------------
+  const abrirModalJugador = (equipo) => {
+    setEquipoSeleccionado(equipo);
     formJugador.resetFields();
     setValorBusqueda('');
     setUsuarioSeleccionado(null);
@@ -141,32 +185,34 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     setModalJugadorVisible(true);
   };
 
-  // Buscar sugerencias mientras escribe
+  // --------------------------
+  // 📌 Autocomplete usuarios
+  // --------------------------
   useEffect(() => {
     const buscarSugerencias = async () => {
-      
+      if (!valorBusqueda) return;
+
       setBuscandoSugerencias(true);
       try {
-        const resultados = await buscarUsuarios(valorBusqueda, { 
-          roles: ['estudiante', 'academico'] 
+        const resultados = await buscarUsuarios(valorBusqueda, {
+          roles: ['estudiante', 'academico'],
+          carreraId: equipoSeleccionado?.carreraId
         });
-        
-        // Filtrar usuarios que ya están en el equipo
+        console.log(equipoSeleccionado?.carreraId);
+
         const rutosEnEquipo = jugadoresEquipo.map(j => j.rut);
-        const resultadosFiltrados = resultados.filter(
-          r => !rutosEnEquipo.includes(r.rut)
-        );
-        
-        // Formatear opciones para el AutoComplete
-        const opcionesFormateadas = resultadosFiltrados.map(usuario => ({
-          value: `${usuario.rut} - ${usuario.nombre}`,
-          label: `${usuario.rut} - ${usuario.nombre}`,
-          usuario: usuario
-        }));
-        
-        setOpcionesAutoComplete(opcionesFormateadas);
-      } catch (error) {
-        console.error('Error buscando sugerencias:', error);
+
+        const opciones = resultados
+          .filter(r => !rutosEnEquipo.includes(r.rut))
+          .map(usuario => ({
+            value: `${usuario.rut} - ${usuario.nombre}`,
+            label: `${usuario.rut} - ${usuario.nombre}`,
+            usuario
+          }));
+
+        setOpcionesAutoComplete(opciones);
+
+      } catch {
         setOpcionesAutoComplete([]);
       } finally {
         setBuscandoSugerencias(false);
@@ -175,12 +221,15 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
 
     const timer = setTimeout(buscarSugerencias, 300);
     return () => clearTimeout(timer);
+
   }, [valorBusqueda, jugadoresEquipo, modalJugadorVisible]);
 
+  // --------------------------
+  // 📌 Agregar jugador
+  // --------------------------
   const handleAgregarJugador = async (values, continuar = false) => {
     if (!usuarioSeleccionado) {
-      message.error('Debes seleccionar un usuario de la lista');
-      return;
+      return message.error('Debes seleccionar un usuario');
     }
 
     setLoading(true);
@@ -189,37 +238,29 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
         campeonatoId,
         equipoId: equipoSeleccionado.id,
         usuarioId: usuarioSeleccionado.id,
-        numeroCamiseta: values.numeroCamiseta || null,
+        numeroCamiseta: values.numeroCamiseta,
         posicion: values.posicion || null
       });
-      message.success('Jugador agregado exitosamente');
-      
-      // 🔥 FIX: Recargar tanto la lista de equipos como la de jugadores
-      await cargarEquipos(); // Actualiza el contador en la tabla principal
-      if (onUpdate) onUpdate(); // Notifica al componente padre
-      
-      // Si el drawer está abierto, recargar la lista de jugadores
-      if (drawerVisible && equipoSeleccionado) {
+
+      message.success('Jugador agregado');
+
+      await cargarEquipos();
+      onUpdate && onUpdate();
+
+      if (drawerVisible) {
         await verJugadores(equipoSeleccionado);
       }
 
       if (continuar) {
-        // Limpiar formulario para agregar otro jugador
         formJugador.resetFields();
-        setValorBusqueda('');
         setUsuarioSeleccionado(null);
-        setOpcionesAutoComplete([]);
-        setFormularioCompleto(false);
+        setValorBusqueda('');
       } else {
-        // Cerrar modal
         setModalJugadorVisible(false);
-        formJugador.resetFields();
-        setValorBusqueda('');
-        setUsuarioSeleccionado(null);
-        setFormularioCompleto(false);
       }
-    } catch (error) {
-      message.error(error?.response?.data?.error || 'Error al agregar jugador');
+
+    } catch (e) {
+      message.error(e?.response?.data?.error || 'Error al agregar jugador');
     } finally {
       setLoading(false);
     }
@@ -229,14 +270,12 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     setLoading(true);
     try {
       await equipoService.quitarJugador(campeonatoId, equipoSeleccionado.id, usuarioId);
-      message.success('Jugador eliminado del equipo');
-      
-      // 🔥 FIX: Recargar tanto la lista de equipos como la de jugadores
-      await cargarEquipos(); // Actualiza el contador en la tabla principal
-      if (onUpdate) onUpdate(); // Notifica al componente padre
-      await verJugadores(equipoSeleccionado); // Recarga lista en el drawer
-    } catch (error) {
-      message.error(error?.response?.data?.error || 'Error al quitar jugador');
+      message.success("Jugador eliminado");
+      await cargarEquipos();
+      onUpdate && onUpdate();
+      await verJugadores(equipoSeleccionado);
+    } catch {
+      message.error("Error al quitar jugador");
     } finally {
       setLoading(false);
     }
@@ -251,12 +290,15 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     return colors[tipo?.toLowerCase()] || 'default';
   };
 
+  // --------------------------
+  // 📌 Columnas de tabla
+  // --------------------------
   const columns = [
     {
       title: 'Equipo',
       dataIndex: 'nombre',
       key: 'nombre',
-      render: (text) => (
+      render: text => (
         <Space>
           <TeamOutlined style={{ fontSize: 18, color: '#1890ff' }} />
           <strong>{text}</strong>
@@ -267,13 +309,15 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       title: 'Carrera',
       dataIndex: 'carrera',
       key: 'carrera',
-      render: (carrera) => <Tag color="purple">{carrera}</Tag>
+      render: carrera => (
+        <Tag color="purple">{carrera?.nombre || 'Sin carrera'}</Tag>
+      )
     },
     {
       title: 'Tipo',
       dataIndex: 'tipo',
       key: 'tipo',
-      render: (tipo) => (
+      render: tipo => (
         <Tag color={getTipoColor(tipo)}>
           {tipo?.charAt(0).toUpperCase() + tipo?.slice(1)}
         </Tag>
@@ -283,9 +327,9 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       title: 'Jugadores',
       key: 'jugadores',
       render: (_, record) => (
-        <Badge 
-          count={record.jugadores?.length || 0} 
-          showZero 
+        <Badge
+          count={record.jugadores?.length || 0}
+          showZero
           style={{ backgroundColor: '#52c41a' }}
         >
           <TeamOutlined style={{ fontSize: 20 }} />
@@ -300,12 +344,9 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Ver Jugadores">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => verJugadores(record)}
-            />
+            <Button type="text" icon={<EyeOutlined />} onClick={() => verJugadores(record)} />
           </Tooltip>
+
           <Tooltip title="Añadir Jugador">
             <Button
               type="text"
@@ -315,14 +356,11 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
               style={{ color: '#52c41a' }}
             />
           </Tooltip>
+
           <Tooltip title="Editar">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => abrirModal(record)}
-              disabled={campeonatoInfo?.estado === 'finalizado'}
-            />
+            <Button type="text" icon={<EditOutlined />} onClick={() => abrirModal(record)} />
           </Tooltip>
+
           <Popconfirm
             title="¿Eliminar equipo?"
             description="Esta acción no se puede deshacer"
@@ -332,12 +370,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
             okButtonProps={{ danger: true }}
           >
             <Tooltip title="Eliminar">
-              <Button 
-                type="text" 
-                danger 
-                icon={<DeleteOutlined />}
-                disabled={campeonatoInfo?.estado !== 'creado'}
-              />
+              <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -351,200 +384,123 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     'Extremo Derecho', 'Extremo Izquierdo', 'Delantero Centro'
   ];
 
-  // Validar que el formulario esté completo
   const validarFormularioCompleto = () => {
     const valores = formJugador.getFieldsValue();
-    const completo = usuarioSeleccionado && 
-                     valores.numeroCamiseta && 
-                     valores.posicion;
-    setFormularioCompleto(completo);
+    setFormularioCompleto(
+      usuarioSeleccionado &&
+      valores.numeroCamiseta &&
+      valores.posicion
+    );
   };
 
+  // --------------------------
+  // 📌 RENDER
+  // --------------------------
   return (
     <div>
       <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
           <Space>
             <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-            <h3 style={{ margin: 0 }}>Equipos del Campeonato</h3>
+            <h3>Equipos del Campeonato</h3>
             <Badge count={equipos.length} showZero style={{ backgroundColor: '#52c41a' }} />
           </Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => abrirModal()}
-            disabled={campeonatoInfo?.estado !== 'creado'}
-          >
+
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
             Nuevo Equipo
           </Button>
         </div>
 
-        {campeonatoInfo?.estado !== 'creado' && (
-          <Tag color="red" style={{ marginBottom: 16 }}>
-            Solo se pueden agregar equipos cuando el campeonato está en estado "Creado"
-          </Tag>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-  <Table
-    columns={columns}
-    dataSource={equipos}
-    loading={loading}
-    rowKey="id"
-    pagination={{
-      position: ['bottomLeft'], 
-      pageSize: 10,
-      showSizeChanger: true,
-      pageSizeOptions: ['5', '10', '20', '50'],
-      locale: { items_per_page: '/ página' },
-      
-      showTotal: (total) => (
-        <span style={{ fontSize: 14, color: 'rgba(0, 0, 0, 0.85)' }}>
-          Total: {total} {total === 1 ? 'equipo' : 'equipos'}
-        </span>
-      )
-    }}
-    locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
-  />
-  
-  {/* Texto total junto a la paginación */}
-
-</div>
+        <Table
+          columns={columns}
+          dataSource={equipos}
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            position: ['bottomLeft'],
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['5', '10', '20', '50']
+          }}
+          locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
+        />
       </Card>
 
-      {/* Modal Crear/Editar Equipo */}
+      {/* ----------------------
+          MODAL CREAR/EDITAR
+      ---------------------- */}
       <Modal
-        title={
-          <Space>
-            <TeamOutlined />
-            <span>{editingId ? 'Editar Equipo' : 'Nuevo Equipo'}</span>
-          </Space>
-        }
+        title={<><TeamOutlined /> {editingId ? 'Editar Equipo' : 'Nuevo Equipo'}</>}
         open={modalVisible}
         onCancel={cerrarModal}
         onOk={() => form.submit()}
         confirmLoading={loading}
         okText={editingId ? 'Actualizar' : 'Crear'}
-        cancelText="Cancelar"
         width={600}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          autoComplete="off"
-        >
-          <Form.Item
-            name="nombre"
-            label="Nombre del Equipo"
-            rules={[
-              { required: true, message: 'El nombre es obligatorio' },
-              { min: 3, message: 'Mínimo 3 caracteres' },
-              { max: 100, message: 'Máximo 100 caracteres' }
-            ]}
-          >
-            <Input 
-              prefix={<TeamOutlined />} 
-              placeholder="Ej: Ingeniería Civil Informática" 
-            />
+        <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off">
+          
+          <Form.Item name="nombre" label="Nombre del Equipo"
+            rules={[{ required: true }, { min: 3 }, { max: 100 }]}>
+            <Input prefix={<TeamOutlined />} placeholder="Ej: Ingeniería Comercial" />
           </Form.Item>
 
+          {/* CAMPO CARRERAID */}
           <Form.Item
-            name="carrera"
+            name="carreraId"
             label="Carrera"
-            rules={[
-              { required: true, message: 'La carrera es obligatoria' },
-              { min: 3, message: 'Mínimo 3 caracteres' }
-            ]}
+            rules={[{ required: true, message: 'La carrera es obligatoria' }]}
           >
-            <Input 
-              prefix={<TrophyOutlined />} 
-              placeholder="Ej: Ingeniería Civil" 
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="tipo"
-            label="Tipo de Equipo"
-            rules={[{ required: true, message: 'Selecciona el tipo' }]}
-            tooltip={`Debe coincidir con el género del campeonato: ${campeonatoInfo?.genero || 'N/A'}`}
-          >
-            <Select placeholder="Seleccionar tipo">
-              <Option value="masculino">
-                <Tag color="blue">Masculino</Tag>
-              </Option>
-              <Option value="femenino">
-                <Tag color="pink">Femenino</Tag>
-              </Option>
-              <Option value="mixto">
-                <Tag color="orange">Mixto</Tag>
-              </Option>
+            <Select placeholder="Selecciona una carrera">
+              {carreras.map(c => (
+                <Option key={c.id} value={c.id}>{c.nombre}</Option>
+              ))}
             </Select>
           </Form.Item>
 
-          {campeonatoInfo && (
-            <Descriptions size="small" bordered column={1} style={{ marginTop: 16 }}>
-              <Descriptions.Item label="Formato del Campeonato">
-                <Tag color="purple">{campeonatoInfo.formato}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Género del Campeonato">
-                <Tag color={getTipoColor(campeonatoInfo.genero)}>
-                  {campeonatoInfo.genero?.charAt(0).toUpperCase() + campeonatoInfo.genero?.slice(1)}
-                </Tag>
-              </Descriptions.Item>
-            </Descriptions>
-          )}
+          <Form.Item name="tipo" label="Tipo de Equipo" rules={[{ required: true }]}>
+            <Select>
+              <Option value="masculino"><Tag color="blue">Masculino</Tag></Option>
+              <Option value="femenino"><Tag color="pink">Femenino</Tag></Option>
+              <Option value="mixto"><Tag color="orange">Mixto</Tag></Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
 
-      {/* Drawer de Jugadores */}
+      {/* ----------------------
+          DRAWER JUGADORES
+      ---------------------- */}
       <Drawer
         title={
           <Space>
-            <TeamOutlined style={{ fontSize: 20, color: '#1890ff' }} />
-            <span>{equipoSeleccionado?.nombre}</span>
-            <Badge 
-              count={jugadoresEquipo.length} 
-              style={{ backgroundColor: '#52c41a' }} 
-            />
+            <TeamOutlined /> {equipoSeleccionado?.nombre}
+            <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#52c41a' }} />
           </Space>
         }
         placement="right"
         width={700}
-        onClose={() => {
-          setDrawerVisible(false);
-          setEquipoSeleccionado(null);
-          setJugadoresEquipo([]);
-        }}
+        onClose={() => { setDrawerVisible(false); setEquipoSeleccionado(null); }}
         open={drawerVisible}
         extra={
-          <Button
-            type="primary"
-            icon={<UserAddOutlined />}
-            onClick={() => abrirModalJugador(equipoSeleccionado)}
-            disabled={campeonatoInfo?.estado === 'finalizado'}
-          >
+          <Button type="primary" icon={<UserAddOutlined />} onClick={() => abrirModalJugador(equipoSeleccionado)}>
             Agregar Jugador
           </Button>
         }
       >
         {equipoSeleccionado && (
           <>
-            <Descriptions bordered column={2} size="small" style={{ marginBottom: 24 }}>
+            <Descriptions bordered size="small" style={{ marginBottom: 20 }}>
               <Descriptions.Item label="Carrera" span={2}>
-                <Tag color="purple">{equipoSeleccionado.carrera}</Tag>
+                <Tag color="purple">{equipoSeleccionado.carrera?.nombre}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Tipo">
                 <Tag color={getTipoColor(equipoSeleccionado.tipo)}>
-                  {equipoSeleccionado.tipo?.charAt(0).toUpperCase() + equipoSeleccionado.tipo?.slice(1)}
-                </Tag>
+    {equipoSeleccionado.tipo.charAt(0).toUpperCase() + equipoSeleccionado.tipo.slice(1)}
+  </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Total Jugadores">
-                <Badge 
-                  count={jugadoresEquipo.length} 
-                  showZero 
-                  style={{ backgroundColor: '#52c41a' }} 
-                />
+                <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#52c41a' }} />
               </Descriptions.Item>
             </Descriptions>
 
@@ -553,40 +509,27 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
             {jugadoresEquipo.length > 0 ? (
               <List
                 dataSource={jugadoresEquipo}
-                loading={loading}
                 renderItem={(jugador) => (
                   <List.Item
                     actions={[
                       <Popconfirm
                         title="¿Quitar jugador del equipo?"
                         onConfirm={() => handleQuitarJugador(jugador.usuarioId)}
-                        okText="Sí"
-                        cancelText="No"
                         okButtonProps={{ danger: true }}
                       >
-                        <Button 
-                          type="text" 
-                          danger 
-                          icon={<UserDeleteOutlined />}
-                          disabled={campeonatoInfo?.estado === 'finalizado'}
-                        >
-                          Quitar
-                        </Button>
+                        <Button type="text" danger icon={<UserDeleteOutlined />}>Quitar</Button>
                       </Popconfirm>
                     ]}
                   >
                     <List.Item.Meta
                       avatar={
-                        <Avatar 
-                          style={{ backgroundColor: '#1890ff' }}
-                          size={50}
-                        >
-                          {jugador.numeroCamiseta || '?'}
+                        <Avatar style={{ backgroundColor: '#1890ff' }} size={50}>
+                          {jugador.numeroCamiseta}
                         </Avatar>
                       }
                       title={
                         <Space>
-                          <strong>{jugador.nombre}</strong>
+                          {jugador.nombre}
                           {jugador.numeroCamiseta && (
                             <Tag color="blue">
                               <NumberOutlined /> {jugador.numeroCamiseta}
@@ -597,18 +540,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                       description={
                         <Space direction="vertical" size={0}>
                           <span>RUT: {jugador.rut}</span>
-                          {jugador.posicion && (
-                            <span>
-                              Posición: {jugador.posicion}
-                            </span>
-                          )}
-                          <Space size="large" style={{ marginTop: 4 }}>
-                            <span>⚽ Goles: <strong>{jugador.goles || 0}</strong></span>
-                            <span>🎯 Asistencias: <strong>{jugador.asistencias || 0}</strong></span>
-                            {jugador.atajadas > 0 && (
-                              <span>🧤 Atajadas: <strong>{jugador.atajadas}</strong></span>
-                            )}
-                          </Space>
+                          {jugador.posicion && <span>Posición: {jugador.posicion}</span>}
                         </Space>
                       }
                     />
@@ -622,71 +554,32 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
         )}
       </Drawer>
 
-      {/* Modal Agregar Jugador */}
+      {/* ----------------------
+          MODAL AGREGAR JUGADOR
+      ---------------------- */}
       <Modal
-        title={
-          <Space>
-            <UserAddOutlined />
-            <span>Agregar Jugador a {equipoSeleccionado?.nombre}</span>
-          </Space>
-        }
+        title={<><UserAddOutlined /> Agregar Jugador</>}
         open={modalJugadorVisible}
-        onCancel={() => {
-          setModalJugadorVisible(false);
-          formJugador.resetFields();
-          setValorBusqueda('');
-          setUsuarioSeleccionado(null);
-        }}
+        onCancel={() => { setModalJugadorVisible(false); formJugador.resetFields(); setUsuarioSeleccionado(null); }}
         footer={[
-          <Button 
-            key="cancel" 
-            onClick={() => {
-              setModalJugadorVisible(false);
-              formJugador.resetFields();
-              setValorBusqueda('');
-              setUsuarioSeleccionado(null);
-              setFormularioCompleto(false);
-            }}
-          >
-            Cancelar
-          </Button>,
-          <Button
-            key="add-continue"
-            type="default"
-            icon={<PlusOutlined />}
-            onClick={() => formJugador.submit()}
-            loading={loading}
-            disabled={!formularioCompleto}
-          >
+          <Button key="cancel" onClick={() => setModalJugadorVisible(false)}>Cancelar</Button>,
+          <Button key="add" type="default" disabled={!formularioCompleto} onClick={() => formJugador.submit()}>
             Agregar y Continuar
           </Button>,
-          <Button
-            key="add-close"
-            type="primary"
-            onClick={() => {
-              formJugador.validateFields().then(values => {
-                handleAgregarJugador(values, false);
-              });
-            }}
-            loading={loading}
-            disabled={!formularioCompleto}
-          >
+          <Button key="add-close" type="primary" disabled={!formularioCompleto}
+            onClick={() => formJugador.validateFields().then(values => handleAgregarJugador(values, false))}>
             Agregar y Cerrar
-          </Button>
+          </Button>,
         ]}
       >
+
         <Form
           form={formJugador}
           layout="vertical"
           onFinish={(values) => handleAgregarJugador(values, true)}
           onValuesChange={validarFormularioCompleto}
-          autoComplete="off"
         >
-          <Form.Item
-            label="Buscar Jugador"
-            required
-            tooltip="Busca por nombre o RUT del jugador"
-          >
+          <Form.Item label="Buscar Jugador" required>
             <AutoComplete
               value={valorBusqueda}
               options={opcionesAutoComplete}
@@ -697,36 +590,26 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
                 validarFormularioCompleto();
               }}
               style={{ width: '100%' }}
-              notFoundContent={
-                buscandoSugerencias ? 'Buscando...' :
-                'No se encontraron usuarios'
-              }
             >
-              <Input
-                placeholder="Buscar por nombre o RUT"
-                allowClear
-                onClear={() => {
-                  setUsuarioSeleccionado(null);
-                  setValorBusqueda('');
-                  setFormularioCompleto(false);
-                }}
+              <Input placeholder="Buscar por nombre o RUT" allowClear
+                onClear={() => { setUsuarioSeleccionado(null); setValorBusqueda(''); }}
               />
             </AutoComplete>
           </Form.Item>
 
           {usuarioSeleccionado && (
-            <div style={{ 
-              padding: 12, 
-              background: '#e6f7ff', 
-              borderRadius: 8, 
+            <div style={{
+              padding: 12,
+              background: '#e6f7ff',
+              borderRadius: 8,
               marginBottom: 16,
               border: '1px solid #91d5ff'
             }}>
-              <Space direction="vertical" size={0}>
-                <strong>{usuarioSeleccionado.nombre}</strong>
-                <span style={{ fontSize: 12, color: '#666' }}>RUT: {usuarioSeleccionado.rut}</span>
-                <span style={{ fontSize: 12, color: '#666' }}>Email: {usuarioSeleccionado.email}</span>
-              </Space>
+              <strong>{usuarioSeleccionado.nombre}</strong>
+              <br />
+              <span style={{ fontSize: 12 }}>RUT: {usuarioSeleccionado.rut}</span>
+              <br />
+              <span style={{ fontSize: 12 }}>Email: {usuarioSeleccionado.email}</span>
             </div>
           )}
 
@@ -734,36 +617,28 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
             <Col span={12}>
               <Form.Item
                 name="numeroCamiseta"
-                label="Número de Camiseta"
-                rules={[
-                  { required: true, message: 'El número es obligatorio' },
-                  { type: 'number', min: 1, max: 99, message: 'Entre 1 y 99' }
-                ]}
+                label="Número"
+                rules={[{ required: true }, { type: 'number', min: 1, max: 99 }]}
               >
-                <InputNumber 
-                  style={{ width: '100%' }} 
-                  placeholder="Ej: 10"
-                  min={1}
-                  max={99}
-                />
+                <InputNumber min={1} max={99} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item
-                name="posicion"
-                label="Posición"
-              >
-                <Select placeholder="Seleccionar posición" allowClear>
-                  {posiciones.map(pos => (
-                    <Option key={pos} value={pos}>{pos}</Option>
-                  ))}
+              <Form.Item name="posicion" label="Posición">
+                <Select allowClear>
+                  {[
+                    'Portero', 'Defensa Central', 'Lateral Derecho', 'Lateral Izquierdo',
+                    'Mediocampista Defensivo', 'Mediocampista Central', 'Mediocampista Ofensivo',
+                    'Extremo Derecho', 'Extremo Izquierdo', 'Delantero Centro'
+                  ].map(pos => <Option key={pos} value={pos}>{pos}</Option>)}
                 </Select>
               </Form.Item>
             </Col>
           </Row>
         </Form>
       </Modal>
+
     </div>
   );
 };

@@ -1,4 +1,13 @@
-import {crearJugador, obtenerTodosJugadores, obtenerJugadorPorId, actualizarJugador, eliminarJugador, asignarJugadorAGrupo, removerJugadorDeGrupo} from '../services/jugadorServices.js';
+import {
+  crearJugador,
+  obtenerTodosJugadores,
+  obtenerJugadorPorId,
+  actualizarJugador,
+  eliminarJugador,
+  asignarJugadorAGrupo,
+  removerJugadorDeGrupo,
+  obtenerEstadisticasPorCarrera
+} from '../services/jugadorServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
 export async function crearJugadorController(req, res) {
@@ -6,7 +15,7 @@ export async function crearJugadorController(req, res) {
     const [jugador, err] = await crearJugador(req.body);
     
     if (err) {
-      if (err.includes("ya existe")) {
+      if (err.includes("ya existe") || err.includes("ya está registrado")) {
         return conflict(res, err);
       }
       return error(res, err, 400);
@@ -24,21 +33,34 @@ export async function obtenerTodosJugadoresController(req, res) {
       pagina = 1, 
       limite = 10, 
       estado, 
-      carrera, 
+      carreraId,        // Filtro por ID de carrera (recomendado)
+      carreraNombre,    // Filtro por nombre de carrera
       anioIngreso, 
       q,
-      grupoId 
+      grupoId,
+      posicion,         // Filtro por posición
+      piernaHabil       // Filtro por pierna hábil
     } = req.query;
 
-    const filtros = { 
-      estado, 
-      carrera, 
-      anioIngreso, 
-      q,
-      grupoId: grupoId ? parseInt(grupoId) : undefined 
-    };
+    const filtros = {};
+    
+    // Filtros básicos
+    if (estado) filtros.estado = estado;
+    if (q) filtros.q = q;
+    if (anioIngreso) filtros.anioIngreso = parseInt(anioIngreso);
+    if (grupoId) filtros.grupoId = parseInt(grupoId);
+    
+    // Filtros de carrera (usar carreraId preferentemente)
+    if (carreraId) {
+      filtros.carreraId = parseInt(carreraId);
+    } else if (carreraNombre) {
+      filtros.carreraNombre = carreraNombre;
+    }
+    
+    // Filtros adicionales
+    if (posicion) filtros.posicion = posicion;
+    if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
-    // 📦 Llamamos al servicio pasando todos los filtros
     const [resultado, err] = await obtenerTodosJugadores(
       parseInt(pagina),
       parseInt(limite),
@@ -56,7 +78,6 @@ export async function obtenerTodosJugadoresController(req, res) {
   }
 }
 
-
 export async function obtenerJugadorPorIdController(req, res) {
   try {
     const [jugador, err] = await obtenerJugadorPorId(req.params.id);
@@ -73,6 +94,7 @@ export async function obtenerJugadorPorIdController(req, res) {
     return error(res, err.message);
   }
 }
+
 export async function actualizarJugadorController(req, res) {
   try {
     const [jugador, err] = await actualizarJugador(req.params.id, req.body);
@@ -106,6 +128,7 @@ export async function eliminarJugadorController(req, res) {
     return error(res, err.message);
   }
 }
+
 export async function asignarJugadorAGrupoController(req, res) {
   try {
     const { id: jugadorId, grupoId } = req.params;
@@ -141,6 +164,22 @@ export async function removerJugadorDeGrupoController(req, res) {
 
     return success(res, null, mensaje);
   } catch (err) {
+    return error(res, err.message);
+  }
+}
+
+// Nuevo endpoint: Estadísticas por carrera
+export async function obtenerEstadisticasPorCarreraController(req, res) {
+  try {
+    const [estadisticas, err] = await obtenerEstadisticasPorCarrera();
+    
+    if (err) {
+      return error(res, err);
+    }
+
+    return success(res, estadisticas, "Estadísticas obtenidas correctamente");
+  } catch (err) {
+    console.error("Error en obtenerEstadisticasPorCarreraController:", err);
     return error(res, err.message);
   }
 }

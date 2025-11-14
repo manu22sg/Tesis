@@ -2,7 +2,6 @@ import Joi from 'joi';
 
 // Validador personalizado para RUT chileno
 const rutValidator = (value, helpers) => {
-  // Formato básico: ########-# (7-8 dígitos, guión, 1 dígito o K)
   const rutRegex = /^\d{7,8}-[\dKk]$/;
   if (!rutRegex.test(value)) {
     return helpers.message('Formato de RUT inválido. Use el formato: 12345678-9');
@@ -21,7 +20,7 @@ const institutionalEmailValidator = (value, helpers) => {
   return value;
 };
 
-// Schema para registro de usuario
+// Schema para registro de usuario (ACTUALIZADO)
 export const registerSchema = Joi.object({
   rut: Joi.string()
     .required()
@@ -43,6 +42,20 @@ export const registerSchema = Joi.object({
       'string.min': 'El nombre debe tener al menos 2 caracteres',
       'string.max': 'El nombre no puede tener más de 100 caracteres',
       'string.pattern.base': 'El nombre solo puede contener letras y espacios'
+    }),
+
+  apellido: Joi.string()
+    .min(2)
+    .max(100)
+    .required()
+    .trim()
+    .pattern(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/)
+    .messages({
+      'string.empty': 'El apellido es obligatorio',
+      'any.required': 'El apellido es obligatorio',
+      'string.min': 'El apellido debe tener al menos 2 caracteres',
+      'string.max': 'El apellido no puede tener más de 100 caracteres',
+      'string.pattern.base': 'El apellido solo puede contener letras y espacios'
     }),
 
   email: Joi.string()
@@ -70,11 +83,14 @@ export const registerSchema = Joi.object({
       'string.pattern.base': 'La contraseña debe tener al menos una mayúscula, una minúscula y un número'
     }),
 
-  rol: Joi.string()
-    .valid('estudiante', 'academico')
-    .optional()
+  carreraId: Joi.number()
+    .integer()
+    .positive()
+    .required()
     .messages({
-      'any.only': 'El rol debe ser "estudiante" o "academico"'
+      'number.base': 'La carrera es obligatoria',
+      'any.required': 'Debe seleccionar una carrera',
+      'number.positive': 'Debe seleccionar una carrera válida'
     })
 });
 
@@ -100,7 +116,7 @@ export const loginSchema = Joi.object({
     })
 });
 
-// Funciones de validación que mantienen tu patrón [data, error]
+// Funciones de validación
 export function validateRegistrationData(data) {
   const { error, value } = registerSchema.validate(data, { 
     abortEarly: false,
@@ -153,7 +169,7 @@ export function validateLoginData(data) {
   };
 }
 
-// Funciones auxiliares (mantienen compatibilidad con tu código anterior)
+// Funciones auxiliares
 export const validateRut = (rut) => {
   const rutRegex = /^\d{7,8}-[\dKk]$/;
   return rutRegex.test(rut);

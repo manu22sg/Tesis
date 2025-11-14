@@ -27,7 +27,6 @@ export async function enviarRecordatoriosReservas() {
     });
 
     if (!reservas.length) {
-      console.log(' No hay reservas aprobadas para mañana.');
       return;
     }
 
@@ -110,7 +109,6 @@ Te recordamos que mañana tienes una reserva:
       }
     }
 
-    console.log(' Job enviarRecordatoriosReservas() completado.');
   } catch (error) {
     console.error('Error en enviarRecordatoriosReservas():', error);
   }

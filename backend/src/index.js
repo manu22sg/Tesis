@@ -5,6 +5,7 @@ import indexRoutes from "./routes/indexRoutes.js"
 import cookieParser from "cookie-parser"
 import {connectDB} from "./config/config.db.js"
 import { createUsers } from './config/initialSetup.js';
+import {createCarreras} from "./config/carrerasSetup.js"
 import { actualizarEstadosReservas } from './utils/reserva.job.js';
 import {enviarRecordatoriosSesiones} from './utils/recordatorioSesiones.js'
 import {enviarRecordatoriosReservas} from './utils/recordatorioReservas.js'
@@ -18,7 +19,8 @@ const app = express();
 const PORT = 3000;
 
 await connectDB();
-  await createUsers();
+await createUsers();
+await createCarreras();
   console.log("Configuración inicial completada");
 
   

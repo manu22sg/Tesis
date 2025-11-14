@@ -42,8 +42,62 @@ export async function eliminarGrupo(id) {
   return res.data.data;
 }
 
-// Obtener miembros de un grupo
-export async function obtenerMiembrosGrupo(grupoId, params = {}) {
-  const res = await api.get(`/grupos/${grupoId}/miembros`, { params });
-  return res.data.data;
+//Exportar grupo excel
+export async function exportarGruposExcel(filtros = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (filtros.nombre) params.append('nombre', filtros.nombre);
+    if (filtros.q) params.append('q', filtros.q);
+
+    const response = await api.get(`/grupos/export/excel?${params.toString()}`, {
+      responseType: 'blob', // Importante para descargar archivos
+    });
+
+    // Crear un enlace temporal para descargar el archivo
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Nombre dinámico con fecha
+    const fecha = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `grupos_${fecha}.xlsx`);
+    
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error exportando grupos a Excel:', error);
+    throw error.response?.data?.message || 'Error al exportar grupos a Excel';
+  }
 }
+// Exportar grupos a PDF
+export async function exportarGruposPDF(filtros = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (filtros.nombre) params.append('nombre', filtros.nombre);
+    if (filtros.q) params.append('q', filtros.q);
+
+    const response = await api.get(`/grupos/export/pdf?${params.toString()}`, {
+      responseType: 'blob', // Importante para descargar archivos
+    });
+
+    // Crear un enlace temporal para descargar el archivo
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'grupos.pdf');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error exportando grupos a PDF:', error);
+    throw error.response?.data?.message || 'Error al exportar grupos a PDF';
+  }
+}
+

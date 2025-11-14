@@ -6,13 +6,15 @@ const GENERO_VALIDO = ['masculino', 'femenino', 'mixto'];
 export const crearEquipoBody = Joi.object({
   campeonatoId: Joi.number().integer().positive().required(),
   nombre: Joi.string().trim().min(3).max(100).required(),
-  carrera: Joi.string().trim().min(3).max(100).required(),
+  carreraId: Joi.number().integer().positive().required(),
+
   tipo: Joi.string().lowercase().valid(...GENERO_VALIDO).required(),
 });
 
 export const actualizarEquipoBody = Joi.object({
   nombre: Joi.string().trim().min(3).max(100),
-  carrera: Joi.string().trim().min(3).max(100),
+  carreraId: Joi.number().integer().positive(),
+
   tipo: Joi.string().lowercase().valid(...GENERO_VALIDO),
 }).min(1);
 

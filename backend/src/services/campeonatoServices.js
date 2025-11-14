@@ -72,7 +72,11 @@ export const crearCampeonato = async (payload) => {
 export const listarCampeonatos = async () => {
   const repo = CampeonatoRepo();
   return await repo.find({
-    relations: ["equipos", "partidos"],
+    relations: [
+  "equipos",
+  "equipos.carrera",
+  "partidos"
+],
     order: { fechaCreacion: "DESC" },
   });
 };
@@ -84,7 +88,11 @@ export const obtenerCampeonato = async (id) => {
   const repo = CampeonatoRepo();
   return await repo.findOne({
     where: { id: Number(id) },
-    relations: ["equipos", "partidos"],
+    relations:[
+  "equipos",
+  "equipos.carrera",
+  "partidos"
+],
   });
 };
 

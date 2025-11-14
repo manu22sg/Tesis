@@ -1,6 +1,7 @@
 import { AppDataSource } from "../config/config.db.js";
 import GrupoJugadorSchema from "../entity/GrupoJugador.js";
 import { ILike } from 'typeorm';
+
 export async function crearGrupo(datosGrupo) {
   try {
     const repo = AppDataSource.getRepository(GrupoJugadorSchema);
@@ -29,18 +30,21 @@ export async function obtenerTodosGrupos(filtros = {}) {
 
     // Construir opciones de consulta
     const queryOptions = {
-      relations: ["jugadorGrupos"], // ← Solo cargar jugadorGrupos, sin usuario anidado
+      relations: [
+        "jugadorGrupos",
+        "jugadorGrupos.jugador",
+        "jugadorGrupos.jugador.usuario",
+        "jugadorGrupos.jugador.usuario.carrera" // ← Agregar carrera
+      ],
       order: { nombre: 'ASC' },
       skip,
       take: limit
     };
 
     // Aplicar filtro por nombre si se proporciona (case-insensitive)
-    // ILike funciona en PostgreSQL, Like en MySQL/MariaDB es case-insensitive por defecto
     if (filtros.nombre) {
       queryOptions.where = {
-        // Usa ILike para PostgreSQL, Like para MySQL/MariaDB
-        nombre: ILike(`%${filtros.nombre}%`) // ← Case-insensitive en todos los DB
+        nombre: ILike(`%${filtros.nombre}%`)
       };
     }
 
@@ -70,15 +74,18 @@ export async function obtenerTodosGrupos(filtros = {}) {
   }
 }
 
-
-
 // Obtener por ID
 export async function obtenerGrupoPorId(id) {
   try {
     const repo = AppDataSource.getRepository(GrupoJugadorSchema);
     const grupo = await repo.findOne({
       where: { id },
-      relations: ["jugadorGrupos", "jugadorGrupos.jugador", "jugadorGrupos.jugador.usuario"],
+      relations: [
+        "jugadorGrupos",
+        "jugadorGrupos.jugador",
+        "jugadorGrupos.jugador.usuario",
+        "jugadorGrupos.jugador.usuario.carrera" // ← También aquí
+      ],
     });
 
     if (!grupo) return [null, "Grupo no encontrado"];
@@ -122,50 +129,30 @@ export async function eliminarGrupo(id) {
 
 
 
-export async function obtenerMiembrosDeGrupo(grupoId, pagina = 1, limite = 10, filtros = {}) {
+export async function obtenerGruposParaExportar(filtros = {}) {
   try {
-    const repo = AppDataSource.getRepository(JugadorGrupoSchema);
-    const skip = (pagina - 1) * limite;
+    const repo = AppDataSource.getRepository(GrupoJugadorSchema);
 
-    const qb = repo
-      .createQueryBuilder("jg")
-      .leftJoinAndSelect("jg.jugador", "jugador")
-      .leftJoinAndSelect("jugador.usuario", "usuario")
-      .where("jg.grupoId = :grupoId", { grupoId });
+    const where = {};
 
-    // Filtros opcionales sobre Jugador
-    if (filtros.estado) qb.andWhere("jugador.estado = :estado", { estado: filtros.estado });
-    if (filtros.carrera) qb.andWhere("jugador.carrera ILIKE :carrera", { carrera: `%${filtros.carrera}%` });
-    if (filtros.anioIngreso) qb.andWhere("jugador.anioIngreso = :anioIngreso", { anioIngreso: filtros.anioIngreso });
+    if (filtros.nombre) {
+      where.nombre = ILike(`%${filtros.nombre}%`);
+    }
 
-    const [relaciones, total] = await qb
-      .orderBy("jugador.id", "ASC")
-      .skip(skip)
-      .take(limite)
-      .getManyAndCount();
+    const grupos = await repo.find({
+      where,
+      relations: [
+        "jugadorGrupos",
+        "jugadorGrupos.jugador",
+        "jugadorGrupos.jugador.usuario",
+        "jugadorGrupos.jugador.usuario.carrera"
+      ],
+      order: { nombre: "ASC" },
+    });
 
-    const miembros = relaciones.map(r => ({
-      jugadorId: r.jugador.id,
-      usuarioId: r.jugador.usuarioId,
-      nombre: r.jugador.usuario?.nombre,
-      email: r.jugador.usuario?.email,
-      carrera: r.jugador.carrera,
-      estado: r.jugador.estado,
-      anioIngreso: r.jugador.anioIngreso,
-      fechaAsignacion: r.fechaAsignacion,
-    }));
-
-    return [{
-      miembros,
-      total,
-      pagina,
-      limite,
-      totalPaginas: Math.ceil(total / limite),
-    }, null];
-
+    return [grupos, null];
   } catch (error) {
-    console.error("Error listando miembros del grupo:", error);
-    return [null, "Error al listar miembros del grupo"];
+    console.error("Error obteniendo grupos para exportar:", error);
+    return [null, "Error al obtener grupos para exportar"];
   }
 }
-

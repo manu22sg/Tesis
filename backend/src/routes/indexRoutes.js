@@ -18,6 +18,7 @@ import equipoRoutes from "./equipoRoutes.js";
 import partidoRoutes from "./partidoRoutes.js";
 import estadisticaCampeonatoRoutes from "./estadisticaCampeonatoRoutes.js";
 import entrenamientoSesionRoutes from "./entrenamientoSesionRoutes.js";
+import carreraRoutes from "./carreraRoutes.js"
 const router = Router();
 
 router.use("/auth", authRoutes);
@@ -39,4 +40,5 @@ router.use("/equipos", equipoRoutes);
 router.use("/partidos", partidoRoutes);
 router.use("/estadisticaCampeonato", estadisticaCampeonatoRoutes);
 router.use("/entrenamientos", entrenamientoSesionRoutes);
+router.use("/carreras", carreraRoutes);
 export default router;

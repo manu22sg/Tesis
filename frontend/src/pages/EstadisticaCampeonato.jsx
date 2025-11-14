@@ -72,7 +72,8 @@ function EstadisticasContent() {
   const cargarEstadisticas = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await estadisticaService.listarEstadisticas({});
+      const data = await estadisticaService.listarEstadisticas({ campeonatoId });
+
       const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
       const enriched = items.map((est) => {
         const jugador = todosLosJugadores.find((j) => j.id === est.jugadorCampeonatoId);

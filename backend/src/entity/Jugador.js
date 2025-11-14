@@ -11,33 +11,25 @@ const JugadorSchema = new EntitySchema({
     },
     usuarioId: {
       type: "int",
-      unique: true, // cada usuario solo puede ser jugador una vez
-    },
-    carrera: {
-      type: "varchar",
-      length: 100,
-      nullable: true,
+      unique: true,
     },
     anioIngreso: {
       type: "int",
       nullable: true,
     },
-
     fechaNacimiento: {
       type: "date",
       nullable: true,
     },
-    
     posicion: {
       type: "varchar",
       length: 50,
-      nullable: true, 
+      nullable: true,
     },
-    
     piernaHabil: {
       type: "varchar",
       length: 10,
-      nullable: true, 
+      nullable: true,
     },
     altura: {
       type: "decimal",
@@ -49,7 +41,7 @@ const JugadorSchema = new EntitySchema({
       type: "decimal",
       precision: 5,
       scale: 2,
-      nullable: true, 
+      nullable: true,
     },
     imc: {
       type: "decimal",
@@ -57,13 +49,11 @@ const JugadorSchema = new EntitySchema({
       scale: 2,
       nullable: true,
     },
-
     estado: {
       type: "varchar",
       length: 20,
       default: "activo",
     },
-    
     fechaCreacion: {
       type: "timestamp",
       createDate: true,
@@ -75,14 +65,12 @@ const JugadorSchema = new EntitySchema({
   },
 
   relations: {
-    // relación uno a uno con Usuario
     usuario: {
       type: "one-to-one",
       target: "Usuario",
       joinColumn: { name: "usuarioId" },
       onDelete: "CASCADE",
     },
-
     asistencias: {
       type: "one-to-many",
       target: "Asistencia",

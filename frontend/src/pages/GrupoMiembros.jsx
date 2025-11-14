@@ -149,7 +149,7 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
           nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
           rut: jg.jugador?.usuario?.rut || 'Sin RUT',
           email: jg.jugador?.usuario?.email || '—',
-          carrera: jg.jugador?.carrera || '—',
+          carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
           telefono: jg.jugador?.telefono || '—',
           anioIngreso: jg.jugador?.anioIngreso || '—',
           estado: jg.jugador?.estado || 'activo',
@@ -336,7 +336,7 @@ const cargarSesiones = async (
         nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
-        carrera: jg.jugador?.carrera || '—',
+        carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
         telefono: jg.jugador?.telefono || '—',
         anioIngreso: jg.jugador?.anioIngreso || '—',
         estado: jg.jugador?.estado || 'activo',
@@ -412,7 +412,7 @@ const cargarSesiones = async (
         nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
-        carrera: jg.jugador?.carrera || '—',
+        carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
         telefono: jg.jugador?.telefono || '—',
         anioIngreso: jg.jugador?.anioIngreso || '—',
         estado: jg.jugador?.estado || 'activo',
@@ -934,7 +934,7 @@ const cargarSesiones = async (
                 }}
                 options={(jugadoresDisponibles || []).map(j => ({
                   value: j.id,
-                  label: `${j.usuario?.nombre || 'Sin nombre'} - ${j.usuario?.rut || 'Sin RUT'} - ${j.carrera || 'Sin carrera'}`,
+                  label: `${j.usuario?.nombre || 'Sin nombre'} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`,
                 }))}
               />
 

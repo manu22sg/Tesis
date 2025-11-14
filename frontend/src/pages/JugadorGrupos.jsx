@@ -217,7 +217,7 @@ export default function JugadorGrupos() {
                 {jugador.usuario?.nombre || 'Jugador'}
               </Title>
               <Text type="secondary">
-                {jugador.usuario?.rut} • {jugador.posicion || 'Sin posición'} • {jugador.carrera}
+                {jugador.usuario?.rut} • {jugador.posicion || 'Sin posición'} • {jugador.usuario?.carrera?.nombre}
               </Text>
             </div>
           </div>

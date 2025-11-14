@@ -54,7 +54,7 @@ function CampeonatoTablaContent() {
       const stats = {
         id: equipo.id,
         nombre: equipo.nombre,
-        carrera: equipo.carrera,
+        carrera: equipo.carrera?.nombre || null,
         tipo: equipo.tipo,
         jugados: 0,
         ganados: 0,
@@ -124,18 +124,20 @@ function CampeonatoTablaContent() {
       )
     },
     {
-      title: 'Equipo',
-      dataIndex: 'nombre',
-      key: 'nombre',
-      fixed: 'left',
-      width: 250,
-      render: (nombre, record) => (
-        <Space direction="vertical" size={0}>
-          <strong style={{ fontSize: 16 }}>{nombre}</strong>
-          <span style={{ fontSize: 12, color: '#666' }}>{record.carrera}</span>
-        </Space>
-      )
-    },
+  title: 'Equipo',
+  dataIndex: 'nombre',
+  key: 'nombre',
+  fixed: 'left',
+  width: 250,
+  render: (nombre, record) => (
+    <Space direction="vertical" size={0}>
+      <strong style={{ fontSize: 16 }}>{nombre}</strong>
+      <span style={{ fontSize: 12, color: '#666' }}>
+        {record.carrera || 'Sin carrera'}
+      </span>
+    </Space>
+  )
+},
     {
       title: 'PJ',
       dataIndex: 'jugados',

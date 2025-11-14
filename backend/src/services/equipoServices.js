@@ -10,69 +10,64 @@ const PartidoRepo = () => AppDataSource.getRepository("PartidoCampeonato");
 
 // REGISTRAR EQUIPO (con validaciones de integridad)
 
-export const registrarEquipo = async ({ campeonatoId, nombre, carrera, tipo }) => {
+export const registrarEquipo = async ({ campeonatoId, nombre, carreraId, tipo }) => {
   return await AppDataSource.transaction(async (trx) => {
     const campRepo = trx.getRepository("Campeonato");
     const equipoRepo = trx.getRepository("EquipoCampeonato");
-    const jugadorRepo = trx.getRepository("JugadorCampeonato");
+    const carreraRepo = trx.getRepository("Carrera");
 
     const camp = await campRepo.findOne({ where: { id: Number(campeonatoId) } });
     if (!camp) throw new Error("El campeonato no existe");
     if (camp.estado !== "creado")
       throw new Error("El campeonato ya no permite inscribir equipos");
 
-    // Evitar nombres duplicados
+    // Validar carrera existente
+    const carrera = await carreraRepo.findOne({ where: { id: Number(carreraId) } });
+    if (!carrera) throw new Error("La carrera seleccionada no existe");
+
+    // Evitar nombres duplicados en el mismo campeonato
     const existe = await equipoRepo.findOne({
-      where: { campeonatoId, nombre },
+      where: { campeonatoId: Number(campeonatoId), nombre },
     });
     if (existe)
-throw new Error(`Ya existe un equipo con ese nombre en el campeonato "${camp.nombre}"`);
-    //  Evitar carreras duplicadas
+      throw new Error(`Ya existe un equipo con ese nombre en el campeonato "${camp.nombre}"`);
+
+    // Evitar carreras duplicadas en el mismo campeonato
     const repetido = await equipoRepo.findOne({
-      where: { campeonatoId, carrera },
+      where: { campeonatoId: Number(campeonatoId), carreraId: Number(carreraId) },
     });
     if (repetido)
-      throw new Error(`La carrera ${carrera} ya tiene un equipo inscrito`);
+      throw new Error(`La carrera "${carrera.nombre}" ya tiene un equipo inscrito en este campeonato`);
 
-    // (opcional) tope máximo de equipos, según formato
-    const totalEquipos = await equipoRepo.count({ where: { campeonatoId } });
-    if (totalEquipos >= 32)
-      throw new Error("No se permiten más de 32 equipos en un campeonato");
+    // Validar tipo según género de campeonato
+    const tipoNormalizado = tipo.trim().toLowerCase();
+    const generoCamp = camp.genero.trim().toLowerCase();
 
-   const tipoNormalizado = tipo.trim().toLowerCase();
-const generoCamp = camp.genero.trim().toLowerCase();
+    const generosPermitidos = ["masculino", "femenino", "mixto"];
+    if (!generosPermitidos.includes(tipoNormalizado)) {
+      throw new Error("El tipo del equipo debe ser masculino, femenino o mixto");
+    }
 
-const generosPermitidos = ["masculino", "femenino", "mixto"];
-if (!generosPermitidos.includes(tipoNormalizado)) {
-  throw new Error("El tipo del equipo debe ser masculino, femenino o mixto");
-}
+    if (tipoNormalizado !== generoCamp) {
+      throw new Error(
+        `El tipo del equipo (${tipoNormalizado}) no coincide con el género del campeonato (${camp.genero})`
+      );
+    }
 
-if (tipoNormalizado !== generoCamp) {
-  throw new Error(
-    `El tipo del equipo (${tipoNormalizado}) no coincide con el género del campeonato (${camp.genero})`
-  );
-}
-    //  Crear equipo
+    // Crear equipo
     const nuevoEquipo = equipoRepo.create({
-      campeonatoId,
+      campeonatoId: Number(campeonatoId),
       nombre,
-      carrera,
+      carreraId: Number(carreraId),
       tipo: tipoNormalizado,
     });
 
     const guardado = await equipoRepo.save(nuevoEquipo);
+    return await equipoRepo.findOne({
+  where: { id: guardado.id },
+  relations: ["carrera"]
+});
 
-    // Validar jugadores mínimo (posterior, cuando los inscribas)
-    const minJugadores =
-      camp.formato === "11v11" ? 11 : camp.formato === "7v7" ? 7 : 5;
-    const jugadores = await jugadorRepo.count({ where: { equipoId: guardado.id } });
-   /* if (jugadores < minJugadores) {
-      console.warn(
-        ` El equipo ${nombre} tiene menos de ${minJugadores} jugadores (actualmente ${jugadores}).`
-      );
-    }
-*/
-    return guardado;
   });
 };
 
@@ -81,7 +76,6 @@ if (tipoNormalizado !== generoCamp) {
 
 export const actualizarEquipo = async (equipoId, cambios) => {
   const repo = EquipoRepo();
-  const campRepo = AppDataSource.getRepository("Campeonato");
 
   const equipo = await repo.findOne({
     where: { id: Number(equipoId) },
@@ -95,52 +89,60 @@ export const actualizarEquipo = async (equipoId, cambios) => {
   }
 
   // Validar tipo si se intenta modificar
- if (cambios.tipo) {
-  const tipoNuevo = cambios.tipo.trim().toLowerCase();
-  const generoCamp = equipo.campeonato.genero.trim().toLowerCase();
+  if (cambios.tipo) {
+    const tipoNuevo = cambios.tipo.trim().toLowerCase();
+    const generoCamp = equipo.campeonato.genero.trim().toLowerCase();
 
-  const generosPermitidos = ["masculino", "femenino", "mixto"];
-  if (!generosPermitidos.includes(tipoNuevo)) {
-    throw new Error("El tipo del equipo debe ser masculino, femenino o mixto");
-  }
+    const generosPermitidos = ["masculino", "femenino", "mixto"];
+    if (!generosPermitidos.includes(tipoNuevo)) {
+      throw new Error("El tipo del equipo debe ser masculino, femenino o mixto");
+    }
 
-  if (tipoNuevo !== generoCamp) {
-    throw new Error(
-      `El tipo del equipo (${tipoNuevo}) no coincide con el género del campeonato (${equipo.campeonato.genero})`
-    );
+    if (tipoNuevo !== generoCamp) {
+      throw new Error(
+        `El tipo del equipo (${tipoNuevo}) no coincide con el género del campeonato (${equipo.campeonato.genero})`
+      );
+    }
   }
-}
 
   // Evitar duplicados por nombre o carrera dentro del mismo campeonato
-  if (cambios.nombre || cambios.carrera) {
+  if (cambios.nombre || cambios.carreraId) {
+    const nombreNuevo = cambios.nombre || equipo.nombre;
+    const carreraIdNueva = cambios.carreraId || equipo.carreraId;
+
+    // Nombre duplicado
     const existe = await repo.findOne({
       where: {
         campeonatoId: equipo.campeonato.id,
-        nombre: cambios.nombre || equipo.nombre,
+        nombre: nombreNuevo,
       },
     });
     if (existe && existe.id !== equipo.id) {
       throw new Error(
-        `Ya existe un equipo con el nombre "${cambios.nombre}" en este campeonato`
+        `Ya existe un equipo con el nombre "${nombreNuevo}" en este campeonato`
       );
     }
 
+    // Carrera duplicada
     const repetido = await repo.findOne({
       where: {
         campeonatoId: equipo.campeonato.id,
-        carrera: cambios.carrera || equipo.carrera,
+        carreraId: carreraIdNueva,
       },
     });
     if (repetido && repetido.id !== equipo.id) {
       throw new Error(
-        `La carrera ${cambios.carrera} ya tiene un equipo inscrito en este campeonato`
+        `La carrera seleccionada ya tiene un equipo inscrito en este campeonato`
       );
     }
   }
 
-  // Aplicar cambios válidos
   await repo.update({ id: Number(equipoId) }, cambios);
-  return await repo.findOne({ where: { id: Number(equipoId) } });
+ return await repo.findOne({
+  where: { id: Number(equipoId) },
+  relations: ["carrera"]
+});
+
 };
 
 
@@ -230,7 +232,7 @@ export const listarEquiposPorCampeonato = async (campeonatoId) => {
   const repo = EquipoRepo();
   return await repo.find({
     where: { campeonatoId: Number(campeonatoId) },
-    relations: ["jugadores"],
+    relations: ["jugadores", "carrera"],
     order: { id: "ASC" },
   });
 };
@@ -245,36 +247,122 @@ export const insertarUsuarioEnEquipo = async ({
   numeroCamiseta,
   posicion,
 }) => {
-  const usuario = await UsuarioRepo().findOne({ where: { id: Number(usuarioId) } });
+  const usuarioRepo = UsuarioRepo();
+  const equipoRepo = EquipoRepo();
+  const jugadorRepo = JugadorCampRepo();
+  const campeonatoRepositorio = campRepo();
+
+  // ===============================
+  // 1. Obtener usuario con carrera
+  // ===============================
+  const usuario = await usuarioRepo.findOne({
+    where: { id: Number(usuarioId) },
+    relations: ["carrera"],
+  });
   if (!usuario) throw new Error("Usuario no existe");
 
-  // Verificar que el equipo pertenezca al mismo campeonato
-  const equipo = await EquipoRepo().findOne({ where: { id: Number(equipoId) } });
+  if (!usuario.carreraId || !usuario.carrera) {
+    throw new Error(
+      `El usuario ${usuario.nombre} no tiene una carrera asociada en el sistema`
+    );
+  }
+
+  // ===============================
+  // 2. Obtener equipo con carrera
+  // ===============================
+  const equipo = await equipoRepo.findOne({
+    where: { id: Number(equipoId) },
+    relations: ["carrera"],
+  });
   if (!equipo) throw new Error("Equipo no encontrado");
+
   if (equipo.campeonatoId !== Number(campeonatoId))
     throw new Error("El equipo no pertenece a este campeonato");
 
-  // Verificar que el jugador no esté repetido en otro equipo del mismo campeonato
-  const yaParticipa = await JugadorCampRepo().findOne({
-    where: { campeonatoId: Number(campeonatoId), usuarioId: Number(usuarioId) },
-  });
-  if (yaParticipa)
-    throw new Error("El usuario ya está inscrito en un equipo de este campeonato");
-
-      // Verificar que el número de camiseta no esté repetido en el mismo equipo
-  if (numeroCamiseta !== null && numeroCamiseta !== undefined) {
-    const camisetaRepetida = await JugadorCampRepo().findOne({
-      where: { 
-        equipoId: Number(equipoId), 
-        numeroCamiseta: Number(numeroCamiseta) 
-      },
-    });
-    if (camisetaRepetida)
-      throw new Error(`El número de camiseta ${numeroCamiseta} ya está en uso en este equipo`);
+  if (!equipo.carreraId || !equipo.carrera) {
+    throw new Error(
+      `El equipo "${equipo.nombre}" no tiene una carrera asociada en el sistema`
+    );
   }
 
-  const repo = JugadorCampRepo();
-  const jugador = repo.create({
+  // =========================================================
+  // 3. Validar que usuario y equipo correspondan a la MISMA carrera
+  // =========================================================
+  if (usuario.carreraId !== equipo.carreraId) {
+    throw new Error(
+      `El usuario ${usuario.nombre} pertenece a la carrera "${usuario.carrera.nombre}" y no puede inscribirse en un equipo de "${equipo.carrera.nombre}"`
+    );
+  }
+
+  // ======================================
+  // 4. Validar que el usuario no esté en otro equipo del campeonato
+  // ======================================
+  const yaParticipa = await jugadorRepo.findOne({
+    where: {
+      campeonatoId: Number(campeonatoId),
+      usuarioId: Number(usuarioId),
+    },
+  });
+  if (yaParticipa) {
+    throw new Error(
+      `El usuario ${usuario.nombre} ya está inscrito en otro equipo de este campeonato`
+    );
+  }
+
+  // ======================================
+  // 5. Validación de número de camiseta único dentro del equipo
+  // ======================================
+  if (numeroCamiseta !== null && numeroCamiseta !== undefined) {
+    const camisetaRepetida = await jugadorRepo.findOne({
+      where: {
+        equipoId: Number(equipoId),
+        numeroCamiseta: Number(numeroCamiseta),
+      },
+    });
+    if (camisetaRepetida) {
+      throw new Error(
+        `El número de camiseta ${numeroCamiseta} ya está en uso en este equipo`
+      );
+    }
+  }
+
+  // ======================================================
+  // 6. Validación NUEVA: Limite de jugadores según formato
+  // ======================================================
+  const campeonato = await campeonatoRepositorio.findOne({
+    where: { id: Number(campeonatoId) }
+  });
+
+  if (!campeonato)
+    throw new Error("Campeonato no encontrado");
+
+  // REGLAS DE LÍMITES SEGÚN FORMATO
+  const limites = {
+    "5v5": { min: 5, max: 10 },
+    "7v7": { min: 7, max: 14 },
+    "11v11": { min: 11, max: 22 },
+  };
+
+  const formato = campeonato.formato?.toLowerCase();
+
+  const reglas = limites[formato] || limites["11v11"];
+
+  // Contar jugadores actuales
+  const jugadoresActuales = await jugadorRepo.count({
+    where: { equipoId: Number(equipoId) },
+  });
+
+  // Validar máximo
+  if (jugadoresActuales >= reglas.max) {
+    throw new Error(
+      `Este equipo ya alcanzó el máximo permitido de jugadores (${reglas.max}) para el formato ${campeonato.formato}`
+    );
+  }
+
+  // ======================================================
+  // 7. Insertar jugador
+  // ======================================================
+  const jugador = jugadorRepo.create({
     campeonatoId: Number(campeonatoId),
     equipoId: Number(equipoId),
     usuarioId: Number(usuarioId),
@@ -282,9 +370,14 @@ export const insertarUsuarioEnEquipo = async ({
     posicion: posicion ?? null,
   });
 
-  const guardado = await repo.save(jugador);
-  return { message: `Jugador ${usuario.nombre} agregado al equipo ${equipo.nombre}`, jugador: guardado };
+  const guardado = await jugadorRepo.save(jugador);
+
+  return {
+    message: `Jugador ${usuario.nombre} agregado al equipo ${equipo.nombre}`,
+    jugador: guardado,
+  };
 };
+
 
 
 //  QUITAR USUARIO DE EQUIPO
@@ -308,11 +401,12 @@ export const listarJugadoresPorEquipo = async (equipoId) => {
   const repo = AppDataSource.getRepository("JugadorCampeonato");
   const equipoRepo = AppDataSource.getRepository("EquipoCampeonato");
 
-  // Validar existencia del equipo
-  const equipo = await equipoRepo.findOne({ where: { id: Number(equipoId) } });
+  const equipo = await equipoRepo.findOne({
+    where: { id: Number(equipoId) },
+    relations: ["carrera"],
+  });
   if (!equipo) throw new Error("Equipo no encontrado");
 
-  // Buscar jugadores con info de usuario y sus estadísticas
   const jugadores = await repo.find({
     where: { equipoId: Number(equipoId) },
     relations: ["usuario", "estadisticas"],
@@ -323,7 +417,8 @@ export const listarJugadoresPorEquipo = async (equipoId) => {
     equipo: {
       id: equipo.id,
       nombre: equipo.nombre,
-      carrera: equipo.carrera,
+      carreraId: equipo.carreraId,
+      carreraNombre: equipo.carrera?.nombre || null,
       tipo: equipo.tipo,
       campeonatoId: equipo.campeonatoId,
     },

@@ -14,7 +14,8 @@ import {
   Col,
   Pagination,
   ConfigProvider,
-  Tooltip
+  Tooltip,
+  Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -25,14 +26,19 @@ import {
   EyeOutlined,
   UserOutlined,
   ReloadOutlined,
-  SearchOutlined
+  SearchOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import {
   obtenerGrupos,
   crearGrupo,
   actualizarGrupo,
-  eliminarGrupo
+  eliminarGrupo,
+  exportarGruposExcel,
+  exportarGruposPDF
 } from '../services/grupo.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 
@@ -43,11 +49,12 @@ export default function Grupos() {
   const [form] = Form.useForm();
 
   const [grupos, setGrupos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editando, setEditando] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [exportando, setExportando] = useState(false);
 
   // Filtro de búsqueda
   const [filtroNombre, setFiltroNombre] = useState('');
@@ -206,6 +213,59 @@ export default function Grupos() {
     setFiltroNombre('');
   };
 
+  // Funciones de exportación
+  const handleExportarExcel = async () => {
+    setExportando(true);
+    try {
+      const filtros = {
+        nombre: qDebounced || undefined,
+        q: qDebounced || undefined,
+      };
+      await exportarGruposExcel(filtros);
+      message.success('Grupos exportados a Excel correctamente');
+    } catch (error) {
+      console.error('Error exportando a Excel:', error);
+      message.error(typeof error === 'string' ? error : 'Error al exportar grupos a Excel');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportarPDF = async () => {
+    setExportando(true);
+    try {
+      const filtros = {
+        nombre: qDebounced || undefined,
+        q: qDebounced || undefined,
+      };
+      await exportarGruposPDF(filtros);
+      message.success('Grupos exportados a PDF correctamente');
+    } catch (error) {
+      console.error('Error exportando a PDF:', error);
+      message.error(typeof error === 'string' ? error : 'Error al exportar grupos a PDF');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  // Menú dropdown para exportación
+  const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportarExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportarPDF,
+      },
+    ],
+  };
+
   const columns = [
     {
       title: 'Nombre del Grupo',
@@ -306,6 +366,14 @@ export default function Grupos() {
                       Limpiar Filtro
                     </Button>
                   )}
+                  <Dropdown menu={menuExportar} trigger={['click']}>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      loading={exportando}
+                    >
+                      Exportar
+                    </Button>
+                  </Dropdown>
                   <Button
                     icon={<ReloadOutlined />}
                     onClick={() => cargarGrupos(pagination.current, pagination.pageSize, qDebounced)}

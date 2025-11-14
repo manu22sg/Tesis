@@ -332,7 +332,6 @@ export default function GestionCanchas() {
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={{ x: 900 }}
               size="middle"
               locale={{
                 emptyText: noResults ? (
@@ -341,7 +340,7 @@ export default function GestionCanchas() {
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                   >
                     {(qDebounced || filtroEstado !== 'todos') && (
-                      <Button onClick={limpiarFiltros} icon={<ClearOutlined />}>
+                      <Button onClick={limpiarFiltros} >
                         Limpiar filtros
                       </Button>
                     )}
@@ -350,7 +349,6 @@ export default function GestionCanchas() {
               }}
             />
 
-            {/* 🔹 Paginación */}
             {pagination.total > 0 && (
               <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                 <Pagination

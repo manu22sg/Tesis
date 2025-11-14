@@ -17,7 +17,8 @@ import {
   ConfigProvider
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import {FilterOutlined,
+import {
+  FilterOutlined,
   UserOutlined,
   EyeOutlined,
   EditOutlined,
@@ -60,11 +61,11 @@ export default function Jugadores() {
   const [busqueda, setBusqueda] = useState('');
   const [qDebounced, setQDebounced] = useState('');
   const [filtroEstado, setFiltroEstado] = useState(null);
-  const [filtroCarrera, setFiltroCarrera] = useState(null);
+  const [filtroCarreraId, setFiltroCarreraId] = useState(null); // 🆕 Cambio a ID
   const [filtroAnio, setFiltroAnio] = useState(null);
 
   // Opciones estables (acumuladas) para selects
-  const [carrerasOpts, setCarrerasOpts] = useState([]); // string[]
+  const [carrerasOpts, setCarrerasOpts] = useState([]); // { id, nombre }[]
   const [aniosOpts, setAniosOpts] = useState([]);       // number[]
 
   // Modal detalle
@@ -96,7 +97,7 @@ export default function Jugadores() {
       const params = { pagina: page, limite: pageSize };
       if (q) params.q = q;
       if (filtroEstado) params.estado = filtroEstado;
-      if (filtroCarrera) params.carrera = filtroCarrera;
+      if (filtroCarreraId) params.carreraId = filtroCarreraId; // 🆕 Enviar ID
       if (filtroAnio) params.anioIngreso = filtroAnio;
 
       const data = await obtenerJugadores(params);
@@ -112,17 +113,29 @@ export default function Jugadores() {
         totalPages: data.totalPaginas
       });
 
-      // Actualiza opciones estables (acumula sin duplicar)
+      // 🆕 Actualiza opciones de carreras (con ID y nombre)
       if (lista.length) {
-        const nuevasCarreras = [
-          ...new Set([
-            ...carrerasOpts,
-            ...lista
-              .map(j => j.carrera)
-              .filter(c => typeof c === 'string' && c.trim() !== '')
-          ])
-        ].sort((a, b) => a.localeCompare(b));
+        const carrerasMap = new Map();
+        
+        lista.forEach(j => {
+          const carrera = j.usuario?.carrera;
+          if (carrera?.id && carrera?.nombre) {
+            carrerasMap.set(carrera.id, {
+              id: carrera.id,
+              nombre: carrera.nombre
+            });
+          }
+        });
 
+        const nuevasCarreras = Array.from(carrerasMap.values())
+          .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        // Actualizar solo si hay cambios
+        if (JSON.stringify(nuevasCarreras) !== JSON.stringify(carrerasOpts)) {
+          setCarrerasOpts(nuevasCarreras);
+        }
+
+        // Años de ingreso
         const nuevosAnios = [
           ...new Set([
             ...aniosOpts,
@@ -130,9 +143,6 @@ export default function Jugadores() {
           ])
         ].sort((a, b) => b - a);
 
-        if (JSON.stringify(nuevasCarreras) !== JSON.stringify(carrerasOpts)) {
-          setCarrerasOpts(nuevasCarreras);
-        }
         if (JSON.stringify(nuevosAnios) !== JSON.stringify(aniosOpts)) {
           setAniosOpts(nuevosAnios);
         }
@@ -149,7 +159,7 @@ export default function Jugadores() {
   // Efecto único: mount + cambios de filtros/búsqueda + cambio de pageSize
   useEffect(() => {
     cargarJugadores(1, pagination.pageSize, qDebounced);
-  }, [filtroEstado, filtroCarrera, filtroAnio, qDebounced, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filtroEstado, filtroCarreraId, filtroAnio, qDebounced, pagination.pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePageChange = (page, pageSize) => {
     setPagination(prev => ({ ...prev, current: page, pageSize }));
@@ -159,7 +169,7 @@ export default function Jugadores() {
   const limpiarFiltros = () => {
     setBusqueda('');
     setFiltroEstado(null);
-    setFiltroCarrera(null);
+    setFiltroCarreraId(null);
     setFiltroAnio(null);
   };
 
@@ -206,7 +216,6 @@ export default function Jugadores() {
           </div>
         </div>
       ),
-      // sin width fijo para que respire
       ellipsis: false,
     },
     {
@@ -219,20 +228,26 @@ export default function Jugadores() {
     },
     {
       title: 'Carrera',
-      dataIndex: 'carrera',
       key: 'carrera',
-      // Más espacio + wrap + Tooltip
-      render: (carrera) => {
-        if (!carrera) return '—';
+      // 🆕 Ahora accedemos a través de usuario.carrera.nombre
+      render: (_, record) => {
+        const carrera = record.usuario?.carrera?.nombre;
+        if (!carrera) return <Text type="secondary">—</Text>;
+        
         return (
           <Tooltip title={carrera}>
-            <span style={{ display: 'inline-block', maxWidth: 320, whiteSpace: 'normal', lineHeight: 1.2 }}>
+            <span style={{ 
+              display: 'inline-block', 
+              maxWidth: 320, 
+              whiteSpace: 'normal', 
+              lineHeight: 1.2 
+            }}>
               {carrera}
             </span>
           </Tooltip>
         );
       },
-      width: 300, // más ancho que antes
+      width: 300,
     },
     {
       title: 'Año',
@@ -264,7 +279,6 @@ export default function Jugadores() {
           </Space>
         );
       },
-      // sin width fijo, que se adapte
     },
     {
       title: 'Estado',
@@ -326,162 +340,164 @@ export default function Jugadores() {
         </Space>
       ),
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [navigate]);
+  ], [navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hayFiltrosActivos = !!(qDebounced || filtroEstado || filtroCarrera || filtroAnio);
+  const hayFiltrosActivos = !!(qDebounced || filtroEstado || filtroCarreraId || filtroAnio);
 
- return (
-  <MainLayout>
-    <ConfigProvider locale={locale}>
-      <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-        <Card
-          title={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <TrophyOutlined style={{ fontSize: 24 }} />
-              <span>Jugadores</span>
-            </div>
-          }
-          extra={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/jugadores/nuevo')}
-            >
-              Nuevo Jugador
-            </Button>
-          }
-        >
-          {/* Card de Filtros */}
+  return (
+    <MainLayout>
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           <Card
             title={
-              <span>
-                <FilterOutlined /> Filtros
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <TrophyOutlined style={{ fontSize: 24 }} />
+                <span>Jugadores</span>
+              </div>
             }
-            style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
             extra={
-              hayFiltrosActivos && (
-                <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-              )
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate('/jugadores/nuevo')}
+              >
+                Nuevo Jugador
+              </Button>
             }
           >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr auto',
-                gap: 12,
-                alignItems: 'center'
-              }}
+            {/* Card de Filtros */}
+            <Card
+              title={
+                <span>
+                  <FilterOutlined /> Filtros
+                </span>
+              }
+              style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
+              extra={
+                hayFiltrosActivos && (
+                  <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+                )
+              }
             >
-              <Input
-                allowClear
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                prefix={<SearchOutlined />}
-                placeholder="Buscar por nombre, RUT, carrera o posición…"
-              />
-
-              <Select
-                allowClear
-                placeholder="Estado"
-                value={filtroEstado}
-                onChange={setFiltroEstado}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                  gap: 12,
+                  alignItems: 'center'
+                }}
               >
-                <Option value="activo">Activo</Option>
-                <Option value="inactivo">Inactivo</Option>
-                <Option value="lesionado">Lesionado</Option>
-                <Option value="suspendido">Suspendido</Option>
-              </Select>
+                <Input
+                  allowClear
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  prefix={<SearchOutlined />}
+                  placeholder="Buscar por nombre o RUT…"
+                />
 
-              <Select
-                allowClear
-                showSearch
-                placeholder="Carrera"
-                value={filtroCarrera}
-                onChange={setFiltroCarrera}
-                filterOption={(input, option) =>
-                  (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {carrerasOpts.map(carrera => (
-                  <Option key={carrera} value={carrera}>{carrera}</Option>
-                ))}
-              </Select>
+                <Select
+                  allowClear
+                  placeholder="Estado"
+                  value={filtroEstado}
+                  onChange={setFiltroEstado}
+                >
+                  <Option value="activo">Activo</Option>
+                  <Option value="inactivo">Inactivo</Option>
+                  <Option value="lesionado">Lesionado</Option>
+                  <Option value="suspendido">Suspendido</Option>
+                </Select>
 
-              <Select
-                allowClear
-                placeholder="Año"
-                value={filtroAnio}
-                onChange={setFiltroAnio}
-                showSearch
-                filterOption={(input, option) =>
-                  (String(option?.children ?? '')).toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {aniosOpts.map(year => (
-                  <Option key={year} value={year}>{year}</Option>
-                ))}
-              </Select>
-            </div>
-          </Card>
-
-          {/* Tabla */}
-          <Table
-            columns={columns}
-            dataSource={jugadores}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            size="middle"
-            locale={{
-              emptyText: (
-                <Empty
-                  description={
-                    hayFiltrosActivos
-                      ? 'No se encontraron jugadores con los filtros aplicados'
-                      : 'No hay jugadores registrados'
+                {/* 🆕 Select de carreras usando ID */}
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Carrera"
+                  value={filtroCarreraId}
+                  onChange={setFiltroCarreraId}
+                  filterOption={(input, option) =>
+                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                 >
-                  {!hayFiltrosActivos && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => navigate('/jugadores/nuevo')}
-                    >
-                      Registrar primer jugador
-                    </Button>
-                  )}
-                </Empty>
-              ),
-            }}
+                  {carrerasOpts.map(carrera => (
+                    <Option key={carrera.id} value={carrera.id}>
+                      {carrera.nombre}
+                    </Option>
+                  ))}
+                </Select>
+
+                <Select
+                  allowClear
+                  placeholder="Año"
+                  value={filtroAnio}
+                  onChange={setFiltroAnio}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (String(option?.children ?? '')).toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {aniosOpts.map(year => (
+                    <Option key={year} value={year}>{year}</Option>
+                  ))}
+                </Select>
+              </div>
+            </Card>
+
+            {/* Tabla */}
+            <Table
+              columns={columns}
+              dataSource={jugadores}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              size="middle"
+              locale={{
+                emptyText: (
+                  <Empty
+                    description={
+                      hayFiltrosActivos
+                        ? 'No se encontraron jugadores con los filtros aplicados'
+                        : 'No hay jugadores registrados'
+                    }
+                  >
+                    {!hayFiltrosActivos && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => navigate('/jugadores/nuevo')}
+                      >
+                        Registrar primer jugador
+                      </Button>
+                    )}
+                  </Empty>
+                ),
+              }}
+            />
+
+            {jugadores.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  showTotal={(total) => `Total: ${total} jugadores`}
+                  pageSizeOptions={['5', '10', '20', '50']}
+                />
+              </div>
+            )}
+          </Card>
+
+          {/* Modal Detalle */}
+          <JugadorDetalleModal
+            visible={detalleModal}
+            onClose={() => { setDetalleModal(false); setJugadorDetalle(null); }}
+            jugador={jugadorDetalle}
+            loading={loadingDetalle}
           />
-
-          {jugadores.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
-              <Pagination
-                current={pagination.current}
-                pageSize={pagination.pageSize}
-                total={pagination.total}
-                onChange={handlePageChange}
-                onShowSizeChange={handlePageChange}
-                showSizeChanger
-                showTotal={(total) => `Total: ${total} jugadores`}
-                pageSizeOptions={['5', '10', '20', '50']}
-              />
-            </div>
-          )}
-        </Card>
-
-        {/* Modal Detalle */}
-        <JugadorDetalleModal
-          visible={detalleModal}
-          onClose={() => { setDetalleModal(false); setJugadorDetalle(null); }}
-          jugador={jugadorDetalle}
-          loading={loadingDetalle}
-        />
-      </div>
-    </ConfigProvider>
-  </MainLayout>
-);
+        </div>
+      </ConfigProvider>
+    </MainLayout>
+  );
 }

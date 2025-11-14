@@ -61,6 +61,9 @@ export async function buscarUsuarios(termino, opciones = {}) {
     if (opciones.excluirJugadores === true) {
       params.excluirJugadores = 'true';
     }
+     if (opciones.carreraId) {
+      params.carreraId = opciones.carreraId;
+    }
     
     const { data } = await api.get("/auth/buscar-usuarios", { params });
     return data.data || [];
