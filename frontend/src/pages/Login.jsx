@@ -19,33 +19,34 @@ export default function Login() {
   }, [isAuthenticated, usuario, authLoading, navigate]);
 
   const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      const user = await loginRequest(values);
+  setLoading(true);
+  try {
+    const result = await loginRequest(values);
 
-      if (user) {
-        login(user);
-        navigate('/dashboard', { replace: true });
-      } else {
-        message.error('No se recibió información del usuario');
-      }
-    } catch (error) {
-      console.error('Error en login:', error);
-      let errorMsg = 'Error al iniciar sesión';
-
-      if (error.response?.data?.message) errorMsg = error.response.data.message;
-      else if (error.response?.status === 401)
-        errorMsg = 'Email o contraseña incorrectos';
-      else if (error.response?.status === 403)
-        errorMsg = 'Usuario inactivo. Contacte al administrador';
-      else if (!error.response)
-        errorMsg = 'No se pudo conectar con el servidor';
-
-      message.error(errorMsg);
-    } finally {
-      setLoading(false);
+    if (result?.user) {
+      login(result.user); // solo enviamos el usuario
+      navigate('/dashboard', { replace: true });
+      return;
     }
-  };
+
+    message.error('No se recibió información del usuario');
+  } catch (error) {
+    console.error('Error en login:', error);
+    let errorMsg = 'Error al iniciar sesión';
+
+    if (error.response?.data?.message) errorMsg = error.response.data.message;
+    else if (error.response?.status === 401)
+      errorMsg = 'Email o contraseña incorrectos';
+    else if (error.response?.status === 403)
+      errorMsg = 'Usuario inactivo. Contacte al administrador';
+    else if (!error.response)
+      errorMsg = 'No se pudo conectar con el servidor';
+
+    message.error(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (authLoading) {
     return (

@@ -38,18 +38,25 @@ import CampeonatoTabla from './pages/CampeonatoTabla';
 import EstadisticaCampeonato from './pages/EstadisticaCampeonato.jsx';
 import CampeonatoPublico from './pages/CampeonatoPublico.jsx';
 import DetalleCampeonatoPublico from './pages/DetalleCampeonatoPublico.jsx';
+import Register from './pages/Register.jsx';
+import VerificarEmail from './pages/VerificarEmail.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
 function RootRedirect() {
-  const { usuario } = useAuth();
-  
+  const { usuario, loading } = useAuth();
+
+  if (loading) {
+    return null; // o spinner si quieres
+  }
+
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <Navigate to="/dashboard" replace />;
 }
+
 
 function AppRoutes() {
   return (
@@ -60,6 +67,8 @@ function AppRoutes() {
       
       {/* Login - público */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/verificar/:token" element={<VerificarEmail />} />
 
       {/* Dashboard - Todos los usuarios autenticados */}
       <Route

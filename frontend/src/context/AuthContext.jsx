@@ -13,20 +13,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkAuth = async () => {
-    try {
-      const userData = await verifyToken();
-      if (userData) {
-        setUsuario(userData);
-      } else {
-        setUsuario(null);
-      }
-    } catch (error) {
-      console.error("Error verificando sesión:", error);
+  try {
+
+    const response = await verifyToken();
+
+    const user = response?.data?.user;
+
+    if (user) {
+      setUsuario(user);
+    } else {
       setUsuario(null);
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (error) {
+    console.error("❌ Error verificando sesión:", error);
+    setUsuario(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const login = (userData) => {
     setUsuario(userData);
@@ -36,7 +41,7 @@ export function AuthProvider({ children }) {
     try {
       await logoutRequest();
     } catch (error) {
-      console.warn("Error en logout (ignorado):", error.message);
+      console.warn("⚠️ Error en logout (ignorado):", error.message);
     } finally {
       // SIEMPRE limpiar el usuario, incluso si hay error
       setUsuario(null);

@@ -1,43 +1,51 @@
-import { registerService, loginService, findUserById, verifyToken,findUsersByRuts, buscarUsuariosPorTermino  } from '../services/authServices.js';
+import { 
+  registerService, 
+  loginService, 
+  findUserById, 
+  verifyToken,
+  findUsersByRuts, 
+  buscarUsuariosPorTermino,
+  verificarEmailService,
+  reenviarVerificacionService
+} from '../services/authServices.js';
 import { success, error, conflict, unauthorized, forbidden, notFound } from '../utils/responseHandler.js';
 
 export async function register(req, res) {
   try {
-    const { rut, nombre, email, password, rol } = req.body;
+    const { rut, nombre, apellido, email, password, carreraId } = req.body;
 
-    const [result, error] = await registerService({
+    const [result, errorMsg] = await registerService({
       rut,
       nombre,
+      apellido,
       email,
       password,
-      rol
+      carreraId
     });
 
-    if (error) {
+    if (errorMsg) {
       // Si el error tiene dataInfo, es un error de validación
-      if (typeof error === 'object' && error.dataInfo) {
-        return conflict(res, error.message);
+      if (typeof errorMsg === 'object' && errorMsg.dataInfo) {
+        return conflict(res, errorMsg.message);
       }
-      return error(res, error, 500);
+      return error(res, errorMsg, 500);
     }
 
-    // Configurar cookie con el token
-    res.cookie('token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
-    });
+    // ❌ NO configurar cookie (usuario no verificado)
+    // El usuario debe verificar su email primero
 
     return success(
       res,
-      result,
-      'Usuario registrado exitosamente',
+      {
+        user: result.user,
+        message: result.message
+      },
+      'Registro exitoso. Revisa tu correo institucional para verificar tu cuenta.',
       201
     );
 
-  } catch (error) {
-    console.error('Error en registro:', error);
+  } catch (err) {
+    console.error('Error en registro:', err);
     return error(
       res,
       'Error interno del servidor durante el registro',
@@ -50,32 +58,35 @@ export async function login(req, res) {
   try {
     const { email, password } = req.body;
 
-    const [result, error] = await loginService({ email, password });
+    const [result, errorMsg] = await loginService({ email, password });
 
-    if (error) {
+    if (errorMsg) {
       // Si el error tiene dataInfo, es un error de validación específica
-      if (typeof error === 'object' && error.dataInfo) {
-        if (error.dataInfo === 'email') {
+      if (typeof errorMsg === 'object' && errorMsg.dataInfo) {
+        if (errorMsg.dataInfo === 'email') {
           return unauthorized(res, 'Email o contraseña incorrectos');
         }
-        if (error.dataInfo === 'password') {
+        if (errorMsg.dataInfo === 'password') {
           return unauthorized(res, 'Email o contraseña incorrectos');
         }
-        if (error.dataInfo === 'estado') {
-          return forbidden(res, error.message);
+        if (errorMsg.dataInfo === 'verificado') {
+          return forbidden(res, errorMsg.message);
+        }
+        if (errorMsg.dataInfo === 'estado') {
+          return forbidden(res, errorMsg.message);
         }
       }
-      return error(res, error, 500);
+      return error(res, errorMsg, 500);
     }
 
-    // Configurar cookie con el token
- res.cookie('token', result.token, {
-  httpOnly: true,
-  secure: false,       // true en producción con HTTPS
-  sameSite: 'lax',
-  path: '/',
-  maxAge: 24 * 60 * 60 * 1000
-});
+    // ✅ Configurar cookie con el token (solo si está verificado)
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    });
 
     return success(
       res,
@@ -83,8 +94,8 @@ export async function login(req, res) {
       'Login exitoso'
     );
 
-  } catch (error) {
-    console.error('Error en login:', error);
+  } catch (err) {
+    console.error('Error en login:', err);
     return error(
       res,
       'Error interno del servidor durante el login',
@@ -96,20 +107,20 @@ export async function login(req, res) {
 export async function logout(req, res) {
   try {
     // Limpiar cookie
- res.clearCookie('token', {
-  httpOnly: true,
-  sameSite: 'lax',
-  secure: false,
-  path: '/',
-});
+    res.clearCookie('token', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
 
     return success(
       res,
       null,
       'Logout exitoso'
     );
-  } catch (error) {
-    console.error('Error en logout:', error);
+  } catch (err) {
+    console.error('Error en logout:', err);
     return error(res, 'Error durante el logout', 500);
   }
 }
@@ -117,10 +128,10 @@ export async function logout(req, res) {
 export async function getProfile(req, res) {
   try {
     // El usuario ya está disponible en req.user gracias al middleware de autenticación
-    const [user, error] = await findUserById(req.user.id);
+    const [user, errorMsg] = await findUserById(req.user.id);
 
-    if (error) {
-      return error(res, error, 500);
+    if (errorMsg) {
+      return error(res, errorMsg, 500);
     }
 
     if (!user) {
@@ -132,8 +143,8 @@ export async function getProfile(req, res) {
       user,
       'Perfil obtenido exitosamente'
     );
-  } catch (error) {
-    console.error('Error obteniendo perfil:', error);
+  } catch (err) {
+    console.error('Error obteniendo perfil:', err);
     return error(res, 'Error obteniendo el perfil', 500);
   }
 }
@@ -141,7 +152,6 @@ export async function getProfile(req, res) {
 export async function verifyTokenController(req, res) {
   try {
     // Si llegamos hasta aquí, el token es válido (gracias al middleware)
-
     return success(
       res,
       {
@@ -150,17 +160,88 @@ export async function verifyTokenController(req, res) {
       },
       'Token válido'
     );
-  } catch (error) {
-    console.error('Error verificando token:', error);
+  } catch (err) {
+    console.error('Error verificando token:', err);
     return error(res, 'Error verificando token', 500);
   }
 }
 
+// VERIFICAR EMAIL
+export async function verificarEmail(req, res) {
+  try {
+    const { token } = req.params;
+
+    const [result, errorMsg] = await verificarEmailService(token);
+
+    if (errorMsg) {
+      if (errorMsg.includes('expirado')) {
+        return unauthorized(res, errorMsg);
+      }
+      if (errorMsg.includes('inválido')) {
+        return unauthorized(res, errorMsg);
+      }
+      if (errorMsg.includes('no encontrado')) {
+        return notFound(res, errorMsg);
+      }
+      return error(res, errorMsg, 400);
+    }
+
+    return success(
+      res,
+      result,
+      result.yaVerificado 
+        ? 'Esta cuenta ya fue verificada anteriormente' 
+        : 'Cuenta verificada con éxito. Ya puedes iniciar sesión'
+    );
+
+  } catch (err) {
+    console.error('Error verificando email:', err);
+    return error(res, 'Error al verificar el email', 500);
+  }
+}
+
+
+// REENVIAR VERIFICACIÓN
+export async function reenviarVerificacion(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return error(res, 'El email es requerido', 400);
+    }
+
+    const [result, errorMsg] = await reenviarVerificacionService(email);
+
+    if (errorMsg) {
+      if (errorMsg.includes('no encontrado')) {
+        return notFound(res, errorMsg);
+      }
+      if (errorMsg.includes('ya está verificada')) {
+        return conflict(res, errorMsg);
+      }
+      if (errorMsg.includes('correo')) {
+        return error(res, errorMsg, 500);
+      }
+      return error(res, errorMsg, 400);
+    }
+
+    return success(
+      res,
+      null,
+      'Correo de verificación reenviado exitosamente. Revisa tu bandeja de entrada.'
+    );
+
+  } catch (err) {
+    console.error('Error reenviando verificación:', err);
+    return error(res, 'Error al reenviar el correo de verificación', 500);
+  }
+}
 
 export async function buscarUsuariosPorRuts(req, res) {
   try {
     const { ruts } = req.body;
-    
+
+    // Validación del input
     if (!Array.isArray(ruts) || ruts.length === 0) {
       return res.status(400).json({
         success: false,
@@ -168,38 +249,40 @@ export async function buscarUsuariosPorRuts(req, res) {
       });
     }
 
+    // Llamar al service
+    const [users, errorMsg] = await findUsersByRuts(ruts);
 
-    const [users, error] = await findUsersByRuts(ruts);
-    
-    if (error) {
+    if (errorMsg) {
       return res.status(500).json({
         success: false,
-        message: error
+        message: errorMsg
       });
     }
 
-    // Crear un mapa de RUT -> Usuario (con guion como clave)
+    // Formatear diccionario: rut → info usuario
     const usuariosPorRut = {};
     users.forEach(user => {
       usuariosPorRut[user.rut] = {
         id: user.id,
         rut: user.rut,
-        nombre: user.nombre,
+        nombre: `${user.nombre} ${user.apellido || ''}`.trim(),
         email: user.email,
-        rol: user.rol
+        rol: user.rol,
+        carreraId: user.carreraId
       };
     });
 
-
     return success(res, usuariosPorRut, 'Usuarios encontrados');
-  } catch (error) {
-    console.error('Error buscando usuarios:', error);
+
+  } catch (err) {
+    console.error('Error buscando usuarios:', err);
     return res.status(500).json({
       success: false,
       message: 'Error al buscar usuarios'
     });
   }
 }
+
   
 export async function buscarUsuarios(req, res) {
   try {
@@ -235,17 +318,17 @@ export async function buscarUsuarios(req, res) {
       opciones.excluirJugadores = true;
     }
 
-    // 🆕 Agregar filtro por carrera
+    // Agregar filtro por carrera
     if (carreraId) {
       opciones.carreraId = parseInt(carreraId);
     }
 
-    const [users, error] = await buscarUsuariosPorTermino(termino, opciones);
+    const [users, errorMsg] = await buscarUsuariosPorTermino(termino, opciones);
     
-    if (error) {
+    if (errorMsg) {
       return res.status(500).json({
         success: false,
-        message: error
+        message: errorMsg
       });
     }
 
@@ -265,13 +348,11 @@ export async function buscarUsuarios(req, res) {
     }));
 
     return success(res, resultados, 'Usuarios encontrados');
-  } catch (error) {
-    console.error('Error buscando usuarios:', error);
+  } catch (err) {
+    console.error('Error buscando usuarios:', err);
     return res.status(500).json({
       success: false,
       message: 'Error al buscar usuarios'
     });
   }
 }
-
-

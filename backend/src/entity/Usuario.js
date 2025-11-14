@@ -38,7 +38,7 @@ const UsuarioSchema = new EntitySchema({
     estado: {
       type: "varchar",
       length: 20,
-      default: "activo",
+      default: "pendiente",
     },
     carreraId: {
       type: "int",
