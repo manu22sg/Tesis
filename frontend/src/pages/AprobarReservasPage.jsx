@@ -32,9 +32,11 @@ import locale from 'antd/locale/es_ES';
 
 import {
   obtenerEstadisticas,
-  obtenerReservasPendientes, // si luego usas un endpoint general, cámbialo aquí
+  obtenerReservasPendientes, 
   aprobarReserva as aprobarReservaService,
   rechazarReserva as rechazarReservaService
+  ,exportarReservasExcel,
+  exportarReservasPDF
 } from '../services/aprobacion.services.js';
 import { getDisponibilidadPorFecha } from '../services/horario.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
@@ -219,6 +221,49 @@ const AprobarReservasPage = () => {
     setPagination((p) => ({ ...p, current: page, pageSize }));
     cargarReservas(page, pageSize);
   };
+  const handleExportExcel = async () => {
+  try {
+    const params = {};
+    if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
+    if (filtros.canchaId) params.canchaId = filtros.canchaId;
+    if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
+    if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
+
+    const blob = await exportarReservasExcel(params);
+    descargarArchivo(blob, `reservas_${Date.now()}.xlsx`);
+    message.success("Excel descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar Excel:", error);
+    message.error(error.message || "Error al exportar Excel");
+  }
+};
+
+const handleExportPDF = async () => {
+  try {
+    const params = {};
+    if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
+    if (filtros.canchaId) params.canchaId = filtros.canchaId;
+    if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
+    if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
+
+    const blob = await exportarReservasPDF(params);
+    descargarArchivo(blob, `reservas_${Date.now()}.pdf`);
+    message.success("PDF descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
 
   // Limpiar filtros
   const limpiarFiltros = () => {
@@ -351,8 +396,19 @@ const AprobarReservasPage = () => {
           <Card
             title={<span><FilterOutlined /> Filtros</span>}
             style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
-            extra={<Button onClick={limpiarFiltros}>Limpiar Filtros</Button>}
+            extra={
+    <Space>
+      <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+      <Space size="small">
+        <Button onClick={handleExportExcel}>Exportar Excel</Button>
+        <Button onClick={handleExportPDF}>Exportar PDF</Button>
+      </Space>
+    </Space>
+  }
+
+            
           >
+            
             <Row gutter={12} align="middle">
               <Col xs={24} sm={6}>
                 <Select

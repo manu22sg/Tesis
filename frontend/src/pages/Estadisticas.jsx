@@ -1,15 +1,20 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography
+  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography,Dropdown 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { PlusOutlined, ReloadOutlined, SlidersOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, SlidersOutlined,FileExcelOutlined,   
+  FilePdfOutlined,     
+  DownloadOutlined     
+ } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout';
 import ListaEstadisticas from '../components/EstadisticasList';
 import EstadisticaForm from '../components/EstadisticaForm';
 import { obtenerSesiones, obtenerSesionPorId } from '../services/sesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
+import { exportarEstadisticasExcel, exportarEstadisticasPDF } from '../services/estadistica.services.js';
+
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 const { Option } = Select;
@@ -154,6 +159,54 @@ export default function Estadisticas() {
     message.success('Estadística guardada');
     setReloadKey(k => k + 1);
   };
+  const handleExportarExcel = async () => {
+  try {
+    const params = {
+      tipo: modo,
+      id: modo === 'sesion' ? sesionId : jugadorId
+    };
+
+    const blob = await exportarEstadisticasExcel(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `estadisticas_${modo}_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const params = {
+      tipo: modo,
+      id: modo === 'sesion' ? sesionId : jugadorId
+    };
+
+    const blob = await exportarEstadisticasPDF(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `estadisticas_${modo}_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+
 
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);
@@ -166,15 +219,42 @@ export default function Estadisticas() {
           <Card
             title={<><SlidersOutlined /> <span style={{ marginLeft: 8 }}>Panel de Estadísticas</span></>}
             extra={
-              <Space>
-                <Button icon={<ReloadOutlined />} onClick={() => setReloadKey(k => k + 1)}>
-                  Actualizar
-                </Button>
-                <Button type="primary" icon={<PlusOutlined />} onClick={manejarCrear}>
-                  Nueva estadística
-                </Button>
-              </Space>
-            }
+  <Space>
+    {canConsultar && (
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'excel',
+              icon: <FileExcelOutlined />,
+              label: 'Exportar a Excel',
+              onClick: handleExportarExcel,
+            },
+            {
+              key: 'pdf',
+              icon: <FilePdfOutlined />,
+              label: 'Exportar a PDF',
+              onClick: handleExportarPDF,
+            },
+          ],
+        }}
+        placement="bottomRight"
+      >
+        <Button icon={<DownloadOutlined />}>
+          Exportar
+        </Button>
+      </Dropdown>
+    )}
+    
+    <Button icon={<ReloadOutlined />} onClick={() => setReloadKey(k => k + 1)}>
+      Actualizar
+    </Button>
+    <Button type="primary" icon={<PlusOutlined />} onClick={manejarCrear}>
+      Nueva estadística
+    </Button>
+  </Space>
+}
+
           >
             {/* Filtros principales */}
             <Card style={{ marginBottom: 16, background: '#fafafa' }}>

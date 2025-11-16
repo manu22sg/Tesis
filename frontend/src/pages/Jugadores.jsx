@@ -32,7 +32,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   obtenerJugadores,
   obtenerJugadorPorId,
-  eliminarJugador
+  eliminarJugador,
+  exportarJugadoresExcel,
+  exportarJugadoresPDF
 } from '../services/jugador.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import JugadorDetalleModal from '../components/JugadorDetalleModal.jsx';
@@ -198,6 +200,49 @@ export default function Jugadores() {
       message.error(error.response?.data?.message || 'Error al eliminar el jugador');
     }
   };
+  const handleExportExcel = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroEstado) params.estado = filtroEstado;
+    if (filtroCarreraId) params.carreraId = filtroCarreraId;
+    if (filtroAnio) params.anioIngreso = filtroAnio;
+
+    const blob = await exportarJugadoresExcel(params);
+    descargarArchivo(blob, `jugadores_${Date.now()}.xlsx`);
+    message.success("Excel descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar Excel:", error);
+    message.error(error.message || "Error al exportar Excel");
+  }
+};
+
+const handleExportPDF = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroEstado) params.estado = filtroEstado;
+    if (filtroCarreraId) params.carreraId = filtroCarreraId;
+    if (filtroAnio) params.anioIngreso = filtroAnio;
+
+    const blob = await exportarJugadoresPDF(params);
+    descargarArchivo(blob, `jugadores_${Date.now()}.pdf`);
+    message.success("PDF descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
 
   const columns = useMemo(() => [
     {
@@ -349,22 +394,32 @@ export default function Jugadores() {
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           <Card
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <TrophyOutlined style={{ fontSize: 24 }} />
-                <span>Jugadores</span>
-              </div>
-            }
-            extra={
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('/jugadores/nuevo')}
-              >
-                Nuevo Jugador
-              </Button>
-            }
-          >
+  title={
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <TrophyOutlined style={{ fontSize: 24 }} />
+      <span>Jugadores</span>
+    </div>
+  }
+  extra={
+    <Space>
+      <Space size="small">
+        <Button onClick={handleExportExcel}>
+          Exportar Excel
+        </Button>
+        <Button onClick={handleExportPDF}>
+          Exportar PDF
+        </Button>
+      </Space>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => navigate('/jugadores/nuevo')}
+      >
+        Nuevo Jugador
+      </Button>
+    </Space>
+  }
+>
             {/* Card de Filtros */}
             <Card
               title={

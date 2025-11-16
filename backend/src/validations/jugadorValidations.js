@@ -1,5 +1,19 @@
 import Joi from 'joi';
 
+const POSICIONES_VALIDAS = [
+  'Portero',
+  'Defensa Central Derecho',   
+  'Defensa Central Izquierdo', 
+  'Lateral Derecho',
+  'Lateral Izquierdo',
+  'Mediocentro Defensivo',
+  'Mediocentro',
+  'Mediocentro Ofensivo',
+  'Extremo Derecho',
+  'Extremo Izquierdo',
+  'Delantero Centro'
+];
+
 export const crearJugadorSchema = Joi.object({
   usuarioId: Joi.number()
     .integer()
@@ -12,14 +26,13 @@ export const crearJugadorSchema = Joi.object({
       'any.required': 'usuarioId es requerido'
     }),
 
-  // 🆕 Campos actualizados según la nueva estructura
   posicion: Joi.string()
     .max(50)
-    .valid('Portero', 'Defensa', 'Mediocampista', 'Delantero')
+    .valid(...POSICIONES_VALIDAS) 
     .optional()
     .messages({
       'string.max': 'posicion no puede tener más de 50 caracteres',
-      'any.only': 'posicion debe ser: Portero, Defensa, Mediocampista o Delantero'
+      'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
     }),
 
   piernaHabil: Joi.string()
@@ -84,14 +97,13 @@ export const crearJugadorSchema = Joi.object({
 });
 
 export const actualizarJugadorSchema = Joi.object({
-  // 🆕 Campos actualizados (no se puede cambiar usuarioId)
   posicion: Joi.string()
     .max(50)
-    .valid('Portero', 'Defensa', 'Mediocampista', 'Delantero')
+    .valid(...POSICIONES_VALIDAS)  // 🔥 Usando las posiciones detalladas
     .optional()
     .messages({
       'string.max': 'posicion no puede tener más de 50 caracteres',
-      'any.only': 'posicion debe ser: Portero, Defensa, Mediocampista o Delantero'
+      'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
     }),
 
   piernaHabil: Joi.string()
@@ -170,32 +182,6 @@ export const actualizarJugadorSchema = Joi.object({
     'object.min': 'Debe proporcionar al menos un campo para actualizar'
   });
 
-// 🆕 Schema para validar asignación a grupo
-export const asignarGrupoSchema = Joi.object({
-  jugadorId: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .messages({
-      'number.base': 'jugadorId debe ser un número',
-      'number.integer': 'jugadorId debe ser un número entero',
-      'number.positive': 'jugadorId debe ser positivo',
-      'any.required': 'jugadorId es requerido'
-    }),
-
-  grupoId: Joi.number()
-    .integer()
-    .positive()
-    .required()
-    .messages({
-      'number.base': 'grupoId debe ser un número',
-      'number.integer': 'grupoId debe ser un número entero',
-      'number.positive': 'grupoId debe ser positivo',
-      'any.required': 'grupoId es requerido'
-    })
-});
-
-// 🆕 Schema para validar filtros de búsqueda
 export const filtrosJugadoresSchema = Joi.object({
   pagina: Joi.number()
     .integer()
@@ -227,45 +213,28 @@ export const filtrosJugadoresSchema = Joi.object({
   carreraId: Joi.number()
     .integer()
     .positive()
-    .optional()
-    .messages({
-      'number.base': 'carreraId debe ser un número',
-      'number.integer': 'carreraId debe ser un número entero',
-      'number.positive': 'carreraId debe ser positivo'
-    }),
+    .optional(),
 
   carreraNombre: Joi.string()
     .max(100)
-    .optional()
-    .messages({
-      'string.max': 'carreraNombre no puede tener más de 100 caracteres'
-    }),
+    .optional(),
 
   anioIngreso: Joi.number()
     .integer()
     .min(1900)
     .max(new Date().getFullYear() + 10)
-    .optional()
-    .messages({
-      'number.base': 'anioIngreso debe ser un número',
-      'number.integer': 'anioIngreso debe ser un número entero'
-    }),
+    .optional(),
 
   grupoId: Joi.number()
     .integer()
     .positive()
-    .optional()
-    .messages({
-      'number.base': 'grupoId debe ser un número',
-      'number.integer': 'grupoId debe ser un número entero',
-      'number.positive': 'grupoId debe ser positivo'
-    }),
+    .optional(),
 
   posicion: Joi.string()
-    .valid('Portero', 'Defensa', 'Mediocampista', 'Delantero')
+    .valid(...POSICIONES_VALIDAS)  // 🔥 Filtros con posiciones detalladas
     .optional()
     .messages({
-      'any.only': 'posicion debe ser: Portero, Defensa, Mediocampista o Delantero'
+      'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
     }),
 
   piernaHabil: Joi.string()
@@ -275,3 +244,6 @@ export const filtrosJugadoresSchema = Joi.object({
       'any.only': 'piernaHabil debe ser: Derecha, Izquierda o Ambas'
     })
 });
+
+// 🔥 Exportar constantes para usar en otros archivos
+export { POSICIONES_VALIDAS };

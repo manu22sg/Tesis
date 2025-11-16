@@ -2,12 +2,12 @@ import nodemailer from 'nodemailer';
 import { EMAIL_USER, EMAIL_PASS, EMAIL_HOST, EMAIL_PORT } from "../config/configEnv.js"
 
 export const mailer = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: Number(process.env.EMAIL_PORT || 465),
+  host: EMAIL_HOST || 'smtp.gmail.com',
+  port: Number(EMAIL_PORT || 465),
   secure: true, 
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
 });
 
@@ -22,14 +22,13 @@ export const mailer = nodemailer.createTransport({
 export async function sendMail({ to, subject, text, html }) {
   try {
     const info = await mailer.sendMail({
-      from: `"SPORTUBB" <${process.env.EMAIL_USER}>`,
+      from: `"SPORTUBB" <${EMAIL_USER}>`,
       to,
       subject,
       text,
       html: html || `<p>${text}</p>`,
     });
 
-    console.log(` Correo enviado a ${to}: ${info.messageId}`);
     return info;
   } catch (error) {
     console.error(' Error al enviar correo:', error);

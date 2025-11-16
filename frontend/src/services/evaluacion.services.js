@@ -104,3 +104,31 @@ export const obtenerMisEvaluaciones = async (filtros = {}) => {
     throw error.response?.data || error;
   }
 };
+
+
+
+export const exportarEvaluacionesExcel = async (params = {}) => {
+  try {
+    const response = await api.get('/evaluaciones/excel', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+
+export const exportarEvaluacionesPDF = async (params = {}) => {
+  try {
+    const response = await api.get('/evaluaciones/pdf', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+

@@ -43,5 +43,53 @@ export const campeonatoService = {
   generarSiguienteRonda: async (id) => {
     const response = await api.post(`${CAMPEONATOS_BASE}/${id}/siguiente-ronda`, {});
     return response.data;
+  },
+  exportarExcel: async (params = {}) => {
+    try {
+      const response = await api.get(`${CAMPEONATOS_BASE}/excel`, {
+        params,
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  exportarPDF: async (params = {}) => {
+    try {
+      const response = await api.get(`${CAMPEONATOS_BASE}/pdf`, {
+        params,
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+  exportarFixtureExcel: async (id) => {
+    try {
+      const response = await api.get(`${CAMPEONATOS_BASE}/${id}/fixture/excel`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Exportar fixture a PDF
+  exportarFixturePDF: async (id) => {
+    try {
+      const response = await api.get(`${CAMPEONATOS_BASE}/${id}/fixture/pdf`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
   }
+
+
+  
 };

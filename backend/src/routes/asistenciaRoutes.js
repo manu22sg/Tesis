@@ -10,10 +10,19 @@ import {
   actualizarAsistenciaController,
   eliminarAsistenciaController,
   listarAsistenciasDeSesionController,
-  postMarcarAsistenciaPorToken
+  postMarcarAsistenciaPorToken,
+  exportarAsistenciasExcel,
+  exportarAsistenciasPDF
 } from "../controllers/asistenciaController.js";
 
 const router = Router();
+
+
+router.get("/excel", authenticateToken,
+  requireRole("entrenador"),exportarAsistenciasExcel);
+
+router.get("/pdf",authenticateToken,
+  requireRole("entrenador"),exportarAsistenciasPDF);
 
 router.post(
   '/marcar-asistencia',
@@ -51,5 +60,8 @@ router.get(
   validarQuery(paginacionAsistenciasSchema),
   listarAsistenciasDeSesionController
 );
+
+
+
 
 export default router;

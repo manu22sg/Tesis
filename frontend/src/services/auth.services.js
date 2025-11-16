@@ -1,6 +1,6 @@
 import api from "./root.services.js";
 
-// LOGIN
+//LOGIN
 export async function loginRequest(credentials) {
   try {
     const { data } = await api.post("/auth/login", credentials);
@@ -9,12 +9,12 @@ export async function loginRequest(credentials) {
     return data.data || null;
 
   } catch (error) {
-    console.error("Error en loginRequest:", error.response?.data || error.message);
-    throw error.response?.data || error;
+    
+    throw error.response?.data?.message || error;
   }
 }
 
-// REGISTRO
+//REGISTRO
 export async function registerRequest(userData) {
   try {
     const { data } = await api.post("/auth/register", userData);

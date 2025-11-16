@@ -9,8 +9,10 @@ export const listarEstadisticas = async (filtros = {}) => {
 
     if (filtros.partidoId) params.partidoId = filtros.partidoId;
     if (filtros.jugadorCampeonatoId) params.jugadorCampeonatoId = filtros.jugadorCampeonatoId;
-
     if (filtros.campeonatoId) params.campeonatoId = filtros.campeonatoId;
+    
+    if (filtros.equipoId) params.equipoId = filtros.equipoId;
+    if (filtros.q) params.q = filtros.q;
 
     const res = await api.get('/estadisticaCampeonato', { params });
     return res.data.data;
@@ -86,5 +88,38 @@ export const listarJugadoresPorEquipoYCampeonato = async (equipoId, campeonatoId
     return res.data.data;
   } catch (error) {
     throw error.response?.data?.message || 'Error al obtener jugadores';
+  }
+};
+
+
+export const exportarExcel = async (campeonatoId, equipoId = null, busqueda = null) => {
+  try {
+    const params = {};
+    if (equipoId) params.equipoId = equipoId;
+    if (busqueda) params.q = busqueda;
+    
+    const response = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/excel`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const exportarPDF = async (campeonatoId, equipoId = null, busqueda = null) => {
+  try {
+    const params = {};
+    if (equipoId) params.equipoId = equipoId;
+    if (busqueda) params.q = busqueda;
+    
+    const response = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/pdf`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
   }
 };

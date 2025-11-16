@@ -9,6 +9,7 @@ import {
   quitarJugadorParams,
   sesionIdParamSchema
 } from '../validations/alineacionValidations.js';
+import { generarAlineacionInteligenteSchema } from '../validations/alineacionInteligenteValidations.js';
 
 import {
   postCrearAlineacion,
@@ -17,7 +18,12 @@ import {
   patchAlineacionJugador,
   deleteAlineacionJugador,
   deleteAlineacion,
-  patchActualizarPosiciones
+  patchActualizarPosiciones,
+  exportarAlineacionExcel,
+  exportarAlineacionPDF,
+  postGenerarAlineacionInteligente, 
+  getFormacionesDisponibles         
+
 } from '../controllers/alineacionController.js';
 
 const router = Router();
@@ -30,6 +36,22 @@ router.post(
   validarBody(crearAlineacionBody),
   postCrearAlineacion
 );
+router.get(
+  '/excel/:sesionId',
+  authenticateToken,
+  requireRole(['entrenador', 'superadmin']),
+  validarParams(sesionIdParamSchema),
+  exportarAlineacionExcel
+);
+
+router.get(
+  '/pdf/:sesionId',
+  authenticateToken,
+  requireRole(['entrenador', 'superadmin']),
+  validarParams(sesionIdParamSchema),
+  exportarAlineacionPDF
+);
+
  // obtener alineación por sesión
 router.get(
   '/sesion/:sesionId',
@@ -77,6 +99,22 @@ router.patch(
   authenticateToken,
   requireRole(['entrenador','superadmin']),
   patchActualizarPosiciones
+);
+
+router.post(
+  '/inteligente',
+  authenticateToken,
+  requireRole(['entrenador', 'superadmin']),
+  validarBody(generarAlineacionInteligenteSchema),  
+  postGenerarAlineacionInteligente
+);
+
+
+router.get(
+  '/formaciones/:tipo',
+  authenticateToken,
+  requireRole(['entrenador', 'superadmin']),
+  getFormacionesDisponibles
 );
 
 export default router;

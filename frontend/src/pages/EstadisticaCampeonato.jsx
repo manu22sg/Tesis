@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Table, Button, Space, message, Tag, Tooltip, Popconfirm,
-  Row, Col, Empty, Breadcrumb, Input, Select, Alert, Pagination, ConfigProvider
+  Row, Col, Empty, Breadcrumb, Input, Select, Alert, Pagination, ConfigProvider,Dropdown
 } from 'antd';
 import esES from 'antd/locale/es_ES';
 import {
   DeleteOutlined, UserOutlined, ThunderboltOutlined, FilterOutlined,
-  ReloadOutlined, TeamOutlined, ArrowLeftOutlined, SearchOutlined
+  ReloadOutlined, TeamOutlined, ArrowLeftOutlined, SearchOutlined,
+  FileExcelOutlined,FilePdfOutlined,DownloadOutlined     
+
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout';
 import * as estadisticaService from '../services/estadisticaCampeonato.services';
@@ -104,7 +106,7 @@ function EstadisticasContent() {
   const handleEliminar = useCallback(async (id) => {
     try {
       await estadisticaService.eliminarEstadistica(id);
-      message.success('Estadística eliminada correctamente');
+      message.success('Estadística eliminada');
       cargarEstadisticas();
     } catch (err) {
       message.error(typeof err === 'string' ? err : 'Error al eliminar estadística');
@@ -115,6 +117,44 @@ function EstadisticasContent() {
     setFiltros({ busqueda: '', equipoId: null });
     setCurrent(1);
   };
+  const handleExportarExcel = async () => {
+  try {
+    const blob = await estadisticaService.exportarExcel(campeonatoId, filtros.equipoId,filtros.busqueda);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `estadisticas_campeonato_${campeonatoId}_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const blob = await estadisticaService.exportarPDF(campeonatoId, filtros.equipoId,filtros.busqueda);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `estadisticas_campeonato_${campeonatoId}_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a PDF');
+  }
+};
+
 
   // === Filtrado
   const estadisticasFiltradas = useMemo(() => {
@@ -304,15 +344,42 @@ function EstadisticasContent() {
 
       {/* Tabla */}
       <Card
-        title={
-          <Space>
-            <ThunderboltOutlined />
-            <span>Estadísticas del Campeonato</span>
-            <Tag color="blue">{estadisticasFiltradas.length} registros</Tag>
-            {hayFiltrosActivos && <Tag color="orange">Filtrado</Tag>}
-          </Space>
-        }
+  title={
+    <Space>
+      <ThunderboltOutlined />
+      <span>Estadísticas del Campeonato</span>
+      <Tag color="blue">{estadisticasFiltradas.length} registros</Tag>
+      {hayFiltrosActivos && <Tag color="orange">Filtrado</Tag>}
+    </Space>
+  }
+  extra={
+    estadisticas.length > 0 && (
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'excel',
+              icon: <FileExcelOutlined />,
+              label: 'Exportar a Excel',
+              onClick: handleExportarExcel,
+            },
+            {
+              key: 'pdf',
+              icon: <FilePdfOutlined />,
+              label: 'Exportar a PDF',
+              onClick: handleExportarPDF,
+            },
+          ],
+        }}
+        placement="bottomRight"
       >
+        <Button icon={<DownloadOutlined />}>
+          Exportar
+        </Button>
+      </Dropdown>
+    )
+  }
+>
         <Table
           columns={columns}
           dataSource={paginatedData}

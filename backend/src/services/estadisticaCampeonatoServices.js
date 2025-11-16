@@ -3,7 +3,7 @@ import PartidoCampeonatoSchema from "../entity/PartidoCampeonato.js";
 import JugadorCampeonatoSchema from "../entity/JugadorCampeonato.js";
 import EstadisticaCampeonatoSchema from "../entity/EstadisticaCampeonato.js";
 
-// ⭐ Calcular total de goles por equipo en estadísticas
+//  Calcular total de goles por equipo en estadísticas
 const calcularGolesEquipo = async (manager, partidoId, equipoId, excluirEstadisticaId = null) => {
   const estadRepo = manager.getRepository(EstadisticaCampeonatoSchema);
   const jugadorRepo = manager.getRepository(JugadorCampeonatoSchema);
@@ -29,7 +29,7 @@ const calcularGolesEquipo = async (manager, partidoId, equipoId, excluirEstadist
   return totalGoles;
 };
 
-// ⭐ Calcular total de asistencias por equipo en estadísticas
+//  Calcular total de asistencias por equipo en estadísticas
 const calcularAsistenciasEquipo = async (manager, partidoId, equipoId, excluirEstadisticaId = null) => {
   const estadRepo = manager.getRepository(EstadisticaCampeonatoSchema);
   const jugadorRepo = manager.getRepository(JugadorCampeonatoSchema);
@@ -108,7 +108,7 @@ export const crearEstadistica = async (payload) => {
     const esEquipoA = jugador.equipoId === partido.equipoAId;
     const golesEquipo = esEquipoA ? partido.golesA : partido.golesB;
     
-    // ⭐ VALIDAR GOLES
+    //  VALIDAR GOLES
     if (goles > golesEquipo) {
       throw new Error(
         `El jugador no puede tener ${goles} goles cuando su equipo solo marcó ${golesEquipo}`
@@ -125,7 +125,7 @@ export const crearEstadistica = async (payload) => {
       );
     }
 
-    // ⭐ VALIDAR ASISTENCIAS (no pueden ser más que los goles del equipo)
+    //  VALIDAR ASISTENCIAS (no pueden ser más que los goles del equipo)
     if (asistencias > golesEquipo) {
       throw new Error(
         `El jugador no puede tener ${asistencias} asistencias cuando su equipo solo marcó ${golesEquipo} goles`
@@ -315,7 +315,7 @@ export const actualizarEstadistica = async (id, cambios) => {
   });
 };
 
-// ⭐ ELIMINAR con actualización de acumulados
+//  ELIMINAR con actualización de acumulados
 export const eliminarEstadistica = async (id) => {
   return await AppDataSource.transaction(async (trx) => {
     const estadisticaRepo = trx.getRepository(EstadisticaCampeonatoSchema);
@@ -356,14 +356,33 @@ export const listarEstadisticas = async (filtros = {}) => {
   const query = repo
     .createQueryBuilder("estad")
     .leftJoinAndSelect("estad.jugadorCampeonato", "jug")
+    .leftJoinAndSelect("jug.usuario", "usuario")
     .leftJoinAndSelect("estad.partido", "partido")
+    .leftJoinAndSelect("partido.equipoA", "equipoA")
+    .leftJoinAndSelect("partido.equipoB", "equipoB")
     .leftJoinAndSelect("jug.equipo", "equipo");
 
-  // ⭐⭐ AQUI FILTRAMOS POR CAMPEONATO CORRECTAMENTE ⭐⭐
+  //  FILTRAR POR CAMPEONATO
   if (filtros.campeonatoId) {
     query.andWhere("jug.campeonatoId = :campId", {
       campId: Number(filtros.campeonatoId),
     });
+  }
+
+  //  FILTRAR POR EQUIPO
+  if (filtros.equipoId) {
+    query.andWhere("jug.equipoId = :equipoId", {
+      equipoId: Number(filtros.equipoId),
+    });
+  }
+
+  //  FILTRAR POR BÚSQUEDA (nombre de jugador o equipo)
+  if (filtros.q && filtros.q.trim()) {
+    const busqueda = `%${filtros.q.trim()}%`;
+    query.andWhere(
+      '(LOWER(usuario.nombre) LIKE LOWER(:busqueda) OR LOWER(usuario.apellido) LIKE LOWER(:busqueda) OR LOWER(equipo.nombre) LIKE LOWER(:busqueda))',
+      { busqueda }
+    );
   }
 
   query.orderBy("estad.id", "DESC");

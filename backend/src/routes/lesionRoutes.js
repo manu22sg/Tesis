@@ -1,12 +1,24 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole, attachJugadorId } from '../middleware/authMiddleware.js';
 import { validarBody, validarQuery, validarParams, crearLesionBody, actualizarLesionBody, obtenerLesionesQuery, idParamSchema } from '../validations/lesionValidations.js';
-import { postCrearLesion, getLesiones, getLesionPorId, patchLesion, deleteLesion, getLesionesPorJugador } from '../controllers/lesionController.js';
+import { postCrearLesion, getLesiones, getLesionPorId, patchLesion, deleteLesion, getLesionesPorJugador,exportarLesionesExcel,exportarLesionesPDF } from '../controllers/lesionController.js';
 
 const router = Router();
 
 // POST, PATCH, DELETE
 router.post('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(crearLesionBody), postCrearLesion);
+router.get('/excel', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin' ]), 
+  exportarLesionesExcel
+);
+
+router.get('/pdf', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin' ]), 
+  exportarLesionesPDF
+);
+
 router.patch('/:id', authenticateToken, requireRole(['entrenador','superadmin']),validarParams(idParamSchema),validarBody(actualizarLesionBody), patchLesion);
 router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), deleteLesion);
 

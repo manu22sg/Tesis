@@ -607,3 +607,4 @@ export async function obtenerSesionesPorEstudiante(usuarioId, filtros = {}) {
     return [null, 'Error interno del servidor'];
   }
 }
+

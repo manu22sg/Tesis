@@ -1,4 +1,3 @@
-// services/estadisticaServices.js
 import { AppDataSource } from '../config/config.db.js';
 import EstadisticaBasicaSchema from '../entity/EstadisticaBasica.js';
 import JugadorSchema from '../entity/Jugador.js';

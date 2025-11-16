@@ -32,7 +32,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   listarAsistenciasDeSesion,
   actualizarAsistencia,
-  eliminarAsistencia
+  eliminarAsistencia,
+  exportarAsistenciasExcel,exportarAsistenciasPDF
 } from '../services/asistencia.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import dayjs from 'dayjs';
@@ -148,6 +149,44 @@ export default function GestionarAsistencias() {
       message.error(error.response?.data?.message || 'Error al eliminar la asistencia');
     }
   };
+const handleExportExcel = async () => {
+  try {
+    const blob = await exportarAsistenciasExcel({
+      sesionId: parseInt(sesionId)
+    });
+    
+    descargarArchivo(blob, `asistencias_sesion_${sesionId}.xlsx`);
+    
+  } catch (error) {
+    console.error("Error completo:", error);
+    console.log(error);
+    message.error(error.message || "Error al exportar Excel");
+  }
+};
+
+
+const handleExportPDF = async () => {
+  try {
+    const blob = await exportarAsistenciasPDF({
+      sesionId: parseInt(sesionId),
+    });
+
+    descargarArchivo(blob, `asistencias_sesion_${sesionId}.pdf`);
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+
 
   const handlePageChange = (page, pageSize) => {
     cargarAsistencias(page, pageSize);
@@ -279,78 +318,92 @@ export default function GestionarAsistencias() {
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           {sesion && (
-            <Card style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-                <div>
-                  <Title level={4} style={{ marginBottom: 4 }}>
-                    {sesion.tipoSesion}
-                  </Title>
-                  <Space size="large" wrap>
-                    <Text type="secondary">
-                       {formatearFecha(sesion.fecha)}
-                    </Text>
-                    <Text type="secondary">
-                       {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
-                    </Text>
-                    <Text type="secondary">
-                       {sesion.cancha?.nombre || 'Sin cancha'}
-                    </Text>
-                    {sesion.latitudToken && sesion.longitudToken ? (
-  <Tag color="green" icon={<EnvironmentOutlined />}>
-    Token con ubicación activa
-  </Tag>
-) : (
-  <Tag color="default">Token sin ubicación</Tag>
-)}
-                    {sesion.grupo && (
-                      <Text type="secondary">
-                        <TeamOutlined />
-                         {sesion.grupo.nombre}
-                      </Text>
-                    )}
-                  </Space>
-                </div>
-                <Button onClick={() => navigate('/sesiones')}>
-                  Volver a Sesiones
-                </Button>
-              </div>
-
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                gap: 16, 
-                marginTop: 24,
-                padding: 16,
-                background: '#f5f5f5',
-                borderRadius: 8
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
-                    {estadisticas.presente}
-                  </div>
-                  <Text type="secondary">Presentes</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
-                    {estadisticas.ausente}
-                  </div>
-                  <Text type="secondary">Ausentes</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
-                    {estadisticas.justificado}
-                  </div>
-                  <Text type="secondary">Justificados</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold',  }}>
-                    {pagination.total}
-                  </div>
-                  <Text type="secondary">Total</Text>
-                </div>
-              </div>
-            </Card>
+  <Card style={{ marginBottom: 24 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+      {/* Información de la sesión */}
+      <div style={{ flex: 1, minWidth: 300 }}>
+        <Title level={4} style={{ marginBottom: 4 }}>
+          {sesion.tipoSesion}
+        </Title>
+        <Space size="large" wrap>
+          <Text type="secondary">
+            {formatearFecha(sesion.fecha)}
+          </Text>
+          <Text type="secondary">
+            {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
+          </Text>
+          <Text type="secondary">
+            {sesion.cancha?.nombre || 'Sin cancha'}
+          </Text>
+          {sesion.latitudToken && sesion.longitudToken ? (
+            <Tag color="green" icon={<EnvironmentOutlined />}>
+              Token con ubicación activa
+            </Tag>
+          ) : (
+            <Tag color="default">Token sin ubicación</Tag>
           )}
+          {sesion.grupo && (
+            <Text type="secondary">
+              <TeamOutlined /> {sesion.grupo.nombre}
+            </Text>
+          )}
+        </Space>
+      </div>
+
+      {/* Botones separados en dos grupos */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <Button onClick={() => navigate('/sesiones')}>
+          Volver a Sesiones
+        </Button>
+        
+        <Space size="small">
+          <Button type="primary" onClick={() => handleExportExcel()}>
+            Exportar Excel
+          </Button>
+          <Button type="primary" onClick={() => handleExportPDF()}>
+            Exportar PDF
+          </Button>
+        </Space>
+      </div>
+    </div>
+
+    {/* Estadísticas */}
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+      gap: 16, 
+      marginTop: 24,
+      padding: 16,
+      background: '#f5f5f5',
+      borderRadius: 8
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+          {estadisticas.presente}
+        </div>
+        <Text type="secondary">Presentes</Text>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+          {estadisticas.ausente}
+        </div>
+        <Text type="secondary">Ausentes</Text>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+          {estadisticas.justificado}
+        </div>
+        <Text type="secondary">Justificados</Text>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+          {pagination.total}
+        </div>
+        <Text type="secondary">Total</Text>
+      </div>
+    </div>
+  </Card>
+)}
 
           <Card
             title="Lista de Asistencias"
@@ -361,7 +414,9 @@ export default function GestionarAsistencias() {
               >
                 Actualizar
               </Button>
+              
             }
+            
           >
             <Table
               columns={columns}

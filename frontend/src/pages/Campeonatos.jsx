@@ -18,10 +18,14 @@ import {
   Badge,
   Empty,
   ConfigProvider,
-  Pagination
+  Pagination,
+  Dropdown 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
+  FileExcelOutlined,    
+  FilePdfOutlined,      
+  DownloadOutlined,    
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -204,10 +208,61 @@ function CampeonatosContent() {
     }
   };
 
+  const handleExportarExcel = async () => {
+  try {
+    const params = {};
+    if (filtros.formato) params.formato = filtros.formato;
+    if (filtros.genero) params.genero = filtros.genero;
+    if (filtros.anio) params.anio = filtros.anio;
+    if (filtros.semestre) params.semestre = filtros.semestre;
+    if (filtros.estado) params.estado = filtros.estado;
+
+    const blob = await campeonatoService.exportarExcel(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `campeonatos_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const params = {};
+    if (filtros.formato) params.formato = filtros.formato;
+    if (filtros.genero) params.genero = filtros.genero;
+    if (filtros.anio) params.anio = filtros.anio;
+    if (filtros.semestre) params.semestre = filtros.semestre;
+    if (filtros.estado) params.estado = filtros.estado;
+
+    const blob = await campeonatoService.exportarPDF(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `campeonatos_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a PDF');
+  }
+};
+
   const handleEliminar = useCallback(async (id) => {
     try {
       await campeonatoService.eliminar(id);
-      message.success('Campeonato eliminado correctamente');
       cargarCampeonatos();
     } catch {
       message.error('Error al eliminar campeonato');
@@ -327,23 +382,48 @@ function CampeonatosContent() {
     <ConfigProvider locale={locale}>
       <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
         {/* Filtros */}
-        <Card
-          title={<span><FilterOutlined /> Filtros</span>}
-          style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
-          extra={
-            <Space>
-              <Button 
-                onClick={limpiarFiltros}
-                disabled={!Object.values(filtros).some(v => v !== null)}
-              >
-                Limpiar Filtros
-              </Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-                Nuevo Campeonato
-              </Button>
-            </Space>
-          }
-        >
+       <Card
+  title={<span><FilterOutlined /> Filtros</span>}
+  style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+  extra={
+    <Space>
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'excel',
+              icon: <FileExcelOutlined />,
+              label: 'Exportar a Excel',
+              onClick: handleExportarExcel,
+            },
+            {
+              key: 'pdf',
+              icon: <FilePdfOutlined />,
+              label: 'Exportar a PDF',
+              onClick: handleExportarPDF,
+            },
+          ],
+        }}
+        placement="bottomRight"
+      >
+        <Button icon={<DownloadOutlined />}>
+          Exportar
+        </Button>
+      </Dropdown>
+
+      <Button 
+        onClick={limpiarFiltros}
+        disabled={!Object.values(filtros).some(v => v !== null)}
+      >
+        Limpiar Filtros
+      </Button>
+      
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+        Nuevo Campeonato
+      </Button>
+    </Space>
+  }
+>
           <Space wrap>
             <Select
               style={{ width: 120 }}

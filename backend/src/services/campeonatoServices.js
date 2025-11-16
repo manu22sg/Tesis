@@ -13,13 +13,13 @@ export const crearCampeonato = async (payload) => {
   const repo = CampeonatoRepo();
   const canchaRepo = CanchaRepo();
 
-  // ⚙️ Validaciones básicas
+  // Validaciones básicas
   const { nombre, formato, genero, anio, semestre, entrenadorId } = payload;
   if (!nombre || !formato || !genero || !anio || !semestre) {
     throw new Error("Faltan campos obligatorios para crear el campeonato");
   }
 
-  // ⚠️ Evitar duplicados por año/semestre
+  // Evitar duplicados por año/semestre
   const existe = await repo.findOne({
     where: { nombre, anio, semestre },
   });
@@ -28,7 +28,7 @@ export const crearCampeonato = async (payload) => {
       `Ya existe un campeonato llamado "${nombre}" en ${anio}-${semestre}`
     );
 
-  // ⚠️ Evitar múltiples campeonatos activos del mismo tipo/género
+  //  Evitar múltiples campeonatos activos del mismo tipo/género
   const activo = await repo.findOne({
     where: { formato, genero, estado: "creado" },
   });
@@ -37,7 +37,7 @@ export const crearCampeonato = async (payload) => {
       `Ya hay un campeonato activo de formato ${formato} (${genero}). Finaliza el actual antes de crear uno nuevo.`
     );
 
-  // ⚙️ Verificar disponibilidad mínima de canchas
+  //  Verificar disponibilidad mínima de canchas
   const minJugadores =
     formato === "11v11" ? 11 : formato === "7v7" ? 7 : 5;
   const canchaValida = await canchaRepo.findOne({
@@ -52,7 +52,7 @@ export const crearCampeonato = async (payload) => {
     );
   }
 
-  // ⚙️ Crear campeonato
+  //  Crear campeonato
   const campeonato = repo.create({
     nombre,
     formato,

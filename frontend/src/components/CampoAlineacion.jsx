@@ -17,6 +17,8 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
   const posicionesDefecto = {
     'portero': { x: 50, y: 90 },
     'defensa central': { x: 50, y: 75 },
+    'defensa central derecho': { x: 60, y: 75 },
+    'defensa central izquierdo': { x: 40, y: 75 },
     'lateral derecho': { x: 80, y: 75 },
     'lateral izquierdo': { x: 20, y: 75 },
     'mediocentro defensivo': { x: 50, y: 60 },

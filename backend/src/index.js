@@ -6,12 +6,9 @@ import cookieParser from "cookie-parser"
 import {connectDB} from "./config/config.db.js"
 import { createUsers } from './config/initialSetup.js';
 import {createCarreras} from "./config/carrerasSetup.js"
-import { actualizarEstadosReservas } from './utils/reserva.job.js';
-import {enviarRecordatoriosSesiones} from './utils/recordatorioSesiones.js'
-import {enviarRecordatoriosReservas} from './utils/recordatorioReservas.js'
+import { iniciarCronJobs } from './utils/jobCron.js';
 
 
-import cron from 'node-cron';
 
 dotenv.config();
 
@@ -25,20 +22,14 @@ await createCarreras();
 
   
 app.use(cors({
-  origin: "http://localhost:5173", // especifica el origen exacto
-  credentials: true,               // permite envío de cookies
+  origin: "http://localhost:5173", 
+  credentials: true,               
 }));
 app.use(cookieParser()); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-cron.schedule('*/30 * * * *', async () => {
-  await actualizarEstadosReservas();
-  await enviarRecordatoriosSesiones();
-  await enviarRecordatoriosReservas();
-});
-
-   
+iniciarCronJobs();
 
 
 app.get('/', (req, res) => {

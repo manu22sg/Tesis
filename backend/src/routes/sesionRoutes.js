@@ -6,7 +6,9 @@ import {
   patchActualizarSesion,
   deleteSesion,
   postSesionesRecurrentes,
-  getSesionesPorEstudiante
+  getSesionesPorEstudiante,
+  exportarSesionesExcel,
+  exportarSesionesPDF
 } from '../controllers/sesionController.js';
 
 import {
@@ -72,5 +74,9 @@ router.get('/estudiante',
   requireRole(['estudiante']),
   getSesionesPorEstudiante
 );
+
+router.get("/excel", authenticateToken, requireRole(['entrenador']), exportarSesionesExcel);
+router.get("/pdf", authenticateToken, requireRole(['entrenador']), exportarSesionesPDF);
+
 
 export default router;

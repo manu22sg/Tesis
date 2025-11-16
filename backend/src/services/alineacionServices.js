@@ -58,7 +58,14 @@ export async function obtenerAlineacionPorSesion(sesionId) {
     const repo = AppDataSource.getRepository(AlineacionSchema);
     const alineacion = await repo.findOne({
       where: { sesionId },
-      relations: ['sesion', 'jugadores', 'jugadores.jugador', 'jugadores.jugador.usuario'],
+      relations: [
+        'sesion', 
+        'sesion.grupo',      
+        'sesion.cancha',     
+        'jugadores', 
+        'jugadores.jugador', 
+        'jugadores.jugador.usuario'
+      ],
       order: { jugadores: { orden: 'ASC' } },
     });
     if (!alineacion) return [null, 'Alineación no encontrada para la sesión'];

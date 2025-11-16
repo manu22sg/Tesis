@@ -14,7 +14,10 @@ import {
   getEstadisticasPorSesion,
   getEstadisticaPorId,
   deleteEstadistica,
-  getMisEstadisticas
+  getMisEstadisticas,
+  exportarEstadisticasExcel,    
+  exportarEstadisticasPDF        
+
 } from '../controllers/estadisticaController.js';
 
 const router = Router();
@@ -26,6 +29,17 @@ router.post(
   requireRole(['entrenador','superadmin']),
   validarBody(upsertEstadisticaBody),
   postUpsertEstadistica
+);
+router.get('/excel', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarEstadisticasExcel
+);
+
+router.get('/pdf', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarEstadisticasPDF
 );
 
 // Listar por jugador — entrenador/superadmin pueden ver cualquiera

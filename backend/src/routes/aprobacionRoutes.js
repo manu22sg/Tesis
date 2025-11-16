@@ -3,7 +3,8 @@ import {
   patchAprobarReserva,
   patchRechazarReserva,
   getReservasPendientes,
-  patchCambiarEstadoReserva,
+exportarReservasExcel,
+  exportarReservasPDF,
   getEstadisticasReservas
 } from '../controllers/aprobacionController.js';
 
@@ -101,5 +102,19 @@ router.post('/estadisticas',
   validate(obtenerEstadisticasBody),
   getEstadisticasReservas
 );
+
+
+router.get('/excel', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarReservasExcel
+);
+
+router.get('/pdf', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarReservasPDF
+);
+
 
 export default router;

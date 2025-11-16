@@ -124,3 +124,17 @@ function limpiarPayload(data) {
   }
   return limpio;
 }
+
+
+export async function exportarSesionesExcel(filtros = {}) {
+  const params = new URLSearchParams(filtros).toString();
+  const res = await api.get(`/sesion/excel?${params}`, { responseType: 'blob' });
+  return res.data;
+}
+
+export async function exportarSesionesPDF(filtros = {}) {
+  const params = new URLSearchParams(filtros).toString();
+  const res = await api.get(`/sesion/pdf?${params}`, { responseType: 'blob' });
+  return res.data;
+}
+

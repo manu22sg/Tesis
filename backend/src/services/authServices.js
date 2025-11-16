@@ -199,7 +199,7 @@ export async function registerService(userData) {
           <!DOCTYPE html>
           <html>
           <body style="font-family: Arial, sans-serif">
-            <h2>¡Hola ${savedUser.nombre}!</h2>
+            <h2>¡Hola ${savedUser.nombre} ${savedUser.apellido}!</h2>
             <p>Gracias por registrarte en SPORTUBB.</p>
             <p>Para activar tu cuenta, haz clic en el siguiente enlace:</p>
             <p><a href="${urlVerificacion}">Verificar mi cuenta</a></p>

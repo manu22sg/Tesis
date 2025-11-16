@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import {
   Card, Button, Table, Modal, Form, Input, Select, Space, message,
   Popconfirm, Tag, Descriptions, Empty, Drawer, InputNumber, Divider,
-  List, Avatar, Badge, Tooltip, Row, Col, AutoComplete
+  List, Avatar, Badge, Tooltip, Row, Col, AutoComplete,Dropdown,ConfigProvider
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined,
   UserAddOutlined, UserDeleteOutlined, EyeOutlined, TrophyOutlined,
-  NumberOutlined
-} from '@ant-design/icons';
+  NumberOutlined,FileExcelOutlined,  
+  FilePdfOutlined,    
+  DownloadOutlined    
 
-// SERVICES
+} from '@ant-design/icons';
+import locale from 'antd/locale/es_ES';
+
 import { equipoService } from '../services/equipo.services.js';
 import { buscarUsuarios } from '../services/auth.services.js';
 import { carreraService } from '../services/carrera.services.js';
@@ -186,7 +189,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   };
 
   // --------------------------
-  // 📌 Autocomplete usuarios
+  //  Autocomplete usuarios
   // --------------------------
   useEffect(() => {
     const buscarSugerencias = async () => {
@@ -289,9 +292,49 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     };
     return colors[tipo?.toLowerCase()] || 'default';
   };
+  const handleExportarExcel = async () => {
+  try {
+    const blob = await equipoService.exportarExcel(campeonatoId, true);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `equipos_campeonato_${campeonatoId}_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('Excel exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const blob = await equipoService.exportarPDF(campeonatoId, true);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `equipos_campeonato_${campeonatoId}_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('PDF exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a PDF');
+  }
+};
+
 
   // --------------------------
-  // 📌 Columnas de tabla
+  //  Columnas de tabla
   // --------------------------
   const columns = [
     {
@@ -377,6 +420,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       )
     }
   ];
+  
 
   const posiciones = [
     'Portero', 'Defensa Central', 'Lateral Derecho', 'Lateral Izquierdo',
@@ -397,21 +441,49 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   // 📌 RENDER
   // --------------------------
   return (
+    <ConfigProvider locale={locale}>
     <div>
       <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Space>
-            <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-            <h3>Equipos del Campeonato</h3>
-            <Badge count={equipos.length} showZero style={{ backgroundColor: '#52c41a' }} />
-          </Space>
+  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+    <Space>
+      <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+      <h3>Equipos del Campeonato</h3>
+      <Badge count={equipos.length} showZero style={{ backgroundColor: '#52c41a' }} />
+    </Space>
 
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-            Nuevo Equipo
-          </Button>
-        </div>
+    <Space>
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'excel',
+              icon: <FileExcelOutlined />,
+              label: 'Exportar a Excel',
+              onClick: handleExportarExcel,
+            },
+            {
+              key: 'pdf',
+              icon: <FilePdfOutlined />,
+              label: 'Exportar a PDF',
+              onClick: handleExportarPDF,
+            },
+          ],
+        }}
+        placement="bottomRight"
+        disabled={equipos.length === 0}
+      >
+        <Button icon={<DownloadOutlined />} disabled={equipos.length === 0}>
+          Exportar
+        </Button>
+      </Dropdown>
 
+      <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+        Nuevo Equipo
+      </Button>
+    </Space>
+  </div>
         <Table
+          
           columns={columns}
           dataSource={equipos}
           loading={loading}
@@ -638,8 +710,9 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           </Row>
         </Form>
       </Modal>
-
+  
     </div>
+     </ConfigProvider>
   );
 };
 

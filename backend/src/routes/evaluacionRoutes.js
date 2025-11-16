@@ -1,12 +1,25 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole,attachJugadorId } from '../middleware/authMiddleware.js';
 import { validarBody, validarQuery, validarParams, crearEvaluacionBody, actualizarEvaluacionBody, obtenerEvaluacionesQuery, idParamSchema,} from '../validations/evaluacionValidations.js';
-import { getMisEvaluaciones, postCrearEvaluacion, getEvaluaciones, getEvaluacionPorId, patchEvaluacion, deleteEvaluacion,getEvaluacionesPorJugador } from '../controllers/evaluacionController.js';
+import { getMisEvaluaciones, postCrearEvaluacion, getEvaluaciones, getEvaluacionPorId, patchEvaluacion, deleteEvaluacion,getEvaluacionesPorJugador,exportarEvaluacionesExcel,    
+  exportarEvaluacionesPDF } from '../controllers/evaluacionController.js';
 
 const router = Router();
 
 // Entrenador/superadmin crean y modifican
 router.post('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(crearEvaluacionBody), postCrearEvaluacion);
+router.get('/excel', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarEvaluacionesExcel
+);
+
+router.get('/pdf', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']), 
+  exportarEvaluacionesPDF
+);
+
 router.patch('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema),
 validarBody(actualizarEvaluacionBody), patchEvaluacion);
 router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), deleteEvaluacion);

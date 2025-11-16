@@ -264,3 +264,13 @@ export const obtenerPartidosPorCampeonato = async (campeonatoId, filtros = {}) =
     order: { id: "ASC" },
   });
 };
+
+
+export const obtenerPartidosConRelaciones = async (campeonatoId) => {
+  const repo = PartidoRepo();
+  return await repo.find({
+    where: { campeonatoId: Number(campeonatoId) },
+    relations: ["equipoA", "equipoB", "cancha"],
+    order: { id: "ASC" }
+  });
+};

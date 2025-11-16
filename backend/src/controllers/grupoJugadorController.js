@@ -117,7 +117,6 @@ export async function exportarGruposExcel(req, res) {
       { header: "RUT", key: "rut", width: 15 },
       { header: "Email", key: "email", width: 30 },
       { header: "Carrera", key: "carrera", width: 30 },
-      { header: "Teléfono", key: "telefono", width: 15 },
       { header: "Año Ingreso", key: "anioIngreso", width: 12 },
       { header: "Estado", key: "estado", width: 12 },
     ];
@@ -148,7 +147,6 @@ export async function exportarGruposExcel(req, res) {
           rut: "—",
           email: "—",
           carrera: "—",
-          telefono: "—",
           anioIngreso: "—",
           estado: "—",
         });
@@ -164,11 +162,10 @@ export async function exportarGruposExcel(req, res) {
             grupo: index === 0 ? grupo.nombre : "",
             descripcion: index === 0 ? (grupo.descripcion || "") : "",
             totalMiembros: index === 0 ? totalMiembros : "",
-            nombreJugador: usuario?.nombre || "Sin nombre",
+            nombreJugador: `${usuario?.nombre || ""} ${usuario?.apellido || ""}`.trim() || "Sin nombre",
             rut: usuario?.rut || "—",
             email: usuario?.email || "—",
-            carrera: carrera?.nombre || "—", // ← Acceder al nombre de la carrera
-            telefono: jugador?.telefono || "—",
+            carrera: carrera?.nombre || "—", 
             anioIngreso: jugador?.anioIngreso || "—",
             estado: jugador?.estado || "—",
           };
@@ -238,9 +235,7 @@ export async function exportarGruposExcel(req, res) {
   }
 }
 
-/**
- * Exporta grupos con detalle de jugadores a PDF
- */
+
 export async function exportarGruposPDF(req, res) {
   try {
     const filtros = {
@@ -296,7 +291,7 @@ export async function exportarGruposPDF(req, res) {
       doc.fontSize(14)
          .font('Helvetica-Bold')
          .fillColor('#1890FF')
-         .text(`📁 ${grupo.nombre}`, { continued: false });
+         .text(`${grupo.nombre}`, { continued: false });
 
       if (grupo.descripcion) {
         doc.fontSize(10)
@@ -322,7 +317,7 @@ export async function exportarGruposPDF(req, res) {
         jugadores.forEach((jg, idx) => {
           const jugador = jg.jugador;
           const usuario = jugador?.usuario;
-          const carrera = usuario?.carrera; // ← Ahora carrera viene de Usuario
+          const carrera = usuario?.carrera; 
 
           // Verificar espacio para el jugador
           if (doc.y > 700) {
@@ -332,7 +327,8 @@ export async function exportarGruposPDF(req, res) {
           doc.fontSize(10)
              .font('Helvetica-Bold')
              .fillColor('#000000')
-             .text(`   ${idx + 1}. ${usuario?.nombre || 'Sin nombre'}`, { continued: false });
+           .text(
+        `${idx + 1}. ${`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Sin nombre'}`, { continued: false });
 
           doc.fontSize(9)
              .font('Helvetica')
@@ -341,8 +337,7 @@ export async function exportarGruposPDF(req, res) {
           const detalles = [
             `      RUT: ${usuario?.rut || '—'}`,
             `      Email: ${usuario?.email || '—'}`,
-            `      Carrera: ${carrera?.nombre || '—'}`, // ← Acceder al nombre de la carrera
-            `      Teléfono: ${jugador?.telefono || '—'}`,
+            `      Carrera: ${carrera?.nombre || '—'}`,
             `      Año Ingreso: ${jugador?.anioIngreso || '—'}`,
             `      Estado: ${(jugador?.estado || '—').toUpperCase()}`,
           ];

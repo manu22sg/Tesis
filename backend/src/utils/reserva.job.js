@@ -4,9 +4,9 @@ import HistorialReservaSchema from '../entity/HistorialReserva.js';
 
 export async function actualizarEstadosReservas() {
   return AppDataSource.transaction(async (manager) => {
-    const reservaRepo = manager.getRepository(ReservaCanchaSchema);
     const historialRepo = manager.getRepository(HistorialReservaSchema);
 
+    // 1. Expirar reservas pendientes
     const exp = await manager
       .createQueryBuilder()
       .update(ReservaCanchaSchema)
@@ -23,13 +23,13 @@ export async function actualizarEstadosReservas() {
           reservaId: r.id,
           accion: 'expirada',
           observacion: 'Reserva expirada automáticamente por falta de aprobación',
-          usuarioId: null, // acción del sistema
+          usuarioId: null,
         })
       );
       await historialRepo.save(historialesExp);
     }
 
-    //  2. Marcar reservas APROBADAS como COMPLETADAS
+    // 2. Completar reservas aprobadas
     const comp = await manager
       .createQueryBuilder()
       .update(ReservaCanchaSchema)
@@ -57,9 +57,7 @@ export async function actualizarEstadosReservas() {
       completadas: comp.raw.length,
     };
 
-    if (resumen.expiradas + resumen.completadas === 0) {
-    }
-
+  
     return resumen;
   });
 }

@@ -15,7 +15,10 @@ import {
   obtenerSesionPorId,
   eliminarSesion,
   activarTokenSesion,
-  desactivarTokenSesion
+  desactivarTokenSesion,
+  exportarSesionesExcel,
+  exportarSesionesPDF
+
 } from '../services/sesion.services.js';
 
 const DetalleSesionModal = lazy(() => import('../components/DetalleSesionModal.jsx'));
@@ -160,6 +163,59 @@ export default function Sesiones() {
     handlePageChange,
   }), [sesiones, loading, verDetalle, handleEliminar, pagination, handlePageChange, cargarSesiones]);
 
+  const descargarArchivo = (blob, nombre) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
+const handleExportarExcel = async () => {
+  try {
+    const query = {};
+
+    if (filtros.q) query.q = filtros.q;
+    if (filtros.fecha) query.fecha = filtros.fecha.format("YYYY-MM-DD");
+    if (filtros.horario && filtros.horario[0] && filtros.horario[1]) {
+      query.horaInicio = filtros.horario[0].format("HH:mm");
+      query.horaFin = filtros.horario[1].format("HH:mm");
+    }
+    if (filtros.canchaId) query.canchaId = filtros.canchaId;
+    if (filtros.grupoId) query.grupoId = filtros.grupoId;
+
+    const blob = await exportarSesionesExcel(query);
+    descargarArchivo(blob, `sesiones_${Date.now()}.xlsx`);
+
+  } catch (err) {
+    message.error("Error exportando Excel");
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const query = {};
+
+    if (filtros.q) query.q = filtros.q;
+    if (filtros.fecha) query.fecha = filtros.fecha.format("YYYY-MM-DD");
+    if (filtros.horario && filtros.horario[0] && filtros.horario[1]) {
+      query.horaInicio = filtros.horario[0].format("HH:mm");
+      query.horaFin = filtros.horario[1].format("HH:mm");
+    }
+    if (filtros.canchaId) query.canchaId = filtros.canchaId;
+    if (filtros.grupoId) query.grupoId = filtros.grupoId;
+
+    const blob = await exportarSesionesPDF(query);
+    descargarArchivo(blob, `sesiones_${Date.now()}.pdf`);
+
+  } catch {
+    message.error("Error exportando PDF");
+  }
+};
+
+
+
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
@@ -174,6 +230,13 @@ export default function Sesiones() {
                 <Button icon={<ReloadOutlined />} onClick={() => cargarSesiones(pagination.current, pagination.pageSize)}>
                   Actualizar
                 </Button>
+                 <Button onClick={handleExportarExcel}>
+        Exportar Excel
+      </Button>
+
+      <Button onClick={handleExportarPDF}>
+        Exportar PDF
+      </Button>
               </Space>
             }
           >

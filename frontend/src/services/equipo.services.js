@@ -43,5 +43,30 @@ export const equipoService = {
   quitarJugador: async (campeonatoId, equipoId, usuarioId) => {
     const response = await api.delete(`/equipos/${campeonatoId}/${equipoId}/${usuarioId}`);
     return response.data;
+  },
+  exportarExcel: async (campeonatoId, incluirJugadores = true) => {
+    try {
+      const response = await api.get(`/equipos/${campeonatoId}/excel`, {
+        params: { incluirJugadores: incluirJugadores.toString() },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  // Exportar equipos a PDF
+  exportarPDF: async (campeonatoId, incluirJugadores = true) => {
+    try {
+      const response = await api.get(`/equipos/${campeonatoId}/pdf`, {
+        params: { incluirJugadores: incluirJugadores.toString() },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
   }
+
 };

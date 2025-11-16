@@ -40,7 +40,10 @@ import {
   obtenerCanchas,
   actualizarCancha,
   eliminarCancha,
-  reactivarCancha
+  reactivarCancha,
+  exportarCanchasExcel,
+  exportarCanchasPDF
+
 } from '../services/cancha.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 
@@ -65,13 +68,13 @@ export default function GestionCanchas() {
     total: 0
   });
 
-  // 🔹 Debounce búsqueda
+  //  Debounce búsqueda
   useEffect(() => {
     const t = setTimeout(() => setQDebounced(busqueda.trim()), 400);
     return () => clearTimeout(t);
   }, [busqueda]);
 
-  // 🔹 Cargar canchas desde backend
+  //  Cargar canchas desde backend
   const cargarCanchas = useCallback(async (page = 1, limit = 5, estado = undefined, q = '') => {
     setLoading(true);
     try {
@@ -96,13 +99,13 @@ export default function GestionCanchas() {
     }
   }, []);
 
-  // 🔹 Re-cargar al cambiar filtros o paginación
+  //  Re-cargar al cambiar filtros o paginación
   useEffect(() => {
     const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
     cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
   }, [filtroEstado, qDebounced, pagination.current, pagination.pageSize, cargarCanchas]);
 
-  // 🔹 Modal crear/editar
+  //  Modal crear/editar
   const abrirModalCrear = () => {
     setModalMode('crear');
     setCanchaSeleccionada(null);
@@ -145,7 +148,7 @@ export default function GestionCanchas() {
     }
   };
 
-  // 🔹 Eliminar / Reactivar
+  //  Eliminar / Reactivar
   const handleEliminar = async (id) => {
     try {
       await eliminarCancha(id);
@@ -168,10 +171,49 @@ export default function GestionCanchas() {
     }
   };
 
-  // 🔹 Paginación / filtros
+  //  Paginación / filtros
   const handlePageChange = (page, pageSize) => {
     setPagination(prev => ({ ...prev, current: page, pageSize }));
   };
+  const handleExportExcel = async () => {
+  try {
+    const params = {};
+    if (filtroEstado !== 'todos') params.estado = filtroEstado;
+    if (qDebounced) params.q = qDebounced;
+
+    const blob = await exportarCanchasExcel(params);
+    descargarArchivo(blob, `canchas_${Date.now()}.xlsx`);
+    message.success("Excel descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar Excel:", error);
+    message.error(error.message || "Error al exportar Excel");
+  }
+};
+
+const handleExportPDF = async () => {
+  try {
+    const params = {};
+    if (filtroEstado !== 'todos') params.estado = filtroEstado;
+    if (qDebounced) params.q = qDebounced;
+
+    const blob = await exportarCanchasPDF(params);
+    descargarArchivo(blob, `canchas_${Date.now()}.pdf`);
+    message.success("PDF descargado correctamente");
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
 
   const aplicarFiltro = (estado) => {
     setFiltroEstado(estado);
@@ -185,12 +227,8 @@ export default function GestionCanchas() {
     setPagination(prev => ({ ...prev, current: 1 }));
   };
 
-  const handleActualizar = () => {
-    const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
-    cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
-  };
-
-  // 🔹 Render estado
+ 
+  //  Render estado
   const renderEstadoTag = useCallback((estado) => {
     const map = {
       disponible: { color: 'green', icon: <CheckCircleOutlined />, text: 'Disponible' },
@@ -201,7 +239,7 @@ export default function GestionCanchas() {
     return <Tag color={color} icon={icon}>{text}</Tag>;
   }, []);
 
-  // 🔹 Columnas tabla
+  //  Columnas tabla
   const columns = useMemo(() => [
     {
       title: 'Nombre',
@@ -285,46 +323,73 @@ export default function GestionCanchas() {
       <ConfigProvider locale={locale}>
         <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} variant="filled">
           
-          {/* 🔹 Filtros */}
-          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} md={8}>
-                <Input
-                  placeholder="Buscar por nombre o descripción..."
-                  prefix={<SearchOutlined />}
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  onPressEnter={() => setQDebounced(busqueda.trim())}
-                  allowClear
-                />
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Select style={{ width: '100%' }} value={filtroEstado} onChange={aplicarFiltro}>
-                  <Option value="todos">Todos los estados</Option>
-                  <Option value="disponible">Disponible</Option>
-                  <Option value="mantenimiento">Mantenimiento</Option>
-                  <Option value="fuera_servicio">Fuera de Servicio</Option>
-                </Select>
-              </Col>
-              <Col xs={24} md={8} style={{ textAlign: 'right' }}>
-                <Space wrap>
-                  {(qDebounced || filtroEstado !== 'todos') && (
-                    <Button icon={<ClearOutlined />} onClick={limpiarFiltros}>
-                      Limpiar filtros
-                    </Button>
-                  )}
-                  <Button icon={<ReloadOutlined />} onClick={handleActualizar} loading={loading}>
-                    Actualizar
-                  </Button>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalCrear}>
-                    Nueva Cancha
-                  </Button>
-                </Space>
-              </Col>
-            </Row>
-          </Card>
+       <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+  <Row gutter={[12, 12]} align="middle" justify="start">
 
-          {/* 🔹 Tabla */}
+    {/* Buscador */}
+    <Col xs={24} md={7}>
+      <Input
+        placeholder="Buscar por nombre o descripción..."
+        prefix={<SearchOutlined />}
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        onPressEnter={() => setQDebounced(busqueda.trim())}
+        allowClear
+      />
+    </Col>
+
+    {/*  Select Estado — más pegado */}
+    <Col xs={24} md={4}>
+      <Select
+        style={{ width: '100%' }}
+        value={filtroEstado}
+        onChange={aplicarFiltro}
+      >
+        <Option value="todos">Todos los estados</Option>
+        <Option value="disponible">Disponible</Option>
+        <Option value="mantenimiento">Mantenimiento</Option>
+        <Option value="fuera_servicio">Fuera de Servicio</Option>
+      </Select>
+    </Col>
+
+    {/* Limpiar — aparece inmediatamente después del select */}
+    <Col xs={24} md={3}>
+      {(qDebounced || filtroEstado !== 'todos') && (
+        <Button block onClick={limpiarFiltros}>
+          Limpiar
+        </Button>
+      )}
+    </Col>
+
+    {/*  Exportar Excel */}
+    <Col xs={24} md={3}>
+      <Button block onClick={handleExportExcel}>
+       Exportar Excel
+      </Button>
+    </Col>
+
+    {/*  Exportar PDF */}
+    <Col xs={24} md={3}>
+      <Button block onClick={handleExportPDF}>
+        Exportar PDF
+      </Button>
+    </Col>
+
+    {/*  Nueva */}
+    <Col xs={24} md={4}>
+      <Button
+        block
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={abrirModalCrear}
+      >
+        Nueva Cancha
+      </Button>
+    </Col>
+
+  </Row>
+</Card>
+          {/* Tabla */}
           <Card>
             <Table
               columns={columns}
@@ -365,7 +430,7 @@ export default function GestionCanchas() {
             )}
           </Card>
 
-          {/* 🔹 Modal Crear/Editar */}
+          {/*  Modal Crear/Editar */}
           <Modal
             title={modalMode === 'crear' ? (<><PlusOutlined /> Nueva Cancha</>) : (<><EditOutlined /> Editar Cancha</>)}
             open={modalVisible}

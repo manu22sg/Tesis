@@ -2,7 +2,10 @@ import { Router } from "express";
 import {
   postEquipo, putEquipo, deleteEquipo,
   getEquiposDeCampeonato,
-  postAgregarUsuarioAEquipo, deleteUsuarioDeEquipo, listarJugadoresEquipo
+  postAgregarUsuarioAEquipo, deleteUsuarioDeEquipo, listarJugadoresEquipo,
+  exportarEquiposExcel,    
+  exportarEquiposPDF        
+
 } from "../controllers/equipoController.js";
 import {
   validate,
@@ -17,6 +20,8 @@ const router = Router();
 
 // Equipos por campeonato
 router.get("/campeonato/:campeonatoId", getEquiposDeCampeonato);
+router.get("/:campeonatoId/excel", exportarEquiposExcel);
+router.get("/:campeonatoId/pdf", exportarEquiposPDF);
 
 // CRUD equipo
 router.post("/", validate(crearEquipoBody), postEquipo);

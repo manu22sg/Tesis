@@ -33,5 +33,9 @@ router.get("/equipo/:equipoId/campeonato/:campeonatoId",
   ctrl.listarJugadoresPorEquipoYCampeonato
 );
 
+router.get("/campeonato/:campeonatoId/excel", ctrl.exportarEstadisticasCampeonatoExcel);
+router.get("/campeonato/:campeonatoId/pdf", ctrl.exportarEstadisticasCampeonatoPDF);
+
+
 
 export default router;

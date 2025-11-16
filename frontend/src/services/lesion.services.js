@@ -69,3 +69,28 @@ export const eliminarLesion = async (id) => {
     throw error.response?.data || error;
   }
 };
+
+export const exportarLesionesExcel = async (params = {}) => {
+  try {
+    const response = await api.get('/lesiones/excel', {
+      params,
+      responseType: 'blob' 
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+
+export const exportarLesionesPDF = async (params = {}) => {
+  try {
+    const response = await api.get('/lesiones/pdf', {
+      params,
+      responseType: 'blob' 
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};

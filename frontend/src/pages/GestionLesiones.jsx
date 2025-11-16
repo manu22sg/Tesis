@@ -6,6 +6,7 @@ import {
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
+  FilePdfOutlined,FileExcelOutlined,
   PlusOutlined, EditOutlined, DeleteOutlined,
   MedicineBoxOutlined, CheckCircleOutlined, ClockCircleOutlined,
   SearchOutlined, UserOutlined
@@ -14,7 +15,8 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import {
   crearLesion, obtenerLesiones, actualizarLesion,
-  eliminarLesion
+  eliminarLesion,exportarLesionesExcel, 
+  exportarLesionesPDF      
 } from '../services/lesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -144,7 +146,7 @@ export default function GestionLesiones() {
       if (esEstudiante) payload.jugadorId = jugadorId;
 
       await crearLesion(payload);
-      message.success('Lesión registrada exitosamente');
+      message.success('Lesión registrada');
       setModalVisible(false);
       form.resetFields();
       cargarLesiones(pagination.current, pagination.pageSize);
@@ -185,6 +187,60 @@ export default function GestionLesiones() {
       message.error(error.message || 'Error al eliminar lesión');
     }
   };
+  const handleExportarExcel = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+    if (rangoFechas) {
+      params.desde = rangoFechas[0].format('YYYY-MM-DD');
+      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+    }
+
+    const blob = await exportarLesionesExcel(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `lesiones_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+    if (rangoFechas) {
+      params.desde = rangoFechas[0].format('YYYY-MM-DD');
+      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+    }
+
+    const blob = await exportarLesionesPDF(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `lesiones_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+
 
   const abrirModalEditar = (record) => {
     setLesionActual(record);
@@ -333,16 +389,35 @@ export default function GestionLesiones() {
               </div>
             }
             extra={
-              puedeEditar && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalVisible(true)}
-                >
-                  Nueva Lesión
-                </Button>
-              )
-            }
+  puedeEditar && (
+    <Space>
+      {/* 📥 Botones de exportación */}
+      <Button 
+        icon={<FileExcelOutlined />}
+        onClick={handleExportarExcel}
+      >
+        Exportar Excel
+      </Button>
+
+      <Button 
+        icon={<FilePdfOutlined />}
+        onClick={handleExportarPDF}
+      >
+        Exportar PDF
+      </Button>
+
+      {/* ➕ Botón Nueva Lesión */}
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => setModalVisible(true)}
+      >
+        Nueva Lesión
+      </Button>
+    </Space>
+  )
+}
+
           >
             {/* Filtros */}
             <div

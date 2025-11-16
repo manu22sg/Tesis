@@ -15,20 +15,21 @@ import {
   ConfigProvider,
   Tooltip,
   Typography,
-  Avatar
+  Avatar,Dropdown 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { 
+import { DownloadOutlined ,
   UserOutlined,
   PlusOutlined, 
   EditOutlined, 
   DeleteOutlined, 
   ReloadOutlined,
   StarOutlined,
-  SearchOutlined
+  SearchOutlined,FileExcelOutlined,    
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
-import { obtenerEvaluaciones, eliminarEvaluacion } from '../services/evaluacion.services.js';
+import { obtenerEvaluaciones, eliminarEvaluacion, exportarEvaluacionesExcel,exportarEvaluacionesPDF } from '../services/evaluacion.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
 import EvaluacionForm from '../components/EvaluacionForm.jsx';
 import { useAuth } from '../context/AuthContext';
@@ -58,7 +59,7 @@ export default function Evaluaciones() {
 
   const esEstudiante = usuario?.rol === 'estudiante';
 
-  // 🔹 Cargar sesiones para filtro
+  //  Cargar sesiones para filtro
   const cargarSesiones = async () => {
     setLoadingSesiones(true);
     try {
@@ -76,13 +77,13 @@ export default function Evaluaciones() {
     cargarSesiones();
   }, []);
 
-  // 🔹 Debounce búsqueda
+  //  Debounce búsqueda
   useEffect(() => {
     const timeout = setTimeout(() => setQDebounced(busqueda.trim()), 400);
     return () => clearTimeout(timeout);
   }, [busqueda]);
 
-  // 🔹 Cargar evaluaciones
+  //  Cargar evaluaciones
   const cargarEvaluaciones = async (page = 1, pageSize = 10) => {
     setLoading(true);
     try {
@@ -108,12 +109,12 @@ export default function Evaluaciones() {
     }
   };
 
-  // 🔹 Efecto principal que carga evaluaciones al cambiar filtros o paginación
+  //  Efecto principal que carga evaluaciones al cambiar filtros o paginación
   useEffect(() => {
     cargarEvaluaciones(pagination.current, pagination.pageSize);
   }, [qDebounced, sesionFiltro, pagination.current, pagination.pageSize]);
 
-  // 🔹 Eliminar evaluación
+  //  Eliminar evaluación
   const handleDelete = async (id) => {
     try {
       await eliminarEvaluacion(id);
@@ -125,12 +126,61 @@ export default function Evaluaciones() {
     }
   };
 
-  // 🔹 Cambiar página
+  //  Cambiar página
   const handlePageChange = (page, pageSize) => {
     setPagination(prev => ({ ...prev, current: page, pageSize }));
   };
+  
+  const handleExportarExcel = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (sesionFiltro) params.sesionId = sesionFiltro;
 
-  // 🔹 Limpiar filtros
+    const blob = await exportarEvaluacionesExcel(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `evaluaciones_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('Excel exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (sesionFiltro) params.sesionId = sesionFiltro;
+
+    const blob = await exportarEvaluacionesPDF(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `evaluaciones_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('PDF exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+
+
+  //  Limpiar filtros
   const limpiarFiltros = () => {
     setBusqueda('');
     setQDebounced('');
@@ -222,71 +272,103 @@ export default function Evaluaciones() {
       <ConfigProvider locale={locale}>
         <Card title={<><StarOutlined /> Evaluaciones de Jugadores</>} variant="outlined">
           
-          {/* 🔹 Filtros y acciones */}
+          {/*  Filtros y acciones */}
           <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} md={8}>
-                <Input
-                  placeholder="Buscar por nombre o RUT del jugador"
-                  allowClear
-                  value={busqueda}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setBusqueda(val);
-                    if (val === '') setQDebounced('');
-                  }}
-                  prefix={<SearchOutlined />}
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Select
-                  style={{ width: '100%' }}
-                  placeholder="Filtrar por sesión"
-                  allowClear
-                  showSearch
-                  value={sesionFiltro}
-                  onChange={setSesionFiltro}
-                  loading={loadingSesiones}
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={sesiones.map(s => {
-                    const fechaFormateada = formatearFecha(s.fecha);
-                    const horaInicio = formatearHora(s.horaInicio);
-                    const horaFin = s.horaFin ? formatearHora(s.horaFin) : 'Sin hora final';
-                    return {
-                      value: s.id,
-                      label: `${fechaFormateada} - ${horaInicio} - ${horaFin}`
-                    };
-                  })}
-                />
-              </Col>
-              <Col xs={24} md={8} style={{ textAlign: 'right' }}>
-                <Space wrap>
-                  {(qDebounced || sesionFiltro) && (
-                    <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
-                  )}
-                  
-                  {!esEstudiante && (
-                    <Button 
-                      type="primary" 
-                      icon={<PlusOutlined />} 
-                      onClick={() => {
-                        setEditing(null);
-                        setModalOpen(true);
-                      }}
-                    >
-                      Nueva evaluación
-                    </Button>
-                  )}
-                </Space>
-              </Col>
-            </Row>
+           <Row gutter={[16, 16]} align="middle">
+  <Col xs={24} sm={12} md={7}>
+    <Input
+      placeholder="Buscar por nombre o RUT del jugador"
+      allowClear
+      value={busqueda}
+      onChange={(e) => {
+        const val = e.target.value;
+        setBusqueda(val);
+        if (val === '') setQDebounced('');
+      }}
+      prefix={<SearchOutlined />}
+      style={{ width: '100%' }}
+    />
+  </Col>
+  
+  <Col xs={24} sm={12} md={7}>
+    <Select
+      style={{ width: '100%' }}
+      placeholder="Filtrar por sesión"
+      allowClear
+      showSearch
+      value={sesionFiltro}
+      onChange={setSesionFiltro}
+      loading={loadingSesiones}
+      optionFilterProp="children"
+      filterOption={(input, option) =>
+        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+      }
+      options={sesiones.map(s => {
+        const fechaFormateada = formatearFecha(s.fecha);
+        const horaInicio = formatearHora(s.horaInicio);
+        const horaFin = s.horaFin ? formatearHora(s.horaFin) : 'Sin hora final';
+        return {
+          value: s.id,
+          label: `${fechaFormateada} - ${horaInicio} - ${horaFin}`
+        };
+      })}
+    />
+  </Col>
+
+  {(qDebounced || sesionFiltro) && (
+    <Col xs={24} sm={12} md={3}>
+      <Button block onClick={limpiarFiltros}>
+        Limpiar filtros
+      </Button>
+    </Col>
+  )}
+  
+  <Col xs={24} md={(qDebounced || sesionFiltro) ? 7 : 10} style={{ textAlign: 'right' }}>
+    <Space wrap>
+      {!esEstudiante && (
+        <>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'excel',
+                  icon: <FileExcelOutlined />,
+                  label: 'Exportar a Excel',
+                  onClick: handleExportarExcel,
+                },
+                {
+                  key: 'pdf',
+                  icon: <FilePdfOutlined />,
+                  label: 'Exportar a PDF',
+                  onClick: handleExportarPDF,
+                },
+              ],
+            }}
+            placement="bottomRight"
+          >
+            <Button icon={<DownloadOutlined />}>
+              Exportar
+            </Button>
+          </Dropdown>
+
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => {
+              setEditing(null);
+              setModalOpen(true);
+            }}
+          >
+            Nueva evaluación
+          </Button>
+        </>
+      )}
+    </Space>
+  </Col>
+</Row>
           </Card>
 
-          {/* 🔹 Tabla */}
+          {/*  Tabla */}
           <Card>
             <Table
               dataSource={evaluaciones}
@@ -297,7 +379,7 @@ export default function Evaluaciones() {
               scroll={{ x: 1000 }}
             />
 
-            {/* 🔹 Paginación externa */}
+            {/*  Paginación externa */}
             {evaluaciones.length > 0 && (
               <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
                 <Pagination
@@ -314,7 +396,7 @@ export default function Evaluaciones() {
             )}
           </Card>
 
-          {/* 🔹 Modal Crear/Editar */}
+          {/*  Modal Crear/Editar */}
           <Modal
             open={modalOpen}
             onCancel={() => { 

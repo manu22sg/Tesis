@@ -6,7 +6,7 @@ import {
   Tabs, ConfigProvider, Typography, Alert, Avatar
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import {
+import {ThunderboltOutlined ,
   UserOutlined,  PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
   UserAddOutlined, FieldTimeOutlined, TableOutlined,
   AimOutlined, ArrowLeftOutlined
@@ -18,13 +18,17 @@ import {
   actualizarJugadorAlineacion,
   quitarJugadorAlineacion,
   eliminarAlineacion,
-  actualizarPosicionesJugadores
+  actualizarPosicionesJugadores,
+  exportarAlineacionExcel,
+  exportarAlineacionPDF
+
 } from '../services/alineacion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import CampoAlineacion from '../components/CampoAlineacion.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
+import ModalAlineacionInteligente from '../components/ModalAlineacionInteligente.jsx';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -32,6 +36,8 @@ const { Text } = Typography;
 const POSICIONES = [
   'Portero',
   'Defensa Central',
+  'Defensa Central Derecho',
+  'Defensa Central Izquierdo',
   'Lateral Derecho',
   'Lateral Izquierdo',
   'Mediocentro Defensivo',
@@ -45,6 +51,8 @@ const POSICIONES = [
 export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
+  const [modalInteligenteVisible, setModalInteligenteVisible] = useState(false);
+
 
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
@@ -217,6 +225,34 @@ export default function AlineacionCompleta() {
     const completo = valores.jugadorId && valores.posicion;
     setFormularioCompleto(completo);
   };
+  const handleExportExcel = async () => {
+  try {
+    const blob = await exportarAlineacionExcel(sesionId);
+    descargarArchivo(blob, `alineacion_sesion_${sesionId}.xlsx`);
+  } catch (error) {
+    console.error("Error al exportar Excel:", error);
+    message.error(error.message || "Error al exportar Excel");
+  }
+};
+
+const handleExportPDF = async () => {
+  try {
+    const blob = await exportarAlineacionPDF(sesionId);
+    descargarArchivo(blob, `alineacion_sesion_${sesionId}.pdf`);
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
 
   const jugadoresYaEnAlineacion = alineacion?.jugadores?.map(j => j.jugadorId) || [];
   const jugadoresFiltrados = jugadoresDisponibles.filter(
@@ -393,73 +429,108 @@ export default function AlineacionCompleta() {
           )}
 
           {/* Contenido principal */}
-          <Card
-            title={
-              <Space>
-                <FieldTimeOutlined />
-                <span>Alineación</span>
-              </Space>
-            }
-            extra={
-              <Space wrap>
-                <Button
-                  type="primary"
-                  icon={<UserAddOutlined />}
-                  onClick={() => {
-                    setModalVisible(true);
-                    form.resetFields();
-                    setFormularioCompleto(false);
-                  }}
-                  disabled={opcionesJugadores.length === 0}
-                >
-                  Agregar Jugador
-                </Button>
-                <Popconfirm
-                  title="¿Eliminar alineación?"
-                  description="Esta acción eliminará todos los jugadores"
-                  onConfirm={handleEliminarAlineacion}
-                  okText="Eliminar"
-                  cancelText="Cancelar"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button danger icon={<DeleteOutlined />}>
-                    Eliminar
-                  </Button>
-                </Popconfirm>
-              </Space>
-            }
-          >
-            {alineacion.jugadores && alineacion.jugadores.length > 0 ? (
-              <Tabs
-                activeKey={vistaActual}
-                onChange={setVistaActual}
-                items={[
-                  {
-                    key: 'campo',
-                    label: (
-                      <span>
-                        <AimOutlined />
-                        Vista Campo
-                      </span>
-                    ),
-                    children: (
-                      <CampoAlineacion
-                        jugadores={alineacion.jugadores}
-                        onActualizarPosiciones={async (jugadoresActualizados) => {
-                          try {
-                            const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
-                            setAlineacion(response.data);
-                          } catch (error) {
-                            console.error('Error al guardar posiciones:', error);
-                            message.error(error.response?.data?.message || 'Error al guardar posiciones');
-                          }
-                        }}
-                        onEliminarJugador={async (jugadorId) => {
-                          await handleQuitarJugador(jugadorId);
-                        }}
-                      />
-                    )
-                  },
+        <Card
+  title={
+    <Space>
+      <FieldTimeOutlined />
+      <span>Alineación</span>
+    </Space>
+  }
+  extra={
+    <Space wrap>
+      {/* Botón Alineación Inteligente con Tooltip */}
+      <Tooltip 
+        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
+      >
+        <Button
+          type="dashed"
+          icon={<ThunderboltOutlined />}
+          onClick={() => setModalInteligenteVisible(true)}
+          disabled={!sesionInfo?.grupo?.id}
+        >
+          Alineación Inteligente
+        </Button>
+      </Tooltip>
+
+      {/* Exportar (solo si hay jugadores) */}
+      {alineacion?.jugadores?.length > 0 && (
+        <Space size="small">
+          <Button onClick={handleExportExcel}>
+            Exportar Excel
+          </Button>
+          <Button onClick={handleExportPDF}>
+            Exportar PDF
+          </Button>
+        </Space>
+      )}
+
+      {/* Agregar Jugador - DESHABILITADO SIN GRUPO */}
+      <Tooltip 
+        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
+      >
+        <Button
+          type="primary"
+          icon={<UserAddOutlined />}
+          onClick={() => {
+            setModalVisible(true);
+            form.resetFields();
+            setFormularioCompleto(false);
+          }}
+          disabled={!sesionInfo?.grupo?.id || opcionesJugadores.length === 0}
+        >
+          Agregar Jugador
+        </Button>
+      </Tooltip>
+
+      {/* Eliminar alineación (SOLO si hay jugadores) */}
+      {alineacion?.jugadores?.length > 0 && (
+        <Popconfirm
+          title="¿Eliminar alineación?"
+          description="Esta acción eliminará todos los jugadores"
+          onConfirm={handleEliminarAlineacion}
+          okText="Eliminar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true }}
+        >
+          <Button danger icon={<DeleteOutlined />}>
+            Eliminar
+          </Button>
+        </Popconfirm>
+      )}
+    </Space>
+  }
+>
+  {alineacion.jugadores && alineacion.jugadores.length > 0 ? (
+    <Tabs
+      activeKey={vistaActual}
+      onChange={setVistaActual}
+      items={[
+        {
+          key: 'campo',
+          label: (
+            <span>
+              <AimOutlined />
+              Vista Campo
+            </span>
+          ),
+          children: (
+            <CampoAlineacion
+              jugadores={alineacion.jugadores}
+              onActualizarPosiciones={async (jugadoresActualizados) => {
+                try {
+                  const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
+                  setAlineacion(response.data);
+                } catch (error) {
+                  console.error('Error al guardar posiciones:', error);
+                  message.error(error.response?.data?.message || 'Error al guardar posiciones');
+                }
+              }}
+              onEliminarJugador={async (jugadorId) => {
+                await handleQuitarJugador(jugadorId);
+              }}
+            />
+          )
+        },
                   {
                     key: 'tabla',
                     label: (
@@ -482,19 +553,25 @@ export default function AlineacionCompleta() {
                 ]}
               />
             ) : (
-              <Empty description="No hay jugadores en la alineación">
-                <Button
-                  type="primary"
-                  icon={<UserAddOutlined />}
-                  onClick={() => {
-                    setModalVisible(true);
-                    form.resetFields();
-                    setFormularioCompleto(false);
-                  }}
-                >
-                  Agregar Primer Jugador
-                </Button>
-              </Empty>
+               <Empty description="No hay jugadores en la alineación">
+      {/* TAMBIÉN deshabilitar aquí */}
+      <Tooltip 
+        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
+      >
+        <Button
+          type="primary"
+          icon={<UserAddOutlined />}
+          onClick={() => {
+            setModalVisible(true);
+            form.resetFields();
+            setFormularioCompleto(false);
+          }}
+          disabled={!sesionInfo?.grupo?.id}
+        >
+          Agregar Primer Jugador
+        </Button>
+      </Tooltip>
+    </Empty>
             )}
           </Card>
 
@@ -680,6 +757,17 @@ export default function AlineacionCompleta() {
               </Form.Item>
             </Form>
           </Modal>
+          <ModalAlineacionInteligente
+  visible={modalInteligenteVisible}
+  onCancel={() => setModalInteligenteVisible(false)}
+  onSuccess={() => {
+    cargarAlineacion(); 
+  }}
+  sesionId={sesionId}
+  grupoId={sesionInfo?.grupo?.id}
+  tieneJugadores={alineacion?.jugadores?.length > 0}
+  
+/>
         </div>
       </ConfigProvider>
     </MainLayout>

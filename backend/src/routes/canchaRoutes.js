@@ -5,7 +5,9 @@ import {
   getCanchaPorId,
   patchActualizarCancha,
   deleteCancha,
-  patchReactivarCancha
+  patchReactivarCancha,
+  exportarCanchasExcel,
+  exportarCanchasPDF
 } from '../controllers/canchaController.js';
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
@@ -18,5 +20,7 @@ router.post('/detalle', authenticateToken, requireRole(['superadmin', 'entrenado
 router.patch('/', authenticateToken, requireRole(['entrenador', 'superadmin']), patchActualizarCancha);
 router.delete('/eliminar', authenticateToken, requireRole(['entrenador', 'superadmin']), deleteCancha);
 router.patch('/reactivar', authenticateToken, requireRole(['entrenador', 'superadmin']), patchReactivarCancha);
+router.get('/excel', authenticateToken, requireRole('entrenador'), exportarCanchasExcel);
+router.get('/pdf', authenticateToken, requireRole('entrenador'), exportarCanchasPDF);
 
 export default router;

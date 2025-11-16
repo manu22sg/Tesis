@@ -181,77 +181,7 @@ export async function obtenerReservasPendientes(filtros = {}) {
 
 
  // Cambiar estado de una reserva (función genérica)
-export async function cambiarEstadoReserva(reservaId, nuevoEstado, entrenadorId, observacion = null) {
-  const estadosValidos = ['pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada'];
-  
-  if (!estadosValidos.includes(nuevoEstado)) {
-    return [null, `Estado inválido. Estados válidos: ${estadosValidos.join(', ')}`];
-  }
 
-  const queryRunner = AppDataSource.createQueryRunner();
-  await queryRunner.connect();
-  await queryRunner.startTransaction();
-
-  try {
-    const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
-    const historialRepo = queryRunner.manager.getRepository(HistorialReservaSchema);
-
-    const reserva = await reservaRepo.findOne({
-      where: { id: reservaId },
-      relations: ['usuario', 'cancha']
-    });
-
-    if (!reserva) {
-      return [null, 'Reserva no encontrada'];
-    }
-
-    const estadoAnterior = reserva.estado;
-
-    // Validaciones específicas según el cambio de estado
-    if (nuevoEstado === 'aprobada' && estadoAnterior !== 'pendiente') {
-      return [null, 'Solo se pueden aprobar reservas pendientes'];
-    }
-
-    if (nuevoEstado === 'rechazada' && estadoAnterior !== 'pendiente') {
-      return [null, 'Solo se pueden rechazar reservas pendientes'];
-    }
-
-    if (nuevoEstado === 'completada' && estadoAnterior !== 'aprobada') {
-      return [null, 'Solo se pueden completar reservas aprobadas'];
-    }
-
-    // Actualizar estado
-    reserva.estado = nuevoEstado;
-    const reservaActualizada = await reservaRepo.save(reserva);
-
-    // Registrar en historial
-    const accionMsg = observacion || `Reserva cambiada de '${estadoAnterior}' a '${nuevoEstado}'`;
-    
-    await historialRepo.save(historialRepo.create({
-      reservaId: reserva.id,
-      accion: nuevoEstado,
-      observacion: accionMsg,
-      usuarioId: entrenadorId
-    }));
-
-    await queryRunner.commitTransaction();
-
-    // Obtener reserva completa
-    const reservaCompleta = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
-      where: { id: reserva.id },
-      relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario', 'historial', 'historial.usuario']
-    });
-
-    return [reservaCompleta, null];
-
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    console.error('Error cambiando estado de reserva:', error);
-    return [null, 'Error interno del servidor'];
-  } finally {
-    await queryRunner.release();
-  }
-}
 const getLocalDate = () => {
   const now = new Date();
   const year = now.getFullYear();

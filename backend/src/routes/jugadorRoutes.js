@@ -6,7 +6,10 @@ import {
   actualizarJugadorController,
   eliminarJugadorController,
   asignarJugadorAGrupoController,
-  removerJugadorDeGrupoController
+  removerJugadorDeGrupoController,
+  exportarJugadoresExcel,
+  exportarJugadoresPDF
+
 } from "../controllers/jugadorController.js";
 
 import {crearJugadorSchema, actualizarJugadorSchema } from "../validations/jugadorValidations.js";
@@ -14,7 +17,8 @@ import { idParamSchema, paginacionSchema, grupoParamSchema, validarBody, validar
 
 const router = Router();
 
-
+router.get("/excel", exportarJugadoresExcel);
+router.get("/pdf", exportarJugadoresPDF);
 
 // POST /jugadores - Crear jugador
 router.post("/", 

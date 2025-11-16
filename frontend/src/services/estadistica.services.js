@@ -65,3 +65,29 @@ export const eliminarEstadistica = async (id) => {
     throw error.response?.data || error.message;
   }
 };
+
+
+export const exportarEstadisticasExcel = async (params = {}) => {
+  try {
+    const response = await api.get('/estadisticas/excel', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+
+export const exportarEstadisticasPDF = async (params = {}) => {
+  try {
+    const response = await api.get('/estadisticas/pdf', {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};

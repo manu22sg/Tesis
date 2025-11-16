@@ -54,17 +54,58 @@ export const rechazarReserva = async (reservaId, motivoRechazo) => {
   }
 };
 
-// Cambiar estado de reserva (función genérica)
-export const cambiarEstadoReserva = async (reservaId, nuevoEstado, observacion = null) => {
+export async function exportarReservasExcel(params = {}) {
   try {
-    const response = await api.patch('/aprobacion/cambiar-estado', {
-      id: reservaId,
-      nuevoEstado: nuevoEstado,
-      observacion: observacion || undefined
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/aprobacion/excel?${query}`, {
+      responseType: "blob"
     });
-    return [response.data, null];
+    
+    if (res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const error = JSON.parse(text);
+      throw new Error(error.message || 'Error al exportar Excel');
+    }
+    
+    return res.data;
   } catch (error) {
-    console.error('Error cambiando estado:', error);
-    return [null, error.response?.data?.message || 'Error al cambiar estado de la reserva'];
+    if (error.response?.data instanceof Blob) {
+      const text = await error.response.data.text();
+      try {
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Error al exportar Excel');
+      } catch {
+        throw new Error('Error al exportar Excel');
+      }
+    }
+    throw error;
   }
-};
+}
+
+export async function exportarReservasPDF(params = {}) {
+  try {
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/aprobacion/pdf?${query}`, {
+      responseType: "blob"
+    });
+    
+    if (res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const error = JSON.parse(text);
+      throw new Error(error.message || 'Error al exportar PDF');
+    }
+    
+    return res.data;
+  } catch (error) {
+    if (error.response?.data instanceof Blob) {
+      const text = await error.response.data.text();
+      try {
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Error al exportar PDF');
+      } catch {
+        throw new Error('Error al exportar PDF');
+      }
+    }
+    throw error;
+  }
+}

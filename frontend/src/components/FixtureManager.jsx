@@ -2,12 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card, Button, Modal, message, Space, Tag, Descriptions,
   Alert, Spin, Empty, Table, Typography, Form, Select,
-  DatePicker, TimePicker, Row, Col, Tooltip,Statistic, Divider
+  DatePicker, TimePicker, Row, Col, Tooltip,Statistic, Divider,Dropdown
 } from 'antd';
 import {
   ThunderboltOutlined, PlayCircleOutlined, TrophyOutlined,
   FireOutlined, CheckCircleOutlined, CalendarOutlined,
-  TeamOutlined,BarChartOutlined 
+  TeamOutlined,BarChartOutlined,FileExcelOutlined,    
+  FilePdfOutlined,      
+  DownloadOutlined      
+
 } from '@ant-design/icons';
 import { campeonatoService } from '../services/campeonato.services.js';
 import { partidoService } from '../services/partido.services.js';
@@ -347,6 +350,46 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
       return hours;
     },
   });
+  const handleExportarExcel = async () => {
+  try {
+    const blob = await campeonatoService.exportarFixtureExcel(campeonatoId);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('Excel exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a Excel');
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    const blob = await campeonatoService.exportarFixturePDF(campeonatoId);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    message.success('PDF exportado correctamente');
+  } catch (error) {
+    console.error('Error:', error);
+    message.error('Error al exportar a PDF');
+  }
+};
+
 
   if (!campeonato) {
     return (
@@ -549,31 +592,58 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
           </Space>
         }
         extra={
-          <Space>
-            {campeonato.estado === 'creado' && totalPartidos === 0 && (
-              <Button
-                type="primary"
-                icon={<ThunderboltOutlined />}
-                onClick={handleSortearPrimeraRonda}
-                loading={loading}
-                disabled={!hayEquiposSuficientes}
-              >
-                Sortear Primera Ronda
-              </Button>
-            )}
+  <Space>
+    {totalPartidos > 0 && (
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: 'excel',
+              icon: <FileExcelOutlined />,
+              label: 'Exportar a Excel',
+              onClick: handleExportarExcel,
+            },
+            {
+              key: 'pdf',
+              icon: <FilePdfOutlined />,
+              label: 'Exportar a PDF',
+              onClick: handleExportarPDF,
+            },
+          ],
+        }}
+        placement="bottomRight"
+      >
+        <Button icon={<DownloadOutlined />}>
+          Exportar Fixture
+        </Button>
+      </Dropdown>
+    )}
 
-            {campeonato.estado === 'en_juego' && !esRondaFinal && (
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                onClick={handleGenerarSiguienteRonda}
-                loading={loading}
-              >
-                Generar Siguiente Ronda
-              </Button>
-            )}
-          </Space>
-        }
+    {campeonato.estado === 'creado' && totalPartidos === 0 && (
+      <Button
+        type="primary"
+        icon={<ThunderboltOutlined />}
+        onClick={handleSortearPrimeraRonda}
+        loading={loading}
+        disabled={!hayEquiposSuficientes}
+      >
+        Sortear Primera Ronda
+      </Button>
+    )}
+
+    {campeonato.estado === 'en_juego' && !esRondaFinal && (
+      <Button
+        type="primary"
+        icon={<PlayCircleOutlined />}
+        onClick={handleGenerarSiguienteRonda}
+        loading={loading}
+      >
+        Generar Siguiente Ronda
+      </Button>
+    )}
+  </Space>
+}
+
         style={{ marginBottom: 16 }}
       >
         <Descriptions column={4} size="small">

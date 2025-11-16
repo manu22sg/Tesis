@@ -1,115 +1,102 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/es.js';
-import { In } from 'typeorm';
 import { AppDataSource } from '../config/config.db.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import HistorialReservaSchema from '../entity/HistorialReserva.js';
-import ParticipanteReservaSchema from '../entity/ParticipanteReserva.js';
-import { sendMail } from '../utils/mailer.js';
+import { enviarEmailsEnLotes, formatearHorario } from '../utils/emailHelpers.js';
 
 dayjs.locale('es');
 
-/**
- * Recordatorio por correo 24h antes de la reserva:
- * - Envía al creador de la reserva y a los participantes registrados (con usuario/email)
- * - Evita duplicados registrando una sola vez por reserva en HistorialReserva (accion = 'recordatorio_24h')
- */
 export async function enviarRecordatoriosReservas() {
-
   const manager = AppDataSource.manager;
   const manana = dayjs().add(1, 'day').format('YYYY-MM-DD');
 
   try {
-    // 1) Reservas aprobadas de mañana (con usuario y cancha)
-    const reservas = await manager.find(ReservaCanchaSchema, {
-      where: { estado: In(['aprobada']), fechaReserva: manana },
-      relations: ['usuario', 'cancha'],
-    });
+    // Query optimizada: traer todo de una vez
+    const reservas = await manager
+      .createQueryBuilder(ReservaCanchaSchema, 'reserva')
+      .leftJoinAndSelect('reserva.usuario', 'usuario')
+      .leftJoinAndSelect('reserva.cancha', 'cancha')
+      .leftJoinAndSelect('reserva.participantes', 'participante')
+      .leftJoinAndSelect('participante.usuario', 'participanteUsuario')
+      .where('reserva.estado IN (:...estados)', { estados: ['aprobada'] })
+      .andWhere('reserva.fechaReserva = :fecha', { fecha: manana })
+      .andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('1')
+          .from(HistorialReservaSchema, 'h')
+          .where('h.reservaId = reserva.id')
+          .andWhere('h.accion = :accion', { accion: 'recordatorio_24h' })
+          .getQuery();
+        return `NOT EXISTS ${subQuery}`;
+      })
+      .getMany();
 
     if (!reservas.length) {
+      console.log('✓ No hay reservas para enviar recordatorios');
       return;
     }
 
-    for (const r of reservas) {
-      // 2) ¿Ya se envió el recordatorio para esta reserva?
-      const yaEnviado = await manager.count(HistorialReservaSchema, {
-        where: { reservaId: r.id, accion: 'recordatorio_24h' },
-      });
-      if (yaEnviado) continue;
+    console.log(` Procesando ${reservas.length} reserva(s)...`);
+    let totalEnviados = 0;
 
+    for (const r of reservas) {
+      // Recolectar destinatarios únicos
       const destinatarios = new Set();
 
       if (r?.usuario?.email && r.usuario.estado === 'activo') {
         destinatarios.add(r.usuario.email);
       }
 
-      const participantes = await manager.find(ParticipanteReservaSchema, {
-        where: { reservaId: r.id },
-        relations: ['usuario'],
-      });
-
-      for (const p of participantes) {
+      r.participantes?.forEach(p => {
         const u = p.usuario;
         if (u?.email && u.estado === 'activo') {
           destinatarios.add(u.email);
         }
-       
-      }
+      });
 
-      if (!destinatarios.size) {
-        continue;
-      }
+      if (!destinatarios.size) continue;
+
+      // Preparar mensaje
       const fechaFmt = dayjs(r.fechaReserva).format('DD/MM/YYYY');
-
-const horaInicioFormateada = dayjs(r.horaInicio, ['HH:mm', 'HH:mm:ss']).isValid()
-  ? dayjs(r.horaInicio, ['HH:mm', 'HH:mm:ss']).format('HH:mm')
-  : String(r.horaInicio || '').slice(0, 5);
-
-const horaFinFormateada = r.horaFin
-  ? (dayjs(r.horaFin, ['HH:mm', 'HH:mm:ss']).isValid()
-      ? dayjs(r.horaFin, ['HH:mm', 'HH:mm:ss']).format('HH:mm')
-      : String(r.horaFin).slice(0, 5))
-  : null;
-
-const horario = horaFinFormateada ? `${horaInicioFormateada} - ${horaFinFormateada}` : horaInicioFormateada;
-
-const asunto = `Recordatorio: reserva mañana ${horario} (${r.cancha?.nombre || 'Cancha'})`;
-const texto = `
+      const horario = formatearHorario(r.horaInicio, r.horaFin);
+      const asunto = `Recordatorio: reserva mañana ${horario} (${r.cancha?.nombre || 'Cancha'})`;
+      const texto = `
 Hola,
 
 Te recordamos que mañana tienes una reserva:
-📅 Fecha: ${fechaFmt}
-🕓 Hora: ${horario}
-📍 Cancha: ${r.cancha?.nombre || 'Sin asignar'}
+ Fecha: ${fechaFmt}
+ Hora: ${horario}
+ Cancha: ${r.cancha?.nombre || 'Sin asignar'}
 
-¡Gracias!
+¡Nos vemos allí!
 
-— Sistema de Reservas
+— SPORTUBB
 `.trim();
 
-      // 5) Enviar a todos los destinatarios
-      let enviados = 0;
-      for (const correo of destinatarios) {
-        try {
-          await sendMail({ to: correo, subject: asunto, text: texto });
-          enviados++;
-        } catch (err) {
-          console.error(`Error enviando a ${correo} (reserva ${r.id}):`, err?.message || err);
-        }
-      }
+      // Enviar en lotes
+      const resultado = await enviarEmailsEnLotes(
+        Array.from(destinatarios),
+        asunto,
+        texto
+      );
 
-      // 6) Registrar en historial (marca la reserva para no re-enviar en corridas futuras)
-      if (enviados > 0) {
-        await manager.getRepository(HistorialReservaSchema).save({
+      totalEnviados += resultado.exitosos;
+
+      // Registrar en historial solo si hubo éxito
+      if (resultado.exitosos > 0) {
+        await manager.save(HistorialReservaSchema, {
           reservaId: r.id,
           accion: 'recordatorio_24h',
-          observacion: `Recordatorio 24h enviado a ${enviados} destinatario(s)`,
-          usuarioId: null, // acción del sistema
+          observacion: `Enviado a ${resultado.exitosos} destinatario(s)`,
+          usuarioId: null,
         });
       }
     }
 
+    console.log(`Recordatorios de reservas: ${totalEnviados} emails enviados`);
+
   } catch (error) {
-    console.error('Error en enviarRecordatoriosReservas():', error);
+    console.error(' Error en enviarRecordatoriosReservas():', error);
   }
 }

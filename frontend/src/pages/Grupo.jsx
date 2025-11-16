@@ -222,7 +222,6 @@ export default function Grupos() {
         q: qDebounced || undefined,
       };
       await exportarGruposExcel(filtros);
-      message.success('Grupos exportados a Excel correctamente');
     } catch (error) {
       console.error('Error exportando a Excel:', error);
       message.error(typeof error === 'string' ? error : 'Error al exportar grupos a Excel');
@@ -239,7 +238,6 @@ export default function Grupos() {
         q: qDebounced || undefined,
       };
       await exportarGruposPDF(filtros);
-      message.success('Grupos exportados a PDF correctamente');
     } catch (error) {
       console.error('Error exportando a PDF:', error);
       message.error(typeof error === 'string' ? error : 'Error al exportar grupos a PDF');
