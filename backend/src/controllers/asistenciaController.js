@@ -90,23 +90,29 @@ export async function exportarAsistenciasExcel(req, res) {
       });
     }
 
-    const estado = req.query.estado || null;
+
+    // 🔥 DETECTAR MOBILE/EXPO CORRECTAMENTE
+    const ua = (req.headers["user-agent"] || "").toLowerCase();
+    const accept = (req.headers["accept"] || "").toLowerCase();
+
+    const isMobile =
+      ua.includes("okhttp") ||           // Android via Expo
+      accept.includes("application/json");// Expo pide JSON
+
 
     const [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
       pagina: 1,
-      limite: 5000,
-      estado
+      limite: 5000
     });
-      
+
     if (err) {
       return res.status(status || 400).json({
-       
         success: false,
         message: err
       });
     }
 
-    if (!result || !result.asistencias || result.asistencias.length === 0) {
+    if (!result?.asistencias?.length) {
       return res.status(404).json({
         success: false,
         message: "No hay asistencias registradas para esta sesión"
@@ -116,7 +122,6 @@ export async function exportarAsistenciasExcel(req, res) {
     const asistencias = result.asistencias;
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
     const sheet = workbook.addWorksheet("Asistencias");
 
     sheet.columns = [
@@ -139,7 +144,7 @@ export async function exportarAsistenciasExcel(req, res) {
         email: a.jugador?.usuario?.email || "—",
         estado: a.estado,
         origen: a.origen,
-        fecha: formatoFechaHoraCL(a.fechaRegistro),
+        fecha: a.fechaRegistro,
         latitud: a.latitud || "—",
         longitud: a.longitud || "—"
       });
@@ -147,13 +152,26 @@ export async function exportarAsistenciasExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
+    
+
+    // 🔥 MOBILE → enviar base64 en JSON
+    if (isMobile) {
+      const base64 = buffer.toString("base64");
+
+
+      return res.json({
+        success: true,
+        base64,
+        fileName: `asistencias_sesion_${sesionId}.xlsx`
+      });
+    }
+
+    // 🖥️ WEB → enviar archivo binario
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="asistencias_sesion_${sesionId}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
-
     return res.send(buffer);
 
   } catch (error) {
@@ -165,6 +183,9 @@ export async function exportarAsistenciasExcel(req, res) {
     });
   }
 }
+
+
+
 
 export async function exportarAsistenciasPDF(req, res) {
   try {

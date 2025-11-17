@@ -2,12 +2,11 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   RefreshControl,
-  Modal
+  Modal,Platform,FlatList
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import {
@@ -17,6 +16,11 @@ import {
   exportarAsistenciasExcel,
   exportarAsistenciasPDF
 } from '../services/asistenciaServices';
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { StorageAccessFramework } from "expo-file-system";
+
+
 
 const ESTADOS = {
   presente: { label: 'Presente', color: '#4caf50', emoji: '✅' },
@@ -119,15 +123,60 @@ export default function AsistenciasScreen({ route, navigation }) {
     );
   };
 
-  const handleExportExcel = async () => {
-    try {
-      Alert.alert('Exportando', 'Generando archivo Excel...');
-      await exportarAsistenciasExcel({ sesionId });
-      Alert.alert('Éxito', 'Excel exportado correctamente');
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo exportar el Excel');
+const handleExportExcel = async () => {
+  try {
+    Alert.alert("Exportando", "Generando archivo Excel...");
+
+    const result = await exportarAsistenciasExcel({ sesionId });
+
+    if (!result.base64) {
+      throw new Error("Respuesta inválida del servidor");
     }
-  };
+
+    const fileName = result.fileName || `asistencias_${sesionId}.xlsx`;
+
+    // 👉 ANDROID REAL
+    if (Platform.OS === "android" && StorageAccessFramework) {
+
+      const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+      if (!permissions.granted) {
+        Alert.alert("Permiso requerido", "Debes permitir acceso a Descargas.");
+        return;
+      }
+
+      const uri = await StorageAccessFramework.createFileAsync(
+        permissions.directoryUri,
+        fileName,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+
+      await FileSystem.writeAsStringAsync(uri, result.base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      Alert.alert("¡Descargado!", `Se guardó en tu carpeta seleccionada.`);
+      return;
+    }
+
+    
+    const uri = FileSystem.documentDirectory + fileName;
+
+    await FileSystem.writeAsStringAsync(uri, result.base64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await Sharing.shareAsync(uri);
+
+  } catch (error) {
+    console.log("Error al descargar:", error);
+    Alert.alert("Error", error.message || "No se pudo descargar el archivo");
+  }
+};
+
+
+
+
 
   const handleExportPDF = async () => {
     try {
@@ -144,6 +193,8 @@ export default function AsistenciasScreen({ route, navigation }) {
     ausente: asistencias.filter(a => a.estado === 'ausente').length,
     justificado: asistencias.filter(a => a.estado === 'justificado').length,
   };
+  const hayAsistencias = asistencias.length > 0;
+
 
   const formatearFecha = (fecha) => {
     if (!fecha) return '';
@@ -164,6 +215,72 @@ export default function AsistenciasScreen({ route, navigation }) {
       </View>
     );
   }
+  const renderAsistencia = ({ item: asistencia }) => (
+  <View key={asistencia.id} style={styles.asistenciaCard}>
+    
+    {/* Info del jugador */}
+    <View style={styles.jugadorInfo}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>
+          {asistencia.jugador?.usuario?.nombre?.charAt(0) || '?'}
+        </Text>
+      </View>
+
+      <View style={styles.jugadorTexto}>
+        <Text style={styles.jugadorNombre}>
+          {asistencia.jugador?.usuario?.nombre || 'Sin nombre'}
+        </Text>
+        <Text style={styles.jugadorRut}>
+          {asistencia.jugador?.usuario?.rut || 'Sin RUT'}
+        </Text>
+      </View>
+    </View>
+
+    {/* Estado y detalles */}
+    <View style={styles.detalles}>
+      <View 
+        style={[
+          styles.estadoBadge,
+          { backgroundColor: ESTADOS[asistencia.estado]?.color || '#757575' }
+        ]}
+      >
+        <Text style={styles.estadoText}>
+          {ESTADOS[asistencia.estado]?.emoji} {ESTADOS[asistencia.estado]?.label}
+        </Text>
+      </View>
+
+      <View style={styles.metaInfo}>
+        <Text style={styles.metaText}>
+          📍 {asistencia.latitud && asistencia.longitud ? 'Con ubicación' : 'Sin ubicación'}
+        </Text>
+        <Text style={styles.metaText}>
+          🕐 {new Date(asistencia.fechaRegistro).toLocaleString('es-ES')}
+        </Text>
+        <Text style={styles.metaText}>
+          👤 Registrado por: {asistencia.origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+        </Text>
+      </View>
+    </View>
+
+    {/* Acciones */}
+    <View style={styles.accionesRow}>
+      <TouchableOpacity
+        style={styles.botonEditar}
+        onPress={() => abrirModalEditar(asistencia)}
+      >
+        <Text style={styles.botonEditarText}>✏️ Editar</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.botonEliminar}
+        onPress={() => handleEliminar(asistencia.id)}
+      >
+        <Text style={styles.botonEliminarText}>🗑️ Eliminar</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
 
   return (
     <View style={styles.container}>
@@ -173,6 +290,15 @@ export default function AsistenciasScreen({ route, navigation }) {
         <Text style={styles.headerSubtitle}>
           {formatearFecha(sesion?.fecha)} • {sesion?.cancha?.nombre || 'Sin cancha'}
         </Text>
+        {sesion?.latitudToken && sesion?.longitudToken ? (
+  <View style={styles.tokenUbicacionActiva}>
+    <Text style={styles.tokenUbicacionText}>📍 Token con ubicación activa</Text>
+  </View>
+) : (
+  <View style={styles.tokenUbicacionInactiva}>
+    <Text style={styles.tokenUbicacionText}>Token sin ubicación</Text>
+  </View>
+)}
         
         {/* Estadísticas */}
         <View style={styles.statsContainer}>
@@ -195,106 +321,49 @@ export default function AsistenciasScreen({ route, navigation }) {
         </View>
 
         {/* Botones de acción */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity 
-            style={styles.exportButton}
-            onPress={handleExportExcel}
-          >
-            <Text style={styles.exportButtonText}>📊 Excel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.exportButton}
-            onPress={handleExportPDF}
-          >
-            <Text style={styles.exportButtonText}>📄 PDF</Text>
-          </TouchableOpacity>
-        </View>
+     <View style={styles.actionsRow}>
+  <TouchableOpacity 
+    style={[styles.exportButton, !hayAsistencias && styles.exportButtonDisabled]}
+    onPress={handleExportExcel}
+    disabled={!hayAsistencias}
+  >
+    <Text style={styles.exportButtonText}>📊 Excel</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity 
+    style={[styles.exportButton, !hayAsistencias && styles.exportButtonDisabled]}
+    onPress={handleExportPDF}
+    disabled={!hayAsistencias}
+  >
+    <Text style={styles.exportButtonText}>📄 PDF</Text>
+  </TouchableOpacity>
+</View>
       </View>
 
       {/* Lista de asistencias */}
-      <ScrollView
-        style={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#1976d2']}
-          />
-        }
-      >
-        {asistencias.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>👥</Text>
-            <Text style={styles.emptyText}>No hay asistencias registradas</Text>
-            <Text style={styles.emptySubtext}>
-              Los jugadores deben marcar su asistencia usando el token activo
-            </Text>
-          </View>
-        ) : (
-          asistencias.map((asistencia) => (
-            <View key={asistencia.id} style={styles.asistenciaCard}>
-              {/* Info del jugador */}
-              <View style={styles.jugadorInfo}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {asistencia.jugador?.usuario?.nombre?.charAt(0) || '?'}
-                  </Text>
-                </View>
-                <View style={styles.jugadorTexto}>
-                  <Text style={styles.jugadorNombre}>
-                    {asistencia.jugador?.usuario?.nombre || 'Sin nombre'}
-                  </Text>
-                  <Text style={styles.jugadorRut}>
-                    {asistencia.jugador?.usuario?.rut || 'Sin RUT'}
-                  </Text>
-                </View>
-              </View>
+    <FlatList
+  data={asistencias}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={renderAsistencia}
 
-              {/* Estado y detalles */}
-              <View style={styles.detalles}>
-                <View 
-                  style={[
-                    styles.estadoBadge, 
-                    { backgroundColor: ESTADOS[asistencia.estado]?.color || '#757575' }
-                  ]}
-                >
-                  <Text style={styles.estadoText}>
-                    {ESTADOS[asistencia.estado]?.emoji} {ESTADOS[asistencia.estado]?.label}
-                  </Text>
-                </View>
+  contentContainerStyle={{
+    padding: 15,
+    flexGrow: 1
+  }}
 
-                <View style={styles.metaInfo}>
-                  <Text style={styles.metaText}>
-                    📍 {asistencia.latitud && asistencia.longitud ? 'Con ubicación' : 'Sin ubicación'}
-                  </Text>
-                  <Text style={styles.metaText}>
-                    🕐 {new Date(asistencia.fechaRegistro).toLocaleString('es-ES')}
-                  </Text>
-                  <Text style={styles.metaText}>
-                    👤 Registrado por: {asistencia.origen === 'jugador' ? 'Jugador' : 'Entrenador'}
-                  </Text>
-                </View>
-              </View>
+  ListEmptyComponent={
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyEmoji}>👥</Text>
+      <Text style={styles.emptyText}>No hay asistencias registradas</Text>
+      <Text style={styles.emptySubtext}>
+        Los jugadores deben marcar su asistencia usando el token activo
+      </Text>
+    </View>
+  }
 
-              {/* Acciones */}
-              <View style={styles.accionesRow}>
-                <TouchableOpacity
-                  style={styles.botonEditar}
-                  onPress={() => abrirModalEditar(asistencia)}
-                >
-                  <Text style={styles.botonEditarText}>✏️ Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.botonEliminar}
-                  onPress={() => handleEliminar(asistencia.id)}
-                >
-                  <Text style={styles.botonEliminarText}>🗑️ Eliminar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+  refreshing={refreshing}
+  onRefresh={onRefresh}
+/>
 
       {/* Modal Editar */}
       <Modal
@@ -619,4 +688,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  tokenUbicacionActiva: {
+  backgroundColor: '#e8f5e9',
+  padding: 8,
+  borderRadius: 8,
+  marginTop: 8,
+},
+tokenUbicacionInactiva: {
+  backgroundColor: '#eeeeee',
+  padding: 8,
+  borderRadius: 8,
+  marginTop: 8,
+},
+tokenUbicacionText: {
+  color: '#333',
+  fontSize: 12,
+  textAlign: 'left',
+},
+exportButtonDisabled: {
+  backgroundColor: "#9e9e9e",
+  opacity: 0.5
+}
+
 });

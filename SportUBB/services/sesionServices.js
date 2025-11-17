@@ -78,7 +78,7 @@ export async function activarTokenSesion(sesionId, params = {}) {
       latitudToken: params.latitudToken ?? null,
       longitudToken: params.longitudToken ?? null,
     });
-
+    
     const response = await api.post(`/sesionToken/activar/${sesionId}`, payload);
     return response.data?.data;
   } catch (error) {

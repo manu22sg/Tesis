@@ -8,13 +8,19 @@ import {
   Alert
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
+import TokenSesionModal from "../components/TokenSesionModal.jsx";
 
 import { useState, useEffect } from 'react';
-import { obtenerSesionPorId } from '../services/sesionServices';
+import { obtenerSesionPorId,activarTokenSesion, desactivarTokenSesion } from '../services/sesionServices';
 
 export default function SesionDetalleScreen({ route, navigation }) {
   const { sesionId, sesion: sesionInicial } = route.params;
   const [sesion, setSesion] = useState(sesionInicial || null);
+  const [tokenModalVisible, setTokenModalVisible] = useState(false);
+  const [ttlMin, setTtlMin] = useState(30);
+  const [tokenLength, setTokenLength] = useState(6);
+  const [loadingToken, setLoadingToken] = useState(false);
+
   const [loading, setLoading] = useState(!sesionInicial);
   const isFocused = useIsFocused();
 
@@ -24,6 +30,52 @@ export default function SesionDetalleScreen({ route, navigation }) {
   }
 }, [isFocused]);
 
+const handleActivarToken = async (params) => {
+  try {
+    setLoadingToken(true);
+
+    await activarTokenSesion(sesion.id, params);
+
+    await cargarDetalleSesion(); // refresca datos
+    setTokenModalVisible(true);
+
+  } catch (err) {
+    console.log(err);
+    Alert.alert("Error", "No se pudo activar el token");
+  } finally {
+    setLoadingToken(false);
+  }
+};
+
+const handleDesactivarToken = () => {
+  Alert.alert(
+    "Desactivar Token",
+    "¿Estás seguro de que deseas desactivar este token?",
+    [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Desactivar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setLoadingToken(true);
+
+            await desactivarTokenSesion(sesion.id);
+            await cargarDetalleSesion();
+
+            Alert.alert("Token desactivado");
+            setTokenModalVisible(false);
+
+          } catch (err) {
+            Alert.alert("Error", "No se pudo desactivar el token");
+          } finally {
+            setLoadingToken(false);
+          }
+        },
+      },
+    ]
+  );
+};
 
 
   const cargarDetalleSesion = async () => {
@@ -41,12 +93,18 @@ export default function SesionDetalleScreen({ route, navigation }) {
   };
 
   const formatearFecha = (fecha) => {
-    if (!fecha) return '';
-    const d = new Date(fecha);
-    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return `${dias[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]}`;
-  };
+  if (!fecha) return '';
+
+  // Evita el bug del timezone
+  const [year, month, day] = fecha.split('-').map(Number);
+
+  const d = new Date(year, month - 1, day); // <-- ESTE YA NO RESTA EL DÍA
+
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  return `${dias[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]}`;
+};
 
   const formatearHora = (hora) => {
     if (!hora) return '';
@@ -105,17 +163,32 @@ export default function SesionDetalleScreen({ route, navigation }) {
 
       {/* Botones de acciones */}
       <View style={styles.actionsContainer}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => Alert.alert('Próximamente', 'Alineaciones')}
-        >
-          <Text style={styles.actionIcon}>👥</Text>
-          <Text style={styles.actionText}>Alineaciones</Text>
-        </TouchableOpacity>
+       <TouchableOpacity 
+  style={styles.actionButton}
+  onPress={() =>
+  navigation.navigate("Alineacion", {
+    sesionId: sesion.id,
+    grupoId: sesion.grupo?.id,
+  })
+}
+
+>
+  <Text style={styles.actionIcon}>👥</Text>
+  <Text style={styles.actionText}>Alineación</Text>
+</TouchableOpacity>
+
+<ModalAlineacionInteligente
+  visible={modalAlineacionVisible}
+  onCancel={() => setModalAlineacionVisible(false)}
+  onSuccess={() => cargarDetalleSesion()}
+  sesionId={sesion.id}
+  grupoId={sesion.grupo?.id}
+/>
 
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => Alert.alert('Próximamente', 'Token de asistencia')}
+          onPress={() => setTokenModalVisible(true)}
+
         >
           <Text style={styles.actionIcon}>🔑</Text>
           <Text style={styles.actionText}>Token</Text>
@@ -133,11 +206,14 @@ export default function SesionDetalleScreen({ route, navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => Alert.alert('Próximamente', 'Ejercicios')}
-        >
+  style={styles.actionButton}
+  onPress={() => navigation.navigate('Entrenamientos', {
+    sesionId: sesion.id,
+    sesion: sesion
+  })}
+>
           <Text style={styles.actionIcon}>⚽</Text>
-          <Text style={styles.actionText}>Ejercicios</Text>
+          <Text style={styles.actionText}>Entrenamientos</Text>
         </TouchableOpacity>
       </View>
 
@@ -216,6 +292,18 @@ export default function SesionDetalleScreen({ route, navigation }) {
           <Text style={styles.bottomButtonText}>🗑️ Eliminar</Text>
         </TouchableOpacity>
       </View>
+      <TokenSesionModal
+  open={tokenModalVisible}
+  sesion={sesion}
+  ttlMin={ttlMin}
+  setTtlMin={setTtlMin}
+  tokenLength={tokenLength}
+  setTokenLength={setTokenLength}
+  loadingToken={loadingToken}
+  onClose={() => setTokenModalVisible(false)}
+  onActivar={handleActivarToken}
+  onDesactivar={handleDesactivarToken}
+/>
     </ScrollView>
   );
 }

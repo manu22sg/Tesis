@@ -1,5 +1,7 @@
 import api from './api';
 
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 function limpiarPayload(data) {
   const limpio = {};
@@ -62,40 +64,34 @@ export async function exportarAsistenciasExcel(params = {}) {
   if (!params.sesionId) {
     throw new Error("sesionId es requerido");
   }
-  
+
   try {
     const query = new URLSearchParams(params).toString();
-    const res = await api.get(`/asistencia/excel?${query}`, {
-      responseType: "blob"
-    });
-    
-    if (res.data.type === 'application/json') {
-      const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'No hay asistencias para exportar');
+
+    // EXPO → SIEMPRE pedimos JSON
+    const res = await api.get(`/asistencia/excel?${query}`);
+
+    if (!res.data.success) {
+      console.log('Error en respuesta al exportar Excel:', res.data);
+      throw new Error(res.data.message || "No hay asistencias");
     }
-    
-    return res.data;
+
+    // SI ES MOBILE: viene base64
+    if (res.data.base64) {
+      return res.data;
+    }
+
+    // En web devuelve BLOB
+    return {
+      base64: null,
+      blob: res.data
+    };
+
   } catch (error) {
-    // Si el error tiene un blob como respuesta, parsearlo
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'No hay asistencias para exportar');
-      } catch (parseError) {
-        throw new Error('No hay asistencias para exportar');
-      }
-    }
-    
-    // Si es un error de Axios con mensaje
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    
-    throw new Error(error.message || 'Error al exportar Excel');
+    throw new Error(error.message || "Error al exportar Excel");
   }
 }
+
 
 
 

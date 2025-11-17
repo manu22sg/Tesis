@@ -8,7 +8,7 @@ import SesionDetalleScreen from '../screens/SesionDetalleScreen';
 import AsistenciasScreen from '../screens/AsistenciaScreen.js';
 import EditarSesionScreen from '../screens/EditarSesionScreen.js';
 import NuevaSesionScreen from '../screens/NuevaSesionScreen.js';
-
+import EntrenamientosScreen from '../screens/EntrenamientoScreen.js';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -68,6 +68,16 @@ function SesionesStack() {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       />
+      <Stack.Screen 
+  name="Entrenamientos" 
+  component={EntrenamientosScreen}
+  options={{ title: 'Entrenamientos' }}
+/>
+<Stack.Screen
+  name="Alineacion"
+  component={AlineacionScreen}
+  options={{ title: "Alineación" }}
+/>
     </Stack.Navigator>
   );
 }

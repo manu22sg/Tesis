@@ -87,7 +87,6 @@ export default function SesionScreens({ navigation }) {
         ...(filtros.grupoId && { grupoId: filtros.grupoId }),
       };
 
-      console.log('📤 Filtros aplicados:', params);
 
       const { sesiones: data, pagination: p } = await obtenerSesiones(params);
 
