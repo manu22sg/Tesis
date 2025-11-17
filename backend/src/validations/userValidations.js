@@ -1,13 +1,23 @@
 import Joi from 'joi';
+import { validarRut as validarRutDV } from '../utils/validarRut.js';
 
 // Validador personalizado para RUT chileno
 const rutValidator = (value, helpers) => {
   const rutRegex = /^\d{7,8}-[\dKk]$/;
+
+  // Primero validar formato
   if (!rutRegex.test(value)) {
-    return helpers.message('Formato de RUT inválido. Use el formato: 12345678-9');
+    return helpers.message('Formato de RUT inválido. Use el formato 12345678-9');
   }
+
+  // Validar dígito verificador real
+  if (!validarRutDV(value)) {
+    return helpers.message('RUT inválido. Dígito verificador incorrecto');
+  }
+
   return value;
 };
+
 
 // Validador personalizado para emails institucionales
 const institutionalEmailValidator = (value, helpers) => {
@@ -20,7 +30,7 @@ const institutionalEmailValidator = (value, helpers) => {
   return value;
 };
 
-// Schema para registro de usuario (ACTUALIZADO)
+// Schema para registro de usuario
 export const registerSchema = Joi.object({
   rut: Joi.string()
     .required()

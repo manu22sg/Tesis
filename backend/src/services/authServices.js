@@ -456,7 +456,9 @@ export async function loginService(loginData) {
       apellido: user.apellido,
       email: user.email,
       rol: user.rol,
-      carreraId: user.carreraId
+      carreraId: user.carreraId,
+      verificado: user.verificado,
+      estado: user.estado
     };
 
     return [{ user: userSanitized, token }, null];

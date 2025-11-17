@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 
 import { carreraService } from "../services/carrera.services.js";
-import { registerRequest } from "../services/auth.services.js"; // 👈 IMPORTANTE
+import { registerRequest } from "../services/auth.services.js";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

@@ -1,4 +1,4 @@
-import api from './root.services.js';
+import api from './api';
 
 export async function crearReserva(data) {
   const res = await api.post('/reservas', data);

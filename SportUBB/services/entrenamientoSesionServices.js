@@ -1,4 +1,5 @@
-import api from './root.services.js';
+import api from './api';
+
 
 export async function crearEntrenamiento(data) {
   const res = await api.post('/entrenamientos', data);
@@ -46,12 +47,7 @@ export async function eliminarEntrenamiento(id) {
 // NUEVAS FUNCIONES (Avanzadas)
 // ============================================
 
-/**
- * Reordenar múltiples entrenamientos de una sesión
- * @param {number} sesionId - ID de la sesión
- * @param {Array} entrenamientos - Array de {id, orden}
- * @returns {Promise} Lista de entrenamientos actualizados
- */
+
 export async function reordenarEntrenamientos(sesionId, entrenamientos) {
   const res = await api.post('/entrenamientos/reordenar', {
     sesionId,
@@ -60,23 +56,14 @@ export async function reordenarEntrenamientos(sesionId, entrenamientos) {
   return res.data.data;
 }
 
-/**
- * Duplicar un entrenamiento existente
- * @param {number} id - ID del entrenamiento a duplicar
- * @param {number} nuevaSesionId - (Opcional) ID de la sesión destino
- * @returns {Promise} Entrenamiento duplicado
- */
+
 export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
   const payload = nuevaSesionId ? { nuevaSesionId } : {};
   const res = await api.post(`/entrenamientos/${id}/duplicar`, payload);
   return res.data.data;
 }
 
-/**
- * Obtener estadísticas de entrenamientos
- * @param {number} sesionId - (Opcional) ID de la sesión para filtrar
- * @returns {Promise} Estadísticas de entrenamientos
- */
+
 export async function obtenerEstadisticas(sesionId = null) {
   const query = sesionId ? `?sesionId=${sesionId}` : '';
   const res = await api.get(`/entrenamientos/estadisticas${query}`);
