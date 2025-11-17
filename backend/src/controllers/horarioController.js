@@ -51,26 +51,34 @@ export async function getDisponibilidadPorRango(req, res) {
 
 export async function verificarDisponibilidad(req, res) {
   try {
-    const { canchaId, fecha, horaInicio, horaFin } = req.query;
+    const { canchaId, fecha, horaInicio, horaFin, sesionIdExcluir } = req.query;
 
     if (!canchaId || !fecha || !horaInicio || !horaFin) {
-      return res.status(400).json({ message: 'Faltan parámetros requeridos' });
+      return res.status(400).json({ 
+        message: 'Faltan parámetros requeridos' 
+      });
     }
 
     const [disponible, mensaje] = await verificarDisponibilidadEspecifica(
       parseInt(canchaId), 
       fecha, 
       horaInicio, 
-      horaFin
+      horaFin,
+      sesionIdExcluir ? parseInt(sesionIdExcluir) : null 
     );
 
     if (!disponible) {
-      return res.status(409).json({ disponible: false, message: mensaje });
+      return res.status(409).json({ 
+        disponible: false, 
+        message: mensaje 
+      });
     }
 
     return res.status(200).json({ disponible: true });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: 'Error interno del servidor' });
+    return res.status(500).json({ 
+      message: 'Error interno del servidor' 
+    });
   }
 }

@@ -23,6 +23,7 @@ import MainLayout from '../components/MainLayout.jsx';
 import { obtenerSesionPorId, actualizarSesion } from '../services/sesion.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import { obtenerGrupos } from '../services/grupo.services.js';
+import { verificarDisponibilidad } from '../services/horario.services.js';
 
 dayjs.locale('es');
 
@@ -36,6 +37,10 @@ export default function EditarSesion() {
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [tipoUbicacion, setTipoUbicacion] = useState('cancha'); // 'cancha' o 'externa'
+  
+  // 🔎 Estado para verificación en vivo (debounced)
+  const [checkingDisp, setCheckingDisp] = useState(false);
+  const [dispOk, setDispOk] = useState(null); // true | false | null
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function EditarSesion() {
         const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
         const listaCanchas = (canchasRes.canchas || []).map((c) => ({
           label: c.nombre,
-          value: c.id,
+          value: Number(c.id),
           capacidad: c.capacidadMaxima,
           descripcion: c.descripcion,
         }));
@@ -69,7 +74,7 @@ export default function EditarSesion() {
         const gruposRes = await obtenerGrupos();
         const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g) => ({
           label: g.nombre,
-          value: g.id,
+          value: Number(g.id),
         }));
         setGrupos(listaGrupos);
 
@@ -105,7 +110,61 @@ export default function EditarSesion() {
     } else {
       form.setFieldValue('canchaId', undefined);
     }
+    // al cambiar el modo de ubicación, reseteamos el indicador de disponibilidad
+    setDispOk(null);
   }, [tipoUbicacion, form]);
+
+  // ====== Debounce de verificación en vivo ======
+  const canchaId = Form.useWatch('canchaId', form);
+  const fecha = Form.useWatch('fecha', form);
+  const horario = Form.useWatch('horario', form);
+
+  useEffect(() => {
+    // Solo aplica para sesión en cancha
+    if (tipoUbicacion !== 'cancha') {
+      setDispOk(null);
+      return;
+    }
+
+    const canCheck =
+      canchaId && fecha && Array.isArray(horario) && horario[0] && horario[1];
+
+    if (!canCheck) {
+      setDispOk(null);
+      return;
+    }
+
+    const t = setTimeout(async () => {
+      try {
+        setCheckingDisp(true);
+        const [h1, h2] = horario;
+        
+        // Validación local simple por si eligen horas iguales o invertidas
+        if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
+          setDispOk(null);
+          setCheckingDisp(false);
+          return;
+        }
+
+        // 🔥 Llamada con el parámetro sesionIdExcluir
+        const res = await verificarDisponibilidad(
+          Number(canchaId),
+          fecha.format('YYYY-MM-DD'),
+          h1.format('HH:mm'),
+          h2.format('HH:mm'),
+          Number(id) // Excluir la sesión actual
+        );
+        setDispOk(!!res?.disponible);
+      } catch (e) {
+        console.error('Error verificando disponibilidad en vivo:', e);
+        setDispOk(null);
+      } finally {
+        setCheckingDisp(false);
+      }
+    }, 500); // ⏱️ debounce 500 ms
+
+    return () => clearTimeout(t);
+  }, [tipoUbicacion, canchaId, fecha, horario, id]);
 
   // Guardar cambios
   const onFinish = async (values) => {
@@ -131,12 +190,25 @@ export default function EditarSesion() {
 
       // Agregar cancha o ubicación externa según el tipo
       if (tipoUbicacion === 'cancha') {
-        payload.canchaId = values.canchaId;
-        // Si cambió de externa a cancha, asegurarse de limpiar ubicacionExterna
+        payload.canchaId = Number(values.canchaId);
         payload.ubicacionExterna = null;
+
+        // ✅ Verificar disponibilidad antes de guardar
+        const disponibilidad = await verificarDisponibilidad(
+          payload.canchaId,
+          payload.fecha,
+          payload.horaInicio,
+          payload.horaFin,
+          Number(id) // Excluir sesión actual
+        );
+
+        if (!disponibilidad.disponible) {
+          message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');
+          setSaving(false);
+          return;
+        }
       } else {
         payload.ubicacionExterna = values.ubicacionExterna;
-        // Si cambió de cancha a externa, asegurarse de limpiar canchaId
         payload.canchaId = null;
       }
 
@@ -158,11 +230,12 @@ export default function EditarSesion() {
     style.textContent = `
       .hide-weekends .ant-picker-cell:nth-child(7n+6),
       .hide-weekends .ant-picker-cell:nth-child(7n+7) {
-        display: none !important;
+        visibility: hidden;
+        pointer-events: none;
       }
       .hide-weekends thead tr th:nth-child(6),
       .hide-weekends thead tr th:nth-child(7) {
-        display: none !important;
+        visibility: hidden;
       }
       .timepicker-editar .ant-picker-time-panel-column {
         overflow-y: scroll !important;
@@ -222,6 +295,7 @@ export default function EditarSesion() {
                     loading={!canchas.length}
                     showSearch
                     optionFilterProp="label"
+                    allowClear
                   />
                 </Form.Item>
               )}
@@ -266,31 +340,43 @@ export default function EditarSesion() {
                   format="DD/MM/YYYY" 
                   style={{ width: '100%' }} 
                   disabledDate={(current) => {
+                    if (!current) return false;
                     const day = current.day();
-                    return day === 0 || day === 6; // Deshabilitar sábado y domingo
+                    return day === 0 || day === 6;
                   }}
-                  popupClassName="hide-weekends" 
+                  classNames={{ popup: { root: 'hide-weekends' } }}
                 />
               </Form.Item>
 
-              {/* Horario */}
+              {/* Horario con verificación en vivo */}
               <Form.Item
                 name="horario"
                 label="Horario"
                 rules={[{ required: true, message: 'Selecciona el horario' }]}
+                extra={
+                  tipoUbicacion === 'cancha' && (
+                    checkingDisp
+                      ? 'Verificando disponibilidad…'
+                      : dispOk === true
+                        ? '✅ Cancha disponible'
+                        : dispOk === false
+                          ? '❌ Cancha NO disponible en este horario'
+                          : null
+                  )
+                }
               >
                 <TimePicker.RangePicker 
                   format="HH:mm" 
                   style={{ width: '100%' }} 
                   minuteStep={30}
                   disabledTime={() => ({
-                    disabledHours: () => [0,1,2,3,4,5,6,7,20,21,22,23],
+                    disabledHours: () => [0,1,2,3,4,5,6,7,17,18,19,20,21,22,23],
                     disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
                   })}
                   hideDisabledOptions
                   showNow={false}
                   placeholder={['Hora inicio', 'Hora fin']}
-                  popupClassName="timepicker-editar"
+                  classNames={{ popup: { root: 'timepicker-editar' } }}
                 />
               </Form.Item>
 
@@ -316,7 +402,12 @@ export default function EditarSesion() {
               <Form.Item>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                   <Button onClick={() => navigate(-1)}>Cancelar</Button>
-                  <Button type="primary" htmlType="submit" loading={saving}>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    loading={saving}
+                    disabled={tipoUbicacion === 'cancha' && dispOk === false}
+                  >
                     Guardar cambios
                   </Button>
                 </div>

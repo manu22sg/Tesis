@@ -1,51 +1,99 @@
 import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    RefreshControl,
-    ActivityIndicator,
-    TextInput,
-    Alert,Modal
-    } from 'react-native';
-    import { useState, useEffect, useCallback } from 'react';
-    import { obtenerSesiones } from '../services/sesionServices';
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 
-    export default function SesionScreens() {
-    const [sesiones, setSesiones] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [busqueda, setBusqueda] = useState('');
-    const [detalleVisible, setDetalleVisible] = useState(false);
-    const [detalleSesion, setDetalleSesion] = useState(null);
+import { useState, useEffect, useRef } from 'react';
+import SesionesFilterBar from '../components/SesionesFilterBar';
+import { obtenerSesiones } from '../services/sesionServices';
 
-    const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 10,
-        total: 0
-    });
+export default function SesionScreens({ navigation }) {
+  const [sesiones, setSesiones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const isFocused = useIsFocused();
 
-    // Cargar sesiones
-    const cargarSesiones = useCallback(async (page = 1, resetList = false) => {
-        try {
-      if (resetList) {
-        setLoading(true);
+  const [filtros, setFiltros] = useState({
+    q: '',
+    fecha: null,
+    horaInicio: null,
+    horaFin: null,
+    canchaId: null,
+    grupoId: null,
+  });
+
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+
+  // ✅ Referencia para comparar filtros anteriores
+  const prevFiltrosRef = useRef(filtros);
+  
+  const cargarSesiones = async (page = 1, resetList = false, limpiarLista = true) => {
+    try {
+      if (resetList && limpiarLista) {
         setSesiones([]);
+      }
+      
+      setLoading(true);
+
+      let horaInicioParam = null;
+      let horaFinParam = null;
+
+      if (filtros.horaInicio) {
+        const d = filtros.horaInicio instanceof Date ? filtros.horaInicio : new Date(filtros.horaInicio);
+        horaInicioParam = d.toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: false 
+        });
+      }
+
+      if (filtros.horaFin) {
+        const d = filtros.horaFin instanceof Date ? filtros.horaFin : new Date(filtros.horaFin);
+        horaFinParam = d.toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: false 
+        });
+      }
+
+      // ✅ Completar rangos de hora
+      if (horaInicioParam && !horaFinParam) {
+        horaFinParam = "23:59";
+      }
+
+      if (!horaInicioParam && horaFinParam) {
+        horaInicioParam = "00:00";
       }
 
       const params = {
         page,
-        limit: pagination.pageSize,
-        ...(busqueda && { q: busqueda })
+        limit: 10,
+        ...(filtros.q && { q: filtros.q }),
+        ...(filtros.fecha && { fecha: filtros.fecha.toISOString().split('T')[0] }),
+        ...(horaInicioParam && { horaInicio: horaInicioParam }),
+        ...(horaFinParam && { horaFin: horaFinParam }),
+        ...(filtros.canchaId && { canchaId: filtros.canchaId }),
+        ...(filtros.grupoId && { grupoId: filtros.grupoId }),
       };
+
+      console.log('📤 Filtros aplicados:', params);
 
       const { sesiones: data, pagination: p } = await obtenerSesiones(params);
 
       if (resetList) {
         setSesiones(data);
       } else {
-        // Paginación infinita: agregar al final
         setSesiones(prev => [...prev, ...data]);
       }
 
@@ -55,57 +103,74 @@ import {
         total: p.totalItems
       });
     } catch (error) {
-        console.log(error);
+      console.log(error);
       console.error('Error cargando sesiones:', error);
       Alert.alert('Error', 'No se pudieron cargar las sesiones');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [busqueda, pagination.pageSize]);
+  };
 
-  // Cargar al iniciar
+  const handleVerDetalle = (sesion) => {
+    navigation.navigate('SesionDetalle', {
+      sesionId: sesion.id,
+      sesion: sesion
+    });
+  };
+
+  // ✅ useEffect optimizado
   useEffect(() => {
-    cargarSesiones(1, true);
-  }, []);
+    const prevFiltros = prevFiltrosRef.current;
+    
+    // Detectar si solo borró la búsqueda
+    const soloBorroBusqueda = 
+      prevFiltros.q !== '' && 
+      filtros.q === '' && 
+      prevFiltros.fecha === filtros.fecha &&
+      prevFiltros.horaInicio === filtros.horaInicio &&
+      prevFiltros.horaFin === filtros.horaFin &&
+      prevFiltros.canchaId === filtros.canchaId &&
+      prevFiltros.grupoId === filtros.grupoId;
 
-  //Ver detalle
-  const handleVerDetalle = async (sesion) => {
-  try {
-    // si tienes endpoint "obtenerSesionPorId":
-    const data = await obtenerSesionPorId(sesion.id);
-    setDetalleSesion(data);
-  } catch (e) {
-    setDetalleSesion(sesion); // fallback si aún no tienes endpoint
+    // Si solo está escribiendo búsqueda
+    const soloEsBusqueda = 
+      filtros.q && 
+      !filtros.fecha && 
+      !filtros.horaInicio && 
+      !filtros.horaFin && 
+      !filtros.canchaId && 
+      !filtros.grupoId;
+
+    const limpiarLista = !soloBorroBusqueda && !soloEsBusqueda;
+    
+    cargarSesiones(1, true, limpiarLista);
+    
+    prevFiltrosRef.current = filtros;
+  }, [filtros.q, filtros.fecha, filtros.horaInicio, filtros.horaFin, filtros.canchaId, filtros.grupoId]);
+
+  useEffect(() => {
+  if (isFocused) {
+    cargarSesiones(1, true, true); 
   }
+}, [isFocused]);
 
-  setDetalleVisible(true);
-};
 
-  // Refresh (pull to refresh)
-  const onRefresh = useCallback(() => {
+  const onRefresh = () => {
     setRefreshing(true);
-    cargarSesiones(1, true);
-  }, [cargarSesiones]);
+    cargarSesiones(1, true, false);
+  };
 
-  // Cargar más (scroll infinito)
-  const cargarMas = useCallback(() => {
+  const cargarMas = () => {
     if (loading || pagination.current * pagination.pageSize >= pagination.total) {
       return;
     }
-    cargarSesiones(pagination.current + 1, false);
-  }, [loading, pagination, cargarSesiones]);
-
-  // Buscar
-  const handleBuscar = useCallback(() => {
-    cargarSesiones(1, true);
-  }, [cargarSesiones]);
-
-  // Renderizar cada sesión
+    cargarSesiones(pagination.current + 1, false, false);
+  };
   const renderSesion = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => Alert.alert('Detalle', `Sesión ${item.id}`)}
+      onPress={() => handleVerDetalle(item)}
     >
       {/* Header */}
       <View style={styles.cardHeader}>
@@ -138,7 +203,6 @@ import {
           </Text>
         </View>
 
-        {/* Estado del token */}
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>🔑 Token:</Text>
           <View style={[
@@ -160,7 +224,6 @@ import {
         </View>
       </View>
 
-      {/* Objetivos */}
       {item.objetivos && (
         <View style={styles.cardFooter}>
           <Text style={styles.objetivosLabel}>Objetivos:</Text>
@@ -169,22 +232,22 @@ import {
           </Text>
         </View>
       )}
+
       <TouchableOpacity
-  onPress={() => handleVerDetalle(item)}
-  style={{
-    marginTop: 10,
-    backgroundColor: '#1976d2',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center'
-  }}
->
-  <Text style={{ color: '#fff', fontWeight: '600' }}>👁 Ver detalle</Text>
-</TouchableOpacity>
+        onPress={() => handleVerDetalle(item)}
+        style={{
+          marginTop: 10,
+          backgroundColor: '#1976d2',
+          paddingVertical: 10,
+          borderRadius: 8,
+          alignItems: 'center'
+        }}
+      >
+        <Text style={{ color: '#fff', fontWeight: '600' }}>👁 Ver detalle</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
-  // Loading inicial
   if (loading && sesiones.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -194,65 +257,43 @@ import {
     );
   }
 
- return (
-  <View style={styles.container}>
-    {/* Header con búsqueda */}
-    <View style={styles.header}>
-      <Text style={styles.title}>📅 Sesiones</Text>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por tipo, grupo o cancha..."
-          value={busqueda}
-          onChangeText={setBusqueda}
-          onSubmitEditing={handleBuscar}
-          returnKeyType="search"
-        />
-        <TouchableOpacity 
-          style={styles.searchButton}
-          onPress={handleBuscar}
-        >
-          <Text style={styles.searchButtonText}>🔍</Text>
-        </TouchableOpacity>
+  return (
+    <View style={styles.container}>
+      <View style={styles.simpleHeader}>
+        <Text style={styles.title}>📅 Sesiones</Text>
       </View>
-    </View>
+      
+      <SesionesFilterBar filtros={filtros} setFiltros={setFiltros} />
+      
+      <FlatList
+        data={sesiones}
+        renderItem={renderSesion}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1976d2']}
+          />
+        }
+        onEndReached={cargarMas}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() => (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            {pagination.total > 0 && (
+              <Text style={{ color: '#666', marginBottom: 12 }}>
+                Mostrando {sesiones.length} de {pagination.total} sesiones
+              </Text>
+            )}
 
-    {/* Lista */}
-    <FlatList
-      data={sesiones}
-      renderItem={renderSesion}
-      keyExtractor={(item) => item.id.toString()}
-      contentContainerStyle={styles.list}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#1976d2']}
-        />
-      }
-      onEndReached={cargarMas}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={() => (
-        <View style={{ padding: 20, alignItems: 'center' }}>
-          {/* Texto de paginación */}
-          {pagination.total > 0 && (
-            <Text style={{ color: '#666', marginBottom: 12 }}>
-              Mostrando {sesiones.length} de {pagination.total} sesiones
-            </Text>
-          )}
+            {loading && sesiones.length > 0 && (
+              <ActivityIndicator size="small" color="#1976d2" />
+            )}
 
-          {/* Indicador de carga */}
-          {loading && sesiones.length > 0 && (
-            <ActivityIndicator size="small" color="#1976d2" />
-          )}
-
-          {/* Botón Cargar más */}
-          {!loading &&
-            sesiones.length < pagination.total && (
+            {!loading && sesiones.length < pagination.total && (
               <TouchableOpacity
-                onPress={() =>
-                  cargarSesiones(pagination.current + 1, false)
-                }
+                onPress={() => cargarSesiones(pagination.current + 1, false, false)}
                 style={{
                   paddingVertical: 10,
                   paddingHorizontal: 20,
@@ -265,32 +306,47 @@ import {
                 </Text>
               </TouchableOpacity>
             )}
-        </View>
-      )}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            No hay sesiones disponibles
-          </Text>
-        </View>
-      )}
-    />
-    <ModalDetalleSesion
-  visible={detalleVisible}
-  sesion={detalleSesion}
-  onClose={() => setDetalleVisible(false)}
-/>
-
-  </View>
-);
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No hay sesiones disponibles
+            </Text>
+          </View>
+        )}
+      />
+       <TouchableOpacity
+      style={styles.fab}
+      onPress={() => navigation.navigate('NuevaSesion')}
+    >
+      <Text style={styles.fabText}>+</Text>
+    </TouchableOpacity>
+    </View>
+  );
 }
 
-// Utilidades
+
+// ✅ Utilidades actualizadas con manejo correcto de fechas
 const formatearFecha = (fecha) => {
   if (!fecha) return '';
+  
+  // Si la fecha viene como string YYYY-MM-DD
+  if (typeof fecha === 'string' && fecha.includes('-')) {
+    const [year, month, day] = fecha.split('-').map(Number);
+    const d = new Date(year, month - 1, day); // Crear fecha local sin timezone
+    
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+  }
+  
+  // Si ya es un objeto Date
   const d = new Date(fecha);
   const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  
   return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
 };
 
@@ -311,124 +367,8 @@ const getBadgeColor = (tipo) => {
   };
   return colores[tipo?.toLowerCase()] || { backgroundColor: '#757575' };
 };
-const ModalDetalleSesion = ({ visible, sesion, onClose }) => {
-  if (!sesion) return null;
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          
-          <Text style={styles.modalTitle}>Detalle de la Sesión</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📅 Fecha:</Text>
-            <Text style={styles.detailValue}>{formatearFecha(sesion.fecha)}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>⏰ Horario:</Text>
-            <Text style={styles.detailValue}>
-              {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📍 Lugar:</Text>
-            <Text style={styles.detailValue}>
-              {sesion.ubicacionExterna || sesion.cancha?.nombre || 'Sin ubicación'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>👥 Grupo:</Text>
-            <Text style={styles.detailValue}>
-              {sesion.grupo?.nombre || 'Sin grupo'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>🏷 Tipo:</Text>
-            <Text style={[styles.detailValue, { fontWeight: 'bold' }]}>
-              {sesion.tipoSesion}
-            </Text>
-          </View>
-
-          {sesion.objetivos && (
-            <View style={{ marginTop: 15 }}>
-              <Text style={styles.detailLabel}>🎯 Objetivos:</Text>
-              <Text style={[styles.detailValue, { marginTop: 5 }]}>
-                {sesion.objetivos}
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.closeButton}
-          >
-            <Text style={styles.closeButtonText}>Cerrar</Text>
-          </TouchableOpacity>
-
-        </View>
-      </View>
-    </Modal>
-  );
-};
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'flex-end',
-},
-modalContainer: {
-  backgroundColor: '#fff',
-  padding: 20,
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  maxHeight: '90%',
-},
-modalTitle: {
-  fontSize: 20,
-  fontWeight: 'bold',
-  color: '#1976d2',
-  marginBottom: 15,
-},
-detailRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginVertical: 6,
-},
-detailLabel: {
-  fontSize: 15,
-  fontWeight: '600',
-  color: '#444',
-},
-detailValue: {
-  fontSize: 15,
-  color: '#333',
-  flexShrink: 1,
-  textAlign: 'right',
-},
-closeButton: {
-  marginTop: 25,
-  backgroundColor: '#1976d2',
-  paddingVertical: 12,
-  borderRadius: 10,
-  alignItems: 'center',
-},
-closeButtonText: {
-  color: '#fff',
-  fontWeight: '600',
-  fontSize: 16,
-},
-
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -444,10 +384,11 @@ closeButtonText: {
     fontSize: 16,
     color: '#666',
   },
-  header: {
+  simpleHeader: {
     backgroundColor: '#fff',
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 60,
+    paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -455,30 +396,6 @@ closeButtonText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1976d2',
-    marginBottom: 15,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    fontSize: 14,
-    marginRight: 10,
-  },
-  searchButton: {
-    backgroundColor: '#1976d2',
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchButtonText: {
-    fontSize: 20,
   },
   list: {
     padding: 15,
@@ -577,10 +494,6 @@ closeButtonText: {
     color: '#333',
     lineHeight: 18,
   },
-  footerLoading: {
-    padding: 20,
-    alignItems: 'center',
-  },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
@@ -589,4 +502,25 @@ closeButtonText: {
     fontSize: 16,
     color: '#999',
   },
+  fab: {
+  position: 'absolute',
+  right: 20,
+  bottom: 20,
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  backgroundColor: '#1976d2',
+  justifyContent: 'center',
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 5,
+  elevation: 8,
+},
+fabText: {
+  color: '#fff',
+  fontSize: 32,
+  fontWeight: '300',
+},
 });

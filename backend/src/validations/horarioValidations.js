@@ -129,7 +129,12 @@ export const verificarEspecificaBody = Joi.object({
     }),
   fecha: fechaReservaSchema, // Para verificar usar el restrictivo (desde mañana)
   inicio: horaSchema.required(),
-  fin: horaSchema.required()
+  fin: horaSchema.required(),
+  sesionIdExcluir: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'sesionIdExcluir debe ser numérico',
+      'number.positive': 'sesionIdExcluir debe ser mayor a 0'
+    })
 }).custom((value, helpers) => {
   const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
   const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);

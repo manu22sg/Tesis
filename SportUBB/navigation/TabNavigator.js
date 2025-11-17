@@ -1,11 +1,78 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 
 import HomeScreen from '../screens/HomeScreen';
 import SesionScreens from '../screens/SesionScreens.js';
+import SesionDetalleScreen from '../screens/SesionDetalleScreen';
+import AsistenciasScreen from '../screens/AsistenciaScreen.js';
+import EditarSesionScreen from '../screens/EditarSesionScreen.js';
+import NuevaSesionScreen from '../screens/NuevaSesionScreen.js';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
+// ✅ Stack de Sesiones (incluye todas las pantallas relacionadas)
+function SesionesStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false, // Ocultamos el header por defecto
+      }}
+    >
+      <Stack.Screen 
+        name="SesionesList" 
+        component={SesionScreens}
+      />
+      <Stack.Screen 
+        name="SesionDetalle" 
+        component={SesionDetalleScreen}
+        options={{
+          title: 'Detalle de Sesión',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#1976d2' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+      <Stack.Screen 
+        name="NuevaSesion" 
+        component={NuevaSesionScreen}
+        options={{
+          title: 'Nueva Sesión',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#1976d2' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+      <Stack.Screen 
+        name="EditarSesion" 
+        component={EditarSesionScreen}
+        options={{
+          title: 'Editar Sesión',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#1976d2' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+      <Stack.Screen 
+        name="Asistencias" 
+        component={AsistenciasScreen}
+        options={{
+          title: 'Gestionar Asistencias',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#1976d2' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// ✅ Tab Navigator (solo con las pantallas principales)
 export default function TabNavigator() {
   return (
     <Tab.Navigator
@@ -38,7 +105,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Sesiones"
-        component={SesionScreens}
+        component={SesionesStack}
         options={{
           tabBarLabel: 'Sesiones',
           tabBarIcon: ({ color, size }) => (
@@ -46,7 +113,6 @@ export default function TabNavigator() {
           ),
         }}
       />
-
     </Tab.Navigator>
   );
 }

@@ -11,7 +11,7 @@ import TabNavigator from './navigation/TabNavigator';
 
 const Stack = createNativeStackNavigator();
 
-// ➤ Stack de autenticación
+// ➤ Stack de autenticación (sin pantallas duplicadas)
 function AuthStack() {
   return (
     <Stack.Navigator
@@ -46,13 +46,13 @@ function AppContent() {
   );
 }
 
-// ➤ App raíz con todo correctamente envuelto
+// ➤ App raíz
 export default function App() {
   return (
-        <AuthProvider>
-          <AppContent />
-          <StatusBar style="auto" />
-        </AuthProvider>
+    <AuthProvider>
+      <AppContent />
+      <StatusBar style="auto" />
+    </AuthProvider>
   );
 }
 

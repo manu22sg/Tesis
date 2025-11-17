@@ -25,12 +25,23 @@ export async function getDisponibilidadPorRango(fechaInicio, fechaFin, page = 1,
 }
 
 
-export async function verificarDisponibilidad(canchaId, fecha, horaInicio, horaFin) {
+export async function verificarDisponibilidad(
+  canchaId,
+  fecha,
+  horaInicio,
+  horaFin,
+  sesionIdExcluir = null
+) {
   try {
-    const response = await api.get('/horario/verificar', {
-      params: { canchaId, fecha, horaInicio, horaFin }
-    });
-    return response.data; // { disponible: true }
+    const params = { canchaId, fecha, horaInicio, horaFin };
+
+    if (sesionIdExcluir !== null) {
+      params.sesionIdExcluir = sesionIdExcluir;
+    }
+
+    const response = await api.get('/horario/verificar', { params });
+
+    return response.data;  
   } catch (error) {
     if (error.response?.status === 409) {
       return {
