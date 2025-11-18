@@ -76,7 +76,7 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
     // Búsqueda general por nombre o RUT
     if (filtros.q) {
       queryBuilder.andWhere(
-        "(usuario.nombre LIKE :q OR usuario.rut LIKE :q)",
+        "(usuario.nombre ILIKE :q OR usuario.rut LIKE :q)",
         { q: `%${filtros.q}%` }
       );
     }

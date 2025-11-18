@@ -1,3 +1,4 @@
+// screens/MisReservasScreen.jsx
 import {
   View,
   Text,
@@ -119,49 +120,49 @@ export default function MisReservasScreen({ navigation }) {
     cargarReservas(1, pagination.pageSize, estado);
   };
 
- const formatearFecha = (fecha) => {
-  if (!fecha) return '';
-  
-  // Si la fecha viene en formato ISO con hora (2025-01-15T10:30:00)
-  if (fecha.includes('T')) {
-    const d = new Date(fecha);
+  const formatearFecha = (fecha) => {
+    if (!fecha) return '';
+    
+    // Si la fecha viene en formato ISO con hora (2025-01-15T10:30:00)
+    if (fecha.includes('T')) {
+      const d = new Date(fecha);
+      const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    
+    // Si la fecha viene solo como YYYY-MM-DD
+    const [year, month, day] = fecha.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
     const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
-  }
-  
-  // Si la fecha viene solo como YYYY-MM-DD
-  const [year, month, day] = fecha.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
-};
+  };
 
-const formatearHora = (hora) => {
-  if (!hora) return '';
-  
-  // Si viene en formato ISO completo (2025-01-15T10:30:00)
-  if (hora.includes('T')) {
-    const d = new Date(hora);
+  const formatearHora = (hora) => {
+    if (!hora) return '';
+    
+    // Si viene en formato ISO completo (2025-01-15T10:30:00)
+    if (hora.includes('T')) {
+      const d = new Date(hora);
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    // Si viene solo como HH:MM:SS o HH:MM
+    return hora.substring(0, 5);
+  };
+
+  const formatearFechaHora = (fechaISO) => {
+    if (!fechaISO) return '';
+    const d = new Date(fechaISO);
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-  
-  // Si viene solo como HH:MM:SS o HH:MM
-  return hora.substring(0, 5);
-};
-
-const formatearFechaHora = (fechaISO) => {
-  if (!fechaISO) return '';
-  const d = new Date(fechaISO);
-  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()} ${hours}:${minutes}`;
-};
+    return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()} ${hours}:${minutes}`;
+  };
 
   const getEstadoColor = (estado) => {
     const colores = {
@@ -283,6 +284,7 @@ const formatearFechaHora = (fechaISO) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>📅 Mis Reservas</Text>
+        <Text style={styles.headerSubtitle}>{usuario?.nombre}</Text>
         
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -333,8 +335,16 @@ const formatearFechaHora = (fechaISO) => {
         transparent={true}
         onRequestClose={() => setModalFiltro(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalOverlay}
+          onPress={() => setModalFiltro(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Filtrar por estado</Text>
             
             <ScrollView style={styles.filtrosList}>
@@ -363,8 +373,8 @@ const formatearFechaHora = (fechaISO) => {
             >
               <Text style={styles.modalCloseButtonText}>Cerrar</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Modal de detalle */}
@@ -375,13 +385,25 @@ const formatearFechaHora = (fechaISO) => {
         onRequestClose={() => setDetalleModal(false)}
       >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              setDetalleModal(false);
+              setReservaDetalle(null);
+            }}
+          />
           <View style={styles.modalDetalleContent}>
             <Text style={styles.modalTitle}>Detalle de la Reserva</Text>
 
             {loadingDetalle ? (
               <ActivityIndicator size="large" color="#1976d2" style={{ marginVertical: 40 }} />
             ) : reservaDetalle ? (
-              <ScrollView style={styles.detalleScroll}>
+              <ScrollView 
+                style={styles.detalleScroll}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
                 {/* Información general */}
                 <View style={styles.detalleSection}>
                   <Text style={styles.detalleSectionTitle}>Información General</Text>
@@ -444,7 +466,7 @@ const formatearFechaHora = (fechaISO) => {
                         <View style={styles.historialHeader}>
                           <Text style={styles.historialAccion}>{h.accion}</Text>
                           <Text style={styles.historialFecha}>
-                          {formatearFechaHora(h.fecha)}
+                            {formatearFecha(h.fecha)} {formatearHora(h.fecha)}
                           </Text>
                         </View>
                         {h.observacion && (

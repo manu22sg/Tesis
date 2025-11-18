@@ -395,7 +395,7 @@ export async function loginService(loginData) {
       return [null, createErrorMessage('email', 'Debe usar un email institucional')];
     }
 
-    // 2. Buscar usuario por email (traer también password)
+    // 2. Buscar usuario por email (traer también password y relación jugador)
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
 
     const user = await userRepository.findOne({
@@ -411,7 +411,8 @@ export async function loginService(loginData) {
         'estado',
         'verificado',
         'carreraId'
-      ]
+      ],
+      relations: ['jugador', 'carrera'] // ← AGREGAR ESTO
     });
 
     if (!user) {
@@ -448,7 +449,7 @@ export async function loginService(loginData) {
       purpose: 'auth_login'
     });
 
-    // 7. Sanitizar usuario antes de retornarlo
+    // 7. Sanitizar usuario antes de retornarlo (INCLUIR JUGADOR)
     const userSanitized = {
       id: user.id,
       rut: user.rut,
@@ -458,7 +459,17 @@ export async function loginService(loginData) {
       rol: user.rol,
       carreraId: user.carreraId,
       verificado: user.verificado,
-      estado: user.estado
+      estado: user.estado,
+      jugador: user.jugador ? { // ← AGREGAR ESTO
+        id: user.jugador.id,
+        posicion: user.jugador.posicion,
+        estado: user.jugador.estado,
+        anioIngreso: user.jugador.anioIngreso
+      } : null,
+      carrera: user.carrera ? { // ← OPCIONAL: También puedes incluir carrera
+        id: user.carrera.id,
+        nombre: user.carrera.nombre
+      } : null
     };
 
     return [{ user: userSanitized, token }, null];
@@ -468,6 +479,7 @@ export async function loginService(loginData) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 
 export async function buscarUsuariosPorTermino(termino, opciones = {}) {

@@ -47,7 +47,6 @@ instance.interceptors.response.use(
       
       // No loguear errores esperados
       if (!url?.includes('/logout') && !url?.includes('/verify')) {
-        console.error('❌ Token inválido o expirado');
         
         // Limpiar token local
         try {

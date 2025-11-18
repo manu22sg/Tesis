@@ -10,15 +10,22 @@ import EditarSesionScreen from '../screens/EditarSesionScreen.js';
 import NuevaSesionScreen from '../screens/NuevaSesionScreen.js';
 import EntrenamientosScreen from '../screens/EntrenamientoScreen.js';
 import AlineacionScreen from '../screens/AlineacionScreen.js';
+
+//  Importar las pantallas de jugadores
+import JugadoresScreen from '../screens/JugadoresScreen.jsx';
+import NuevoJugadorScreen from '../screens/NuevoJugadorScreen.jsx';
+import EditarJugadorScreen from '../screens/EditarJugadorScreen.jsx';
+import GruposScreen from '../screens/GrupoScreen.jsx';
+import GrupoMiembrosScreen from '../screens/GrupoMiembros.jsx';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ✅ Stack de Sesiones (incluye todas las pantallas relacionadas)
+// Stack de Sesiones
 function SesionesStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false, // Ocultamos el header por defecto
+        headerShown: false,
       }}
     >
       <Stack.Screen 
@@ -70,20 +77,63 @@ function SesionesStack() {
         }}
       />
       <Stack.Screen 
-  name="Entrenamientos" 
-  component={EntrenamientosScreen}
-  options={{ title: 'Entrenamientos' }}
-/>
-<Stack.Screen
-  name="Alineacion"
-  component={AlineacionScreen}
-  options={{ title: "Alineación" }}
-/>
+        name="Entrenamientos" 
+        component={EntrenamientosScreen}
+        options={{ title: 'Entrenamientos' }}
+      />
+      <Stack.Screen
+        name="Alineacion"
+        component={AlineacionScreen}
+        options={{ title: "Alineación" }}
+      />
     </Stack.Navigator>
   );
 }
 
-// ✅ Tab Navigator (solo con las pantallas principales)
+// ✅ Stack de Jugadores (con todas sus pantallas)
+function JugadoresStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="JugadoresList" 
+        component={JugadoresScreen}
+      />
+      <Stack.Screen 
+        name="NuevoJugador" 
+        component={NuevoJugadorScreen}
+      />
+      <Stack.Screen 
+        name="EditarJugador" 
+        component={EditarJugadorScreen}
+      />
+    </Stack.Navigator>
+  );
+
+}
+function GruposStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="GruposList" 
+        component={GruposScreen}
+      />
+      <Stack.Screen 
+        name="GrupoMiembros" 
+        component={GrupoMiembrosScreen}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// Tab Navigator
 export default function EntrenadorTabNavigator() {
   return (
     <Tab.Navigator
@@ -121,6 +171,27 @@ export default function EntrenadorTabNavigator() {
           tabBarLabel: 'Sesiones',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size }}>📅</Text>
+          ),
+        }}
+      />
+      {/* ✅ Nueva pestaña de Jugadores */}
+      <Tab.Screen
+        name="Jugadores"
+        component={JugadoresStack}
+        options={{
+          tabBarLabel: 'Jugadores',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size }}>🏆</Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Grupos"
+        component={GruposStack}
+        options={{
+          tabBarLabel: 'Grupos',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size }}>👥</Text>
           ),
         }}
       />
