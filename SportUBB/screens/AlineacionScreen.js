@@ -11,6 +11,7 @@ import {
   FlatList,
   Modal,
 } from "react-native";
+import CampoAlineacionMobile from "../components/CampoAlineacionMobile";
 
 import { useRoute, useNavigation } from "@react-navigation/native";
 import {
@@ -27,8 +28,8 @@ import {
   exportarAlineacionPDF,
 } from "../services/alineacionServices";
 
-import { obtenerJugadores } from "../services/jugador.services";
-import { obtenerSesionPorId } from "../services/sesion.services";
+import { obtenerJugadores } from "../services/jugadorServices";
+import { obtenerSesionPorId } from "../services/sesionServices";
 
 // COMPONENTES MODALES (vacíos ahora)
 import ModalAlineacionInteligente from "../components/ModalAlineacionInteligente.jsx";
@@ -81,11 +82,20 @@ export default function AlineacionScreen() {
       setLoading(false);
     }
   };
+  const jugadoresEnAlineacion = alineacion?.jugadores?.map(j => j.jugadorId) ?? [];
+
+// 🔥 Filtrar solo jugadores del grupo y que NO estén ya en la alineación
+const jugadoresFiltrados = jugadoresDisponibles.filter(
+  (j) =>
+    j.jugadorGrupos?.some((g) => g.grupoId === sesionInfo?.grupo?.id) &&
+    !jugadoresEnAlineacion.includes(j.id)
+);
+
 
   const cargarJugadores = async () => {
     try {
       const data = await obtenerJugadores({
-        limite: 200,
+        limite: 100,
         grupoId: sesionInfo?.grupo?.id,
       });
 
@@ -111,10 +121,13 @@ export default function AlineacionScreen() {
       setLoading(false);
     }
   };
+ 
 
   // --- AGREGAR ---
   const handleAgregarJugador = async (values) => {
+
     try {
+
       await agregarJugadorAlineacion({
         alineacionId: alineacion.id,
         ...values,
@@ -149,6 +162,7 @@ export default function AlineacionScreen() {
       await quitarJugadorAlineacion(alineacion.id, jugadorId);
       await cargarAlineacion();
     } catch (err) {
+      console.log(err);
       Alert.alert("Error", "No se pudo quitar.");
     }
   };
@@ -205,130 +219,170 @@ export default function AlineacionScreen() {
     );
   }
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* VOLVER */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backBtn}
-      >
-        <Text style={styles.backTxt}>← Volver</Text>
-      </TouchableOpacity>
+return (
+  
+      <View style={{ flex: 1 }}>
+  <FlatList
+    style={styles.container}
+    data={alineacion ? alineacion.jugadores : []}
+    keyExtractor={(item) => String(item.jugadorId)}
+    ListHeaderComponent={
+      <>
+        {/* VOLVER */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <Text style={styles.backTxt}>← Volver</Text>
+        </TouchableOpacity>
 
-      {/* INFO SESIÓN */}
-      {sesionInfo && (
-        <View style={styles.sesionBox}>
-          <Text style={styles.sesionTitle}>Sesión #{sesionId}</Text>
-          <Text style={styles.sesionDesc}>
-            Grupo: {sesionInfo?.grupo?.nombre || "Sin grupo"}
-          </Text>
-        </View>
-      )}
-
-      {/* SI NO HAY ALINEACIÓN */}
-      {!alineacion ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>No existe alineación aún.</Text>
-
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={handleCrearAlineacion}
-          >
-            <Text style={styles.btnTxt}>Crear Alineación</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          {/* BOTONES */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.secundaryBtn}
-              onPress={() => setModalInteligenteVisible(true)}
-              disabled={!sesionInfo?.grupo?.id}
-            >
-              <Text>⚡ Inteligente</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secundaryBtn} onPress={handleExportExcel}>
-              <Text>📄 Excel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secundaryBtn} onPress={handleExportPDF}>
-              <Text>📄 PDF</Text>
-            </TouchableOpacity>
-
-            {alineacion?.jugadores?.length > 0 && (
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={handleEliminarAlineacion}
-              >
-                <Text style={{ color: "white" }}>Eliminar</Text>
-              </TouchableOpacity>
-            )}
+        {/* INFO SESIÓN */}
+        {sesionInfo && (
+          <View style={styles.sesionBox}>
+            <Text style={styles.sesionTitle}>Sesión #{sesionId}</Text>
+            <Text style={styles.sesionDesc}>
+              Grupo: {sesionInfo?.grupo?.nombre || "Sin grupo"}
+            </Text>
           </View>
+        )}
 
-          {/* LISTADO JUGADORES */}
-          <Text style={styles.subtitle}>Jugadores</Text>
+        {/* SI NO HAY ALINEACIÓN */}
+        {!alineacion ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No existe alineación aún.</Text>
 
-          <FlatList
-            data={alineacion.jugadores}
-            keyExtractor={(item) => String(item.jugadorId)}
-            renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={handleCrearAlineacion}
+            >
+              <Text style={styles.btnTxt}>Crear Alineación</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* BOTONES */}
+            <View style={styles.actionsRow}>
               <TouchableOpacity
-                style={styles.playerItem}
-                onPress={() => {
-                  setJugadorEditando(item);
-                  setModalEditarVisible(true);
-                }}
+                style={styles.secundaryBtn}
+                onPress={() => setModalInteligenteVisible(true)}
+                disabled={!sesionInfo?.grupo?.id}
               >
-                <Text style={styles.playerName}>
-                  {item.jugador?.usuario?.nombre}
-                </Text>
-                <Text style={styles.playerPos}>{item.posicion}</Text>
-
-                <TouchableOpacity
-                  onPress={() => handleQuitarJugador(item.jugadorId)}
-                >
-                  <Text style={{ color: "red" }}>Quitar</Text>
-                </TouchableOpacity>
+                <Text>⚡ Inteligente</Text>
               </TouchableOpacity>
-            )}
-          />
 
-          {/* AGREGAR */}
+              <TouchableOpacity
+                style={styles.secundaryBtn}
+                onPress={handleExportExcel}
+              >
+                <Text>📄 Excel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secundaryBtn}
+                onPress={handleExportPDF}
+              >
+                <Text>📄 PDF</Text>
+              </TouchableOpacity>
+
+              {alineacion?.jugadores?.length > 0 && (
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={handleEliminarAlineacion}
+                >
+                  <Text style={{ color: "white" }}>Eliminar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* 🔥 CANCHA ALINEACIÓN MOBILE 🔥 */}
+            <View style={{ marginBottom: 30 }}>
+              <CampoAlineacionMobile
+                jugadores={alineacion.jugadores}
+                onActualizarPosiciones={async (jugadoresActualizados) => {
+                  try {
+                    await actualizarPosicionesJugadores(
+                      alineacion.id,
+                      jugadoresActualizados
+                    );
+                    await cargarAlineacion();
+                  } catch (err) {
+                    Alert.alert(
+                      "Error",
+                      "No se pudieron guardar las posiciones."
+                    );
+                  }
+                }}
+                onEliminarJugador={(jugadorId) =>
+                  handleQuitarJugador(jugadorId)
+                }
+              />
+            </View>
+
+            <Text style={styles.subtitle}>Jugadores</Text>
+          </>
+        )}
+      </>
+    }
+    renderItem={({ item }) =>
+      alineacion ? (
+        <TouchableOpacity
+          style={styles.playerItem}
+          onPress={() => {
+            setJugadorEditando(item);
+            setModalEditarVisible(true);
+          }}
+        >
+          <Text style={styles.playerName}>
+            {item.jugador?.usuario?.nombre}
+          </Text>
+          <Text style={styles.playerPos}>{item.posicion}</Text>
+
           <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => setModalAgregarVisible(true)}
+            onPress={() => handleQuitarJugador(item.jugadorId)}
           >
-            <Text style={styles.btnTxt}>Agregar Jugador</Text>
+            <Text style={{ color: "red" }}>Quitar</Text>
           </TouchableOpacity>
-        </>
-      )}
+        </TouchableOpacity>
+      ) : null
+    }
+    ListFooterComponent={
+      alineacion ? (
+        <TouchableOpacity
+          style={[styles.primaryBtn, { marginBottom: 30 }]}
+          onPress={() => setModalAgregarVisible(true)}
+        >
+          <Text style={styles.btnTxt}>Agregar Jugador</Text>
+        </TouchableOpacity>
+      ) : null
+    }
+    
+  />
+  
+<ModalAgregarJugador
+  visible={modalAgregarVisible}
+  onClose={() => setModalAgregarVisible(false)}
+  jugadoresDisponibles={jugadoresFiltrados}
+  onSubmit={handleAgregarJugador}
+/>
 
-      {/* MODALES */}
-      <ModalAgregarJugador
-        visible={modalAgregarVisible}
-        onClose={() => setModalAgregarVisible(false)}
-        jugadoresDisponibles={jugadoresDisponibles}
-        onSubmit={handleAgregarJugador}
-      />
+<ModalEditarJugador
+  visible={modalEditarVisible}
+  jugador={jugadorEditando}
+  onClose={() => setModalEditarVisible(false)}
+  onSubmit={handleEditarJugador}
+/>
 
-      <ModalEditarJugador
-        visible={modalEditarVisible}
-        jugador={jugadorEditando}
-        onClose={() => setModalEditarVisible(false)}
-        onSubmit={handleEditarJugador}
-      />
+<ModalAlineacionInteligente
+  visible={modalInteligenteVisible}
+  onClose={() => setModalInteligenteVisible(false)}
+  sesionId={sesionId}
+  grupoId={sesionInfo?.grupo?.id}
+  onSuccess={cargarAlineacion}
+/>
+   </View> 
+);
 
-      <ModalAlineacionInteligente
-        visible={modalInteligenteVisible}
-        onClose={() => setModalInteligenteVisible(false)}
-        sesionId={sesionId}
-        grupoId={sesionInfo?.grupo?.id}
-        onSuccess={cargarAlineacion}
-      />
-    </ScrollView>
-  );
+
 }
 
 // -------- STYLES --------

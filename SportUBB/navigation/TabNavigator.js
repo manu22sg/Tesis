@@ -9,6 +9,7 @@ import AsistenciasScreen from '../screens/AsistenciaScreen.js';
 import EditarSesionScreen from '../screens/EditarSesionScreen.js';
 import NuevaSesionScreen from '../screens/NuevaSesionScreen.js';
 import EntrenamientosScreen from '../screens/EntrenamientoScreen.js';
+import AlineacionScreen from '../screens/AlineacionScreen.js';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 

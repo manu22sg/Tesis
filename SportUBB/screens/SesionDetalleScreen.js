@@ -177,13 +177,7 @@ const handleDesactivarToken = () => {
   <Text style={styles.actionText}>Alineación</Text>
 </TouchableOpacity>
 
-<ModalAlineacionInteligente
-  visible={modalAlineacionVisible}
-  onCancel={() => setModalAlineacionVisible(false)}
-  onSuccess={() => cargarDetalleSesion()}
-  sesionId={sesion.id}
-  grupoId={sesion.grupo?.id}
-/>
+
 
         <TouchableOpacity 
           style={styles.actionButton}

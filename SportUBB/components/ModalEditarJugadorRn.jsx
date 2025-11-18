@@ -6,7 +6,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  ScrollView,
 } from "react-native";
+
+const POSICIONES = [
+  "Portero",
+  "Defensa Central",
+  "Defensa Central Derecho",
+  "Defensa Central Izquierdo",
+  "Lateral Derecho",
+  "Lateral Izquierdo",
+  "Mediocentro Defensivo",
+  "Mediocentro",
+  "Mediocentro Ofensivo",
+  "Extremo Derecho",
+  "Extremo Izquierdo",
+  "Delantero Centro",
+];
 
 export default function ModalEditarJugador({
   visible,
@@ -40,28 +56,45 @@ export default function ModalEditarJugador({
         <View style={styles.box}>
           <Text style={styles.title}>Editar Jugador</Text>
 
-          <Text style={styles.label}>Posición</Text>
-          <TextInput
-            style={styles.input}
-            value={posicion}
-            onChangeText={setPosicion}
-          />
+          <ScrollView>
 
-          <Text style={styles.label}>Número / Orden</Text>
-          <TextInput
-            style={styles.input}
-            value={orden}
-            keyboardType="numeric"
-            onChangeText={setOrden}
-          />
+            <Text style={styles.label}>Posición</Text>
+            {POSICIONES.map((p) => (
+              <TouchableOpacity
+                key={p}
+                style={[
+                  styles.option,
+                  posicion === p && styles.optionSelected,
+                ]}
+                onPress={() => setPosicion(p)}
+              >
+                <Text
+                  style={{
+                    color: posicion === p ? "white" : "black",
+                    fontWeight: posicion === p ? "700" : "500",
+                  }}
+                >
+                  {p}
+                </Text>
+              </TouchableOpacity>
+            ))}
 
-          <Text style={styles.label}>Comentario</Text>
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            value={comentario}
-            onChangeText={setComentario}
-            multiline
-          />
+            <Text style={styles.label}>Número / Orden</Text>
+            <TextInput
+              style={styles.input}
+              value={orden}
+              keyboardType="numeric"
+              onChangeText={setOrden}
+            />
+
+            <Text style={styles.label}>Comentario</Text>
+            <TextInput
+              style={[styles.input, { height: 80 }]}
+              value={comentario}
+              onChangeText={setComentario}
+              multiline
+            />
+          </ScrollView>
 
           <View style={styles.row}>
             <TouchableOpacity onPress={onClose}>
@@ -72,6 +105,7 @@ export default function ModalEditarJugador({
               <Text style={styles.saveTxt}>Guardar</Text>
             </TouchableOpacity>
           </View>
+
         </View>
       </View>
     </Modal>
@@ -89,6 +123,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
+    maxHeight: "85%",
   },
   title: { fontSize: 20, fontWeight: "bold", marginBottom: 16 },
   label: { marginTop: 10 },
@@ -96,6 +131,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f1f1",
     padding: 10,
     borderRadius: 8,
+  },
+  option: {
+    padding: 10,
+    backgroundColor: "#eee",
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  optionSelected: {
+    backgroundColor: "#1976d2",
   },
   row: {
     flexDirection: "row",

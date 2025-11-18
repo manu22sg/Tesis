@@ -10,6 +10,21 @@ import {
   ScrollView,
 } from "react-native";
 
+const POSICIONES = [
+  "Portero",
+  "Defensa Central",
+  "Defensa Central Derecho",
+  "Defensa Central Izquierdo",
+  "Lateral Derecho",
+  "Lateral Izquierdo",
+  "Mediocentro Defensivo",
+  "Mediocentro",
+  "Mediocentro Ofensivo",
+  "Extremo Derecho",
+  "Extremo Izquierdo",
+  "Delantero Centro",
+];
+
 export default function ModalAgregarJugador({
   visible,
   onClose,
@@ -44,6 +59,8 @@ export default function ModalAgregarJugador({
           <Text style={styles.title}>Agregar Jugador</Text>
 
           <ScrollView>
+
+            {/* -------- SELECT DE JUGADOR -------- */}
             <Text style={styles.label}>Jugador</Text>
             {jugadoresDisponibles.map((j) => (
               <TouchableOpacity
@@ -54,18 +71,39 @@ export default function ModalAgregarJugador({
                 ]}
                 onPress={() => setJugadorId(j.id)}
               >
-                <Text>{j.usuario?.nombre} - {j.usuario?.rut}</Text>
+                <Text
+                  style={{
+                    color: jugadorId === j.id ? "white" : "black",
+                  }}
+                >
+                  {j.usuario?.nombre} - {j.usuario?.rut}
+                </Text>
               </TouchableOpacity>
             ))}
 
+            {/* -------- SELECT DE POSICIÓN -------- */}
             <Text style={styles.label}>Posición</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Defensa, Delantero"
-              value={posicion}
-              onChangeText={setPosicion}
-            />
 
+            {POSICIONES.map((p) => (
+              <TouchableOpacity
+                key={p}
+                style={[
+                  styles.option,
+                  posicion === p && styles.optionSelected,
+                ]}
+                onPress={() => setPosicion(p)}
+              >
+                <Text
+                  style={{
+                    color: posicion === p ? "white" : "black",
+                  }}
+                >
+                  {p}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            {/* -------- ORDEN -------- */}
             <Text style={styles.label}>Número / Orden</Text>
             <TextInput
               style={styles.input}
@@ -76,6 +114,7 @@ export default function ModalAgregarJugador({
             />
           </ScrollView>
 
+          {/* -------- BOTONES -------- */}
           <View style={styles.row}>
             <TouchableOpacity style={styles.cancel} onPress={onClose}>
               <Text style={styles.cancelTxt}>Cancelar</Text>
@@ -111,11 +150,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 15,
-  },
   option: {
     padding: 10,
     backgroundColor: "#eee",
@@ -124,7 +158,11 @@ const styles = StyleSheet.create({
   },
   optionSelected: {
     backgroundColor: "#1976d2",
-    borderColor: "#004ba0",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
   },
   cancel: { padding: 10 },
   cancelTxt: { color: "red" },
