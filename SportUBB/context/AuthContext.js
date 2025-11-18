@@ -47,55 +47,49 @@ export function AuthProvider({ children }) {
     }
   };
 
- const login = async (credentials) => {
-  try {
-    const response = await loginRequest(credentials);
-    
-    
-    if (response.success && response.data?.user) {
-      const user = response.data.user;
+  const login = async (credentials) => {
+    try {
+      const response = await loginRequest(credentials);
       
-      
-      
-      // 🔥 Verificar si el usuario está verificado
-      if (!user.verificado) {
-        console.warn('⚠️ Usuario NO verificado en frontend');
-        await AsyncStorage.removeItem('token');
+      if (response.success && response.data?.user) {
+        const user = response.data.user;
         
+        // 🔥 Verificar si el usuario está verificado
+        if (!user.verificado) {
+          console.warn('⚠️ Usuario NO verificado en frontend');
+          await AsyncStorage.removeItem('token');
+          
+          return { 
+            success: false, 
+            message: 'Debes verificar tu correo institucional antes de iniciar sesión. Revisa tu bandeja de entrada.',
+            needsVerification: true
+          };
+        }
+
+        setUsuario(user);
+        return { success: true, data: response.data };
+      }
+      
+      console.warn('⚠️ Respuesta sin success o sin user');
+      return { success: false, message: response.message };
+    } catch (error) {
+      // 🔥 Manejar específicamente el error de verificación
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || 'Error al iniciar sesión';
+      
+      // Si el backend dice que falta verificar
+      if (errorMessage.toLowerCase().includes('verificar') || 
+          errorMessage.toLowerCase().includes('correo')) {
         return { 
           success: false, 
-          message: 'Debes verificar tu correo institucional antes de iniciar sesión. Revisa tu bandeja de entrada.',
+          message: errorMessage,
           needsVerification: true
         };
       }
-
-      setUsuario(user);
-      return { success: true, data: response.data };
+      
+      return { success: false, message: errorMessage };
     }
-    
-    console.warn('⚠️ Respuesta sin success o sin user');
-    return { success: false, message: response.message };
-  } catch (error) {
-    
-    
-    // 🔥 Manejar específicamente el error de verificación
-    const errorData = error.response?.data;
-    const errorMessage = errorData?.message || 'Error al iniciar sesión';
-    
-    
-    // Si el backend dice que falta verificar
-    if (errorMessage.toLowerCase().includes('verificar') || 
-        errorMessage.toLowerCase().includes('correo')) {
-      return { 
-        success: false, 
-        message: errorMessage,
-        needsVerification: true
-      };
-    }
-    
-    return { success: false, message: errorMessage };
-  }
-};
+  };
 
   const logout = async () => {
     try {
@@ -119,10 +113,12 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const userRole = usuario?.rol || null; // 'entrenador' o 'estudiante'
   return (
     <AuthContext.Provider
       value={{
         usuario,
+        userRole, 
         loading,
         login,
         logout,

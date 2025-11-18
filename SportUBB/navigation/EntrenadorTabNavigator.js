@@ -2,9 +2,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 
-import HomeScreen from '../screens/HomeScreen';
+import HomeScreen from '../screens/HomeScreen.js';
 import SesionScreens from '../screens/SesionScreens.js';
-import SesionDetalleScreen from '../screens/SesionDetalleScreen';
+import SesionDetalleScreen from '../screens/SesionDetalleScreen.js';
 import AsistenciasScreen from '../screens/AsistenciaScreen.js';
 import EditarSesionScreen from '../screens/EditarSesionScreen.js';
 import NuevaSesionScreen from '../screens/NuevaSesionScreen.js';
@@ -84,7 +84,7 @@ function SesionesStack() {
 }
 
 // ✅ Tab Navigator (solo con las pantallas principales)
-export default function TabNavigator() {
+export default function EntrenadorTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{

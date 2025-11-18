@@ -297,25 +297,27 @@ return (
             {/* 🔥 CANCHA ALINEACIÓN MOBILE 🔥 */}
             <View style={{ marginBottom: 30 }}>
               <CampoAlineacionMobile
-                jugadores={alineacion.jugadores}
-                onActualizarPosiciones={async (jugadoresActualizados) => {
-                  try {
-                    await actualizarPosicionesJugadores(
-                      alineacion.id,
-                      jugadoresActualizados
-                    );
-                    await cargarAlineacion();
-                  } catch (err) {
-                    Alert.alert(
-                      "Error",
-                      "No se pudieron guardar las posiciones."
-                    );
-                  }
-                }}
-                onEliminarJugador={(jugadorId) =>
-                  handleQuitarJugador(jugadorId)
-                }
-              />
+  jugadores={alineacion.jugadores}
+  onActualizarPosiciones={async (jugadoresActualizados) => {
+    try {
+      await actualizarPosicionesJugadores(
+        alineacion.id,
+        jugadoresActualizados
+      );
+      await cargarAlineacion();
+    } catch (err) {
+      Alert.alert(
+        "Error",
+        "No se pudieron guardar las posiciones."
+      );
+    }
+  }}
+  onEliminarJugador={(jugadorId) => handleQuitarJugador(jugadorId)}
+  onEditarJugador={(jugador) => {
+    setJugadorEditando(jugador);
+    setModalEditarVisible(true);
+  }}
+/>
             </View>
 
             <Text style={styles.subtitle}>Jugadores</Text>

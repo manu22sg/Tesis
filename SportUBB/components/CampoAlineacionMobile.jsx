@@ -13,23 +13,22 @@ export default function CampoAlineacionMobile({
   jugadores = [],
   onActualizarPosiciones,
   onEliminarJugador,
+  onEditarJugador, // Nuevo callback para editar
 }) {
   const [modoEdicion, setModoEdicion] = useState(true);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
-
-  // Estado interno con posiciones
   const [jugadoresPos, setJugadoresPos] = useState([]);
-
   const [jugadorMoviendo, setJugadorMoviendo] = useState(null);
+  const [campoLayout, setCampoLayout] = useState(null);
+  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null); // Para tooltip
 
   const trashAreaRef = useRef(null);
   const trashLayout = useRef(null);
-  
-  // Mantener referencias de pan estables
-  const panRefs = useRef({});
 
   // Inicializar posiciones
   useEffect(() => {
+    if (!campoLayout) return;
+
     const posDefecto = (pos) => {
       const mapa = {
         portero: { x: 50, y: 85 },
@@ -49,81 +48,104 @@ export default function CampoAlineacionMobile({
     };
 
     const inicial = jugadores.map((j) => {
-      // Reutilizar el pan existente o crear uno nuevo
-      if (!panRefs.current[j.jugadorId]) {
-        panRefs.current[j.jugadorId] = new Animated.ValueXY();
-      }
-      
-      // Buscar si ya existe en el estado actual para preservar posición
       const existente = jugadoresPos.find(jp => jp.jugadorId === j.jugadorId);
+      const xPercent = existente?.xPercent || j.posicionX || posDefecto(j.posicion).x;
+      const yPercent = existente?.yPercent || j.posicionY || posDefecto(j.posicion).y;
       
       return {
         ...j,
-        x: existente?.x || j.posicionX || posDefecto(j.posicion).x,
-        y: existente?.y || j.posicionY || posDefecto(j.posicion).y,
-        pan: panRefs.current[j.jugadorId],
+        xPercent,
+        yPercent,
+        x: new Animated.Value((xPercent / 100) * campoLayout.width),
+        y: new Animated.Value((yPercent / 100) * campoLayout.height),
       };
     });
 
     setJugadoresPos(inicial);
-  }, [jugadores]);
+  }, [jugadores, campoLayout]);
 
-  // Iniciar movimiento táctil
-  const panResponders = jugadoresPos.map((jugador, index) =>
+  // Crear PanResponders
+  const panResponders = jugadoresPos.map((jugador) =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => modoEdicion,
       onPanResponderGrant: () => {
         setJugadorMoviendo(jugador);
-        // Establecer el offset para que el movimiento sea relativo
-        jugador.pan.setOffset({
-          x: jugador.pan.x._value,
-          y: jugador.pan.y._value,
-        });
+        setJugadorSeleccionado(null); // Ocultar tooltip al mover
+        jugador.x.setOffset(jugador.x._value);
+        jugador.y.setOffset(jugador.y._value);
+        jugador.x.setValue(0);
+        jugador.y.setValue(0);
       },
-      onPanResponderMove: Animated.event(
-        [null, { dx: jugador.pan.x, dy: jugador.pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (_, gesture) => {
-        // Aplanar el offset en el valor
-        jugador.pan.flattenOffset();
+      onPanResponderMove: (_, gesture) => {
+        if (!campoLayout) return;
 
-        // Calcular nueva posición ANTES de resetear el pan
+        // Calcular la posición objetivo
+        const margenIzq = 22.5;
+        const margenDer = 60; // MÁS margen = MENOS espacio permitido
+        const margenArriba = 22.5;
+        const margenAbajo = 63; // MÁS margen = MENOS espacio permitido
+        
+        const baseX = jugador.xPercent / 100 * campoLayout.width;
+        const baseY = jugador.yPercent / 100 * campoLayout.height;
+        
+        const targetX = baseX + gesture.dx;
+        const targetY = baseY + gesture.dy;
+
+        // Limitar durante el movimiento con márgenes asimétricos
+        const limitedX = Math.max(margenIzq, Math.min(campoLayout.width - margenDer, targetX)) - baseX;
+        const limitedY = Math.max(margenArriba, Math.min(campoLayout.height - margenAbajo, targetY)) - baseY;
+
+        jugador.x.setValue(limitedX);
+        jugador.y.setValue(limitedY);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        jugador.x.flattenOffset();
+        jugador.y.flattenOffset();
+
         if (!campoLayout) {
-          jugador.pan.setValue({ x: 0, y: 0 });
           setJugadorMoviendo(null);
           return;
         }
 
-        const dropX = (jugador.x / 100) * campoLayout.width + gesture.dx;
-        const dropY = (jugador.y / 100) * campoLayout.height + gesture.dy;
+        // 🔥 Si el movimiento fue mínimo (menos de 10px), es un click, no un drag
+        const distanciaMovimiento = Math.sqrt(gesture.dx ** 2 + gesture.dy ** 2);
+        if (distanciaMovimiento < 10 && onEditarJugador) {
+          // Es un click, abrir modal de edición
+          onEditarJugador(jugador);
+          setJugadorMoviendo(null);
+          return;
+        }
 
-        // Verificar si cae en zona de eliminación
+        const finalX = jugador.x._value;
+        const finalY = jugador.y._value;
+
+        // Verificar eliminación
         if (
           trashLayout.current &&
-          dropX >= trashLayout.current.x &&
-          dropX <= trashLayout.current.x + trashLayout.current.width &&
-          dropY >= trashLayout.current.y &&
-          dropY <= trashLayout.current.y + trashLayout.current.height
+          finalX >= trashLayout.current.x &&
+          finalX <= trashLayout.current.x + trashLayout.current.width &&
+          finalY >= trashLayout.current.y &&
+          finalY <= trashLayout.current.y + trashLayout.current.height
         ) {
-          // Resetear pan antes de eliminar
-          jugador.pan.setValue({ x: 0, y: 0 });
-          
           Alert.alert(
             "Eliminar jugador",
             `¿Eliminar a ${jugador?.jugador?.usuario?.nombre}?`,
             [
-              { text: "Cancelar", style: "cancel" },
+              { 
+                text: "Cancelar", 
+                style: "cancel",
+                onPress: () => {
+                  jugador.x.setValue((jugador.xPercent / 100) * campoLayout.width);
+                  jugador.y.setValue((jugador.yPercent / 100) * campoLayout.height);
+                }
+              },
               {
                 text: "Eliminar",
                 style: "destructive",
                 onPress: async () => {
-                  // Llamar al servicio de eliminación primero
                   if (onEliminarJugador) {
                     await onEliminarJugador(jugador.jugadorId);
                   }
-                  
-                  // Eliminar del estado local
                   setJugadoresPos((prev) =>
                     prev.filter((j) => j.jugadorId !== jugador.jugadorId)
                   );
@@ -135,36 +157,37 @@ export default function CampoAlineacionMobile({
           return;
         }
 
-        // Calcular nueva posición
-        const newX = Math.max(
-          5,
-          Math.min(95, (dropX / campoLayout.width) * 100)
-        );
+        // 🔥 LIMITAR POSICIÓN DENTRO DEL CAMPO (márgenes asimétricos)
+        const margenIzq = 22.5;
+        const margenDer = 35; // MÁS margen = MENOS espacio permitido
+        const margenArriba = 22.5;
+        const margenAbajo = 35; // MÁS margen = MENOS espacio permitido
+        
+        const finalXLimited = Math.max(margenIzq, Math.min(campoLayout.width - margenDer, finalX));
+        const finalYLimited = Math.max(margenArriba, Math.min(campoLayout.height - margenAbajo, finalY));
 
-        const newY = Math.max(
-          5,
-          Math.min(95, (dropY / campoLayout.height) * 100)
-        );
+        // Ajustar la posición si se salió del límite
+        jugador.x.setValue(finalXLimited);
+        jugador.y.setValue(finalYLimited);
 
-        // Actualizar posición en el estado
+        // Calcular nueva posición en porcentaje
+        const newXPercent = Math.max(5, Math.min(92, (finalXLimited / campoLayout.width) * 100));
+        const newYPercent = Math.max(5, Math.min(92, (finalYLimited / campoLayout.height) * 100));
+
+        // Actualizar estado
         setJugadoresPos((prev) =>
           prev.map((j) =>
-            j.jugadorId === jugador.jugadorId 
-              ? { ...j, x: newX, y: newY, pan: j.pan }
+            j.jugadorId === jugador.jugadorId
+              ? { ...j, xPercent: newXPercent, yPercent: newYPercent }
               : j
           )
         );
 
-        // Resetear el pan a 0
-        jugador.pan.setValue({ x: 0, y: 0 });
-        
         setCambiosPendientes(true);
         setJugadorMoviendo(null);
       },
     })
   );
-
-  const [campoLayout, setCampoLayout] = useState(null);
 
   const handleGuardar = () => {
     if (!onActualizarPosiciones) return;
@@ -172,8 +195,8 @@ export default function CampoAlineacionMobile({
     onActualizarPosiciones(
       jugadoresPos.map((j) => ({
         jugadorId: j.jugadorId,
-        x: j.x,
-        y: j.y,
+        x: j.xPercent,
+        y: j.yPercent,
       }))
     );
 
@@ -182,10 +205,13 @@ export default function CampoAlineacionMobile({
   };
 
   const handleReset = () => {
+    if (!campoLayout) return;
+    
     setJugadoresPos((prev) =>
       prev.map((j) => {
-        j.pan.setValue({ x: 0, y: 0 });
-        return { ...j, x: 50, y: 50, pan: j.pan };
+        j.x.setValue((50 / 100) * campoLayout.width);
+        j.y.setValue((50 / 100) * campoLayout.height);
+        return { ...j, xPercent: 50, yPercent: 50 };
       })
     );
     setCambiosPendientes(true);
@@ -257,9 +283,10 @@ export default function CampoAlineacionMobile({
             style={[
               styles.player,
               {
-                left: `${jugador.x}%`,
-                top: `${jugador.y}%`,
-                transform: jugador.pan.getTranslateTransform(),
+                transform: [
+                  { translateX: jugador.x },
+                  { translateY: jugador.y },
+                ],
               },
             ]}
           >
@@ -271,12 +298,24 @@ export default function CampoAlineacionMobile({
             <Text style={styles.playerName}>
               {jugador.jugador?.usuario?.nombre}
             </Text>
+
+            {/* Tooltip con info del jugador - SOLO EN MODO VISTA */}
+            {!modoEdicion && jugadorSeleccionado?.jugadorId === jugador.jugadorId && (
+              <View style={styles.tooltip}>
+                <Text style={styles.tooltipName}>
+                  {jugador.jugador?.usuario?.nombre}
+                </Text>
+                <Text style={styles.tooltipRut}>
+                  RUT: {jugador.jugador?.usuario?.rut || "N/A"}
+                </Text>
+                <Text style={styles.tooltipPos}>
+                  Posición: {jugador.posicion || "Sin asignar"}
+                </Text>
+              </View>
+            )}
           </Animated.View>
         ))}
       </View>
-
-      {/* Zona de eliminación */}
-     
     </View>
   );
 }
@@ -433,6 +472,8 @@ const styles = StyleSheet.create({
   player: {
     position: "absolute",
     alignItems: "center",
+    left: 0,
+    top: 0,
   },
   playerCircle: {
     width: 45,
@@ -453,6 +494,47 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     marginTop: 2,
+  },
+
+  tooltip: {
+    position: "absolute",
+    top: 55,
+    left: -50,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    padding: 10,
+    borderRadius: 8,
+    minWidth: 150,
+    zIndex: 1000,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  tooltipName: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  tooltipRut: {
+    color: "#ccc",
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  tooltipPos: {
+    color: "#4CAF50",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tooltipEditBtn: {
+    marginTop: 8,
+    backgroundColor: "#2196F3",
+    padding: 6,
+    borderRadius: 4,
+    alignItems: "center",
+  },
+  tooltipEditText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 
   trashArea: {

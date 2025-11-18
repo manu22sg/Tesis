@@ -1,4 +1,3 @@
-// DisponibilidadCancha.jsx
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   DatePicker, Button, Card, Table, Tag, message, Spin,

@@ -56,5 +56,5 @@ export const buscarUsuarios = async (termino, opciones = {}) => {
   });
   
   const response = await api.get(`/auth/buscar-usuarios?${params}`);
-  return response.data;
+  return response.data.data;
 };

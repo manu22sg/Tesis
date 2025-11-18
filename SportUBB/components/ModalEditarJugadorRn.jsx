@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
+  TouchableWithoutFeedback,
 } from "react-native";
 
 const POSICIONES = [
@@ -51,63 +52,70 @@ export default function ModalEditarJugador({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.overlay}>
-        <View style={styles.box}>
-          <Text style={styles.title}>Editar Jugador</Text>
+    <Modal 
+      visible={visible} 
+      transparent 
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+            <View style={styles.box}>
+              <Text style={styles.title}>Editar Jugador</Text>
 
-          <ScrollView>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.label}>Posición</Text>
+                {POSICIONES.map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[
+                      styles.option,
+                      posicion === p && styles.optionSelected,
+                    ]}
+                    onPress={() => setPosicion(p)}
+                  >
+                    <Text
+                      style={{
+                        color: posicion === p ? "white" : "black",
+                        fontWeight: posicion === p ? "700" : "500",
+                      }}
+                    >
+                      {p}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
 
-            <Text style={styles.label}>Posición</Text>
-            {POSICIONES.map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[
-                  styles.option,
-                  posicion === p && styles.optionSelected,
-                ]}
-                onPress={() => setPosicion(p)}
-              >
-                <Text
-                  style={{
-                    color: posicion === p ? "white" : "black",
-                    fontWeight: posicion === p ? "700" : "500",
-                  }}
-                >
-                  {p}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                <Text style={styles.label}>Número / Orden</Text>
+                <TextInput
+                  style={styles.input}
+                  value={orden}
+                  keyboardType="numeric"
+                  onChangeText={setOrden}
+                />
 
-            <Text style={styles.label}>Número / Orden</Text>
-            <TextInput
-              style={styles.input}
-              value={orden}
-              keyboardType="numeric"
-              onChangeText={setOrden}
-            />
+                <Text style={styles.label}>Comentario</Text>
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  value={comentario}
+                  onChangeText={setComentario}
+                  multiline
+                />
+              </ScrollView>
 
-            <Text style={styles.label}>Comentario</Text>
-            <TextInput
-              style={[styles.input, { height: 80 }]}
-              value={comentario}
-              onChangeText={setComentario}
-              multiline
-            />
-          </ScrollView>
+              <View style={styles.row}>
+                <TouchableOpacity onPress={onClose}>
+                  <Text style={{ color: "red", fontSize: 16 }}>Cancelar</Text>
+                </TouchableOpacity>
 
-          <View style={styles.row}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: "red" }}>Cancelar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.save} onPress={handleGuardar}>
-              <Text style={styles.saveTxt}>Guardar</Text>
-            </TouchableOpacity>
-          </View>
-
+                <TouchableOpacity style={styles.save} onPress={handleGuardar}>
+                  <Text style={styles.saveTxt}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -126,11 +134,12 @@ const styles = StyleSheet.create({
     maxHeight: "85%",
   },
   title: { fontSize: 20, fontWeight: "bold", marginBottom: 16 },
-  label: { marginTop: 10 },
+  label: { marginTop: 10, fontWeight: "600", marginBottom: 6 },
   input: {
     backgroundColor: "#f1f1f1",
     padding: 10,
     borderRadius: 8,
+    marginBottom: 10,
   },
   option: {
     padding: 10,
@@ -145,10 +154,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 18,
+    paddingTop: 10,
   },
   save: {
     backgroundColor: "#1976d2",
     padding: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
   },
   saveTxt: { color: "#fff", fontWeight: "bold" },

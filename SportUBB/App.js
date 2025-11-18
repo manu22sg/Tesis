@@ -7,11 +7,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
-import TabNavigator from './navigation/TabNavigator';
+import EntrenadorTabNavigator from './navigation/EntrenadorTabNavigator'; // Renombra tu TabNavigator.js actual
+import EstudianteTabNavigator from './navigation/EstudianteTabNavigator'; // Crear este nuevo archivo
 
 const Stack = createNativeStackNavigator();
 
-// ➤ Stack de autenticación (sin pantallas duplicadas)
 function AuthStack() {
   return (
     <Stack.Navigator
@@ -26,9 +26,8 @@ function AuthStack() {
   );
 }
 
-// ➤ Contenido principal
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, userRole, loading } = useAuth();
 
   if (loading) {
     return (
@@ -41,12 +40,23 @@ function AppContent() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <TabNavigator /> : <AuthStack />}
+      {!isAuthenticated ? (
+        <AuthStack />
+      ) : userRole === 'entrenador' ? (
+        <EntrenadorTabNavigator />
+      ) : userRole === 'estudiante' ? (
+        <EstudianteTabNavigator />
+      ) : (
+        // Fallback si el rol no está definido o es inválido
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>⚠️ Rol de usuario no reconocido</Text>
+          <Text style={styles.errorSubtext}>Por favor, contacta al administrador</Text>
+        </View>
+      )}
     </NavigationContainer>
   );
 }
 
-// ➤ App raíz
 export default function App() {
   return (
     <AuthProvider>
@@ -67,5 +77,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#f44336',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
 });
