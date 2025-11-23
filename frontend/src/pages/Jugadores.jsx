@@ -110,40 +110,49 @@ export default function Jugadores() {
   
 
   // Cargar jugadores (server-side)
-  const cargarJugadores = async (page = 1, pageSize = pagination.pageSize, q = qDebounced) => {
-    const currentReq = ++requestIdRef.current;
-    try {
-      setLoading(true);
+ const cargarJugadores = async (page = 1, pageSize = pagination.pageSize, q = qDebounced) => {
+  const currentReq = ++requestIdRef.current;
+  try {
+    setLoading(true);
 
-      const params = { pagina: page, limite: pageSize };
-      if (q) params.q = q;
-      if (filtroEstado) params.estado = filtroEstado;
-      if (filtroCarreraId) params.carreraId = filtroCarreraId; // 🆕 Enviar ID
-      if (filtroAnio) params.anioIngreso = filtroAnio;
+    const params = { pagina: page, limite: pageSize };
+    if (q) params.q = q;
+    if (filtroEstado) params.estado = filtroEstado;
+    if (filtroCarreraId) params.carreraId = filtroCarreraId;
+    if (filtroAnio) params.anioIngreso = filtroAnio;
 
-      const data = await obtenerJugadores(params);
-      if (currentReq !== requestIdRef.current) return;
+    const data = await obtenerJugadores(params);
+    if (currentReq !== requestIdRef.current) return;
 
-      const lista = data.jugadores || [];
+    const lista = data.jugadores || [];
 
-      setJugadores(lista);
-      setPagination({
-        current: data.pagina ?? page,
-        pageSize: pageSize,
-        total: data.total ?? 0,
-        totalPages: data.totalPaginas
-      });
+    setJugadores(lista);
+    setPagination({
+      current: data.pagina ?? page,
+      pageSize: pageSize,
+      total: data.total ?? 0,
+      totalPages: data.totalPaginas
+    });
 
-      // 🆕 Actualiza opciones de carreras (con ID y nombre)
+    const aniosNuevos = [...new Set(
+      lista
+        .map(j => j.anioIngreso)
+        .filter(Boolean)
+    )];
     
-    } catch (error) {
-      if (!mountedRef.current) return;
-      console.error('Error cargando jugadores:', error);
-      message.error('Error al cargar los jugadores');
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  };
+    setAniosOpts(prev => {
+      const merged = [...new Set([...prev, ...aniosNuevos])];
+      return merged.sort((a, b) => b - a); // Orden descendente (más reciente primero)
+    });
+    
+  } catch (error) {
+    if (!mountedRef.current) return;
+    console.error('Error cargando jugadores:', error);
+    message.error('Error al cargar los jugadores');
+  } finally {
+    if (mountedRef.current) setLoading(false);
+  }
+};
 
   // Efecto único: mount + cambios de filtros/búsqueda + cambio de pageSize
   useEffect(() => {

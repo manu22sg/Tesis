@@ -41,6 +41,9 @@ function getItem(label, key, icon, children) {
 }
 
 const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
+  // ======================================
+  // 🚨 TODOS LOS HOOKS DEBEN IR AQUÍ ARRIBA
+  // ======================================
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario, logout, loading } = useAuth();
@@ -49,25 +52,16 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [campeonatoActivo, setCampeonatoActivo] = useState(null);
 
-  // ⛔ No cargar layout aún
-  if (loading) return <div style={{ padding: 30 }}>Cargando usuario...</div>;
-  if (!usuario) return <div style={{ padding: 30 }}>No autenticado...</div>;
-
-  // ⭐ FORMATO REAL DEL BACKEND:
-  // rol: "estudiante"
+  // Info usuario y rol
   const rol = usuario?.rol?.toLowerCase() ?? null;
-
-  // Usar directamente el rol del backend
   const userRole = rol;
 
-  // Es jugador?
-  const esJugador =
-    usuario?.jugador !== null &&
-    usuario?.jugador !== undefined;
+  const esJugador = usuario?.jugador !== null && usuario?.jugador !== undefined;
 
-  // ================================
-  // MENÚS POR ROL
-  // ================================
+  // ============================================
+  // MENU ITEMS por rol
+  // ============================================
+
   const entrenadorItems = [
     getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
       getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
@@ -84,7 +78,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
           ]
         : [])
     ]),
-    getItem('Ojeador', 'ojeador', <SearchOutlined />), // 🆕 Nueva opción
+    getItem('Ojeador', 'ojeador', <SearchOutlined />),
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
@@ -154,9 +148,9 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     academico: academicoItems,
   };
 
-  // ==========================================
-  // SELECTED KEY + OPEN KEYS
-  // ==========================================
+  // ============================================
+  // SELECTED KEY
+  // ============================================
 
   const pathToKey = {
     '/gestion-canchas': 'canchas-gestion',
@@ -177,21 +171,20 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/grupos': 'grupos',
     '/evaluaciones': 'evaluaciones',
     '/mis-evaluaciones': 'mis-evaluaciones',
-    '/ojeador': 'ojeador', // 🆕 Nueva ruta
+    '/ojeador': 'ojeador',
   };
 
   let selectedKey = selectedKeyOverride;
+
   if (!selectedKey) {
     const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla|estadisticas)$/);
-    const ojeadorMatch = location.pathname.match(/^\/ojeador(\/\d+)?$/); // 🆕 Match para ojeador y perfil
-    
+    const ojeadorMatch = location.pathname.match(/^\/ojeador(\/\d+)?$/);
+
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       selectedKey = `campeonato-${id}-${seccion}`;
     } else if (ojeadorMatch) {
-      selectedKey = 'ojeador'; // 🆕 Seleccionar ojeador tanto en lista como en perfil
-    } else if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
-      selectedKey = 'entrenamientos';
+      selectedKey = 'ojeador';
     } else {
       selectedKey = pathToKey[location.pathname] || 'campeonatos-lista';
     }
@@ -207,8 +200,13 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     return [];
   });
 
+  // ============================================
+  // MANEJO DE NAV
+  // ============================================
+
   const onMenuClick = ({ key }) => {
     const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla|estadisticas)$/);
+
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       navigate(`/campeonatos/${id}/${seccion}`);
@@ -235,11 +233,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       grupos: '/grupos',
       evaluaciones: '/evaluaciones',
       'mis-evaluaciones': '/mis-evaluaciones',
-      ojeador: '/ojeador', // 🆕 Nueva ruta
+      ojeador: '/ojeador',
     };
 
-    const route = keyToPath[key];
-    if (route) navigate(route);
+    if (keyToPath[key]) navigate(keyToPath[key]);
   };
 
   const userMenuItems = [
@@ -259,8 +256,25 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     },
   ];
 
-  return (
-    <CampeonatoActivoContext.Provider value={{ campeonatoActivo, setCampeonatoActivo }}>
+  // ======================================
+  // 🚨 RENDER DINÁMICO (*SIN cortar hooks*)
+  // ======================================
+  let contenido;
+
+  if (loading) {
+    contenido = (
+      <Layout style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div>Cargando usuario...</div>
+      </Layout>
+    );
+  } else if (!usuario) {
+    contenido = (
+      <Layout style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div>No autenticado...</div>
+      </Layout>
+    );
+  } else {
+    contenido = (
       <Layout style={{ minHeight: '100vh' }}>
         <Sider
           collapsible
@@ -276,7 +290,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             zIndex: 100,
             overflow: 'auto',
           }}
-          className="hide-scrollbar"
         >
           <div
             style={{
@@ -287,7 +300,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
               color: '#fff',
               fontSize: collapsed ? '14px' : '18px',
               fontWeight: 'bold',
-              padding: '0 16px',
             }}
           >
             {collapsed ? '⚽' : 'Sistema Deportivo'}
@@ -339,6 +351,12 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
           </Content>
         </Layout>
       </Layout>
+    );
+  }
+
+  return (
+    <CampeonatoActivoContext.Provider value={{ campeonatoActivo, setCampeonatoActivo }}>
+      {contenido}
     </CampeonatoActivoContext.Provider>
   );
 };

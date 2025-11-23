@@ -243,11 +243,7 @@ export default function Ojeador() {
                 <span style={{ fontSize: 20 }}>Ojeador de Jugadores</span>
               </div>
             }
-            extra={
-              <Text type="secondary">
-                Sistema de seguimiento y análisis de rendimiento
-              </Text>
-            }
+           
           >
             {/* Card de Filtros */}
             <Card

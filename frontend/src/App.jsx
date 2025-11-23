@@ -100,12 +100,17 @@ function AppRoutes() {
   <Route path="/campeonatos/:id/fixture" element={<CampeonatoFixture />} />
   <Route path="/campeonatos/:id/tabla" element={<CampeonatoTabla />} />
   <Route path="/campeonatos/:id/estadisticas" element={<EstadisticaCampeonato />} />
-  <Route path="/ojeador/:usuarioId" element={<PerfilJugador />} />
-  <Route path="/ojeador" element={
+    <Route path="/ojeador" element={
     <ProtectedRoute roles={['entrenador', 'admin']}>
       <Ojeador />
     </ProtectedRoute>
   } />
+<Route path="/ojeador/:usuarioId?" element={
+  <ProtectedRoute>
+    <PerfilJugador />
+  </ProtectedRoute>
+} />
+
   
   <Route path="/campeonatos/publico" element={<CampeonatoPublico />} />
 <Route path="/campeonatos/:id/publico" element={<DetalleCampeonatoPublico />} />
