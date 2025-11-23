@@ -14,6 +14,7 @@ const JugadorCampeonatoSchema = new EntitySchema({
     asistenciasCampeonato: { type: "int", default: 0 },
     atajadasCampeonato: { type: "int", default: 0 },
     fechaInscripcion: { type: "timestamp", default: () => "CURRENT_TIMESTAMP" },
+    fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },
   },
   relations: {
     usuario: {

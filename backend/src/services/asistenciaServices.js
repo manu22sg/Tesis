@@ -23,14 +23,14 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
     const finSesion = new Date(fechaSesion); finSesion.setHours(horaFin, minFin, 0, 0);
     if (finSesion < now) return [null, "No se puede marcar asistencia para una sesión que ya finalizó", 400];
 
-    // 🔑 Requerir ubicación SOLO si la sesión fue activada con geofence (coords presentes)
+    // Requerir ubicación SOLO si la sesión fue activada con geofence (coords presentes)
     const requiereGeo = sesion.latitudToken != null && sesion.longitudToken != null;
     if (requiereGeo) {
       // el jugador DEBE mandar su ubicación
       const latFaltante = latitud == null || Number.isNaN(Number(latitud));
       const lngFaltante = longitud == null || Number.isNaN(Number(longitud));
       if (latFaltante || lngFaltante) {
-        return [null, "Debes permitir el acceso a tu ubicación para marcar asistencia", 400];
+        return [null, "Debe permitir el acceso a su ubicación para marcar asistencia", 400];
       }
 
       const { dentro, distancia } = estaDentroDelRadio(
@@ -41,7 +41,7 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
         100 // metros
       );
       if (!dentro) {
-        return [null, `Debes estar cerca del lugar del entrenamiento (distancia: ${Math.round(distancia)} m)`, 403];
+        return [null, `Debe estar cerca del lugar del entrenamiento`, 403];
       }
     } else {
       // Si NO requiere geofence, ignoramos cualquier lat/lon que venga (no bloqueamos)
@@ -147,5 +147,47 @@ export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite =
   } catch (error) {
     console.error("Error listando asistencias:", error);
     return [null, "Error al obtener asistencias", 500];
+  }
+}
+
+export async function registrarAsistenciaManual({ 
+  sesionId, 
+  jugadorId, 
+  estado, 
+  observacion 
+}) {
+  try {
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
+    const sesionRepo = AppDataSource.getRepository(SesionEntrenamientoSchema);
+
+    // 1. Verificar que la sesión existe
+    const sesion = await sesionRepo.findOne({ where: { id: sesionId } });
+    if (!sesion) return [null, "Sesión no encontrada", 404];
+
+    
+
+    // 3. Crear asistencia manual (sin validación de geofence ni ubicación)
+    const nuevaAsistencia = asistenciaRepo.create({
+      jugadorId,
+      sesionId,
+      estado: estado && ESTADOS_ASISTENCIA.includes(estado) ? estado : "presente",
+      origen: "entrenador", 
+      latitud: null,
+      longitud: null,
+      observacion // opcional: para que el entrenador agregue notas
+    });
+
+    try {
+      const guardado = await asistenciaRepo.save(nuevaAsistencia);
+      return [guardado, null, 201];
+    } catch (e) {
+      if (e?.code === "23505" || e?.code === "ER_DUP_ENTRY") {
+        return [null, "Ya existe registro de asistencia para este jugador en esta sesión", 409];
+      }
+      throw e;
+    }
+  } catch (error) {
+    console.error("Error registrando asistencia manual:", error);
+    return [null, "Error al registrar asistencia", 500];
   }
 }

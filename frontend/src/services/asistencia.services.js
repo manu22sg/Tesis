@@ -88,7 +88,6 @@ export async function exportarAsistenciasExcel(params = {}) {
       }
     }
     
-    // Si es un error de Axios con mensaje
     if (error.response?.data?.message) {
       throw new Error(error.response.data.message);
     }
@@ -134,5 +133,16 @@ export async function exportarAsistenciasPDF(params = {}) {
     }
     
     throw new Error(error.message || 'Error al exportar PDF');
+  }
+}
+
+export async function registrarAsistenciaManual(data) {
+  try {
+    const payload = limpiarPayload(data);
+    const response = await api.post('/asistencia/registrar-manual', payload);
+    return response.data?.data;
+  } catch (error) {
+    console.error('Error registrando asistencia manual:', error);
+    throw error;
   }
 }

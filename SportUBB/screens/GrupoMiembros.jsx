@@ -55,6 +55,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
   const [loadingSesiones, setLoadingSesiones] = useState(false);
   const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
   const [filtroCancha, setFiltroCancha] = useState(null);
+    const [filtrosEntrenamientos, setFiltrosEntrenamientos] = useState({    q: '', canchaId: null });
   const [canchasOpts, setCanchasOpts] = useState([]);
   const [currentPageSesiones, setCurrentPageSesiones] = useState(1);
   const [totalSesiones, setTotalSesiones] = useState(0);
@@ -118,19 +119,18 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
   // Debounce búsqueda entrenamientos
   useEffect(() => {
     const t = setTimeout(() => {
-      if (tabActiva === 'entrenamientos') {
-        cargarSesiones(1);
-      }
+      setFiltrosEntrenamientos(prev => ({ ...prev, q: busquedaEntrenamiento.trim() }));
     }, 500);
     return () => clearTimeout(t);
   }, [busquedaEntrenamiento]);
 
-  // Cargar sesiones cuando cambia tab, filtro o página
+  // Cargar sesiones cuando cambia tab, filtros o página
   useEffect(() => {
     if (tabActiva === 'entrenamientos') {
-      cargarSesiones(currentPageSesiones);
+      cargarSesiones(1);
+      setCurrentPageSesiones(1);
     }
-  }, [tabActiva, filtroCancha, currentPageSesiones]);
+  }, [tabActiva, filtrosEntrenamientos]);
 
   const cargarDatos = async () => {
     const reqId = ++requestIdGrupoRef.current;
@@ -170,8 +170,8 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
     try {
       setLoadingSesiones(true);
 
-      const qParam = busquedaEntrenamiento.trim();
-      const canchaIdParam = filtroCancha ? Number(filtroCancha) : undefined;
+      const qParam = filtrosEntrenamientos.q || '';
+      const canchaIdParam = filtrosEntrenamientos.canchaId ? Number(filtrosEntrenamientos.canchaId) : undefined;
 
       const data = await obtenerSesiones({
         grupoId,
@@ -244,7 +244,18 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
   const totalPagesMiembros = Math.ceil(miembrosFiltrados.length / pageSizeMiembros);
 
-  // Handlers
+  const limpiarFiltrosEntrenamientos = () => {
+    setBusquedaEntrenamiento('');
+    setFiltrosEntrenamientos({ q: '', canchaId: null });
+    setCurrentPageSesiones(1);
+  };
+
+  const hayFiltrosEntrenamientos = !!(filtrosEntrenamientos.q || filtrosEntrenamientos.canchaId);
+
+  const getNombreCancha = () => {
+    const cancha = canchasOpts.find(c => c.id === filtrosEntrenamientos.canchaId);
+    return cancha ? cancha.nombre : 'Todas';
+  };
   const handleRemoverMiembro = (jugadorId, nombre) => {
     Alert.alert(
       '¿Remover del grupo?',
@@ -649,6 +660,18 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
         <View style={styles.content}>
           {/* Filtros Entrenamientos */}
           <View style={styles.filtrosContainer}>
+            <View style={styles.filtrosHeader}>
+              <Text style={styles.filtrosTitle}>🔍 Filtros</Text>
+              {hayFiltrosEntrenamientos && (
+                <TouchableOpacity
+                  onPress={limpiarFiltrosEntrenamientos}
+                  style={styles.limpiarFiltrosButton}
+                >
+                  <Text style={styles.limpiarFiltrosText}>Limpiar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
             <TextInput
               style={styles.searchInput}
               value={busquedaEntrenamiento}
@@ -658,13 +681,28 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
             />
 
             <TouchableOpacity
-              style={styles.filtrosButton}
+              style={styles.filtroButton}
               onPress={() => setModalFiltros(true)}
             >
-              <Text style={styles.filtrosButtonText}>
-                🔍 Filtros {filtroCancha ? '(1)' : ''}
+              <Text style={styles.filtroLabel}>🏟️ Cancha</Text>
+              <Text style={[
+                styles.filtroValue,
+                filtrosEntrenamientos.canchaId && styles.filtroValueActive
+              ]}>
+                {getNombreCancha()}
               </Text>
             </TouchableOpacity>
+
+            {hayFiltrosEntrenamientos && (
+              <View style={styles.activeFiltersContainer}>
+                <Text style={styles.activeFiltersText}>
+                  Filtros activos: {[
+                    filtrosEntrenamientos.q && 'búsqueda',
+                    filtrosEntrenamientos.canchaId && 'cancha'
+                  ].filter(Boolean).join(', ')}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Lista Entrenamientos */}
@@ -736,8 +774,16 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
         transparent={true}
         onRequestClose={() => setModalAgregar(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalAgregar(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Agregar Jugador al Grupo</Text>
 
             <Text style={styles.modalInfo}>Grupo: {grupo?.nombre}</Text>
@@ -791,8 +837,8 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Modal Filtros Entrenamientos */}
@@ -802,15 +848,28 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
         transparent={true}
         onRequestClose={() => setModalFiltros(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalFiltros(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Filtros de Entrenamientos</Text>
 
             <Text style={styles.labelText}>Filtrar por cancha:</Text>
             <ScrollView style={styles.canchasList}>
               <TouchableOpacity
-                style={[styles.canchaItem, !filtroCancha && styles.canchaItemSeleccionado]}
-                onPress={() => setFiltroCancha(null)}
+                style={[
+                  styles.canchaItem,
+                  !filtrosEntrenamientos.canchaId && styles.canchaItemSeleccionado
+                ]}
+                onPress={() => {
+                  setFiltrosEntrenamientos(prev => ({ ...prev, canchaId: null }));
+                }}
               >
                 <Text style={styles.canchaNombre}>Todas las canchas</Text>
               </TouchableOpacity>
@@ -820,9 +879,11 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
                   key={c.id}
                   style={[
                     styles.canchaItem,
-                    filtroCancha === c.id && styles.canchaItemSeleccionado
+                    filtrosEntrenamientos.canchaId === c.id && styles.canchaItemSeleccionado
                   ]}
-                  onPress={() => setFiltroCancha(c.id)}
+                  onPress={() => {
+                    setFiltrosEntrenamientos(prev => ({ ...prev, canchaId: c.id }));
+                  }}
                 >
                   <Text style={styles.canchaNombre}>{c.nombre}</Text>
                 </TouchableOpacity>
@@ -833,8 +894,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
-                  setFiltroCancha(null);
-                  setBusquedaEntrenamiento('');
+                  setFiltrosEntrenamientos(prev => ({ ...prev, canchaId: null }));
                 }}
               >
                 <Text style={styles.cancelButtonText}>Limpiar</Text>
@@ -842,17 +902,13 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={() => {
-                  setModalFiltros(false);
-                  setCurrentPageSesiones(1);
-                  cargarSesiones(1);
-                }}
+                onPress={() => setModalFiltros(false)}
               >
                 <Text style={styles.submitButtonText}>Aplicar</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Modal Detalle Sesión */}
@@ -862,8 +918,16 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
         transparent={true}
         onRequestClose={() => setModalDetalleSesion(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalDetalleSesion(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Detalle del Entrenamiento</Text>
 
             {loadingDetalle ? (
@@ -928,8 +992,8 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
             >
               <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Modal Detalle Jugador */}
@@ -939,8 +1003,16 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
         transparent={true}
         onRequestClose={() => setModalDetalleJugador(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalDetalleJugador(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Perfil del Jugador</Text>
 
             {loadingJugadorDetalle ? (
@@ -1015,8 +1087,8 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
             >
               <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -1139,12 +1211,66 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  filtrosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  filtrosTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  limpiarFiltrosButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  limpiarFiltrosText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   searchInput: {
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     marginBottom: 10,
+  },
+  filtroButton: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 10,
+  },
+  filtroLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  filtroValue: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  filtroValueActive: {
+    color: '#1976d2',
+    fontWeight: 'bold',
+  },
+  activeFiltersContainer: {
+    padding: 8,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 6,
+  },
+  activeFiltersText: {
+    fontSize: 12,
+    color: '#1976d2',
+    textAlign: 'center',
   },
   filtroEstadoContainer: {
     flexDirection: 'row',
@@ -1454,6 +1580,32 @@ const styles = StyleSheet.create({
   jugadorInfo: {
     fontSize: 13,
     color: '#666',
+  },
+  labelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  canchasList: {
+    maxHeight: 300,
+    marginBottom: 20,
+  },
+  canchaItem: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 8,
+    backgroundColor: '#fff',
+  },
+  canchaItemSeleccionado: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#1976d2',
+  },
+  canchaNombre: {
+    fontSize: 14,
+    color: '#333',
   },
   noDisponiblesText: {
     fontSize: 14,

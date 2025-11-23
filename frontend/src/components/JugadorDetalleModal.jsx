@@ -46,7 +46,7 @@ export default function JugadorDetalleModal({
           }}>
             <div>
               <Text strong>Nombre:</Text>
-              <div>{jugador.usuario?.nombre || '—'}</div>
+              <div>{jugador.usuario?.nombre || '—'} {jugador.usuario?.apellido || ''}</div>
             </div>
             <div>
               <Text strong>RUT:</Text>
@@ -56,61 +56,95 @@ export default function JugadorDetalleModal({
               <Text strong>Email:</Text>
               <div>{jugador.usuario?.email || '—'}</div>
             </div>
-          
+            
             <div>
               <Text strong>Fecha de Nacimiento:</Text>
               <div>
                 {formatearFecha(jugador.fechaNacimiento) || '—'}
               </div>
             </div>
-            <div>
-              <Text strong>Estado:</Text>
+            
               <div>
-                <Tag color={ESTADO_COLORS[jugador.estado]}>
-                  {jugador.estado?.toUpperCase() || 'N/A'}
-                </Tag>
-              </div>
-            </div>
+    <Text strong>Año de Ingreso al Sistema:</Text>
+    <div>{jugador.anioIngreso || '—'}</div>
+  </div>
           </div>
 
-          {/* Información Deportiva */}
-          {(jugador.posicion || jugador.lateralidad || jugador.altura || jugador.peso) && (
-            <>
-              <h3>Información Deportiva</h3>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: 16,
-                marginBottom: 24 
-              }}>
-                {jugador.posicion && (
-                  <div>
-                    <Text strong>Posición:</Text>
-                    <div>{jugador.posicion}</div>
-                  </div>
-                )}
-                {jugador.lateralidad && (
-                  <div>
-                    <Text strong>Lateralidad:</Text>
-                    <div>{jugador.lateralidad}</div>
-                  </div>
-                )}
-                {jugador.altura && (
-                  <div>
-                    <Text strong>Altura:</Text>
-                    <div>{jugador.altura} cm</div>
-                  </div>
-                )}
-                {jugador.peso && (
-                  <div>
-                    <Text strong>Peso:</Text>
-                    <div>{jugador.peso} kg</div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+     {(
+  jugador.posicion ||
+  jugador.posicionSecundaria ||
+  jugador.piernaHabil ||
+  jugador.altura ||
+  jugador.peso ||
+  jugador.imc ||
+  jugador.estado
+) && (
+  <>
+    <h3>Información Deportiva</h3>
 
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 16,
+        marginBottom: 24
+      }}
+    >
+      {jugador.posicion && (
+        <div>
+          <Text strong>Posición:</Text>
+          <div>{jugador.posicion}</div>
+        </div>
+      )}
+
+      {jugador.posicionSecundaria && (
+        <div>
+          <Text strong>Posición Secundaria:</Text>
+          <div>{jugador.posicionSecundaria}</div>
+        </div>
+      )}
+
+      {jugador.piernaHabil && (
+        <div>
+          <Text strong>Pierna Hábil:</Text>
+          <div>{jugador.piernaHabil}</div>
+        </div>
+      )}
+
+      {jugador.altura && (
+        <div>
+          <Text strong>Altura:</Text>
+          <div>{jugador.altura} cm</div>
+        </div>
+      )}
+
+      {jugador.peso && (
+        <div>
+          <Text strong>Peso:</Text>
+          <div>{jugador.peso} kg</div>
+        </div>
+      )}
+
+      {jugador.imc && (
+        <div>
+          <Text strong>IMC:</Text>
+          <div>{jugador.imc}</div>
+        </div>
+      )}
+
+      {jugador.estado && (
+        <div>
+          <Text strong>Estado:</Text>
+          <div>
+            <Tag color={ESTADO_COLORS[jugador.estado]}>
+              {jugador.estado?.toUpperCase() || 'N/A'}
+            </Tag>
+          </div>
+        </div>
+      )}
+    </div>
+  </>
+)}
           {/* Información Académica */}
           <h3>Información Académica</h3>
           <div style={{ 
@@ -123,10 +157,7 @@ export default function JugadorDetalleModal({
               <Text strong>Carrera:</Text>
               <div>{jugador.usuario?.carrera?.nombre || '—'}</div>
             </div>
-            <div>
-              <Text strong>Año de Ingreso:</Text>
-              <div>{jugador.anioIngreso || '—'}</div>
-            </div>
+           
           </div>
 
           {/* Grupos */}

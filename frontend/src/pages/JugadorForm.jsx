@@ -67,9 +67,12 @@ export default function JugadorForm() {
 
       form.setFieldsValue({
         posicion: jugador.posicion,
+  posicionSecundaria: jugador.posicionSecundaria,
+
         piernaHabil: jugador.piernaHabil,
-        altura: jugador.altura,
-        peso: jugador.peso,
+        altura: jugador.altura ? Number(jugador.altura) : undefined,
+        peso: jugador.peso ? Number(jugador.peso) : undefined,
+
         estado: jugador.estado,
         fechaNacimiento: jugador.fechaNacimiento ? dayjs(jugador.fechaNacimiento) : null,
         anioIngreso: jugador.anioIngreso
@@ -321,14 +324,38 @@ export default function JugadorForm() {
 
               {/* Campos actualizados */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item name="posicion" label="Posición">
-                  <Select placeholder="Selecciona una posición" allowClear>
-                    <Option value="Portero">Portero</Option>
-                    <Option value="Defensa">Defensa</Option>
-                    <Option value="Mediocampista">Mediocampista</Option>
-                    <Option value="Delantero">Delantero</Option>
-                  </Select>
-                </Form.Item>
+                 <Form.Item name="posicion" label="Posición Principal" >
+    <Select placeholder="Selecciona una posición" allowClear>
+      <Option value="Portero">Portero</Option>
+      <Option value="Defensa Central">Defensa Central</Option>
+      <Option value="Defensa Central Derecho">Defensa Central Derecho</Option>
+      <Option value="Defensa Central Izquierdo">Defensa Central Izquierdo</Option>
+      <Option value="Lateral Derecho">Lateral Derecho</Option>
+      <Option value="Lateral Izquierdo">Lateral Izquierdo</Option>
+      <Option value="Mediocentro Defensivo">Mediocentro Defensivo</Option>
+      <Option value="Mediocentro">Mediocentro</Option>
+      <Option value="Mediocentro Ofensivo">Mediocentro Ofensivo</Option>
+      <Option value="Extremo Derecho">Extremo Derecho</Option>
+      <Option value="Extremo Izquierdo">Extremo Izquierdo</Option>
+      <Option value="Delantero Centro">Delantero Centro</Option>
+    </Select>
+  </Form.Item>
+                 <Form.Item name="posicionSecundaria" label="Posición Secundaria">
+    <Select placeholder="Selecciona una posición" allowClear>
+      <Option value="Portero">Portero</Option>
+      <Option value="Defensa Central">Defensa Central</Option>
+      <Option value="Defensa Central Derecho">Defensa Central Derecho</Option>
+      <Option value="Defensa Central Izquierdo">Defensa Central Izquierdo</Option>
+      <Option value="Lateral Derecho">Lateral Derecho</Option>
+      <Option value="Lateral Izquierdo">Lateral Izquierdo</Option>
+      <Option value="Mediocentro Defensivo">Mediocentro Defensivo</Option>
+      <Option value="Mediocentro">Mediocentro</Option>
+      <Option value="Mediocentro Ofensivo">Mediocentro Ofensivo</Option>
+      <Option value="Extremo Derecho">Extremo Derecho</Option>
+      <Option value="Extremo Izquierdo">Extremo Izquierdo</Option>
+      <Option value="Delantero Centro">Delantero Centro</Option>
+    </Select>
+  </Form.Item>
 
                 <Form.Item name="piernaHabil" label="Pierna Hábil">
                   <Select placeholder="Selecciona pierna hábil" allowClear>
@@ -340,43 +367,53 @@ export default function JugadorForm() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item
-                  name="altura"
-                  label="Altura (cm)"
-                  rules={[
-                    {
-                      type: 'number',
-                      min: 100,
-                      max: 250,
-                      message: 'Altura debe estar entre 100-250 cm'
-                    }
-                  ]}
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Ej: 175"
-                    addonAfter="cm"
-                  />
-                </Form.Item>
+               <Form.Item
+  name="altura"
+  label="Altura (cm)"
+  rules={[
+    {
+      type: 'number',
+      min: 100,
+      max: 250,
+      message: 'Altura debe estar entre 100-250 cm'
+    }
+  ]}
+>
+  <InputNumber
+    style={{ width: '100%' }}
+    placeholder="Ej: 175.5"
+    addonAfter="cm"
+    step={0.1}
+    parser={(value) =>
+      value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+    }
+    formatter={(value) => value}
+  />
+</Form.Item>
 
-                <Form.Item
-                  name="peso"
-                  label="Peso (kg)"
-                  rules={[
-                    {
-                      type: 'number',
-                      min: 30,
-                      max: 200,
-                      message: 'Peso debe estar entre 30-200 kg'
-                    }
-                  ]}
-                >
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    placeholder="Ej: 70"
-                    addonAfter="kg"
-                  />
-                </Form.Item>
+               <Form.Item
+  name="peso"
+  label="Peso (kg)"
+  rules={[
+    {
+      type: 'number',
+      min: 30,
+      max: 200,
+      message: 'Peso debe estar entre 30-200 kg'
+    }
+  ]}
+>
+  <InputNumber
+    style={{ width: '100%' }}
+    placeholder="Ej: 70.5"
+    addonAfter="kg"
+    step={0.1}
+    parser={(value) =>
+      value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+    }
+    formatter={(value) => value}
+  />
+</Form.Item>
               </div>
 
               <Form.Item

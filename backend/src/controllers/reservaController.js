@@ -2,7 +2,7 @@ import {
   crearReserva,
   obtenerReservasUsuario,
   obtenerTodasLasReservas,
-  obtenerReservaPorId,cancelarReserva
+  obtenerReservaPorId,cancelarReserva,editarParticipantesReserva
 } from '../services/reservaServices.js';
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
@@ -122,5 +122,47 @@ export async function putCancelarReserva(req, res) {
   } catch (e) {
     console.error('putCancelarReserva:', e);
     return error(res, 'Error interno del servidor', 500);
+  }
+}
+
+
+export async function editarParticipantesReservaPorId(req, res) {
+  try {
+    const { id } = req.params;
+    const { participantes } = req.body; // Array de RUTs
+    const usuarioId = req.user.id;
+
+    if (!Array.isArray(participantes)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar un array de participantes (RUTs)'
+      });
+    }
+
+    const [reserva, error] = await editarParticipantesReserva(
+      parseInt(id),
+      participantes,
+      usuarioId
+    );
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Participantes actualizados correctamente',
+      data: reserva
+    });
+
+  } catch (error) {
+    console.error('Error en editarParticipantesReservaPorId:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
   }
 }

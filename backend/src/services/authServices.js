@@ -99,11 +99,20 @@ export async function findUserById(id) {
         'usuario.fechaCreacion',
         'usuario.fechaActualizacion',
         'carrera.id',
-        'carrera.nombre'
+        'carrera.nombre',
+        // ✅ AGREGAR CAMPOS DEL JUGADOR
+        'jugador.id',
+        'jugador.posicion',
+        'jugador.altura',
+        'jugador.peso',
+        // Agrega los campos que necesites del jugador
       ])
       .leftJoin('usuario.carrera', 'carrera')
+      .leftJoin('usuario.jugador', 'jugador')  
       .where('usuario.id = :id', { id })
       .getOne();
+
+  
 
     return [user, null];
 
@@ -116,12 +125,13 @@ export async function findUserById(id) {
 
 
 
+
 export async function registerService(userData) {
   try {
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
     const carreraRepository = AppDataSource.getRepository(CarreraSchema);
 
-    const { rut, nombre, apellido, email, password, carreraId } = userData;
+    const { rut, nombre, apellido, email, password, carreraId,anioIngresoUniversidad } = userData;
 
     // -----------------------------
     // 1. Validación de existencia de carrera
@@ -152,8 +162,17 @@ export async function registerService(userData) {
     // -----------------------------
     // 4. Determinar rol
     // -----------------------------
-    const userRole =
-      email.endsWith('@alumnos.ubiobio.cl') ? 'estudiante' : 'academico';
+    const userRole = email.endsWith('@alumnos.ubiobio.cl') ? 'estudiante' : 'academico';
+
+      if (userRole === 'estudiante' && !anioIngresoUniversidad) {
+      return [null, createErrorMessage('anioIngresoUniversidad', 'Debe ingresar su año de ingreso')];
+    }
+
+      
+    if (userRole === 'estudiante' && !carreraId) {
+      return [null, createErrorMessage('carreraId', 'Debe seleccionar una carrera')];
+    }
+
 
     // -----------------------------
     // 5. Crear usuario pendiente y no verificado
@@ -165,9 +184,10 @@ export async function registerService(userData) {
       email,
       password: hashedPassword,
       rol: userRole,
-      carreraId,
+      carreraId: carreraId || null,
       estado: 'pendiente',
-      verificado: false
+      verificado: false,
+      anioIngresoUniversidad: anioIngresoUniversidad || null
     });
 
     const savedUser = await userRepository.save(newUser);
@@ -194,14 +214,14 @@ export async function registerService(userData) {
     try {
       await sendMail({
         to: savedUser.email,
-        subject: 'Verifica tu cuenta - SPORTUBB',
+        subject: 'Verifique su cuenta - SPORTUBB',
         html: `
           <!DOCTYPE html>
           <html>
           <body style="font-family: Arial, sans-serif">
             <h2>¡Hola ${savedUser.nombre} ${savedUser.apellido}!</h2>
-            <p>Gracias por registrarte en SPORTUBB.</p>
-            <p>Para activar tu cuenta, haz clic en el siguiente enlace:</p>
+            <p>Gracias por registrarse en SPORTUBB.</p>
+            <p>Para activar su cuenta, haga clic en el siguiente enlace:</p>
             <p><a href="${urlVerificacion}">Verificar mi cuenta</a></p>
             <p>Este enlace expira en 24 horas.</p>
           </body>
@@ -216,7 +236,7 @@ export async function registerService(userData) {
 
       return [
         null,
-        'Error al enviar el correo de verificación. Intenta nuevamente.'
+        'Error al enviar el correo de verificación. Intente nuevamente.'
       ];
     }
 
@@ -231,6 +251,7 @@ export async function registerService(userData) {
       email: savedUser.email,
       rol: savedUser.rol,
       carreraId: savedUser.carreraId,
+      anioIngresoUniversidad: savedUser.anioIngresoUniversidad,
       estado: savedUser.estado,
       verificado: savedUser.verificado,
       fechaCreacion: savedUser.fechaCreacion
@@ -243,7 +264,7 @@ export async function registerService(userData) {
       {
         user: userWithoutSensitiveData,
         message:
-          'Registro exitoso. Revisa tu correo institucional para verificar tu cuenta.'
+          'Registro exitoso. Revise su correo institucional para verificar su cuenta.'
       },
       null
     ];
@@ -354,13 +375,13 @@ export async function reenviarVerificacionService(email) {
     try {
       await sendMail({
         to: usuario.email,
-        subject: '🔄 Reenvío de verificación - SPORTUBB',
+        subject: 'Reenvío de verificación - SPORTUBB',
         html: `
           <!DOCTYPE html>
           <html>
             <body style="font-family: Arial, sans-serif">
               <h2>Hola ${usuario.nombre}!</h2>
-              <p>Aquí tienes un nuevo enlace para verificar tu cuenta:</p>
+              <p>Aquí tiene un nuevo enlace para verificar su cuenta:</p>
               <p><a href="${urlVerificacion}">Verificar mi cuenta</a></p>
               <p>Este enlace expira en 24 horas.</p>
             </body>
@@ -425,7 +446,7 @@ export async function loginService(loginData) {
         null,
         createErrorMessage(
           'verificado',
-          'Debes verificar tu correo institucional antes de iniciar sesión. Revisa tu bandeja de entrada.'
+          'Debe verificar su correo institucional antes de iniciar sesión. Revise su bandeja de entrada.'
         )
       ];
     }
@@ -466,7 +487,7 @@ export async function loginService(loginData) {
         estado: user.jugador.estado,
         anioIngreso: user.jugador.anioIngreso
       } : null,
-      carrera: user.carrera ? { // ← OPCIONAL: También puedes incluir carrera
+      carrera: user.carrera ? {
         id: user.carrera.id,
         nombre: user.carrera.nombre
       } : null
@@ -479,6 +500,178 @@ export async function loginService(loginData) {
     return [null, 'Error interno del servidor'];
   }
 }
+
+export async function solicitarRestablecimientoService(email) {
+  try {
+    const userRepository = AppDataSource.getRepository(UsuarioSchema);
+
+    // 1. Validar email institucional
+    if (!validateEmail(email)) {
+      return [null, 'Debe usar un email institucional'];
+    }
+
+    // 2. Buscar usuario
+    const usuario = await userRepository.findOne({ where: { email } });
+
+    if (!usuario) {
+      return [null, 'No existe una cuenta con este correo electrónico'];
+    }
+
+    // 3. Verificar que la cuenta esté activa y verificada
+    if (!usuario.verificado) {
+      return [null, 'Debe verificar su cuenta antes de restablecer la contraseña'];
+    }
+
+    if (usuario.estado !== 'activo') {
+      return [null, 'Esta cuenta no está activa. Contacte al administrador'];
+    }
+
+    // 4. Crear token con purpose específico
+    const tokenReset = jwt.sign(
+      {
+        id: usuario.id,
+        email: usuario.email,
+        purpose: 'password_reset'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // Solo 1 hora por seguridad
+    );
+
+    const urlReset = `${FRONTEND_URL}/restablecer-password/${tokenReset}`;
+
+    // 5. Enviar correo
+    try {
+      await sendMail({
+        to: usuario.email,
+        subject: 'Restablecimiento de contraseña - SPORTUBB',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>Hola ${usuario.nombre}!</h2>
+              <p>Recibimos una solicitud para restablecer su contraseña.</p>
+              <p>Si no solicitó esto, puede ignorar este correo.</p>
+              <p>Para restablecer su contraseña, haga clic en el siguiente enlace:</p>
+              <p>
+                <a 
+                  href="${urlReset}" 
+                  style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+                >
+                  Restablecer contraseña
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px;">
+                Este enlace expira en 1 hora por razones de seguridad.
+              </p>
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                Si el botón no funciona, copie y pegue este enlace en su navegador:<br>
+                ${urlReset}
+              </p>
+            </body>
+          </html>
+        `
+      });
+    } catch (emailError) {
+      console.error('Error al enviar correo de restablecimiento:', emailError);
+      return [null, 'Error al enviar el correo. Intente nuevamente.'];
+    }
+
+    // ✅ CAMBIO: Mensaje de éxito específico
+    return [{
+      success: true,
+      email: usuario.email,
+      message: 'Correo enviado exitosamente'
+    }, null];
+
+  } catch (error) {
+    console.error('Error solicitando restablecimiento:', error);
+    return [null, 'Error interno del servidor'];
+  }
+}
+
+
+export async function restablecerPasswordService(token, newPassword) {
+  try {
+    // 1. Verificar JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return [null, 'El enlace ha expirado. Solicite uno nuevo'];
+      }
+      return [null, 'Token inválido'];
+    }
+
+    // 2. Validar purpose del token
+    if (decoded.purpose !== 'password_reset') {
+      return [null, 'Token inválido para restablecimiento de contraseña'];
+    }
+
+    const userRepository = AppDataSource.getRepository(UsuarioSchema);
+
+    // 3. Buscar usuario
+    const usuario = await userRepository.findOne({ 
+      where: { id: decoded.id },
+      select: ['id', 'email', 'nombre', 'password', 'estado', 'verificado']
+    });
+
+    if (!usuario) {
+      return [null, 'Usuario no encontrado'];
+    }
+
+    // 4. Validaciones de estado
+    if (!usuario.verificado) {
+      return [null, 'La cuenta no está verificada'];
+    }
+
+    if (usuario.estado !== 'activo') {
+      return [null, 'La cuenta no está activa'];
+    }
+
+    // 5. Hashear nueva contraseña
+    const hashedPassword = await hashPassword(newPassword);
+
+    // 6. Actualizar contraseña
+    usuario.password = hashedPassword;
+    await userRepository.save(usuario);
+
+    // 7. Enviar correo de confirmación (opcional pero recomendado)
+    try {
+      await sendMail({
+        to: usuario.email,
+        subject: 'Contraseña restablecida - SPORTUBB',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>Hola ${usuario.nombre}!</h2>
+              <p>Su contraseña ha sido restablecida exitosamente.</p>
+              <p>Si no realizó este cambio, contacte inmediatamente al administrador.</p>
+              <p style="margin-top: 20px;">
+                <a href="${FRONTEND_URL}/login">Iniciar sesión</a>
+              </p>
+            </body>
+          </html>
+        `
+      });
+    } catch (emailError) {
+      console.error('Error al enviar correo de confirmación:', emailError);
+      // No fallar si el correo no se envía
+    }
+
+    return [{
+      success: true,
+      email: usuario.email
+    }, null];
+
+  } catch (error) {
+    console.error('Error restableciendo contraseña:', error);
+    return [null, 'Error interno del servidor'];
+  }
+}
+
+
 
 
 
@@ -501,22 +694,24 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       .select([
         'usuario.id', 
         'usuario.rut', 
-        'usuario.nombre', 
+        'usuario.nombre',
+        'usuario.apellido',
         'usuario.email', 
         'usuario.rol',
         'usuario.carreraId'
       ])
       //  Join con carrera para incluir el nombre
       .leftJoinAndSelect('usuario.carrera', 'carrera')
-      //  Búsqueda mejorada: también busca en el nombre de la carrera
+      //  Búsqueda optimizada: busca en campos individuales Y en nombre completo
       .where(`(
         usuario.rut LIKE :terminoRut 
-        OR LOWER(usuario.nombre) LIKE LOWER(:terminoNombre)
-        OR LOWER(carrera.nombre) LIKE LOWER(:terminoCarrera)
+        OR LOWER(usuario.nombre) LIKE LOWER(:termino)
+        OR LOWER(usuario.apellido) LIKE LOWER(:termino)
+        OR LOWER(CONCAT(usuario.nombre, ' ', usuario.apellido)) LIKE LOWER(:termino)
+        OR LOWER(carrera.nombre) LIKE LOWER(:termino)
       )`, {
         terminoRut: `%${terminoLimpio}%`,
-        terminoNombre: `%${terminoLimpio}%`,
-        terminoCarrera: `%${terminoLimpio}%`
+        termino: `%${terminoLimpio}%`
       })
       .andWhere('usuario.estado = :estado', { estado })
       .andWhere('usuario.verificado = true');
@@ -558,6 +753,3 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
     return [null, 'Error interno del servidor'];
   }
 }
-
-
-

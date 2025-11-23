@@ -14,9 +14,12 @@ export const crearCampeonato = async (payload) => {
   const canchaRepo = CanchaRepo();
 
   // Validaciones básicas
-  const { nombre, formato, genero, anio, semestre, entrenadorId } = payload;
+  const { nombre, formato, genero, anio, semestre, entrenadorId, tipoCampeonato = 'intercarrera' } = payload;
   if (!nombre || !formato || !genero || !anio || !semestre) {
     throw new Error("Faltan campos obligatorios para crear el campeonato");
+  }
+  if (!['mechon', 'intercarrera'].includes(tipoCampeonato)) {
+    throw new Error("El tipo de campeonato debe ser 'mechon' o 'intercarrera'");
   }
 
   // Evitar duplicados por año/semestre
@@ -30,11 +33,12 @@ export const crearCampeonato = async (payload) => {
 
   //  Evitar múltiples campeonatos activos del mismo tipo/género
   const activo = await repo.findOne({
-    where: { formato, genero, estado: "creado" },
+    where: { formato, genero, tipoCampeonato, estado: "creado" },
   });
+
   if (activo)
     throw new Error(
-      `Ya hay un campeonato activo de formato ${formato} (${genero}). Finaliza el actual antes de crear uno nuevo.`
+      `Ya hay un campeonato activo de formato ${formato} (${genero}) tipo ${tipoCampeonato}. Finaliza el actual antes de crear uno nuevo.`
     );
 
   //  Verificar disponibilidad mínima de canchas
@@ -61,6 +65,7 @@ export const crearCampeonato = async (payload) => {
     semestre,
     estado: "creado",
     entrenadorId: entrenadorId || null,
+    tipoCampeonato 
   });
 
   return await repo.save(campeonato);
@@ -107,6 +112,9 @@ export const actualizarCampeonato = async (id, cambios) => {
   // Evitar modificar un campeonato finalizado
   if (camp.estado === "finalizado") {
     throw new Error("No se puede modificar un campeonato finalizado");
+  }
+  if (cambios.tipoCampeonato && cambios.tipoCampeonato !== camp.tipoCampeonato) {
+    throw new Error("No se puede cambiar el tipo de campeonato una vez creado");
   }
 
   await repo.update({ id: Number(id) }, cambios);

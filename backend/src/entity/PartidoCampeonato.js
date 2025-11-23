@@ -27,7 +27,10 @@ const PartidoCampeonatoSchema = new EntitySchema({
 
     ganadorId: { type: "int", nullable: true }, // FK a EquipoCampeonato
     estado: { type: "varchar", length: 20, default: "pendiente" }, // pendiente, en_juego, finalizado
-    ordenLlave: { type: "int", nullable: true }   // Para torneos con llave
+    ordenLlave: { type: "int", nullable: true } ,  // Para torneos con llave
+    duracionMinutos: { type: "int", nullable: true },  
+    fechaCreacion: { type: "timestamp", createDate: true },
+    fechaActualizacion: { type: "timestamp", updateDate: true },
   },
   relations: {
     campeonato: {

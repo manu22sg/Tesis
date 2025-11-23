@@ -1,4 +1,3 @@
-// services/reserva.services.js
 import { AppDataSource } from '../config/config.db.js';
 import { In } from 'typeorm';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
@@ -277,7 +276,6 @@ export async function crearReserva(datosReserva, usuarioId) {
       horaFin,
       motivo: motivo || null,
       estado: 'pendiente',
-      confirmado: false
     });
 
     let reservaGuardada;
@@ -295,7 +293,6 @@ export async function crearReserva(datosReserva, usuarioId) {
       reservaId: reservaGuardada.id,
       usuarioId: u.id,
       rut: u.rut,
-      nombreOpcional: u.nombre
     }));
     await partRepo.save(participantesParaGuardar);
 
@@ -387,3 +384,161 @@ export async function cancelarReserva(reservaId, usuarioId) {
   }
 }
 
+
+export async function editarParticipantesReserva(reservaId, participantes, usuarioId) {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
+    const canchaRepo = queryRunner.manager.getRepository(CanchaSchema);
+    const usuarioRepo = queryRunner.manager.getRepository(UsuarioSchema);
+    const partRepo = queryRunner.manager.getRepository(ParticipanteReservaSchema);
+    const histRepo = queryRunner.manager.getRepository(HistorialReservaSchema);
+
+   // 1. Buscar la reserva con lock
+     const reserva = await reservaRepo.createQueryBuilder('r')
+  .where('r.id = :id', { id: reservaId })
+  .setLock('pessimistic_write', ['r'])   // ⬅️ SOLO bloquea r (reserva)
+  .getOne();
+
+    if (!reserva) {
+  await queryRunner.rollbackTransaction();
+  return [null, 'Reserva no encontrada'];
+}
+  reserva.participantes = await partRepo.find({
+  where: { reservaId: reserva.id }
+});
+
+    // 2. Verificar que el usuario es el creador
+    if (reserva.usuarioId !== usuarioId) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Solo el creador de la reserva puede editarla'];
+    }
+
+    // 3. Verificar que la reserva esté en estado editable
+    if (!['pendiente', 'aprobada'].includes(reserva.estado)) {
+      await queryRunner.rollbackTransaction();
+      return [null, `No se puede editar una reserva con estado "${reserva.estado}"`];
+    }
+
+    const fechaReservaActual = parseDateLocal(reserva.fechaReserva);
+    const [horaInicioActual, minInicioActual] = reserva.horaInicio.split(':').map(Number);
+    
+    const fechaHoraReserva = new Date(fechaReservaActual);
+    fechaHoraReserva.setHours(horaInicioActual, minInicioActual, 0, 0);
+    
+    const ahora = new Date();
+    const diferenciaMs = fechaHoraReserva - ahora;
+    const horas24EnMs = 24 * 60 * 60 * 1000;
+    
+    if (diferenciaMs < horas24EnMs) {
+      await queryRunner.rollbackTransaction();
+      const horasRestantes = Math.floor(diferenciaMs / (60 * 60 * 1000));
+      const minutosRestantes = Math.floor((diferenciaMs % (60 * 60 * 1000)) / (60 * 1000));
+      return [null, `No se puede editar la reserva porque faltan menos de 24 horas (quedan ${horasRestantes}h ${minutosRestantes}m)`];
+    }
+
+    // 5. Obtener capacidad de la cancha
+    const cancha = await canchaRepo.findOne({ where: { id: reserva.canchaId } });
+    if (!cancha) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Cancha no encontrada'];
+    }
+
+    const capacidadMaxima = cancha.capacidadMaxima;
+
+    // 6. Preparar lista de participantes
+    const usuarioQueReserva = await usuarioRepo.findOne({ where: { id: usuarioId } });
+    if (!usuarioQueReserva) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'Usuario no encontrado'];
+    }
+    if (!participantes.includes(usuarioQueReserva.rut)) {
+  await queryRunner.rollbackTransaction();
+  return [null, 'El creador de la reserva no puede ser removido de la lista de participantes.'];
+}
+
+
+    const participantesCompletos = Array.isArray(participantes) ? [...participantes] : [];
+    
+    // Asegurar que el creador esté en la lista
+    if (!participantesCompletos.includes(usuarioQueReserva.rut)) {
+      participantesCompletos.unshift(usuarioQueReserva.rut);
+    }
+
+    // 7. Validar número de participantes
+    if (participantesCompletos.length !== capacidadMaxima) {
+      await queryRunner.rollbackTransaction();
+      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tienes ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
+    }
+
+    // 8. Validar RUTs únicos
+    const rutUnicos = new Set(participantesCompletos);
+    if (rutUnicos.size !== participantesCompletos.length) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'No se pueden repetir participantes en la reserva'];
+    }
+
+    // 9. Verificar que todos los RUTs existan
+    const usuariosExistentes = await usuarioRepo.find({
+      where: participantesCompletos.map(rut => ({ rut }))
+    });
+    
+    if (usuariosExistentes.length !== capacidadMaxima) {
+      const rutsExist = usuariosExistentes.map(u => u.rut);
+      const rutsNo = participantesCompletos.filter(rut => !rutsExist.includes(rut));
+      await queryRunner.rollbackTransaction();
+      return [null, `Los siguientes RUT no están registrados: ${rutsNo.join(', ')}`];
+    }
+
+    // 10. Verificar si realmente cambiaron los participantes
+    const participantesActuales = reserva.participantes.map(p => p.rut).sort();
+    const participantesNuevos = participantesCompletos.sort();
+    const participantesCambiaron = JSON.stringify(participantesActuales) !== JSON.stringify(participantesNuevos);
+
+    if (!participantesCambiaron) {
+      await queryRunner.rollbackTransaction();
+      return [null, 'No se detectaron cambios en los participantes'];
+    }
+
+    // 11. Eliminar participantes anteriores
+    await partRepo.delete({ reservaId: reserva.id });
+
+    // 12. Agregar nuevos participantes
+    const participantesParaGuardar = usuariosExistentes.map(u => 
+      partRepo.create({
+        reservaId: reserva.id,
+        usuarioId: u.id,
+        rut: u.rut,
+      })
+    );
+    await partRepo.save(participantesParaGuardar);
+
+    // 13. Registrar en historial
+    await histRepo.save(histRepo.create({
+      reservaId: reserva.id,
+      accion: 'editada',
+      observacion: `Participantes actualizados (${participantesCompletos.length} participantes)`,
+      usuarioId
+    }));
+
+    await queryRunner.commitTransaction();
+
+    // 14. Retornar reserva actualizada
+    const reservaActualizada = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
+      where: { id: reserva.id },
+      relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario', 'historial', 'historial.usuario']
+    });
+
+    return [reservaActualizada, null];
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    console.error('Error editando participantes de reserva:', error);
+    return [null, 'Error interno del servidor'];
+  } finally {
+    await queryRunner.release();
+  }
+}

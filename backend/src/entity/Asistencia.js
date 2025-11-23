@@ -20,7 +20,6 @@ estado: { type: "enum", enum: ESTADOS_ASISTENCIA },
     longitud: { type: "decimal", precision: 9, scale: 6, nullable: true },
     origen: { type: "varchar", length: 20, nullable: true },
 
-    // opcional pero útil si quieres saber cuándo se editó
     fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },
   },
   relations: {

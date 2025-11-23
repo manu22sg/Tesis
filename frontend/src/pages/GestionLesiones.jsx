@@ -265,7 +265,7 @@ const handleExportarPDF = async () => {
   const opcionesJugadores = useMemo(() => {
     return (jugadores || []).map((j) => ({
       value: j.id,
-      label: `${j.usuario?.nombre || `Jugador #${j.id}`} - ${j.usuario?.rut || ''}`.trim(),
+      label: `${j.usuario?.nombre || `Jugador #${j.id}`} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || ''}`.trim(),
     }));
   }, [jugadores]);
 
@@ -274,7 +274,7 @@ const handleExportarPDF = async () => {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => {
-        const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
+        const nombre = (record.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (record.jugador?.usuario?.apellido || '');
         const rut = record.jugador?.usuario?.rut || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

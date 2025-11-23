@@ -40,7 +40,7 @@ export default function GruposScreen({ navigation }) {
 
   // Referencia para comparar búsqueda anterior
   const prevBusquedaRef = useRef(busqueda);
-
+const isFirstLoadRef = useRef(true); 
   useEffect(() => {
     if (isFocused) {
       cargarGrupos();

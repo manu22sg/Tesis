@@ -7,8 +7,9 @@ export async function crearSesion(data) {
 }
 
 export async function obtenerSesiones(filtros = {}) {
-  const params = new URLSearchParams();
   
+  const params = new URLSearchParams();
+
   if (filtros.q) params.append('q', filtros.q);
   if (filtros.fecha) params.append('fecha', filtros.fecha);
   if (filtros.canchaId) params.append('canchaId', filtros.canchaId);

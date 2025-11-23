@@ -44,9 +44,14 @@ const UsuarioSchema = new EntitySchema({
       type: "int",
       nullable: true, // alumnos la usan, académicos/admin pueden tenerla null
     },
+    anioIngresoUniversidad: { 
+    type: "int", 
+    nullable: true,
+  },
+
     verificado: {
       type: "boolean",
-      default: false, // ← NUEVO CAMPO
+      default: false, 
       nullable: true,
     },
 
@@ -80,11 +85,7 @@ const UsuarioSchema = new EntitySchema({
       target: "ReservaCancha",
       inverseSide: "usuario",
     },
-    notificaciones: {
-      type: "one-to-many",
-      target: "Notificacion",
-      inverseSide: "usuario",
-    },
+   
     participaciones: {
       type: "one-to-many",
       target: "ParticipanteReserva",

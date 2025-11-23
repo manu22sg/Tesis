@@ -14,6 +14,7 @@ const EstadisticaCampeonatoSchema = new EntitySchema({
     tarjetasRojas: { type: "int", default: 0 },
     minutosJugados: { type: "int", default: 0 },
     fechaRegistro: { type: "timestamp", createDate: true },
+    fechaActualizacion: { type: "timestamp", updateDate: true },
   },
   relations: {
     jugadorCampeonato: {

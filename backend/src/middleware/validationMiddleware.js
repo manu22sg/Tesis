@@ -1,5 +1,7 @@
 
-import { validateRegistrationData, validateLoginData } from '../validations/userValidations.js';
+import { validateRegistrationData, validateLoginData,validateResetPasswordData,
+  validateSolicitarRestablecimiento
+} from '../validations/userValidations.js';
 import { validationError } from '../utils/responseHandler.js';
 
 export const validateRegistration = (req, res, next) => {
@@ -38,3 +40,33 @@ export const sanitizeInput = (req, res, next) => {
   
   next();
 };
+
+export function validateSolicitarRestablecimientoMiddleware(req, res, next) {
+  const validation = validateSolicitarRestablecimiento(req.body);
+
+  if (!validation.isValid) {
+    return res.status(400).json({
+      success: false,
+      message: 'Error de validación',
+      errors: validation.errors
+    });
+  }
+
+  req.body = validation.data;
+  next();
+}
+
+export function validateRestablecerPasswordMiddleware(req, res, next) {
+  const validation = validateResetPasswordData(req.body);
+
+  if (!validation.isValid) {
+    return res.status(400).json({
+      success: false,
+      message: 'Error de validación',
+      errors: validation.errors
+    });
+  }
+
+  req.body = validation.data;
+  next();
+}

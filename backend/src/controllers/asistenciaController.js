@@ -2,7 +2,7 @@ import {
   actualizarAsistencia,
   eliminarAsistencia,
   listarAsistenciasDeSesion,
-  marcarAsistenciaPorToken
+  marcarAsistenciaPorToken,registrarAsistenciaManual
 } from "../services/asistenciaServices.js";
 import { success, error } from "../utils/responseHandler.js";
 import JugadorSchema from "../entity/Jugador.js";
@@ -91,7 +91,6 @@ export async function exportarAsistenciasExcel(req, res) {
     }
 
 
-    // 🔥 DETECTAR MOBILE/EXPO CORRECTAMENTE
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const accept = (req.headers["accept"] || "").toLowerCase();
 
@@ -154,7 +153,6 @@ export async function exportarAsistenciasExcel(req, res) {
 
     
 
-    // 🔥 MOBILE → enviar base64 en JSON
     if (isMobile) {
       const base64 = buffer.toString("base64");
 
@@ -276,15 +274,6 @@ Longitud: ${a.longitud || "—"}
 
 
 
-function formatoFechaCL(fecha) {
-  if (!fecha) return "—";
-  const d = new Date(fecha);
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const anio = d.getFullYear();
-  return `${dia}/${mes}/${anio}`;
-}
-
 function formatoFechaHoraCL(fecha) {
   if (!fecha) return "—";
   const d = new Date(fecha);
@@ -296,4 +285,46 @@ function formatoFechaHoraCL(fecha) {
   const mm = String(d.getMinutes()).padStart(2, '0');
 
   return `${dia}/${mes}/${anio} ${hh}:${mm}`;
+}
+
+export async function registrarAsistenciaManualController(req, res) {
+  try {
+    const { sesionId, jugadorId, estado, observacion } = req.body;
+    const entrenadorId = req.user.id; 
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: "Usuario no autenticado correctamente"
+      });
+    }
+
+    if (!sesionId || !jugadorId) {
+      return res.status(400).json({
+        message: "Faltan campos requeridos: sesionId y jugadorId"
+      });
+    }
+
+    const [asistencia, error, codigo] = await registrarAsistenciaManual({
+      sesionId,
+      jugadorId,
+      estado,
+      entrenadorId,
+      observacion
+    });
+
+    if (error) {
+      return res.status(codigo).json({ message: error });
+    }
+
+    return res.status(codigo).json({
+      message: "Asistencia registrada correctamente",
+      data: asistencia
+    });
+
+  } catch (error) {
+    console.error("Error en registrarAsistenciaManualController:", error);
+    return res.status(500).json({
+      message: "Error interno del servidor"
+    });
+  }
 }

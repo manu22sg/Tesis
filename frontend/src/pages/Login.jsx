@@ -5,7 +5,7 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { loginRequest } from '../services/auth.services.js';
 import { useAuth } from '../context/AuthContext';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -126,6 +126,13 @@ export default function Login() {
         >
           Iniciar Sesión
         </Button>
+        <div style={{ marginTop: 16, textAlign: "center" }}>
+  <Text>
+    <a href="/solicitar-restablecimiento" style={{ color: "#003a8c" }}>
+      ¿Olvidaste tu contraseña?
+    </a>
+  </Text>
+</div>
 
         {/* LINK TO REGISTER */}
         <div style={{ marginTop: 16, textAlign: "center" }}>

@@ -76,10 +76,18 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
       horario: null,
       canchaId: null,
       grupoId: null,
+      tipoSesion: null,
     });
   };
 
-  const hayFiltros = !!(filtros.q || filtros.fecha || filtros.horario || filtros.canchaId || filtros.grupoId);
+  const hayFiltros = !!(
+    filtros.q || 
+    filtros.fecha || 
+    filtros.horario || 
+    filtros.canchaId || 
+    filtros.grupoId || 
+    filtros.tipoSesion
+  );
 
   const filterOption = (input, option) => {
     const text =
@@ -119,17 +127,34 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
       extra={hayFiltros && <Button onClick={limpiar}>Limpiar Filtros</Button>}
     >
       <Row gutter={[16, 16]} align="middle">
-        {/* Búsqueda general con debounce (Enter aplica de inmediato) */}
-        <Col xs={24} md={8}>
+        {/* Búsqueda general con debounce */}
+        <Col xs={24} md={6}>
           <Input
-            placeholder="Buscar por tipo, grupo, cancha o ubicación..."
+            placeholder="Buscar por grupo o lugar..."
             prefix={<SearchOutlined />}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            onPressEnter={() => setFiltros(prev => ({ ...prev, q: busqueda.trim() }))}
             allowClear
             size="middle"
           />
+        </Col>
+
+        {/* Tipo de Sesión */}
+        <Col xs={24} sm={8} md={4}>
+          <Select
+            placeholder="Tipo de Sesión"
+            value={filtros.tipoSesion}
+            onChange={(v) => handleFiltroChange('tipoSesion', v)}
+            allowClear
+            style={{ width: '100%' }}
+            size="middle"
+          >
+            <Option value="Entrenamiento">Entrenamiento</Option>
+            <Option value="Partido">Partido</Option>
+
+            <Option value="Partido Amistoso">Partido Amistoso</Option>
+            <Option value="Charla Técnica">Charla Técnica</Option>
+          </Select>
         </Col>
 
         {/* Fecha */}
@@ -145,7 +170,7 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
         </Col>
 
         {/* Horario 08:00 - 22:00 */}
-        <Col xs={5} sm={5} md={4}>
+        <Col xs={24} sm={8} md={4}>
           <TimePicker.RangePicker
             placeholder={['Inicio', 'Fin']}
             value={filtros.horario}
@@ -162,7 +187,7 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
         </Col>
 
         {/* Cancha */}
-        <Col xs={30} sm={15} md={5}>
+        <Col xs={24} sm={12} md={4}>
           <Select
             placeholder="Cancha"
             value={filtros.canchaId}

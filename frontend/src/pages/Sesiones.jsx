@@ -37,7 +37,8 @@ export default function Sesiones() {
     fecha: null,
     horario: null,
     canchaId: null, 
-    grupoId: null    
+    grupoId: null,
+    tipoSesion: null,   
   });
 
   const [detalleModal, setDetalleModal] = useState(false);
@@ -52,7 +53,7 @@ export default function Sesiones() {
     const cargarSesiones = useCallback(async (page = 1, size = 10) => {
     setLoading(true);
     try {
-      // --- CAMBIO 2: Parámetros de API actualizados ---
+     
       const params = {
         q: filtros.q,
         page,
@@ -66,6 +67,7 @@ export default function Sesiones() {
           : {}),
         ...(filtros.canchaId && { canchaId: filtros.canchaId }), 
         ...(filtros.grupoId && { grupoId: filtros.grupoId }),   
+        ...(filtros.tipoSesion && { tipoSesion: filtros.tipoSesion }),
       };
       const { sesiones: data, pagination: p } = await obtenerSesiones(params);
       setSesiones(data);
@@ -184,6 +186,7 @@ const handleExportarExcel = async () => {
     }
     if (filtros.canchaId) query.canchaId = filtros.canchaId;
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
+    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
 
     const blob = await exportarSesionesExcel(query);
     descargarArchivo(blob, `sesiones_${Date.now()}.xlsx`);
@@ -192,6 +195,7 @@ const handleExportarExcel = async () => {
     message.error("Error exportando Excel");
   }
 };
+
 
 const handleExportarPDF = async () => {
   try {
@@ -205,6 +209,7 @@ const handleExportarPDF = async () => {
     }
     if (filtros.canchaId) query.canchaId = filtros.canchaId;
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
+    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
 
     const blob = await exportarSesionesPDF(query);
     descargarArchivo(blob, `sesiones_${Date.now()}.pdf`);
@@ -216,30 +221,46 @@ const handleExportarPDF = async () => {
 
 
 
+
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
-          <Card
-            title={<><CalendarOutlined /> Sesiones de Entrenamiento</>}
-            extra={
-              <Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => window.location.href = '/sesiones/nueva'}>
-                  Nueva Sesión
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={() => cargarSesiones(pagination.current, pagination.pageSize)}>
-                  Actualizar
-                </Button>
-                 <Button onClick={handleExportarExcel}>
-        Exportar Excel
+        <Card
+  title={<><CalendarOutlined /> Sesiones de Entrenamiento</>}
+  extra={
+    <Space style={{ width: '100%' }}>
+      
+      {/* Botones de la izquierda */}
+      <Space>
+        <Button icon={<ReloadOutlined />} onClick={() => cargarSesiones(pagination.current, pagination.pageSize)}>
+          Actualizar
+        </Button>
+
+        <Button onClick={handleExportarExcel}>
+          Exportar Excel
+        </Button>
+
+        <Button onClick={handleExportarPDF}>
+          Exportar PDF
+        </Button>
+      </Space>
+
+      {/* Esto empuja el botón de Nueva Sesión hacia la derecha */}
+      <span style={{ marginLeft: 'auto' }} />
+
+      {/* Botón Nueva Sesión */}
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => window.location.href = '/sesiones/nueva'}
+      >
+        Nueva Sesión
       </Button>
 
-      <Button onClick={handleExportarPDF}>
-        Exportar PDF
-      </Button>
-              </Space>
-            }
-          >
+    </Space>
+  }
+>
             {/* Esto ya funciona con los nuevos filtros */}
             <SesionesFilterBar filtros={filtros} setFiltros={setFiltros} />
             

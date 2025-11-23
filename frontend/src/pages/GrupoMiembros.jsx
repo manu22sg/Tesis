@@ -146,7 +146,7 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
         const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
           id: jg.jugador?.id,
           jugadorGrupoId: jg.id,
-          nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
+          nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
           rut: jg.jugador?.usuario?.rut || 'Sin RUT',
           email: jg.jugador?.usuario?.email || '—',
           carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
@@ -333,7 +333,7 @@ const cargarSesiones = async (
       const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
         id: jg.jugador?.id,
         jugadorGrupoId: jg.id,
-        nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
+        nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
         carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
@@ -409,7 +409,7 @@ const cargarSesiones = async (
       const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
         id: jg.jugador?.id,
         jugadorGrupoId: jg.id,
-        nombre: jg.jugador?.usuario?.nombre || 'Sin nombre',
+        nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
         carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
@@ -529,7 +529,7 @@ const cargarSesiones = async (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.nombre || 'Sin nombre'}</div>
+            <div style={{ fontWeight: 500 }}>{record.nombre || 'Sin nombre'} {record.apellido || ''}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.rut || 'Sin RUT'}
             </Text>
@@ -934,7 +934,7 @@ const cargarSesiones = async (
                 }}
                 options={(jugadoresDisponibles || []).map(j => ({
                   value: j.id,
-                  label: `${j.usuario?.nombre || 'Sin nombre'} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`,
+                  label: `${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`,
                 }))}
               />
 

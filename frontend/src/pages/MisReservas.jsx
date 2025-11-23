@@ -24,6 +24,7 @@ import {
   EyeOutlined,
   ReloadOutlined,
   CloseCircleOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -34,6 +35,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout.jsx';
+import ModalEditarParticipantes from '../components/ModalEditarParticipantes.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 dayjs.locale('es');
 
@@ -59,6 +61,10 @@ export default function MisReservas() {
   const [reservaDetalle, setReservaDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [loadingCancelar, setLoadingCancelar] = useState(false);
+  
+  // ✅ Estado para modal de edición
+  const [editarModal, setEditarModal] = useState(false);
+  const [reservaEditar, setReservaEditar] = useState(null);
 
   const navigate = useNavigate();
 
@@ -86,6 +92,7 @@ export default function MisReservas() {
 
   useEffect(() => {
     cargarReservas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFiltroEstado = (value) => {
@@ -114,12 +121,28 @@ export default function MisReservas() {
     }
   };
 
+  // ✅ Función para abrir modal de edición
+  const handleEditarParticipantes = async (reservaId) => {
+    try {
+      const detalle = await obtenerReservaPorId(reservaId);
+      setReservaEditar(detalle);
+      setEditarModal(true);
+    } catch (error) {
+      console.error('Error cargando reserva:', error);
+      message.error('Error al cargar la reserva');
+    }
+  };
+
+  // ✅ Callback cuando se edita exitosamente
+  const handleEditarSuccess = () => {
+    cargarReservas(pagination.current, pagination.pageSize, filtroEstado);
+  };
+
   const handleCancelarReserva = async (reservaId) => {
     try {
       setLoadingCancelar(true);
       await cancelarReserva(reservaId);
       message.success('Reserva cancelada exitosamente');
-      // Recargar la lista de reservas
       await cargarReservas(pagination.current, pagination.pageSize, filtroEstado);
     } catch (error) {
       console.error('Error cancelando reserva:', error);
@@ -129,7 +152,11 @@ export default function MisReservas() {
     }
   };
 
-  // Función para verificar si se puede cancelar
+  // ✅ Función para verificar si se puede editar
+  const puedeEditar = (estado) => {
+    return ['pendiente', 'aprobada'].includes(estado);
+  };
+
   const puedeCancelar = (estado) => {
     return ['pendiente', 'aprobada'].includes(estado);
   };
@@ -199,7 +226,7 @@ export default function MisReservas() {
       title: 'Acciones',
       key: 'acciones',
       align: 'left',
-      width: 150,
+      width: 200,
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Ver detalle">
@@ -209,6 +236,18 @@ export default function MisReservas() {
               onClick={() => verDetalle(record.id)}
             />
           </Tooltip>
+          
+          {/* ✅ Botón editar participantes */}
+          {puedeEditar(record.estado) && (
+            <Tooltip title="Editar participantes">
+              <Button
+                type="default"
+                size="middle"
+                icon={<EditOutlined />}
+                onClick={() => handleEditarParticipantes(record.id)}
+              />
+            </Tooltip>
+          )}
           
           {puedeCancelar(record.estado) && (
             <Popconfirm
@@ -435,6 +474,16 @@ export default function MisReservas() {
               </div>
             ) : null}
           </Modal>
+
+          <ModalEditarParticipantes
+            visible={editarModal}
+            onCancel={() => {
+              setEditarModal(false);
+              setReservaEditar(null);
+            }}
+            reserva={reservaEditar}
+            onSuccess={handleEditarSuccess}
+          />
         </div>
       </ConfigProvider>
     </MainLayout>

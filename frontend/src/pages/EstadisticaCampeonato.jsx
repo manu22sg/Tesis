@@ -50,7 +50,7 @@ function EstadisticasContent() {
           const jugadores = await equipoService.listarJugadores(eq.id);
           return (jugadores || []).map((j) => ({
             id: j.id,
-            usuario: { nombre: j.nombre ?? j.usuario?.nombre ?? '', apellido: '' },
+            usuario: { nombre: j.nombre ?? j.usuario?.nombre ?? '', apellido: j.apellido ?? j.usuario?.apellido ?? '' , rut: j.rut ?? j.usuario?.rut ?? '' },
             equipo: { id: eq.id, nombre: eq.nombre },
           }));
         });

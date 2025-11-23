@@ -2,6 +2,7 @@ import Joi from 'joi';
 
 const POSICIONES_VALIDAS = [
   'Portero',
+  'Defensa Central',
   'Defensa Central Derecho',   
   'Defensa Central Izquierdo', 
   'Lateral Derecho',
@@ -14,57 +15,50 @@ const POSICIONES_VALIDAS = [
   'Delantero Centro'
 ];
 
+/* ============================================================
+   🟢 SCHEMA CREAR JUGADOR
+   ============================================================ */
 export const crearJugadorSchema = Joi.object({
   usuarioId: Joi.number()
     .integer()
     .positive()
     .required()
     .messages({
-      'number.base': 'usuarioId debe ser un número',
-      'number.integer': 'usuarioId debe ser un número entero',
-      'number.positive': 'usuarioId debe ser positivo',
       'any.required': 'usuarioId es requerido'
     }),
 
   posicion: Joi.string()
     .max(50)
-    .valid(...POSICIONES_VALIDAS) 
+    .valid(...POSICIONES_VALIDAS)
     .optional()
     .messages({
-      'string.max': 'posicion no puede tener más de 50 caracteres',
       'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
     }),
 
-  piernaHabil: Joi.string()
-    .max(10)
-    .valid('Derecha', 'Izquierda', 'Ambas')
+  // 🆕 POSICIÓN SECUNDARIA (igual que posicion)
+  posicionSecundaria: Joi.string()
+    .max(50)
+    .valid(...POSICIONES_VALIDAS)
     .optional()
     .messages({
-      'string.max': 'piernaHabil no puede tener más de 10 caracteres',
-      'any.only': 'piernaHabil debe ser: Derecha, Izquierda o Ambas'
+      'any.only': `posicionSecundaria debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
     }),
+
+  piernaHabil: Joi.string()
+    .valid('Derecha', 'Izquierda', 'Ambas')
+    .optional().allow(null, ''),
 
   altura: Joi.number()
     .precision(2)
     .min(100)
     .max(250)
-    .optional()
-    .messages({
-      'number.base': 'altura debe ser un número',
-      'number.min': 'altura debe ser al menos 100 cm',
-      'number.max': 'altura no puede superar 250 cm'
-    }),
+    .optional(),
 
   peso: Joi.number()
     .precision(2)
     .min(30)
     .max(200)
-    .optional()
-    .messages({
-      'number.base': 'peso debe ser un número',
-      'number.min': 'peso debe ser al menos 30 kg',
-      'number.max': 'peso no puede superar 200 kg'
-    }),
+    .optional(),
 
   estado: Joi.string()
     .valid('activo', 'inactivo', 'suspendido', 'lesionado')
@@ -76,148 +70,89 @@ export const crearJugadorSchema = Joi.object({
   fechaNacimiento: Joi.date()
     .iso()
     .max('now')
-    .optional()
-    .messages({
-      'date.base': 'fechaNacimiento debe ser una fecha válida',
-      'date.format': 'fechaNacimiento debe estar en formato ISO (YYYY-MM-DD)',
-      'date.max': 'fechaNacimiento no puede ser una fecha futura'
-    }),
+    .optional(),
 
   anioIngreso: Joi.number()
     .integer()
     .min(1900)
     .max(new Date().getFullYear() + 10)
-    .optional()
-    .messages({
-      'number.base': 'anioIngreso debe ser un número',
-      'number.integer': 'anioIngreso debe ser un número entero',
-      'number.min': 'anioIngreso debe ser mayor a 1900',
-      'number.max': `anioIngreso debe ser menor a ${new Date().getFullYear() + 10}`
-    })
+    .optional(),
 });
 
+/* ============================================================
+   🟡 SCHEMA ACTUALIZAR JUGADOR
+   ============================================================ */
 export const actualizarJugadorSchema = Joi.object({
   posicion: Joi.string()
     .max(50)
-    .valid(...POSICIONES_VALIDAS)  // 🔥 Usando las posiciones detalladas
-    .optional()
-    .messages({
-      'string.max': 'posicion no puede tener más de 50 caracteres',
-      'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
-    }),
+    .valid(...POSICIONES_VALIDAS)
+    .optional().allow(null, ''),
+
+  // 🆕 POSICIÓN SECUNDARIA (igual que posicion)
+  posicionSecundaria: Joi.string()
+    .max(50)
+    .valid(...POSICIONES_VALIDAS)
+    .optional().allow(null, ''),
 
   piernaHabil: Joi.string()
-    .max(10)
     .valid('Derecha', 'Izquierda', 'Ambas')
-    .optional()
-    .messages({
-      'string.max': 'piernaHabil no puede tener más de 10 caracteres',
-      'any.only': 'piernaHabil debe ser: Derecha, Izquierda o Ambas'
-    }),
+    .optional().allow(null, ''),
 
   altura: Joi.number()
     .precision(2)
     .min(100)
     .max(250)
-    .optional()
-    .messages({
-      'number.base': 'altura debe ser un número',
-      'number.min': 'altura debe ser al menos 100 cm',
-      'number.max': 'altura no puede superar 250 cm'
-    }),
+    .optional().allow(null, ''),
 
   peso: Joi.number()
     .precision(2)
     .min(30)
     .max(200)
-    .optional()
-    .messages({
-      'number.base': 'peso debe ser un número',
-      'number.min': 'peso debe ser al menos 30 kg',
-      'number.max': 'peso no puede superar 200 kg'
-    }),
+    .optional().allow(null, ''),
 
   imc: Joi.number()
     .precision(2)
     .min(10)
     .max(50)
-    .optional()
-    .messages({
-      'number.base': 'imc debe ser un número',
-      'number.min': 'imc debe ser al menos 10',
-      'number.max': 'imc no puede superar 50'
-    }),
+    .optional().allow(null, ''),
 
   estado: Joi.string()
     .valid('activo', 'inactivo', 'suspendido', 'lesionado')
-    .optional()
-    .messages({
-      'any.only': 'estado debe ser: activo, inactivo, suspendido o lesionado'
-    }),
+    .optional().allow(null, ''),
 
   fechaNacimiento: Joi.date()
     .iso()
     .max('now')
-    .optional()
-    .messages({
-      'date.base': 'fechaNacimiento debe ser una fecha válida',
-      'date.format': 'fechaNacimiento debe estar en formato ISO (YYYY-MM-DD)',
-      'date.max': 'fechaNacimiento no puede ser una fecha futura'
-    }),
+    .optional(),
 
   anioIngreso: Joi.number()
     .integer()
     .min(1900)
     .max(new Date().getFullYear() + 10)
-    .optional()
-    .messages({
-      'number.base': 'anioIngreso debe ser un número',
-      'number.integer': 'anioIngreso debe ser un número entero',
-      'number.min': 'anioIngreso debe ser mayor a 1900',
-      'number.max': `anioIngreso debe ser menor a ${new Date().getFullYear() + 10}`
-    })
+    .optional().allow(null, ''),
 })
   .min(1)
   .messages({
     'object.min': 'Debe proporcionar al menos un campo para actualizar'
   });
 
+/* ============================================================
+   🔍 SCHEMA FILTROS DE JUGADORES
+   ============================================================ */
 export const filtrosJugadoresSchema = Joi.object({
-  pagina: Joi.number()
-    .integer()
-    .min(1)
-    .default(1)
-    .optional(),
+  pagina: Joi.number().integer().min(1).default(1).optional(),
 
-  limite: Joi.number()
-    .integer()
-    .min(1)
-    .max(100)
-    .default(10)
-    .optional(),
+  limite: Joi.number().integer().min(1).max(100).default(10).optional(),
 
-  q: Joi.string()
-    .max(100)
-    .optional()
-    .messages({
-      'string.max': 'La búsqueda no puede tener más de 100 caracteres'
-    }),
+  q: Joi.string().max(100).optional(),
 
   estado: Joi.string()
     .valid('activo', 'inactivo', 'suspendido', 'lesionado')
-    .optional()
-    .messages({
-      'any.only': 'estado debe ser: activo, inactivo, suspendido o lesionado'
-    }),
-
-  carreraId: Joi.number()
-    .integer()
-    .positive()
     .optional(),
 
-  carreraNombre: Joi.string()
-    .max(100)
-    .optional(),
+  carreraId: Joi.number().integer().positive().optional(),
+
+  carreraNombre: Joi.string().max(100).optional(),
 
   anioIngreso: Joi.number()
     .integer()
@@ -225,25 +160,21 @@ export const filtrosJugadoresSchema = Joi.object({
     .max(new Date().getFullYear() + 10)
     .optional(),
 
-  grupoId: Joi.number()
-    .integer()
-    .positive()
-    .optional(),
+  grupoId: Joi.number().integer().positive().optional(),
 
   posicion: Joi.string()
-    .valid(...POSICIONES_VALIDAS)  // 🔥 Filtros con posiciones detalladas
-    .optional()
-    .messages({
-      'any.only': `posicion debe ser una de: ${POSICIONES_VALIDAS.join(', ')}`
-    }),
+    .valid(...POSICIONES_VALIDAS)
+    .optional(),
+
+  // 🆕 FILTRO POSICIÓN SECUNDARIA
+  posicionSecundaria: Joi.string()
+    .valid(...POSICIONES_VALIDAS)
+    .optional().allow(null, ''),
 
   piernaHabil: Joi.string()
     .valid('Derecha', 'Izquierda', 'Ambas')
-    .optional()
-    .messages({
-      'any.only': 'piernaHabil debe ser: Derecha, Izquierda o Ambas'
-    })
+    .optional(),
 });
 
-// 🔥 Exportar constantes para usar en otros archivos
+// Exportar constantes
 export { POSICIONES_VALIDAS };

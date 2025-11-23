@@ -263,7 +263,7 @@ function descargarArchivo(blob, nombre) {
   const opcionesJugadores = useMemo(() => {
     return jugadoresFiltrados.map(j => ({
       value: j.id,
-      label: `${j.usuario?.nombre || `Jugador #${j.id}`} - ${j.usuario?.rut || ''}`.trim()
+      label: `${j.usuario?.nombre ||  `Jugador #${j.id}`} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || ''}`.trim()
     }));
   }, [jugadoresFiltrados]);
 
@@ -289,7 +289,7 @@ function descargarArchivo(blob, nombre) {
         />
         </div>
           <span>
-            {record.jugador?.usuario?.nombre} - {record.jugador?.usuario?.rut}
+            {record.jugador?.usuario?.nombre} {record.jugador?.usuario?.apellido} - {record.jugador?.usuario?.rut}
           </span>
         </Space>
       )

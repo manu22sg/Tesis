@@ -13,7 +13,11 @@ import {
   Pagination,
   Spin,
   ConfigProvider,
-  Avatar
+  Avatar,
+  Modal,
+  Select,
+  Form,
+  Input
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
@@ -26,22 +30,27 @@ import {
   EditOutlined,
   ReloadOutlined,
   EnvironmentOutlined,
-  UserOutlined
+  UserOutlined,
+  UserAddOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   listarAsistenciasDeSesion,
   actualizarAsistencia,
   eliminarAsistencia,
-  exportarAsistenciasExcel,exportarAsistenciasPDF
+  exportarAsistenciasExcel,
+  exportarAsistenciasPDF,
+  registrarAsistenciaManual
 } from '../services/asistencia.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
+import { obtenerJugadores } from '../services/jugador.services.js';
 import dayjs from 'dayjs';
 import MainLayout from '../components/MainLayout.jsx';
 import EditarAsistenciaModal from '../components/EditarAsistenciaModal.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
-const { Title, Text } = Typography;
 
+const { Title, Text } = Typography;
 dayjs.locale('es');
 
 const ESTADOS = {
@@ -64,6 +73,12 @@ export default function GestionarAsistencias() {
   const [asistenciaEdit, setAsistenciaEdit] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Estados para registro manual
+  const [modalManual, setModalManual] = useState(false);
+  const [formManual] = Form.useForm();
+  const [loadingManual, setLoadingManual] = useState(false);
+  const [jugadores, setJugadores] = useState([]);
 
   // Cargar información de la sesión
   useEffect(() => {
@@ -114,10 +129,35 @@ export default function GestionarAsistencias() {
     }
   }, [sesionId]);
 
+  // Cargar jugadores cuando se carga la sesión
+  useEffect(() => {
+    if (sesion?.grupo?.id) {
+      cargarJugadoresDelGrupo();
+    }
+  }, [sesion]);
+
+  const cargarJugadoresDelGrupo = async () => {
+    try {
+      const data = await obtenerJugadores({
+        limite: 100,
+        grupoId: sesion.grupo.id
+      });
+      setJugadores(data.jugadores || []);
+    } catch (error) {
+      console.error('Error cargando jugadores:', error);
+      message.error('Error al cargar jugadores del grupo');
+    }
+  };
+
   const abrirModalEditar = (asistencia) => {
     setAsistenciaEdit(asistencia);
     setNuevoEstado(asistencia.estado);
     setEditModal(true);
+  };
+
+  const abrirModalManual = () => {
+    formManual.resetFields();
+    setModalManual(true);
   };
 
   const handleActualizar = async () => {
@@ -139,6 +179,27 @@ export default function GestionarAsistencias() {
     }
   };
 
+  const handleRegistroManual = async (values) => {
+    try {
+      setLoadingManual(true);
+      await registrarAsistenciaManual({
+        sesionId: parseInt(sesionId),
+        jugadorId: values.jugadorId,
+        estado: values.estado || 'presente',
+        observacion: values.observacion
+      });
+
+      message.success('Asistencia registrada correctamente');
+      setModalManual(false);
+      cargarAsistencias(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('Error registrando asistencia:', error);
+      message.error(error.response?.data?.message || 'Error al registrar la asistencia');
+    } finally {
+      setLoadingManual(false);
+    }
+  };
+
   const handleEliminar = async (asistenciaId) => {
     try {
       await eliminarAsistencia(asistenciaId);
@@ -149,44 +210,41 @@ export default function GestionarAsistencias() {
       message.error(error.response?.data?.message || 'Error al eliminar la asistencia');
     }
   };
-const handleExportExcel = async () => {
-  try {
-    const blob = await exportarAsistenciasExcel({
-      sesionId: parseInt(sesionId)
-    });
-    
-    descargarArchivo(blob, `asistencias_sesion_${sesionId}.xlsx`);
-    
-  } catch (error) {
-    console.error("Error completo:", error);
-    console.log(error);
-    message.error(error.message || "Error al exportar Excel");
+
+  const handleExportExcel = async () => {
+    try {
+      const blob = await exportarAsistenciasExcel({
+        sesionId: parseInt(sesionId)
+      });
+      
+      descargarArchivo(blob, `asistencias_sesion_${sesionId}.xlsx`);
+    } catch (error) {
+      console.error("Error completo:", error);
+      message.error(error.message || "Error al exportar Excel");
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const blob = await exportarAsistenciasPDF({
+        sesionId: parseInt(sesionId),
+      });
+
+      descargarArchivo(blob, `asistencias_sesion_${sesionId}.pdf`);
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      message.error(error.message || "Error al exportar PDF");
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
-};
-
-
-const handleExportPDF = async () => {
-  try {
-    const blob = await exportarAsistenciasPDF({
-      sesionId: parseInt(sesionId),
-    });
-
-    descargarArchivo(blob, `asistencias_sesion_${sesionId}.pdf`);
-  } catch (error) {
-    console.error("Error al exportar PDF:", error);
-    message.error(error.message || "Error al exportar PDF");
-  }
-};
-function descargarArchivo(blob, nombre) {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  window.URL.revokeObjectURL(url);
-}
-
-
 
   const handlePageChange = (page, pageSize) => {
     cargarAsistencias(page, pageSize);
@@ -194,108 +252,108 @@ function descargarArchivo(blob, nombre) {
 
   const columns = [
     {
-    title: 'Jugador',
-    key: 'jugador',
-    render: (_, record) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Avatar 
-          size={40} 
-          icon={<UserOutlined />} 
-          style={{ backgroundColor: '#1890ff' }}
-        />
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {record.jugador?.usuario?.nombre || 'Sin nombre'}
-          </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.jugador?.usuario?.rut || 'Sin RUT'}
-          </Text>
-        </div>
-      </div>
-    ),
-  },
-  {
-    title: 'Estado',
-    dataIndex: 'estado',
-    key: 'estado',
-    render: (estado) => {
-      const config = ESTADOS[estado] || ESTADOS.presente;
-      return (
-        <Tag color={config.color} icon={config.icon}>
-          {config.label}
-        </Tag>
-      );
-    },
-    align: 'center',
-    width: 130,
-  },
-  {
-    title: 'Origen',
-    dataIndex: 'origen',
-    key: 'origen',
-    render: (origen) => (
-      <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
-        {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
-      </Tag>
-    ),
-    align: 'center',
-    width: 120,
-  },
-  {
-    title: 'Ubicación',
-    key: 'ubicacion',
-    render: (_, record) => (
-      record.latitud && record.longitud ? (
-        <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
-          <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
-        </Tooltip>
-      ) : (
-        <Text type="secondary">—</Text>
-      )
-    ),
-    align: 'center',
-    width: 100,
-  },
-  {
-    title: 'Fecha Registro',
-    dataIndex: 'fechaRegistro', 
-    key: 'fechaRegistro',  
-    render: (fecha) => {
-      if (!fecha) return <Text type="secondary">—</Text>;
-      return dayjs(fecha).format('DD/MM/YYYY HH:mm');
-    },
-    width: 150,
-  },
-  {
-    title: 'Acciones',
-    key: 'acciones',
-    render: (_, record) => (
-      <Space>
-        <Tooltip title="Editar estado">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => abrirModalEditar(record)}
+      title: 'Jugador',
+      key: 'jugador',
+      render: (_, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Avatar 
+            size={40} 
+            icon={<UserOutlined />} 
+            style={{ backgroundColor: '#1890ff' }}
           />
-        </Tooltip>
-        <Popconfirm
-          title="¿Eliminar esta asistencia?"
-          description="Esta acción no se puede deshacer"
-          onConfirm={() => handleEliminar(record.id)}
-          okText="Sí, eliminar"
-          cancelText="Cancelar"
-          okButtonProps={{ danger: true }}
-        >
-          <Tooltip title="Eliminar">
-            <Button type="link" danger icon={<DeleteOutlined />} />
+          <div>
+            <div style={{ fontWeight: 500 }}>
+              {record.jugador?.usuario?.nombre || 'Sin nombre'} {record.jugador?.usuario?.apellido || ''}
+            </div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.jugador?.usuario?.rut || 'Sin RUT'}
+            </Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Estado',
+      dataIndex: 'estado',
+      key: 'estado',
+      render: (estado) => {
+        const config = ESTADOS[estado] || ESTADOS.presente;
+        return (
+          <Tag color={config.color} icon={config.icon}>
+            {config.label}
+          </Tag>
+        );
+      },
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Origen',
+      dataIndex: 'origen',
+      key: 'origen',
+      render: (origen) => (
+        <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
+          {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+        </Tag>
+      ),
+      align: 'center',
+      width: 120,
+    },
+    {
+      title: 'Ubicación',
+      key: 'ubicacion',
+      render: (_, record) => (
+        record.latitud && record.longitud ? (
+          <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
+            <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
           </Tooltip>
-        </Popconfirm>
-      </Space>
-    ),
-    align: 'center',
-    width: 120,
-  },
-];
+        ) : (
+          <Text type="secondary">—</Text>
+        )
+      ),
+      align: 'center',
+      width: 100,
+    },
+    {
+      title: 'Fecha Registro',
+      dataIndex: 'fechaRegistro', 
+      key: 'fechaRegistro',  
+      render: (fecha) => {
+        if (!fecha) return <Text type="secondary">—</Text>;
+        return dayjs(fecha).format('DD/MM/YYYY HH:mm');
+      },
+      width: 150,
+    },
+    {
+      title: 'Acciones',
+      key: 'acciones',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Editar estado">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => abrirModalEditar(record)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="¿Eliminar esta asistencia?"
+            description="Esta acción no se puede deshacer"
+            onConfirm={() => handleEliminar(record.id)}
+            okText="Sí, eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Eliminar">
+              <Button type="link" danger icon={<DeleteOutlined />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+      align: 'center',
+      width: 120,
+    },
+  ];
 
   const estadisticas = {
     presente: asistencias.filter(a => a.estado === 'presente').length,
@@ -318,105 +376,109 @@ function descargarArchivo(blob, nombre) {
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           {sesion && (
-  <Card style={{ marginBottom: 24 }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-      {/* Información de la sesión */}
-      <div style={{ flex: 1, minWidth: 300 }}>
-        <Title level={4} style={{ marginBottom: 4 }}>
-          {sesion.tipoSesion}
-        </Title>
-        <Space size="large" wrap>
-          <Text type="secondary">
-            {formatearFecha(sesion.fecha)}
-          </Text>
-          <Text type="secondary">
-            {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
-          </Text>
-          <Text type="secondary">
-            {sesion.cancha?.nombre || 'Sin cancha'}
-          </Text>
-          {sesion.latitudToken && sesion.longitudToken ? (
-            <Tag color="green" icon={<EnvironmentOutlined />}>
-              Token con ubicación activa
-            </Tag>
-          ) : (
-            <Tag color="default">Token sin ubicación</Tag>
-          )}
-          {sesion.grupo && (
-            <Text type="secondary">
-              <TeamOutlined /> {sesion.grupo.nombre}
-            </Text>
-          )}
-        </Space>
-      </div>
+            <Card style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+                <div style={{ flex: 1, minWidth: 300 }}>
+                  <Title level={4} style={{ marginBottom: 4 }}>
+                    {sesion.tipoSesion}
+                  </Title>
+                  <Space size="large" wrap>
+                    <Text type="secondary">
+                      {formatearFecha(sesion.fecha)}
+                    </Text>
+                    <Text type="secondary">
+                      {formatearHora(sesion.horaInicio)} - {formatearHora(sesion.horaFin)}
+                    </Text>
+                    <Text type="secondary">
+                      {sesion.cancha?.nombre || 'Sin cancha'}
+                    </Text>
+                    {sesion.latitudToken && sesion.longitudToken ? (
+                      <Tag color="green" icon={<EnvironmentOutlined />}>
+                        Token con ubicación activa
+                      </Tag>
+                    ) : (
+                      <Tag color="default">Token sin ubicación</Tag>
+                    )}
+                    {sesion.grupo && (
+                      <Text type="secondary">
+                        <TeamOutlined /> {sesion.grupo.nombre}
+                      </Text>
+                    )}
+                  </Space>
+                </div>
 
-      {/* Botones separados en dos grupos */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <Button onClick={() => navigate('/sesiones')}>
-          Volver a Sesiones
-        </Button>
-        
-        <Space size="small">
-          <Button type="primary" onClick={() => handleExportExcel()}>
-            Exportar Excel
-          </Button>
-          <Button type="primary" onClick={() => handleExportPDF()}>
-            Exportar PDF
-          </Button>
-        </Space>
-      </div>
-    </div>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <Button onClick={() => navigate('/sesiones')}>
+                    Volver a Sesiones
+                  </Button>
+                  
+                  <Space size="small">
+                    <Button type="primary" onClick={handleExportExcel}>
+                      Exportar Excel
+                    </Button>
+                    <Button type="primary" onClick={handleExportPDF}>
+                      Exportar PDF
+                    </Button>
+                  </Space>
+                </div>
+              </div>
 
-    {/* Estadísticas */}
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-      gap: 16, 
-      marginTop: 24,
-      padding: 16,
-      background: '#f5f5f5',
-      borderRadius: 8
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-          {estadisticas.presente}
-        </div>
-        <Text type="secondary">Presentes</Text>
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-          {estadisticas.ausente}
-        </div>
-        <Text type="secondary">Ausentes</Text>
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-          {estadisticas.justificado}
-        </div>
-        <Text type="secondary">Justificados</Text>
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-          {pagination.total}
-        </div>
-        <Text type="secondary">Total</Text>
-      </div>
-    </div>
-  </Card>
-)}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gap: 16, 
+                marginTop: 24,
+                padding: 16,
+                background: '#f5f5f5',
+                borderRadius: 8
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+                    {estadisticas.presente}
+                  </div>
+                  <Text type="secondary">Presentes</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+                    {estadisticas.ausente}
+                  </div>
+                  <Text type="secondary">Ausentes</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+                    {estadisticas.justificado}
+                  </div>
+                  <Text type="secondary">Justificados</Text>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
+                    {pagination.total}
+                  </div>
+                  <Text type="secondary">Total</Text>
+                </div>
+              </div>
+            </Card>
+          )}
 
           <Card
             title="Lista de Asistencias"
             extra={
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => cargarAsistencias(pagination.current, pagination.pageSize)}
-              >
-                Actualizar
-              </Button>
-              
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<UserAddOutlined />}
+                  onClick={abrirModalManual}
+                >
+                  Registrar Manualmente
+                </Button>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => cargarAsistencias(pagination.current, pagination.pageSize)}
+                >
+                  Actualizar
+                </Button>
+              </Space>
             }
-            
           >
             <Table
               columns={columns}
@@ -451,6 +513,7 @@ function descargarArchivo(blob, nombre) {
             )}
           </Card>
 
+          {/* Modal de Editar Asistencia */}
           <EditarAsistenciaModal
             open={editModal}
             asistencia={asistenciaEdit}
@@ -460,6 +523,131 @@ function descargarArchivo(blob, nombre) {
             onClose={() => setEditModal(false)}
             onConfirm={handleActualizar}
           />
+
+          {/* Modal de Registro Manual */}
+          <Modal
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <UserAddOutlined />
+                <span>Registrar Asistencia Manualmente</span>
+              </div>
+            }
+            open={modalManual}
+            onCancel={() => setModalManual(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setModalManual(false)}>
+                Cancelar
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                loading={loadingManual}
+                onClick={() => formManual.submit()}
+              >
+                Registrar
+              </Button>,
+            ]}
+            width={600}
+          >
+            <Form
+              form={formManual}
+              layout="vertical"
+              onFinish={handleRegistroManual}
+              style={{ marginTop: 16 }}
+            >
+              <Form.Item
+                label="Jugador"
+                name="jugadorId"
+                rules={[{ required: true, message: 'Selecciona un jugador' }]}
+              >
+                <Select
+                  showSearch
+                  placeholder="Selecciona un jugador del grupo..."
+                  optionFilterProp="label"
+                  notFoundContent={
+                    jugadores.length === 0 ? (
+                      <Empty 
+                        description="No hay jugadores en este grupo" 
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
+                    ) : null
+                  }
+                >
+                  {jugadores.map((jugador) => (
+                    <Select.Option 
+                      key={jugador.id} 
+                      value={jugador.id}
+                      label={`${jugador.usuario?.nombre || 'Sin nombre'} ${jugador.usuario?.apellido || ''} - ${jugador.usuario?.rut || ''}`}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar size="small" icon={<UserOutlined />} />
+                        <div>
+                          <div style={{ fontWeight: 500 }}>
+                            {jugador.usuario?.nombre || 'Sin nombre'} {jugador.usuario?.apellido || ''}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#999' }}>
+                            {jugador.usuario?.rut || 'Sin RUT'} • {jugador.usuario?.email || ''}
+                          </div>
+                        </div>
+                      </div>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Estado"
+                name="estado"
+                initialValue="presente"
+                rules={[{ required: true, message: 'Selecciona un estado' }]}
+              >
+                <Select>
+                  {Object.entries(ESTADOS).map(([key, config]) => (
+                    <Select.Option key={key} value={key}>
+                      <Tag color={config.color} icon={config.icon}>
+                        {config.label}
+                      </Tag>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Observación (opcional)"
+                name="observacion"
+              >
+                <Input.TextArea 
+                  rows={3} 
+                  placeholder="Ej: Llegó tarde por motivos personales..."
+                  maxLength={500}
+                  showCount
+                />
+              </Form.Item>
+            </Form>
+
+            <div style={{ 
+              marginTop: 16, 
+              padding: 12, 
+              background: '#e6f7ff', 
+              borderRadius: 6,
+              border: '1px solid #91d5ff'
+            }}>
+              <Space direction="vertical" size={4}>
+                <Text strong style={{ color: '#0050b3' }}>
+                  ℹ️ Información importante:
+                </Text>
+                <Text style={{ fontSize: 12 }}>
+                  • Este registro se marcará con origen "Entrenador"
+                </Text>
+                <Text style={{ fontSize: 12 }}>
+                  • No se validará ubicación geográfica
+                </Text>
+                <Text style={{ fontSize: 12 }}>
+                  • Usa esto cuando un jugador no pueda marcar por sí mismo
+                </Text>
+              </Space>
+            </div>
+          </Modal>
         </div>
       </ConfigProvider>
     </MainLayout>

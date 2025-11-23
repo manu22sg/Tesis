@@ -2,6 +2,7 @@ import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
 import { parseDateLocal } from '../utils/dateLocal.js';
 import validaHorario from '../utils/validaHorario.js';
+const TIPOS_SESION = ['Entrenamiento', 'Partido', 'Partido Amistoso', 'Charla Técnica'];
 
 const HORARIO_FUNCIONAMIENTO = { inicio: '08:00', fin: '20:00' };
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -40,7 +41,10 @@ export const crearSesionBody = Joi.object({
   fecha: fechaSchema,
   horaInicio: horaSchema,
   horaFin: horaSchema,
-  tipoSesion: Joi.string().trim().max(50).required(),
+  tipoSesion: Joi.string().valid(...TIPOS_SESION).required()
+    .messages({
+      'any.only': 'El tipo de sesión debe ser "Entrenamiento" o "Partido"'
+    }),
   objetivos: Joi.string().trim().max(500).optional().allow('',null),
 })
 .custom((v, h) => {
@@ -50,10 +54,10 @@ export const crearSesionBody = Joi.object({
     });
   }
   
-  // Validar horario
   const res = validaHorario(v, h, HORARIO_FUNCIONAMIENTO);
   return res === true ? v : res;   
 });
+
 
 export const obtenerSesionesQuery = Joi.object({
   q: Joi.string().trim().max(100).optional(),  
@@ -85,7 +89,10 @@ export const actualizarSesionBody = Joi.object({
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional(),  
   horaInicio: Joi.string().pattern(TIME_HH_MM).optional(),
   horaFin: Joi.string().pattern(TIME_HH_MM).optional(),
-  tipoSesion: Joi.string().trim().max(50).optional(),
+  tipoSesion: Joi.string().valid(...TIPOS_SESION).optional()
+    .messages({
+      'any.only': 'El tipo de sesión debe ser "Entrenamiento" o "Partido"'
+    }),
   objetivos: Joi.string().trim().max(500).optional().allow('',null),
 })
 .with('horaInicio','horaFin').with('horaFin','horaInicio')
@@ -96,6 +103,7 @@ export const actualizarSesionBody = Joi.object({
   }
   return v;
 });
+
 
 // DELETE /api/sesion/eliminar
 export const eliminarSesionBody = Joi.object({
@@ -115,11 +123,13 @@ export const crearSesionesRecurrentesBody = Joi.object({
               .min(1).max(5).unique().required(),
   horaInicio: horaSchema,
   horaFin: horaSchema,
-  tipoSesion: Joi.string().trim().max(50).required(),
+  tipoSesion: Joi.string().valid(...TIPOS_SESION).required()
+    .messages({
+      'any.only': 'El tipo de sesión debe ser "Entrenamiento" o "Partido"'
+    }),
   objetivos: Joi.string().trim().max(500).optional().allow(''),
 })
 .custom((v, h) => {
-  //Validar que exista cancha O ubicación externa
   if (!v.canchaId && (!v.ubicacionExterna || v.ubicacionExterna.trim() === '')) {
     return h.error('any.invalid', { 
       message: 'Debe especificar una cancha o una ubicación externa' 
@@ -136,6 +146,7 @@ export const crearSesionesRecurrentesBody = Joi.object({
   const res = validaHorario(v, h, { inicio: '08:00', fin: '20:00' });
   return res === true ? v : res;
 });
+
 
 // ✅ Middleware para validar BODY
 export const validate = (schema) => (req, res, next) => {

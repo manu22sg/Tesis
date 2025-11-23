@@ -227,10 +227,8 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
 
   }, [valorBusqueda, jugadoresEquipo, modalJugadorVisible]);
 
-  // --------------------------
-  // 📌 Agregar jugador
-  // --------------------------
-  const handleAgregarJugador = async (values, continuar = false) => {
+ 
+ const handleAgregarJugador = async (values, continuar = false) => {
     if (!usuarioSeleccionado) {
       return message.error('Debes seleccionar un usuario');
     }
@@ -247,17 +245,25 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
 
       message.success('Jugador agregado');
 
+      // Actualizar la lista de jugadores del equipo ANTES de continuar
+      const response = await equipoService.listarJugadores(equipoSeleccionado.id);
+      const data = response.data?.data || response.data || response;
+      const jugadoresActualizados = Array.isArray(data) ? data : data.jugadores || [];
+      setJugadoresEquipo(jugadoresActualizados);
+
       await cargarEquipos();
       onUpdate && onUpdate();
 
       if (drawerVisible) {
-        await verJugadores(equipoSeleccionado);
+        // Ya no necesitamos volver a cargar porque ya actualizamos arriba
+        // await verJugadores(equipoSeleccionado);
       }
 
       if (continuar) {
         formJugador.resetFields();
         setUsuarioSeleccionado(null);
         setValorBusqueda('');
+        setOpcionesAutoComplete([]); // Limpiar las opciones del autocomplete
       } else {
         setModalJugadorVisible(false);
       }
@@ -268,6 +274,7 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
       setLoading(false);
     }
   };
+
 
   const handleQuitarJugador = async (usuarioId) => {
     setLoading(true);
@@ -692,13 +699,19 @@ const handleExportarPDF = async () => {
                 label="Número"
                 rules={[{ required: true }, { type: 'number', min: 1, max: 99 }]}
               >
-                <InputNumber min={1} max={99} style={{ width: '100%' }} />
+               <InputNumber 
+    min={1} 
+    max={99} 
+    placeholder="Número de camiseta" 
+    style={{ width: '100%' }} 
+  />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item name="posicion" label="Posición">
-                <Select allowClear>
+              <Form.Item name="posicion" label="Posición" rules={[{ required: true, message: 'La posición es obligatoria' }]}
+>
+                <Select allowClear placeholder="Selecciona una posición">
                   {[
                     'Portero', 'Defensa Central', 'Lateral Derecho', 'Lateral Izquierdo',
                     'Mediocampista Defensivo', 'Mediocampista Central', 'Mediocampista Ofensivo',

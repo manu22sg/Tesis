@@ -37,6 +37,8 @@ import {
   exportarJugadoresPDF
 } from '../services/jugador.services.js';
 import MainLayout from '../components/MainLayout.jsx';
+import { carreraService } from "../services/carrera.services.js";
+
 import JugadorDetalleModal from '../components/JugadorDetalleModal.jsx';
 
 const { Text } = Typography;
@@ -84,11 +86,28 @@ export default function Jugadores() {
     return () => { mountedRef.current = false; };
   }, []);
 
+  useEffect(() => {
+  const cargarCarreras = async () => {
+    try {
+      const data = await carreraService.listar();
+      setCarrerasOpts(data);
+    } catch (error) {
+      console.error("Error cargando carreras:", error);
+      message.error("Error al cargar carreras");
+    }
+  };
+
+  cargarCarreras();
+}, []);
+
+
   // Debounce para la búsqueda
   useEffect(() => {
     const t = setTimeout(() => setQDebounced(busqueda.trim()), 500);
     return () => clearTimeout(t);
   }, [busqueda]);
+
+  
 
   // Cargar jugadores (server-side)
   const cargarJugadores = async (page = 1, pageSize = pagination.pageSize, q = qDebounced) => {
@@ -116,39 +135,7 @@ export default function Jugadores() {
       });
 
       // 🆕 Actualiza opciones de carreras (con ID y nombre)
-      if (lista.length) {
-        const carrerasMap = new Map();
-        
-        lista.forEach(j => {
-          const carrera = j.usuario?.carrera;
-          if (carrera?.id && carrera?.nombre) {
-            carrerasMap.set(carrera.id, {
-              id: carrera.id,
-              nombre: carrera.nombre
-            });
-          }
-        });
-
-        const nuevasCarreras = Array.from(carrerasMap.values())
-          .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-        // Actualizar solo si hay cambios
-        if (JSON.stringify(nuevasCarreras) !== JSON.stringify(carrerasOpts)) {
-          setCarrerasOpts(nuevasCarreras);
-        }
-
-        // Años de ingreso
-        const nuevosAnios = [
-          ...new Set([
-            ...aniosOpts,
-            ...lista.map(j => j.anioIngreso).filter(a => !!a)
-          ])
-        ].sort((a, b) => b - a);
-
-        if (JSON.stringify(nuevosAnios) !== JSON.stringify(aniosOpts)) {
-          setAniosOpts(nuevosAnios);
-        }
-      }
+    
     } catch (error) {
       if (!mountedRef.current) return;
       console.error('Error cargando jugadores:', error);
@@ -253,7 +240,7 @@ function descargarArchivo(blob, nombre) {
           <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
-              {record.usuario?.nombre || 'Sin nombre'}
+              {record.usuario?.nombre || 'Sin nombre'} {record.usuario?.apellido || ''}
             </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.usuario?.rut || 'Sin RUT'}
@@ -325,18 +312,7 @@ function descargarArchivo(blob, nombre) {
         );
       },
     },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      key: 'estado',
-      render: (estado) => (
-        <Tag color={ESTADO_COLORS[estado] || 'default'}>
-          {estado?.toUpperCase() || 'N/A'}
-        </Tag>
-      ),
-      align: 'center',
-      width: 110,
-    },
+    
     {
       title: 'Acciones',
       key: 'acciones',
@@ -463,22 +439,22 @@ function descargarArchivo(blob, nombre) {
                 </Select>
 
                 {/* 🆕 Select de carreras usando ID */}
-                <Select
-                  allowClear
-                  showSearch
-                  placeholder="Carrera"
-                  value={filtroCarreraId}
-                  onChange={setFiltroCarreraId}
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {carrerasOpts.map(carrera => (
-                    <Option key={carrera.id} value={carrera.id}>
-                      {carrera.nombre}
-                    </Option>
-                  ))}
-                </Select>
+               <Select
+  allowClear
+  showSearch
+  placeholder="Carrera"
+  value={filtroCarreraId}
+  onChange={setFiltroCarreraId}
+  filterOption={(input, option) =>
+    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+  }
+>
+  {carrerasOpts.map(carrera => (
+    <Option key={carrera.id} value={carrera.id}>
+      {carrera.nombre}
+    </Option>
+  ))}
+</Select>
 
                 <Select
                   allowClear

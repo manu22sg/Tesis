@@ -65,7 +65,8 @@ function CampeonatosContent() {
     genero: null,
     anio: null,
     semestre: null,
-    estado: null
+    estado: null,
+    tipoCampeonato: null
   });
 
   const [pagination, setPagination] = useState({
@@ -115,6 +116,9 @@ function CampeonatosContent() {
     if (filtros.estado) {
       resultado = resultado.filter(c => c.estado === filtros.estado);
     }
+    if (filtros.tipoCampeonato) {
+      resultado = resultado.filter(c => c.tipoCampeonato === filtros.tipoCampeonato);
+    }
 
     setCampeonatos(resultado);
     setPagination({
@@ -141,7 +145,8 @@ function CampeonatosContent() {
       genero: null,
       anio: null,
       semestre: null,
-      estado: null
+      estado: null,
+      tipoCampeonato: null
     });
     setCampeonatos(campeonatosOriginales);
     setPagination({
@@ -166,14 +171,16 @@ function CampeonatosContent() {
         genero: registro.genero,
         anio: registro.anio,
         semestre: registro.semestre,
-        estado: registro.estado
+        estado: registro.estado,
+        tipoCampeonato: registro.tipoCampeonato || 'intercarrera'
       });
     } else {
       setEditingId(null);
       form.resetFields();
       form.setFieldsValue({
         anio: new Date().getFullYear(),
-        semestre: Math.ceil((new Date().getMonth() + 1) / 6)
+        semestre: Math.ceil((new Date().getMonth() + 1) / 6),
+        tipoCampeonato: 'intercarrera'
       });
     }
     setModalVisible(true);
@@ -209,56 +216,58 @@ function CampeonatosContent() {
   };
 
   const handleExportarExcel = async () => {
-  try {
-    const params = {};
-    if (filtros.formato) params.formato = filtros.formato;
-    if (filtros.genero) params.genero = filtros.genero;
-    if (filtros.anio) params.anio = filtros.anio;
-    if (filtros.semestre) params.semestre = filtros.semestre;
-    if (filtros.estado) params.estado = filtros.estado;
+    try {
+      const params = {};
+      if (filtros.formato) params.formato = filtros.formato;
+      if (filtros.genero) params.genero = filtros.genero;
+      if (filtros.anio) params.anio = filtros.anio;
+      if (filtros.semestre) params.semestre = filtros.semestre;
+      if (filtros.estado) params.estado = filtros.estado;
+      if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
 
-    const blob = await campeonatoService.exportarExcel(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `campeonatos_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+      const blob = await campeonatoService.exportarExcel(params);
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `campeonatos_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
 
-  } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a Excel');
-  }
-};
+    } catch (error) {
+      console.error('Error:', error);
+      message.error('Error al exportar a Excel');
+    }
+  };
 
-const handleExportarPDF = async () => {
-  try {
-    const params = {};
-    if (filtros.formato) params.formato = filtros.formato;
-    if (filtros.genero) params.genero = filtros.genero;
-    if (filtros.anio) params.anio = filtros.anio;
-    if (filtros.semestre) params.semestre = filtros.semestre;
-    if (filtros.estado) params.estado = filtros.estado;
+  const handleExportarPDF = async () => {
+    try {
+      const params = {};
+      if (filtros.formato) params.formato = filtros.formato;
+      if (filtros.genero) params.genero = filtros.genero;
+      if (filtros.anio) params.anio = filtros.anio;
+      if (filtros.semestre) params.semestre = filtros.semestre;
+      if (filtros.estado) params.estado = filtros.estado;
+      if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
 
-    const blob = await campeonatoService.exportarPDF(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `campeonatos_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+      const blob = await campeonatoService.exportarPDF(params);
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `campeonatos_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
 
-  } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a PDF');
-  }
-};
+    } catch (error) {
+      console.error('Error:', error);
+      message.error('Error al exportar a PDF');
+    }
+  };
 
   const handleEliminar = useCallback(async (id) => {
     try {
@@ -306,6 +315,15 @@ const handleExportarPDF = async () => {
       dataIndex: 'nombre',
       key: 'nombre',
       render: (nombre) => <strong>{nombre}</strong>
+    },
+    {
+      title: 'Tipo',
+      dataIndex: 'tipoCampeonato',
+      render: (tipo) => (
+        <Tag color={tipo === 'mechon' ? 'cyan' : 'geekblue'}>
+          {tipo === 'mechon' ? 'Mechón' : 'Intercarrera'}
+        </Tag>
+      )
     },
     {
       title: 'Formato',
@@ -382,49 +400,60 @@ const handleExportarPDF = async () => {
     <ConfigProvider locale={locale}>
       <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
         {/* Filtros */}
-       <Card
-  title={<span><FilterOutlined /> Filtros</span>}
-  style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
-  extra={
-    <Space>
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: 'excel',
-              icon: <FileExcelOutlined />,
-              label: 'Exportar a Excel',
-              onClick: handleExportarExcel,
-            },
-            {
-              key: 'pdf',
-              icon: <FilePdfOutlined />,
-              label: 'Exportar a PDF',
-              onClick: handleExportarPDF,
-            },
-          ],
-        }}
-        placement="bottomRight"
-      >
-        <Button icon={<DownloadOutlined />}>
-          Exportar
-        </Button>
-      </Dropdown>
+        <Card
+          title={<span><FilterOutlined /> Filtros</span>}
+          style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+          extra={
+            <Space>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'excel',
+                      icon: <FileExcelOutlined />,
+                      label: 'Exportar a Excel',
+                      onClick: handleExportarExcel,
+                    },
+                    {
+                      key: 'pdf',
+                      icon: <FilePdfOutlined />,
+                      label: 'Exportar a PDF',
+                      onClick: handleExportarPDF,
+                    },
+                  ],
+                }}
+                placement="bottomRight"
+              >
+                <Button icon={<DownloadOutlined />}>
+                  Exportar
+                </Button>
+              </Dropdown>
 
-      <Button 
-        onClick={limpiarFiltros}
-        disabled={!Object.values(filtros).some(v => v !== null)}
-      >
-        Limpiar Filtros
-      </Button>
-      
-      <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-        Nuevo Campeonato
-      </Button>
-    </Space>
-  }
->
+              <Button 
+                onClick={limpiarFiltros}
+                disabled={!Object.values(filtros).some(v => v !== null)}
+              >
+                Limpiar Filtros
+              </Button>
+              
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+                Nuevo Campeonato
+              </Button>
+            </Space>
+          }
+        >
           <Space wrap>
+            <Select
+              style={{ width: 140 }}
+              placeholder="Tipo"
+              allowClear
+              value={filtros.tipoCampeonato}
+              onChange={(value) => handleFiltroChange('tipoCampeonato', value)}
+            >
+              <Option value="mechon">Mechón</Option>
+              <Option value="intercarrera">Intercarrera</Option>
+            </Select>
+
             <Select
               style={{ width: 120 }}
               placeholder="Formato"
@@ -531,6 +560,22 @@ const handleExportarPDF = async () => {
 
             <Row gutter={16}>
               <Col span={12}>
+                <Form.Item 
+                  name="tipoCampeonato" 
+                  label="Tipo de Campeonato" 
+                  rules={[{ required: true }]}
+                  tooltip={editingId ? "No se puede cambiar el tipo de campeonato una vez creado" : null}
+                >
+                  <Select 
+                    placeholder="Seleccionar tipo"
+                    disabled={!!editingId}
+                  >
+                    <Option value="mechon">Mechón</Option>
+                    <Option value="intercarrera">Intercarrera</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
                 <Form.Item name="formato" label="Formato" rules={[{ required: true }]}>
                   <Select placeholder="Seleccionar formato">
                     <Option value="5v5">5v5</Option>
@@ -539,6 +584,9 @@ const handleExportarPDF = async () => {
                   </Select>
                 </Form.Item>
               </Col>
+            </Row>
+
+            <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
                   <Select placeholder="Seleccionar género">
@@ -548,14 +596,14 @@ const handleExportarPDF = async () => {
                   </Select>
                 </Form.Item>
               </Col>
-            </Row>
-
-            <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="anio" label="Año" rules={[{ required: true }]}>
                   <InputNumber style={{ width: '100%' }} min={2020} max={2100} />
                 </Form.Item>
               </Col>
+            </Row>
+
+            <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="semestre" label="Semestre" rules={[{ required: true }]}>
                   <Select>

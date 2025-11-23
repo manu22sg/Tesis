@@ -26,6 +26,11 @@ const JugadorSchema = new EntitySchema({
       length: 50,
       nullable: true,
     },
+    posicionSecundaria: {
+      type: "varchar",
+      length: 50,
+      nullable: true,
+    },
     piernaHabil: {
       type: "varchar",
       length: 10,

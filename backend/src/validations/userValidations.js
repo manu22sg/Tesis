@@ -1,16 +1,16 @@
 import Joi from 'joi';
 import { validarRut as validarRutDV } from '../utils/validarRut.js';
 
-// Validador personalizado para RUT chileno
+// ============================================
+// VALIDADOR PERSONALIZADO PARA RUT CHILENO
+// ============================================
 const rutValidator = (value, helpers) => {
   const rutRegex = /^\d{7,8}-[\dKk]$/;
 
-  // Primero validar formato
   if (!rutRegex.test(value)) {
     return helpers.message('Formato de RUT inválido. Use el formato 12345678-9');
   }
 
-  // Validar dígito verificador real
   if (!validarRutDV(value)) {
     return helpers.message('RUT inválido. Dígito verificador incorrecto');
   }
@@ -18,8 +18,9 @@ const rutValidator = (value, helpers) => {
   return value;
 };
 
-
-// Validador personalizado para emails institucionales
+// ============================================
+// VALIDADOR PERSONALIZADO PARA EMAILS INSTITUCIONALES
+// ============================================
 const institutionalEmailValidator = (value, helpers) => {
   const allowedDomains = ['@alumnos.ubiobio.cl', '@ubiobio.cl'];
   const isValid = allowedDomains.some(domain => value.endsWith(domain));
@@ -30,7 +31,15 @@ const institutionalEmailValidator = (value, helpers) => {
   return value;
 };
 
-// Schema para registro de usuario
+// ============================================
+// REGEX PARA CONTRASEÑA FUERTE CON SÍMBOLOS ESPECIALES
+// ============================================
+// Incluye: @ $ ! % * ? & _ . # - ' " 
+const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_.#\-'"])/;
+
+// ============================================
+// SCHEMA PARA REGISTRO DE USUARIO
+// ============================================
 export const registerSchema = Joi.object({
   rut: Joi.string()
     .required()
@@ -84,27 +93,57 @@ export const registerSchema = Joi.object({
     .min(8)
     .max(128)
     .required()
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .pattern(strongPasswordRegex)
     .messages({
       'string.empty': 'La contraseña es obligatoria',
       'any.required': 'La contraseña es obligatoria',
       'string.min': 'La contraseña debe tener al menos 8 caracteres',
       'string.max': 'La contraseña no puede tener más de 128 caracteres',
-      'string.pattern.base': 'La contraseña debe tener al menos una mayúscula, una minúscula y un número'
+      'string.pattern.base': 'La contraseña debe tener: mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&_.#-\'")'
     }),
 
   carreraId: Joi.number()
     .integer()
     .positive()
     .required()
+    .optional()
+    .allow(null,' ')
     .messages({
       'number.base': 'La carrera es obligatoria',
       'any.required': 'Debe seleccionar una carrera',
       'number.positive': 'Debe seleccionar una carrera válida'
+    }),
+
+  // ✅ NUEVO: Año de ingreso a la carrera (condicional)
+  anioIngresoUniversidad: Joi.number()
+    .integer()
+    .min(1990)
+    .max(new Date().getFullYear())
+    .optional()
+    .allow(null,'')
+    .messages({
+      'number.base': 'El año de ingreso debe ser un número válido',
+      'number.min': 'El año de ingreso no puede ser anterior a 1990',
+      'number.max': `El año de ingreso no puede ser mayor a ${new Date().getFullYear()}`
     })
+})
+// ✅ VALIDACIÓN CONDICIONAL: Si es estudiante (@alumnos), el año es obligatorio
+.custom((value, helpers) => {
+  const { email, anioIngresoUniversidad } = value;
+  
+  // Si es estudiante (@alumnos.ubiobio.cl) y no tiene año de ingreso
+  if (email.endsWith('@alumnos.ubiobio.cl') && !anioIngresoUniversidad) {
+    return helpers.error('any.invalid', { 
+      message: 'Los estudiantes deben ingresar su año de ingreso a la carrera' 
+    });
+  }
+  
+  return value;
 });
 
-// Schema para login de usuario
+// ============================================
+// SCHEMA PARA LOGIN DE USUARIO
+// ============================================
 export const loginSchema = Joi.object({
   email: Joi.string()
     .email()
@@ -126,7 +165,44 @@ export const loginSchema = Joi.object({
     })
 });
 
-// Funciones de validación
+// ============================================
+// SCHEMA PARA RESTABLECER CONTRASEÑA
+// ============================================
+export const resetPasswordSchema = Joi.object({
+  password: Joi.string()
+    .min(8)
+    .max(128)
+    .required()
+    .pattern(strongPasswordRegex)
+    .messages({
+      'string.empty': 'La contraseña es obligatoria',
+      'any.required': 'La contraseña es obligatoria',
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.max': 'La contraseña no puede tener más de 128 caracteres',
+      'string.pattern.base': 'La contraseña debe tener: mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&_.#-\'")'
+    })
+});
+
+// ============================================
+// SCHEMA PARA SOLICITAR RESTABLECIMIENTO
+// ============================================
+export const solicitarRestablecimientoSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .lowercase()
+    .trim()
+    .custom(institutionalEmailValidator)
+    .messages({
+      'string.empty': 'El email es obligatorio',
+      'any.required': 'El email es obligatorio',
+      'string.email': 'Debe ser un email válido'
+    })
+});
+
+// ============================================
+// FUNCIÓN PARA VALIDAR REGISTRO
+// ============================================
 export function validateRegistrationData(data) {
   const { error, value } = registerSchema.validate(data, { 
     abortEarly: false,
@@ -153,6 +229,9 @@ export function validateRegistrationData(data) {
   };
 }
 
+// ============================================
+// FUNCIÓN PARA VALIDAR LOGIN
+// ============================================
 export function validateLoginData(data) {
   const { error, value } = loginSchema.validate(data, { 
     abortEarly: false,
@@ -179,7 +258,67 @@ export function validateLoginData(data) {
   };
 }
 
-// Funciones auxiliares
+// ============================================
+// FUNCIÓN PARA VALIDAR RESTABLECIMIENTO DE CONTRASEÑA
+// ============================================
+export function validateResetPasswordData(data) {
+  const { error, value } = resetPasswordSchema.validate(data, { 
+    abortEarly: false,
+    stripUnknown: true 
+  });
+
+  if (error) {
+    const formattedErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+
+    return {
+      isValid: false,
+      errors: formattedErrors,
+      data: null
+    };
+  }
+
+  return {
+    isValid: true,
+    errors: null,
+    data: value
+  };
+}
+
+// ============================================
+// FUNCIÓN PARA VALIDAR SOLICITUD DE RESTABLECIMIENTO
+// ============================================
+export function validateSolicitarRestablecimiento(data) {
+  const { error, value } = solicitarRestablecimientoSchema.validate(data, { 
+    abortEarly: false,
+    stripUnknown: true 
+  });
+
+  if (error) {
+    const formattedErrors = error.details.map(detail => ({
+      field: detail.path[0],
+      message: detail.message
+    }));
+
+    return {
+      isValid: false,
+      errors: formattedErrors,
+      data: null
+    };
+  }
+
+  return {
+    isValid: true,
+    errors: null,
+    data: value
+  };
+}
+
+// ============================================
+// FUNCIONES AUXILIARES
+// ============================================
 export const validateRut = (rut) => {
   const rutRegex = /^\d{7,8}-[\dKk]$/;
   return rutRegex.test(rut);
@@ -191,6 +330,6 @@ export const validateEmail = (email) => {
 };
 
 export const validatePassword = (password) => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_.#\-'"]).{8,}$/;
   return passwordRegex.test(password);
 };

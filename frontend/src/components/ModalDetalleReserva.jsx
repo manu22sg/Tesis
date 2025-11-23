@@ -35,7 +35,7 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
       <Descriptions bordered column={2} size="small">
         <Descriptions.Item label="Usuario" span={2}>
           <div>
-            <UserOutlined /> {reserva.usuario?.nombre}
+            <UserOutlined /> {reserva.usuario?.nombre} {reserva.usuario?.apellido}
           </div>
           <div style={{ fontSize: '12px', color: '#888' }}>
             {reserva.usuario?.email}
@@ -69,7 +69,7 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
           {reserva.participantes?.length > 0 && (
             <div style={{ marginTop: '8px' }}>
               {reserva.participantes.map((p, idx) => (
-                <Tag key={idx}>{p.usuario?.nombre || 'N/A'}</Tag>
+                <Tag key={idx}>{p.usuario?.nombre || 'N/A'} {p.usuario?.apellido || ''}</Tag>
               ))}
             </div>
           )}
@@ -84,7 +84,7 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
               <div><strong>Acción:</strong> {ucfirst(h.accion)}</div>
               <div><strong>Observación:</strong> {h.observacion}</div>
               <div style={{ fontSize: '12px', color: '#888' }}>
-                Por: {h.usuario?.nombre || 'Sistema'}
+                Por: {h.usuario?.nombre || 'Sistema'} 
               </div>
             </Card>
           ))}

@@ -31,5 +31,4 @@ export function iniciarCronJobs() {
     name: "recordatorios-reservas"
   });
 
-  console.log(' Cron jobs iniciados correctamente');
 }

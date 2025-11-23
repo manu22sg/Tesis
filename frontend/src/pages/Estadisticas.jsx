@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography,Dropdown 
+  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography, Dropdown 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { PlusOutlined, ReloadOutlined, SlidersOutlined,FileExcelOutlined,   
-  FilePdfOutlined,     
-  DownloadOutlined     
- } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, SlidersOutlined, FileExcelOutlined, FilePdfOutlined, DownloadOutlined } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout';
 import ListaEstadisticas from '../components/EstadisticasList';
 import EstadisticaForm from '../components/EstadisticaForm';
@@ -14,66 +11,56 @@ import { obtenerSesiones, obtenerSesionPorId } from '../services/sesion.services
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
 import { exportarEstadisticasExcel, exportarEstadisticasPDF } from '../services/estadistica.services.js';
-
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 const { Option } = Select;
 const { Text } = Typography;
 
-// Tamaño de pre-carga para dropdowns (puedes subir a 200 si tu backend y UI lo aguantan)
 const PRELOAD_LIMIT = 50;
 
 export default function Estadisticas() {
-  // Modo: 'sesion' | 'jugador'
   const [modo, setModo] = useState('sesion');
-
-  // Datos base
   const [sesiones, setSesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
-
-  // Filtros principales
   const [sesionId, setSesionId] = useState(null);
   const [jugadorId, setJugadorId] = useState(null);
-
-  // Filtros secundarios (anidados)
-  const [jugadoresDelGrupo, setJugadoresDelGrupo] = useState([]);   // cuando se elige sesión
-  const [sesionesDelJugador, setSesionesDelJugador] = useState([]); // opcional cuando se elige jugador
+  const [jugadoresDelGrupo, setJugadoresDelGrupo] = useState([]);
+  const [sesionesDelJugador, setSesionesDelJugador] = useState([]);
   const [filtroJugadorEnSesion, setFiltroJugadorEnSesion] = useState(null);
   const [filtroSesionDelJugador, setFiltroSesionDelJugador] = useState(null);
-
-  // UI / control
   const [loadingBase, setLoadingBase] = useState(false);
   const [loadingDependiente, setLoadingDependiente] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editando, setEditando] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const cargarBase = useCallback(async () => {
-    setLoadingBase(true);
-    try {
-      const [resSes, resJug] = await Promise.all([
-        obtenerSesiones({ page: 1, limit: PRELOAD_LIMIT }),
-        obtenerJugadores({ limit: PRELOAD_LIMIT })
-      ]);
-
-      const listaSes = resSes?.sesiones || resSes?.data?.sesiones || [];
-      const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
-
-      setSesiones(listaSes);
-      setJugadores(listaJug);
-    } catch (e) {
-      console.error('Error cargando base:', e);
-      message.error('No se pudieron cargar sesiones o jugadores');
-    } finally {
-      setLoadingBase(false);
-    }
-  }, []);
-
+  // ✅ CARGAR DATOS INICIALES - Solo una vez al montar
   useEffect(() => {
-    cargarBase();
-  }, [cargarBase]);
+    const cargarBase = async () => {
+      setLoadingBase(true);
+      try {
+        const [resSes, resJug] = await Promise.all([
+          obtenerSesiones({ page: 1, limit: PRELOAD_LIMIT }),
+          obtenerJugadores({ limit: PRELOAD_LIMIT })
+        ]);
 
-  // Cuando cambia el modo, limpiamos filtros coherentes
+        const listaSes = resSes?.sesiones || resSes?.data?.sesiones || [];
+        const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
+
+        setSesiones(listaSes);
+        setJugadores(listaJug);
+      } catch (e) {
+        console.error('Error cargando base:', e);
+        message.error('No se pudieron cargar sesiones o jugadores');
+      } finally {
+        setLoadingBase(false);
+      }
+    };
+
+    cargarBase();
+  }, []); // Solo se ejecuta una vez
+
+  // Cuando cambia el modo, limpiamos filtros
   useEffect(() => {
     setSesionId(null);
     setJugadorId(null);
@@ -83,7 +70,7 @@ export default function Estadisticas() {
     setFiltroSesionDelJugador(null);
   }, [modo]);
 
-  // Al elegir una sesión: cargar jugadores del grupo de esa sesión
+  // Al elegir una sesión: cargar jugadores del grupo
   const onSeleccionarSesion = useCallback(async (id) => {
     setSesionId(id);
     setFiltroJugadorEnSesion(null);
@@ -92,7 +79,6 @@ export default function Estadisticas() {
 
     setLoadingDependiente(true);
     try {
-      // Traer la sesión completa (si la lista no incluye group info)
       let sesionCompleta = null;
       try {
         sesionCompleta = await obtenerSesionPorId(id);
@@ -107,7 +93,6 @@ export default function Estadisticas() {
         sesiones.find(s => s.id === id)?.grupoId;
 
       if (!grupoId) {
-        // Fallback: no hay grupo, listar todos
         setJugadoresDelGrupo(jugadores);
         return;
       }
@@ -126,16 +111,13 @@ export default function Estadisticas() {
     }
   }, [jugadores, sesiones]);
 
-  // Al elegir un jugador: opcionalmente derivar sesiones del jugador (cliente-side)
+  // Al elegir un jugador
   const onSeleccionarJugador = useCallback(async (id) => {
     setJugadorId(id);
     setFiltroSesionDelJugador(null);
     setSesionesDelJugador([]);
 
     if (!id) return;
-
-    // Si tu backend soporta filtrar sesiones por jugador, úsalo.
-    // Fallback cliente: mostramos todas; el filtro fino se hace en la tabla.
     setSesionesDelJugador(sesiones);
   }, [sesiones]);
 
@@ -159,54 +141,54 @@ export default function Estadisticas() {
     message.success('Estadística guardada');
     setReloadKey(k => k + 1);
   };
+
   const handleExportarExcel = async () => {
-  try {
-    const params = {
-      tipo: modo,
-      id: modo === 'sesion' ? sesionId : jugadorId
-    };
+    try {
+      const params = {
+        tipo: modo,
+        id: modo === 'sesion' ? sesionId : jugadorId
+      };
 
-    const blob = await exportarEstadisticasExcel(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `estadisticas_${modo}_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+      const blob = await exportarEstadisticasExcel(params);
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `estadisticas_${modo}_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
 
-  } catch (error) {
-    console.error('Error:', error);
-    message.error(error.message || 'Error al exportar a Excel');
-  }
-};
+    } catch (error) {
+      console.error('Error:', error);
+      message.error(error.message || 'Error al exportar a Excel');
+    }
+  };
 
-const handleExportarPDF = async () => {
-  try {
-    const params = {
-      tipo: modo,
-      id: modo === 'sesion' ? sesionId : jugadorId
-    };
+  const handleExportarPDF = async () => {
+    try {
+      const params = {
+        tipo: modo,
+        id: modo === 'sesion' ? sesionId : jugadorId
+      };
 
-    const blob = await exportarEstadisticasPDF(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `estadisticas_${modo}_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+      const blob = await exportarEstadisticasPDF(params);
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `estadisticas_${modo}_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
 
-  } catch (error) {
-    console.error('Error:', error);
-    message.error(error.message || 'Error al exportar a PDF');
-  }
-};
-
+    } catch (error) {
+      console.error('Error:', error);
+      message.error(error.message || 'Error al exportar a PDF');
+    }
+  };
 
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);
@@ -219,42 +201,41 @@ const handleExportarPDF = async () => {
           <Card
             title={<><SlidersOutlined /> <span style={{ marginLeft: 8 }}>Panel de Estadísticas</span></>}
             extra={
-  <Space>
-    {canConsultar && (
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: 'excel',
-              icon: <FileExcelOutlined />,
-              label: 'Exportar a Excel',
-              onClick: handleExportarExcel,
-            },
-            {
-              key: 'pdf',
-              icon: <FilePdfOutlined />,
-              label: 'Exportar a PDF',
-              onClick: handleExportarPDF,
-            },
-          ],
-        }}
-        placement="bottomRight"
-      >
-        <Button icon={<DownloadOutlined />}>
-          Exportar
-        </Button>
-      </Dropdown>
-    )}
-    
-    <Button icon={<ReloadOutlined />} onClick={() => setReloadKey(k => k + 1)}>
-      Actualizar
-    </Button>
-    <Button type="primary" icon={<PlusOutlined />} onClick={manejarCrear}>
-      Nueva estadística
-    </Button>
-  </Space>
-}
-
+              <Space>
+                {canConsultar && (
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'excel',
+                          icon: <FileExcelOutlined />,
+                          label: 'Exportar a Excel',
+                          onClick: handleExportarExcel,
+                        },
+                        {
+                          key: 'pdf',
+                          icon: <FilePdfOutlined />,
+                          label: 'Exportar a PDF',
+                          onClick: handleExportarPDF,
+                        },
+                      ],
+                    }}
+                    placement="bottomRight"
+                  >
+                    <Button icon={<DownloadOutlined />}>
+                      Exportar
+                    </Button>
+                  </Dropdown>
+                )}
+                
+                <Button icon={<ReloadOutlined />} onClick={() => setReloadKey(k => k + 1)}>
+                  Actualizar
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={manejarCrear}>
+                  Nueva estadística
+                </Button>
+              </Space>
+            }
           >
             {/* Filtros principales */}
             <Card style={{ marginBottom: 16, background: '#fafafa' }}>
@@ -315,7 +296,7 @@ const handleExportarPDF = async () => {
                         }
                         options={(jugadoresDelGrupo.length ? jugadoresDelGrupo : jugadores).map(j => ({
                           value: j.id,
-                          label: `${j?.usuario?.nombre || 'Sin nombre'} — ${j?.usuario?.rut || 'Sin RUT'}`
+                          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
                         }))}
                         disabled={!sesionId}
                       />
@@ -340,7 +321,7 @@ const handleExportarPDF = async () => {
                         }
                         options={(jugadores || []).map(j => ({
                           value: j.id,
-                          label: `${j?.usuario?.nombre || 'Sin nombre'} — ${j?.usuario?.rut || 'Sin RUT'}`
+                          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
                         }))}
                       />
                     </Col>
@@ -384,15 +365,11 @@ const handleExportarPDF = async () => {
             {/* Resultado */}
             {canConsultar ? (
               <ListaEstadisticas
-                // API principal
                 tipo={modo === 'sesion' ? 'sesion' : 'jugador'}
                 id={modo === 'sesion' ? sesionId : jugadorId}
-                // Filtros secundarios opcionales (cliente)
                 filtroJugadorId={modo === 'sesion' ? filtroJugadorEnSesion : undefined}
                 filtroSesionId={modo === 'jugador' ? filtroSesionDelJugador : undefined}
-                // recarga externa
                 reloadKey={reloadKey}
-                // habilitar acciones (editar/eliminar)
                 userRole="entrenador"
                 onEdit={(row) => {
                   setEditando(row);

@@ -82,6 +82,28 @@ export async function buscarUsuariosPorRuts(ruts) {
   }
 }
 
+
+export async function solicitarRestablecimientoRequest(email) {
+  try {
+    const { data } = await api.post("/auth/solicitar-restablecimiento", { email });
+    return data;
+  } catch (error) {
+    console.error("Error solicitando restablecimiento:", error.response?.data || error.message);
+    throw error.response?.data || error;
+  }
+}
+
+
+export async function restablecerPasswordRequest(token, password) {
+  try {
+    const { data } = await api.post(`/auth/restablecer-password/${token}`, { password });
+    return data;
+  } catch (error) {
+    console.error("Error restableciendo contraseña:", error.response?.data || error.message);
+    throw error.response?.data || error;
+  }
+}
+
 // AUTOCOMPLETE DE USUARIOS
 export async function buscarUsuarios(termino, opciones = {}) {
   try {

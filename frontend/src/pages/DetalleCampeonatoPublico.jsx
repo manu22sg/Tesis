@@ -57,10 +57,10 @@ const EstadisticasPublicas = ({ campeonato, jugadores, estadisticas }) => {
       return {
         ...est,
         jugadorNombre: jugador
-          ? `${jugador.usuario?.nombre || ""}`.trim()
+          ? `${jugador.usuario?.nombre || ""} ${jugador.usuario?.apellido || ""}`.trim()
           : "Desconocido",
 
-        equipoNombre: jugador?.equipo?.nombre || "Sin equipo",
+        equipoNombre: jugador?.equipo?.nombre  || "Sin equipo" ,
 
         partidoTexto: partidosMap[est.partidoId] || "Partido no encontrado",
       };
@@ -186,7 +186,7 @@ export default function DetalleCampeonatoPublico() {
         (js || []).forEach(j =>
           jugadoresFinal.push({
             id: j.id,
-            usuario: { nombre: j.nombre ?? j.usuario?.nombre ?? "" },
+            usuario: { nombre: j.nombre ??  j.usuario?.nombre ?? "" },
             equipo: { id: eq.id, nombre: eq.nombre }
           })
         );

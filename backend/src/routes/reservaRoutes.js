@@ -1,11 +1,11 @@
-// routes/reservaRoutes.js
 import { Router } from 'express';
 import {
   postCrearReserva,
   getReservasUsuario,
   getTodasLasReservas,
   getReservaPorId,
-  putCancelarReserva
+  putCancelarReserva,
+  editarParticipantesReservaPorId
 } from '../controllers/reservaController.js';
 
 import {
@@ -49,6 +49,13 @@ router.post('/detalle',
   getReservaPorId
 );
 
-router.put('/:id/cancelar', authenticateToken, putCancelarReserva);
+router.put('/:id/cancelar', authenticateToken,requireRole(['estudiante', 'academico']), putCancelarReserva);
+router.put(
+  '/:id/participantes',
+  authenticateToken,
+  requireRole(['estudiante', 'academico']),
+  editarParticipantesReservaPorId
+);
+
 
 export default router;

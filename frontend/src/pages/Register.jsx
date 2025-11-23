@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Form, Input, Button, Card, Typography, message, Select } from "antd";
+import { Form, Input, Button, Card, Typography, message, Select, InputNumber } from "antd";
 import {
   EyeOutlined,
   EyeInvisibleOutlined,
@@ -7,7 +7,9 @@ import {
   MailOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  CalendarOutlined
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 import { carreraService } from "../services/carrera.services.js";
 import { registerRequest } from "../services/auth.services.js";
@@ -50,7 +52,7 @@ const passwordRequirements = [
   { test: (p) => /[A-Z]/.test(p), text: "una mayúscula" },
   { test: (p) => /[a-z]/.test(p), text: "una minúscula" },
   { test: (p) => /[0-9]/.test(p), text: "un número" },
-  { test: (p) => /[^A-Za-z0-9]/.test(p), text: "un símbolo" },
+  { test: (p) => /[@$!%*?&_.#\-'"]/.test(p), text: "un símbolo (@$!%*?&_.#-'\")" }, 
 ];
 
 const passwordScore = (password) =>
@@ -68,11 +70,14 @@ const getStrengthColor = (score) => {
 export default function Register() {
   const [form] = Form.useForm();
   const rutRef = useRef(null);
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [loadingCarreras, setLoadingCarreras] = useState(true);
 
   const [carreras, setCarreras] = useState([]);
+  const [email, setEmail] = useState("");
+  const [esEstudiante, setEsEstudiante] = useState(false);
 
   const [password, setPassword] = useState("");
   const [rut, setRut] = useState("");
@@ -121,10 +126,29 @@ export default function Register() {
       setRutValid(null);
     }
 
-    // 🔥 Mantener el foco
     setTimeout(() => {
       rutRef.current?.focus({ cursor: "end" });
     }, 0);
+  };
+
+  // -------------------------------------
+  // EMAIL HANDLER - Detectar si es estudiante
+  // -------------------------------------
+  const handleEmailChange = (e) => {
+    const emailValue = e.target.value;
+    setEmail(emailValue);
+    
+    // Detectar si es estudiante por el dominio
+    const isStudent = emailValue.includes('@alumnos.ubiobio.cl');
+    setEsEstudiante(isStudent);
+    
+    // Si no es estudiante, limpiar los campos opcionales
+    if (!isStudent) {
+      form.setFieldsValue({ 
+        anioIngresoUniversidad: undefined,
+        carreraId: undefined 
+      });
+    }
   };
 
   // -------------------------------------
@@ -132,7 +156,7 @@ export default function Register() {
   // -------------------------------------
   const onFinish = async (values) => {
     if (!rut) {
-      message.error("Ingresa tu RUT");
+      message.error("Ingrese su RUT");
       return;
     }
 
@@ -145,10 +169,23 @@ export default function Register() {
       message.error("La contraseña no cumple los requisitos");
       return;
     }
+
     if (values.password !== values.confirmPassword) {
-  message.error("Las contraseñas no coinciden");
-  return;
-}
+      message.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    // Validaciones condicionales para estudiantes
+    if (esEstudiante) {
+      if (!values.anioIngresoUniversidad) {
+        message.error("Los estudiantes deben ingresar su año de ingreso a la universidad");
+        return;
+      }
+      if (!values.carreraId) {
+        message.error("Los estudiantes deben seleccionar su carrera");
+        return;
+      }
+    }
 
     const payload = {
       ...values,
@@ -162,9 +199,9 @@ export default function Register() {
 
       message.success("Registro exitoso. Revise su correo institucional y confirme su cuenta para continuar.");
 
-       setTimeout(() => {
-    navigate("/login");
-  }, 2000);
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
 
     } catch (error) {
       console.error("Error en registro:", error);
@@ -207,7 +244,7 @@ export default function Register() {
         </div>
 
         <Form form={form} layout="vertical" onFinish={onFinish}>
-          {/* ---------------------- RUT ---------------------- */}
+          {/* RUT */}
           <Form.Item
             label="RUT"
             required
@@ -245,7 +282,7 @@ export default function Register() {
           <Form.Item
             label="Nombre"
             name="nombre"
-            rules={[{ required: true, message: "Ingresa tu nombre" }]}
+            rules={[{ required: true, message: "Ingrese su nombre" }]}
           >
             <Input prefix={<UserOutlined />} placeholder="Ej: Juan" />
           </Form.Item>
@@ -254,7 +291,7 @@ export default function Register() {
           <Form.Item
             label="Apellido"
             name="apellido"
-            rules={[{ required: true, message: "Ingresa tu apellido" }]}
+            rules={[{ required: true, message: "Ingrese su apellido" }]}
           >
             <Input prefix={<UserOutlined />} placeholder="Ej: Pérez" />
           </Form.Item>
@@ -264,36 +301,69 @@ export default function Register() {
             label="Correo institucional"
             name="email"
             rules={[
-              { required: true, message: "Ingresa tu correo" },
+              { required: true, message: "Ingrese su correo" },
               {
                 pattern: /.+@(alumnos\.)?ubiobio\.cl$/,
-                message: "Debe ser un correo institucional UBB",
+                message: "Debe ser un correo institucional (@alumnos.ubiobio.cl o @ubiobio.cl)",
               },
             ]}
           >
             <Input
               prefix={<MailOutlined />}
-              placeholder="Ingrese su correo institucional"
+              placeholder="correo@alumnos.ubiobio.cl"
+              onChange={handleEmailChange}
             />
           </Form.Item>
 
-          {/* CARRERA */}
-          <Form.Item
-            label="Carrera"
-            name="carreraId"
-            rules={[{ required: true, message: "Seleccione su carrera" }]}
-          >
-            <Select
-              placeholder="Seleccione su carrera"
-              loading={loadingCarreras}
+          {/* CARRERA - Solo para estudiantes */}
+          {esEstudiante && (
+            <Form.Item
+              label="Carrera"
+              name="carreraId"
+              rules={[
+                {
+                  required: true,
+                  message: "Selecciona tu carrera"
+                }
+              ]}
             >
-              {carreras.map((c) => (
-                <Option key={c.id} value={c.id}>
-                  {c.nombre}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Select
+                placeholder="Seleccione su carrera"
+                loading={loadingCarreras}
+              >
+                {carreras.map((c) => (
+                  <Option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
+          {/* AÑO DE INGRESO - Solo para estudiantes */}
+          {esEstudiante && (
+            <Form.Item
+              label="Año de Ingreso a la Universidad"
+              name="anioIngresoUniversidad"
+              rules={[
+                { required: true, message: "Ingrese su año de ingreso" },
+                {
+                  type: 'number',
+                  min: 1990,
+                  max: new Date().getFullYear(),
+                  message: `El año debe estar entre 1990 y ${new Date().getFullYear()}`
+                }
+              ]}
+            >
+              <InputNumber
+                prefix={<CalendarOutlined />}
+                placeholder={`Ej: ${new Date().getFullYear()}`}
+                style={{ width: '100%' }}
+                min={1990}
+                max={new Date().getFullYear()}
+              />
+            </Form.Item>
+          )}
 
           {/* CONTRASEÑA */}
           <Form.Item
@@ -309,30 +379,32 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </Form.Item>
+
+          {/* CONFIRMAR CONTRASEÑA */}
           <Form.Item
-  label="Confirmar contraseña"
-  name="confirmPassword"
-  dependencies={['password']}
-  hasFeedback
-  rules={[
-    { required: true, message: "Confirma tu contraseña" },
-    ({ getFieldValue }) => ({
-      validator(_, value) {
-        if (!value || getFieldValue("password") === value) {
-          return Promise.resolve();
-        }
-        return Promise.reject(new Error("Las contraseñas no coinciden"));
-      },
-    }),
-  ]}
->
-  <Input.Password
-    placeholder="••••••••"
-    iconRender={(visible) =>
-      visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
-    }
-  />
-</Form.Item>
+            label="Confirmar contraseña"
+            name="confirmPassword"
+            dependencies={['password']}
+            hasFeedback
+            rules={[
+              { required: true, message: "Confirma tu contraseña" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue("password") === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error("Las contraseñas no coinciden"));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              placeholder="••••••••"
+              iconRender={(visible) =>
+                visible ? <EyeOutlined /> : <EyeInvisibleOutlined />
+              }
+            />
+          </Form.Item>
 
           {/* Barra de fuerza */}
           {password && (

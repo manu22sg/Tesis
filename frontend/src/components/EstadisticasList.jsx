@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, message, Tag, Button
 } from 'antd';
@@ -18,31 +18,6 @@ import { formatearHora, formatearFecha } from '../utils/formatters.js';
 dayjs.locale('es');
 const { Text } = Typography;
 
-// Hook simple de debounce para efectos controlados
-function useDebouncedEffect(effect, deps, delay = 250) {
-  const cleanupRef = useRef();
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      cleanupRef.current = effect();
-    }, delay);
-    return () => {
-      clearTimeout(handler);
-      if (typeof cleanupRef.current === 'function') cleanupRef.current();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, delay]);
-}
-
-/**
- * Props:
- * - tipo: 'sesion' | 'jugador' | 'mias'
- * - id: number (sesionId o jugadorId según tipo)
- * - filtroJugadorId?: number (cuando tipo='sesion', para filtrar por un jugador específico)
- * - filtroSesionId?: number (cuando tipo='jugador', para filtrar por una sesión específica)
- * - userRole?: 'entrenador' | 'estudiante'
- * - onEdit?: (row) => void
- * - reloadKey?: number
- */
 const ListaEstadisticas = ({
   tipo = 'sesion',
   id = null,
@@ -60,13 +35,26 @@ const ListaEstadisticas = ({
     total: 0,
   });
 
-  const cargar = useCallback(async (page = 1, limit = 10) => {
+  // ✅ Control de requests (igual que Grupos.jsx)
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ✅ Función de carga (no useCallback, función normal)
+  const cargarDatos = async (page = 1, limit = 10) => {
     if (!id && tipo !== 'mias') {
       setEstadisticas([]);
       setPaginacion({ actual: 1, tamanioPagina: limit, total: 0 });
       return;
     }
+
+    const reqId = ++requestIdRef.current;
     setLoading(true);
+    
     try {
       let respuesta;
       if (tipo === 'mias') {
@@ -77,12 +65,14 @@ const ListaEstadisticas = ({
         respuesta = await obtenerEstadisticasPorJugador(id, page, limit);
       }
 
-      // Normalización
+      // Ignorar respuestas viejas
+      if (reqId !== requestIdRef.current) return;
+
       const datos = respuesta?.data || respuesta || {};
       const lista = datos.estadisticas || [];
       const total = datos.total ?? lista.length;
 
-      // Filtros secundarios cliente (cruzados)
+      // Filtros secundarios cliente
       const listFiltrada = lista.filter((e) => {
         const okJugador = filtroJugadorId ? Number(e?.jugador?.id) === Number(filtroJugadorId) : true;
         const okSesion  = filtroSesionId ? Number(e?.sesion?.id)  === Number(filtroSesionId)  : true;
@@ -93,52 +83,41 @@ const ListaEstadisticas = ({
       setPaginacion({
         actual: datos.pagina || page,
         tamanioPagina: limit,
-        // si hay filtro cliente, ajustamos total para la UI; si no, respetamos el back
         total: (filtroJugadorId || filtroSesionId) ? listFiltrada.length : total,
       });
     } catch (err) {
+      if (!mountedRef.current) return;
       console.error('Error al cargar estadísticas:', err);
       message.error('Error al cargar las estadísticas');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [tipo, id, filtroJugadorId, filtroSesionId]);
+  };
 
-  // Debounce para evitar ráfagas cuando cambian filtros / reload / paginación
-  useDebouncedEffect(
-    () => {
-      cargar(paginacion.actual, paginacion.tamanioPagina);
-    },
-    [cargar, reloadKey, paginacion.actual, paginacion.tamanioPagina],
-    250
-  );
-
-  // Si cambia id/tipo/filtros, re-colocar la paginación en 1 con debounce
-  useDebouncedEffect(
-    () => {
-      setPaginacion(prev => ({ ...prev, actual: 1 }));
-    },
-    [tipo, id, filtroJugadorId, filtroSesionId],
-    150
-  );
+  // ✅ Effect único: solo carga cuando cambian filtros o reloadKey
+  // La página siempre es 1 cuando cambian filtros
+  useEffect(() => {
+    cargarDatos(1, paginacion.tamanioPagina);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipo, id, filtroJugadorId, filtroSesionId, reloadKey, paginacion.tamanioPagina]);
 
   const onPage = (page, size) => {
-    setPaginacion((prev) => ({ ...prev, actual: page, tamanioPagina: size }));
+    setPaginacion({ ...paginacion, actual: page, tamanioPagina: size });
+    cargarDatos(page, size);
   };
 
   const onDelete = async (estadisticaId) => {
     try {
       await eliminarEstadistica(estadisticaId);
       message.success('Estadística eliminada');
-      // refrescamos la página actual
-      cargar(paginacion.actual, paginacion.tamanioPagina);
+      cargarDatos(paginacion.actual, paginacion.tamanioPagina);
     } catch (e) {
       console.error('Error eliminando estadística:', e);
       message.error('No se pudo eliminar la estadística');
     }
   };
 
-  // Totales (goles, asistencias, minutos, etc.)
+  // Totales
   const totales = useMemo(() => {
     const t = { goles: 0, asistencias: 0, minutosJugados: 0, tarjetasAmarillas: 0, tarjetasRojas: 0, arcosInvictos: 0 };
     for (const e of estadisticas) {
@@ -152,7 +131,7 @@ const ListaEstadisticas = ({
     return t;
   }, [estadisticas]);
 
-  // Columnas dinámicas
+  // Columnas
   const columnas = useMemo(() => {
     const base = [];
 
@@ -188,7 +167,7 @@ const ListaEstadisticas = ({
           const hf = s?.horaFin ? formatearHora(s?.horaFin) : '';
           return (
             <div>
-              <strong>{s?.nombre || 'Sin nombre'}</strong><br />
+              <strong>{s?.tipoSesion || 'Sin nombre'}</strong><br />
               <small style={{ color: '#888' }}>{f} — {hi}{hf ? ` - ${hf}` : ''}</small>
             </div>
           );
@@ -264,7 +243,6 @@ const ListaEstadisticas = ({
                         Totales
                       </Table.Summary.Cell>
 
-                      {/* Índices de resumen ajustados: después de la col descriptiva */}
                       {(() => {
                         const cells = [
                           totales.goles,
@@ -274,7 +252,6 @@ const ListaEstadisticas = ({
                           totales.tarjetasRojas,
                           totales.arcosInvictos,
                         ];
-                        // primera col numérica siempre es el índice 1 (tenemos 1 col descriptiva al inicio)
                         return cells.map((val, i) => (
                           <Table.Summary.Cell
                             key={`sum-${i}`}

@@ -6,13 +6,17 @@ import {
   findUsersByRuts, 
   buscarUsuariosPorTermino,
   verificarEmailService,
-  reenviarVerificacionService
+  reenviarVerificacionService,
+  solicitarRestablecimientoService,
+  restablecerPasswordService
 } from '../services/authServices.js';
+import { validateResetPasswordData } from '../validations/userValidations.js';
+
 import { success, error, conflict, unauthorized, forbidden, notFound } from '../utils/responseHandler.js';
 
 export async function register(req, res) {
   try {
-    const { rut, nombre, apellido, email, password, carreraId } = req.body;
+    const { rut, nombre, apellido, email, password, carreraId,anioIngresoUniversidad } = req.body;
 
     const [result, errorMsg] = await registerService({
       rut,
@@ -20,7 +24,8 @@ export async function register(req, res) {
       apellido,
       email,
       password,
-      carreraId
+      carreraId,
+      anioIngresoUniversidad
     });
 
     if (errorMsg) {
@@ -31,8 +36,7 @@ export async function register(req, res) {
       return error(res, errorMsg, 500);
     }
 
-    // ❌ NO configurar cookie (usuario no verificado)
-    // El usuario debe verificar su email primero
+   
 
     return success(
       res,
@@ -282,6 +286,86 @@ export async function buscarUsuariosPorRuts(req, res) {
     });
   }
 }
+
+export async function solicitarRestablecimiento(req, res) {
+  try {
+    const { email } = req.body; 
+
+    const [result, errorMsg] = await solicitarRestablecimientoService(email);
+
+    if (errorMsg) {
+      if (errorMsg.includes('No existe una cuenta')) {
+        return notFound(res, errorMsg);
+      }
+      if (errorMsg.includes('verificar tu cuenta')) {
+        return forbidden(res, errorMsg);
+      }
+      if (errorMsg.includes('no está activa')) {
+        return forbidden(res, errorMsg);
+      }
+      if (errorMsg.includes('correo')) {
+        return error(res, errorMsg, 500);
+      }
+      return error(res, errorMsg, 400);
+    }
+
+    return success(
+      res,
+      result,
+      'Correo de restablecimiento enviado exitosamente. Revisa tu bandeja de entrada'
+    );
+
+  } catch (err) {
+    console.error('Error solicitando restablecimiento:', err);
+    return error(res, 'Error al solicitar restablecimiento de contraseña', 500);
+  }
+}
+
+
+export async function restablecerPassword(req, res) {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const validation = validateResetPasswordData({ password });
+    
+    if (!validation.isValid) {
+      return error(res, validation.errors[0].message, 400);
+    }
+
+    const [result, errorMsg] = await restablecerPasswordService(
+      token, 
+      validation.data.password
+    );
+
+    if (errorMsg) {
+      if (errorMsg.includes('expirado')) {
+        return unauthorized(res, errorMsg);
+      }
+      if (errorMsg.includes('inválido')) {
+        return unauthorized(res, errorMsg);
+      }
+      if (errorMsg.includes('no encontrado')) {
+        return notFound(res, errorMsg);
+      }
+      if (errorMsg.includes('no está')) {
+        return forbidden(res, errorMsg);
+      }
+      return error(res, errorMsg, 400);
+    }
+
+    return success(
+      res,
+      result,
+      'Contraseña restablecida exitosamente. Ya puedes iniciar sesión'
+    );
+
+  } catch (err) {
+    console.error('Error restableciendo contraseña:', err);
+    return error(res, 'Error al restablecer la contraseña', 500);
+  }
+}
+
 
   
 export async function buscarUsuarios(req, res) {

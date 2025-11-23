@@ -33,11 +33,6 @@ const ReservaCanchaSchema = new EntitySchema({
       length: 20,
       default: "pendiente", 
     },
-    confirmado: {
-      type: "boolean",
-      default: false,
-    },
-
     fechaCreacion: {
       type: "timestamp",
       createDate: true,

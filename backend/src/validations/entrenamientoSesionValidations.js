@@ -76,7 +76,7 @@ export const obtenerEntrenamientoPorIdParams = Joi.object({
 });
 
 export const actualizarEntrenamientoBody = Joi.object({
-  sesionId: Joi.number().integer().positive().optional()
+  sesionId: Joi.number().integer().positive().optional().allow('',null)
     .messages({
       'number.base': 'sesionId debe ser un número',
       'number.positive': 'sesionId debe ser positivo'

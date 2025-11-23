@@ -12,7 +12,8 @@ import {
   listarAsistenciasDeSesionController,
   postMarcarAsistenciaPorToken,
   exportarAsistenciasExcel,
-  exportarAsistenciasPDF
+  exportarAsistenciasPDF,
+  registrarAsistenciaManualController
 } from "../controllers/asistenciaController.js";
 
 const router = Router();
@@ -31,6 +32,7 @@ router.post(
   validarBody(marcarAsistenciaPorTokenBodySchema),
   postMarcarAsistenciaPorToken
 );
+
 
 // Entrenador edita asistencia
 router.patch(
@@ -61,6 +63,12 @@ router.get(
   listarAsistenciasDeSesionController
 );
 
+router.post(
+  "/registrar-manual",
+  authenticateToken,
+  requireRole("entrenador"),
+  registrarAsistenciaManualController
+);
 
 
 

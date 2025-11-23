@@ -12,12 +12,10 @@ export async function crearJugador(datosJugador) {
 
     const usuario = await usuarioRepository.findOne({
       where: { id: datosJugador.usuarioId },
-      relations: ["carrera"] // Incluir carrera para validaciones
+      relations: ["carrera"]
     });
     
-    if (!usuario) {
-      return [null, "El usuario no existe"];
-    }
+    if (!usuario) return [null, "El usuario no existe"];
 
     if (usuario.rol !== "estudiante") {
       return [null, 'Solo usuarios con rol "estudiante" pueden registrarse como jugador'];
@@ -27,7 +25,6 @@ export async function crearJugador(datosJugador) {
       return [null, "El usuario no está activo"];
     }
 
-    // Validar que el estudiante tenga carrera asignada
     if (!usuario.carreraId) {
       return [null, "El estudiante debe tener una carrera asignada"];
     }
@@ -35,15 +32,21 @@ export async function crearJugador(datosJugador) {
     const jugadorExiste = await jugadorRepository.findOne({
       where: { usuarioId: datosJugador.usuarioId }
     });
-    
+
     if (jugadorExiste) {
       return [null, "El usuario ya está registrado como jugador"];
+    }
+
+    if (datosJugador.peso && datosJugador.altura) {
+      const alturaMetros = datosJugador.altura / 100;
+      datosJugador.imc = (
+        datosJugador.peso / (alturaMetros * alturaMetros)
+      ).toFixed(2);
     }
 
     const jugador = jugadorRepository.create(datosJugador);
     const jugadorGuardado = await jugadorRepository.save(jugador);
     
-    // Recargar con relaciones completas
     const jugadorCompleto = await jugadorRepository.findOne({
       where: { id: jugadorGuardado.id },
       relations: ["usuario", "usuario.carrera"]
@@ -60,6 +63,7 @@ export async function crearJugador(datosJugador) {
     return [null, "Error al crear jugador"];
   }
 }
+
 
 export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {}) {
   try {

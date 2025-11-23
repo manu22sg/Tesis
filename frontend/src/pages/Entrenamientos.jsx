@@ -188,29 +188,49 @@ export default function Entrenamientos() {
   };
 
   const handleSubmit = async (values) => {
-    try {
-      setLoadingModal(true);
-      // En vista general, sesionId es opcional
-      const payload = sesionId ? { ...values, sesionId: parseInt(sesionId) } : values;
-      if (payload.sesionId === undefined) delete payload.sesionId;
+  console.log('📝 Values del formulario:', values);
+  console.log('🎯 sesionId de URL:', sesionId);
+  console.log('✏️ Editando:', editando);
 
-      if (editando) {
-        await actualizarEntrenamiento(editando.id, payload);
-        message.success('Entrenamiento actualizado correctamente');
-      } else {
-        await crearEntrenamiento(payload);
-        message.success('Entrenamiento creado correctamente');
+  try {
+    setLoadingModal(true);
+    
+    let payload = { ...values };
+    
+    // Si estamos en la vista de una sesión específica (URL tiene sesionId)
+    if (sesionId) {
+      payload.sesionId = parseInt(sesionId);
+    } else {
+      // ✅ En vista general: convertir undefined a null explícitamente
+      payload.sesionId = values.sesionId !== undefined ? values.sesionId : null;
+      
+      // ✅ Si sesionId es null, también limpiar el orden
+      if (payload.sesionId === null) {
+        payload.orden = null;
       }
-      setModalVisible(false);
-      form.resetFields();
-      cargarEntrenamientos(pagination.current, pagination.pageSize);
-    } catch (error) {
-      console.error('Error guardando entrenamiento:', error);
-      message.error(error.response?.data?.message || 'Error al guardar el entrenamiento');
-    } finally {
-      setLoadingModal(false);
     }
-  };
+    
+    console.log('📦 Payload final:', payload);
+
+    if (editando) {
+      await actualizarEntrenamiento(editando.id, payload);
+      message.success('Entrenamiento actualizado correctamente');
+    } else {
+      await crearEntrenamiento(payload);
+      message.success('Entrenamiento creado correctamente');
+    }
+    
+    setModalVisible(false);
+    form.resetFields();
+    cargarEntrenamientos(pagination.current, pagination.pageSize);
+  } catch (error) {
+    console.error('Error guardando entrenamiento:', error);
+    message.error(error.response?.data?.message || 'Error al guardar el entrenamiento');
+  } finally {
+    setLoadingModal(false);
+  }
+};
+
 
   const handleEliminar = async (id) => {
     try {
@@ -549,129 +569,133 @@ export default function Entrenamientos() {
 
           {/* Modal Crear/Editar */}
           <Modal
-            title={editando ? 'Editar Entrenamiento' : 'Nuevo Entrenamiento'}
-            open={modalVisible}
-            onCancel={() => {
-              setModalVisible(false);
-              form.resetFields();
-              setEditando(null);
-            }}
-            footer={null}
-            width={600}
+  title={editando ? 'Editar Entrenamiento' : 'Nuevo Entrenamiento'}
+  open={modalVisible}
+  onCancel={() => {
+    setModalVisible(false);
+    form.resetFields();
+    setEditando(null);
+  }}
+  footer={null}
+  width={600}
+>
+  <Form
+    form={form}
+    layout="vertical"
+    onFinish={handleSubmit}
+    initialValues={{
+      duracionMin: 30,
+      orden: sesionId ? 1 : null,
+      ...(sesionId && { sesionId: parseInt(sesionId) })
+    }}
+  >
+    {/* ✅ CAMBIO: Mostrar selector de sesión en vista general (crear Y editar) */}
+    {!sesionId && (
+      <>
+        {loadingSesiones ? (
+          <Spin style={{ marginBottom: 12 }} />
+        ) : sesionesDisponibles.length > 0 ? (
+          <Form.Item
+            name="sesionId"
+            label="Asignar a sesión (opcional)"
+            tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
           >
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              initialValues={{
-                duracionMin: 30,
-                orden: sesionId ? 1 : null, // en global no forzamos orden
-                ...(sesionId && { sesionId: parseInt(sesionId) })
-              }}
-            >
-              {!sesionId && (
-                <>
-                  {loadingSesiones ? (
-                    <Spin style={{ marginBottom: 12 }} />
-                  ) : sesionesDisponibles.length > 0 ? (
-                    <Form.Item
-                      name="sesionId"
-                      label="Asignar a sesión (opcional)"
-                      tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
-                    >
-                      <Select
-                        allowClear
-                        placeholder="Sin sesión (global)"
-                        options={sesionesDisponibles.map((s) => ({
-                          value: s.id,
-                          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre || 'Sin grupo'}`
-                        }))}
-                      />
-                    </Form.Item>
-                  ) : (
-                    <Form.Item
-                      name="sesionId"
-                      label="Asignar a sesión (opcional)"
-                      tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
-                    >
-                      <InputNumber style={{ width: '100%' }} min={1} placeholder="ID de la sesión (opcional)" />
-                    </Form.Item>
-                  )}
-                </>
-              )}
+            <Select
+              allowClear
+              placeholder="Sin sesión (global)"
+              options={sesionesDisponibles.map((s) => ({
+                value: s.id,
+                label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre || 'Sin grupo'}`
+              }))}
+            />
+          </Form.Item>
+        ) : (
+          <Form.Item
+            name="sesionId"
+            label="Asignar a sesión (opcional)"
+            tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
+          >
+            <InputNumber style={{ width: '100%' }} min={1} placeholder="ID de la sesión (opcional)" />
+          </Form.Item>
+        )}
+      </>
+    )}
 
-              {sesionId && (
-                <Form.Item name="sesionId" hidden>
-                  <InputNumber />
-                </Form.Item>
-              )}
+    {/* Campo oculto cuando estás dentro de una sesión específica */}
+    {sesionId && (
+      <Form.Item name="sesionId" hidden>
+        <InputNumber />
+      </Form.Item>
+    )}
 
-              <Form.Item
-                name="titulo"
-                label="Título"
-                rules={[
-                  { required: true, message: 'El título es obligatorio' },
-                  { min: 3, message: 'Mínimo 3 caracteres' },
-                  { max: 100, message: 'Máximo 100 caracteres' },
-                ]}
-              >
-                <Input placeholder="Ej: Calentamiento general" />
-              </Form.Item>
+    <Form.Item
+      name="titulo"
+      label="Título"
+      rules={[
+        { required: true, message: 'El título es obligatorio' },
+        { min: 3, message: 'Mínimo 3 caracteres' },
+        { max: 100, message: 'Máximo 100 caracteres' },
+      ]}
+    >
+      <Input placeholder="Ej: Calentamiento general" />
+    </Form.Item>
 
-              <Form.Item
-                name="descripcion"
-                label="Descripción"
-                rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
-              >
-                <TextArea rows={4} placeholder="Describe el entrenamiento..." />
-              </Form.Item>
+    <Form.Item
+      name="descripcion"
+      label="Descripción"
+      rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
+    >
+      <TextArea rows={4} placeholder="Describe el entrenamiento..." />
+    </Form.Item>
 
-              <Space style={{ width: '100%' }} size="large">
-                <Form.Item
-                  name="duracionMin"
-                  label="Duración (minutos)"
-                  rules={[
-                    { type: 'number', min: 1, message: 'Mínimo 1 minuto' },
-                    { type: 'number', max: 300, message: 'Máximo 300 minutos' },
-                  ]}
-                >
-                  <InputNumber style={{ width: 150 }} min={1} max={300} placeholder="30" />
-                </Form.Item>
+    <Space style={{ width: '100%' }} size="large">
+      <Form.Item
+        name="duracionMin"
+        label="Duración (minutos)"
+        rules={[
+          { type: 'number', min: 1, message: 'Mínimo 1 minuto' },
+          { type: 'number', max: 300, message: 'Máximo 300 minutos' },
+        ]}
+      >
+        <InputNumber style={{ width: 150 }} min={1} max={300} placeholder="30" />
+      </Form.Item>
 
-                {sesionId && (
-                  <Form.Item
-                    name="orden"
-                    label="Orden"
-                    rules={[
-                      { type: 'number', min: 1, message: 'Mínimo 1' },
-                      { type: 'number', max: 99, message: 'Máximo 99' },
-                    ]}
-                  >
-                    <InputNumber style={{ width: 150 }} min={1} max={99} placeholder="1" />
-                  </Form.Item>
-                )}
-              </Space>
+      {/* ✅ CAMBIO: Mostrar campo orden solo si está asignado a una sesión */}
+      {(sesionId || (editando && editando.sesionId)) && (
+        <Form.Item
+          name="orden"
+          label="Orden"
+          tooltip="El orden se asigna automáticamente. Puedes cambiarlo manualmente si lo necesitas."
+          rules={[
+            { type: 'number', min: 1, message: 'Mínimo 1' },
+            { type: 'number', max: 99, message: 'Máximo 99' },
+          ]}
+        >
+          <InputNumber style={{ width: 150 }} min={1} max={99} placeholder="Auto" />
+        </Form.Item>
+      )}
+    </Space>
 
-              <Divider />
+    <Divider />
 
-              <Form.Item>
-                <Space>
-                  <Button type="primary" htmlType="submit" loading={loadingModal}>
-                    {editando ? 'Actualizar' : 'Crear'}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setModalVisible(false);
-                      form.resetFields();
-                      setEditando(null);
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Modal>
+    <Form.Item>
+      <Space>
+        <Button type="primary" htmlType="submit" loading={loadingModal}>
+          {editando ? 'Actualizar' : 'Crear'}
+        </Button>
+        <Button
+          onClick={() => {
+            setModalVisible(false);
+            form.resetFields();
+            setEditando(null);
+          }}
+        >
+          Cancelar
+        </Button>
+      </Space>
+    </Form.Item>
+  </Form>
+</Modal>
 
           {/* Modal Estadísticas */}
           <Modal
@@ -699,13 +723,7 @@ export default function Entrenamientos() {
                     prefix={<FileTextOutlined />}
                   />
                 </Col>
-                <Col span={12}>
-                  <Statistic
-                    title="Con Duración Definida"
-                    value={estadisticas.entrenamientosConDuracion}
-                    prefix={<ClockCircleOutlined />}
-                  />
-                </Col>
+                
                 <Col span={12}>
                   <Statistic
                     title="Duración Total"

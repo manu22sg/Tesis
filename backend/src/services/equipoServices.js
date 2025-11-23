@@ -252,9 +252,7 @@ export const insertarUsuarioEnEquipo = async ({
   const jugadorRepo = JugadorCampRepo();
   const campeonatoRepositorio = campRepo();
 
-  // ===============================
   // 1. Obtener usuario con carrera
-  // ===============================
   const usuario = await usuarioRepo.findOne({
     where: { id: Number(usuarioId) },
     relations: ["carrera"],
@@ -267,9 +265,7 @@ export const insertarUsuarioEnEquipo = async ({
     );
   }
 
-  // ===============================
   // 2. Obtener equipo con carrera
-  // ===============================
   const equipo = await equipoRepo.findOne({
     where: { id: Number(equipoId) },
     relations: ["carrera"],
@@ -285,18 +281,40 @@ export const insertarUsuarioEnEquipo = async ({
     );
   }
 
-  // =========================================================
-  // 3. Validar que usuario y equipo correspondan a la MISMA carrera
-  // =========================================================
-  if (usuario.carreraId !== equipo.carreraId) {
-    throw new Error(
-      `El usuario ${usuario.nombre} pertenece a la carrera "${usuario.carrera.nombre}" y no puede inscribirse en un equipo de "${equipo.carrera.nombre}"`
-    );
+  // 🆕 3. Obtener campeonato y validar según tipo
+  const campeonato = await campeonatoRepositorio.findOne({
+    where: { id: Number(campeonatoId) }
+  });
+  if (!campeonato) throw new Error("Campeonato no encontrado");
+
+  // 🆕 VALIDACIONES SEGÚN TIPO DE CAMPEONATO
+  if (campeonato.tipoCampeonato === 'mechon') {
+    // Para campeonatos mechón: validar que sea del año actual
+    const anioActual = new Date().getFullYear();
+    
+    if (!usuario.anioIngresoUniversidad) {
+      throw new Error(
+        `El usuario ${usuario.nombre} no tiene registrado su año de ingreso a la carrera`
+      );
+    }
+
+    if (usuario.anioIngresoUniversidad !== anioActual) {
+      throw new Error(
+        `Este campeonato es solo para mechones del año ${anioActual}. ` +
+        `El usuario ${usuario.nombre} ingresó en ${usuario.anioIngresoUniversidad}`
+      );
+    }
+  } else if (campeonato.tipoCampeonato === 'intercarrera') {
+    // Para campeonatos intercarrera: validar que usuario y equipo sean de la misma carrera
+    if (usuario.carreraId !== equipo.carreraId) {
+      throw new Error(
+        `El usuario ${usuario.nombre} pertenece a la carrera "${usuario.carrera.nombre}" ` +
+        `y no puede inscribirse en un equipo de "${equipo.carrera.nombre}"`
+      );
+    }
   }
 
-  // ======================================
   // 4. Validar que el usuario no esté en otro equipo del campeonato
-  // ======================================
   const yaParticipa = await jugadorRepo.findOne({
     where: {
       campeonatoId: Number(campeonatoId),
@@ -309,9 +327,7 @@ export const insertarUsuarioEnEquipo = async ({
     );
   }
 
-  // ======================================
   // 5. Validación de número de camiseta único dentro del equipo
-  // ======================================
   if (numeroCamiseta !== null && numeroCamiseta !== undefined) {
     const camisetaRepetida = await jugadorRepo.findOne({
       where: {
@@ -326,17 +342,7 @@ export const insertarUsuarioEnEquipo = async ({
     }
   }
 
-  // ======================================================
-  // 6. Validación NUEVA: Limite de jugadores según formato
-  // ======================================================
-  const campeonato = await campeonatoRepositorio.findOne({
-    where: { id: Number(campeonatoId) }
-  });
-
-  if (!campeonato)
-    throw new Error("Campeonato no encontrado");
-
-  // REGLAS DE LÍMITES SEGÚN FORMATO
+  // 6. Validación de límite de jugadores según formato
   const limites = {
     "5v5": { min: 5, max: 10 },
     "7v7": { min: 7, max: 14 },
@@ -344,24 +350,19 @@ export const insertarUsuarioEnEquipo = async ({
   };
 
   const formato = campeonato.formato?.toLowerCase();
-
   const reglas = limites[formato] || limites["11v11"];
 
-  // Contar jugadores actuales
   const jugadoresActuales = await jugadorRepo.count({
     where: { equipoId: Number(equipoId) },
   });
 
-  // Validar máximo
   if (jugadoresActuales >= reglas.max) {
     throw new Error(
       `Este equipo ya alcanzó el máximo permitido de jugadores (${reglas.max}) para el formato ${campeonato.formato}`
     );
   }
 
-  // ======================================================
   // 7. Insertar jugador
-  // ======================================================
   const jugador = jugadorRepo.create({
     campeonatoId: Number(campeonatoId),
     equipoId: Number(equipoId),

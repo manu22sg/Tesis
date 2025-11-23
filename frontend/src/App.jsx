@@ -40,6 +40,10 @@ import CampeonatoPublico from './pages/CampeonatoPublico.jsx';
 import DetalleCampeonatoPublico from './pages/DetalleCampeonatoPublico.jsx';
 import Register from './pages/Register.jsx';
 import VerificarEmail from './pages/VerificarEmail.jsx';
+import SolicitarRestablecimiento from './pages/SolicitarRestablecimiento.jsx';
+import RestablecerPassword from './pages/RestablecerPassword.jsx';
+import PerfilJugador from './pages/PerfilJugador.jsx';
+import Ojeador from './pages/Ojeador.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -68,6 +72,8 @@ function AppRoutes() {
       {/* Login - público */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/solicitar-restablecimiento" element={<SolicitarRestablecimiento />} />
+      <Route path="/restablecer-password/:token" element={<RestablecerPassword />} />
       <Route path="/verificar/:token" element={<VerificarEmail />} />
 
       {/* Dashboard - Todos los usuarios autenticados */}
@@ -94,6 +100,12 @@ function AppRoutes() {
   <Route path="/campeonatos/:id/fixture" element={<CampeonatoFixture />} />
   <Route path="/campeonatos/:id/tabla" element={<CampeonatoTabla />} />
   <Route path="/campeonatos/:id/estadisticas" element={<EstadisticaCampeonato />} />
+  <Route path="/ojeador/:usuarioId" element={<PerfilJugador />} />
+  <Route path="/ojeador" element={
+    <ProtectedRoute roles={['entrenador', 'admin']}>
+      <Ojeador />
+    </ProtectedRoute>
+  } />
   
   <Route path="/campeonatos/publico" element={<CampeonatoPublico />} />
 <Route path="/campeonatos/:id/publico" element={<DetalleCampeonatoPublico />} />

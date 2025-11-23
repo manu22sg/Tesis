@@ -17,7 +17,8 @@ import {
   BarChartOutlined,
   InfoCircleOutlined,
   StarOutlined,
-  UnorderedListOutlined
+  UnorderedListOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -42,65 +43,62 @@ function getItem(label, key, icon, children) {
 const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { usuario, logout } = useAuth();
+  const { usuario, logout, loading } = useAuth();
   const token = theme.useToken().token;
+
   const [collapsed, setCollapsed] = useState(false);
-  
-  //  Estado para campeonato activo
   const [campeonatoActivo, setCampeonatoActivo] = useState(null);
 
-  //  Determinar rol
-  const rol = (usuario?.rol?.nombre || usuario?.rol || '').toLowerCase();
-  const userRole =
-    rol === 'superadmin'
-      ? 'superadmin'
-      : rol === 'entrenador'
-      ? 'entrenador'
-      : rol === 'academico'
-      ? 'academico'
-      : 'estudiante';
+  // ⛔ No cargar layout aún
+  if (loading) return <div style={{ padding: 30 }}>Cargando usuario...</div>;
+  if (!usuario) return <div style={{ padding: 30 }}>No autenticado...</div>;
 
-  // 🏋️ Menús según rol
+  // ⭐ FORMATO REAL DEL BACKEND:
+  // rol: "estudiante"
+  const rol = usuario?.rol?.toLowerCase() ?? null;
+
+  // Usar directamente el rol del backend
+  const userRole = rol;
+
+  // Es jugador?
+  const esJugador =
+    usuario?.jugador !== null &&
+    usuario?.jugador !== undefined;
+
+  // ================================
+  // MENÚS POR ROL
+  // ================================
   const entrenadorItems = [
-    // 🏆 Campeonatos PRIMERO
     getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
       getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
-      
-      ...(campeonatoActivo ? [
-        { type: 'divider', key: 'divider-campeonato' },
-        getItem(
-          `★ ${campeonatoActivo.nombre}`, 
-          'sub_campeonato_activo', 
-          <StarOutlined />, 
-          [
-            getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
-            getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
-            getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
-            getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
-            getItem('Estadísticas', `campeonato-${campeonatoActivo.id}-estadisticas`, <BarChartOutlined />),
+      ...(campeonatoActivo
+        ? [
+            { type: 'divider', key: 'divider-campeonato' },
+            getItem(`★ ${campeonatoActivo.nombre}`, 'sub_campeonato_activo', <StarOutlined />, [
+              getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
+              getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
+              getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
+              getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
+              getItem('Estadísticas', `campeonato-${campeonatoActivo.id}-estadisticas`, <BarChartOutlined />),
+            ])
           ]
-        ),
-      ] : [])
+        : [])
     ]),
-    
+    getItem('Ojeador', 'ojeador', <SearchOutlined />), // 🆕 Nueva opción
     getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
       getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
     ]),
-
     getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
-
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
     getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
-
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
       getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
       getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
     ]),
-
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
@@ -111,19 +109,15 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
       getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
     ]),
-
     getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
-
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
       getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
       getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
     ]),
-
     getItem('Grupos', 'grupos', <TeamOutlined />),
     getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
@@ -135,10 +129,14 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
       getItem('Mis Reservas', 'reservas-mis', <ScheduleOutlined />),
     ]),
-    getItem('Marcar Asistencia', 'marcar-asistencia', <CheckCircleOutlined />),
-    getItem('Mis Evaluaciones', 'mis-evaluaciones', <TrophyOutlined />),
-    getItem('Mis Lesiones', 'mis-lesiones', <MedicineBoxOutlined />),
-    getItem('Mis Estadísticas', 'mis-estadisticas', <BarChartOutlined />),
+    ...(esJugador
+      ? [
+          getItem('Marcar Asistencia', 'marcar-asistencia', <CheckCircleOutlined />),
+          getItem('Mis Evaluaciones', 'mis-evaluaciones', <TrophyOutlined />),
+          getItem('Mis Lesiones', 'mis-lesiones', <MedicineBoxOutlined />),
+          getItem('Mis Estadísticas', 'mis-estadisticas', <BarChartOutlined />),
+        ]
+      : [])
   ];
 
   const academicoItems = [
@@ -149,7 +147,17 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     ]),
   ];
 
-  //  Rutas ↔ keys
+  const itemsByRole = {
+    superadmin: superAdminItems,
+    entrenador: entrenadorItems,
+    estudiante: estudianteItems,
+    academico: academicoItems,
+  };
+
+  // ==========================================
+  // SELECTED KEY + OPEN KEYS
+  // ==========================================
+
   const pathToKey = {
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
@@ -169,15 +177,19 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/grupos': 'grupos',
     '/evaluaciones': 'evaluaciones',
     '/mis-evaluaciones': 'mis-evaluaciones',
+    '/ojeador': 'ojeador', // 🆕 Nueva ruta
   };
 
-  // Detectar rutas dinámicas de campeonatos
   let selectedKey = selectedKeyOverride;
   if (!selectedKey) {
     const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla|estadisticas)$/);
+    const ojeadorMatch = location.pathname.match(/^\/ojeador(\/\d+)?$/); // 🆕 Match para ojeador y perfil
+    
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       selectedKey = `campeonato-${id}-${seccion}`;
+    } else if (ojeadorMatch) {
+      selectedKey = 'ojeador'; // 🆕 Seleccionar ojeador tanto en lista como en perfil
     } else if (location.pathname.match(/^\/sesiones\/\d+\/entrenamientos$/)) {
       selectedKey = 'entrenamientos';
     } else {
@@ -185,7 +197,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     }
   }
 
-  // Submenús abiertos por defecto
   const [openKeys, setOpenKeys] = useState(() => {
     if (location.pathname.startsWith('/campeonatos')) return ['sub_campeonatos', 'sub_campeonato_activo'];
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
@@ -196,9 +207,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     return [];
   });
 
-  // Navegación al hacer click
   const onMenuClick = ({ key }) => {
-    // Rutas dinámicas de campeonatos
     const campeonatoMatch = key.match(/^campeonato-(\d+)-(info|equipos|fixture|tabla|estadisticas)$/);
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
@@ -226,17 +235,11 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       grupos: '/grupos',
       evaluaciones: '/evaluaciones',
       'mis-evaluaciones': '/mis-evaluaciones',
+      ojeador: '/ojeador', // 🆕 Nueva ruta
     };
 
     const route = keyToPath[key];
     if (route) navigate(route);
-  };
-
-  const itemsByRole = {
-    superadmin: superAdminItems,
-    entrenador: entrenadorItems,
-    estudiante: estudianteItems,
-    academico: academicoItems,
   };
 
   const userMenuItems = [
@@ -260,24 +263,21 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     <CampeonatoActivoContext.Provider value={{ campeonatoActivo, setCampeonatoActivo }}>
       <Layout style={{ minHeight: '100vh' }}>
         <Sider
-  collapsible
-  collapsed={collapsed}
-  onCollapse={setCollapsed}
-  collapsedWidth={80}
-  style={{
-    position: 'fixed',
-    height: '100vh',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    zIndex: 100,
-    overflow: 'auto',
-    // 👇 ESTAS LÍNEAS OCULTAN LA BARRA DE SCROLL
-    scrollbarWidth: 'none', // Firefox
-    msOverflowStyle: 'none', // IE y Edge
-  }}
-  className="hide-scrollbar" // Para Chrome/Safari
->
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          collapsedWidth={80}
+          style={{
+            position: 'fixed',
+            height: '100vh',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
+            overflow: 'auto',
+          }}
+          className="hide-scrollbar"
+        >
           <div
             style={{
               height: 48,
@@ -316,6 +316,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             }}
           >
             <div style={{ flex: 1 }}>{breadcrumb}</div>
+
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />

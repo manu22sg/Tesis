@@ -4,12 +4,13 @@ import { validationError } from '../utils/responseHandler.js';
 const FORMATO_VALIDO = ['5v5', '7v7', '11v11'];
 const GENERO_VALIDO = ['masculino', 'femenino', 'mixto'];
 const ESTADO_VALIDO = ['creado', 'en_juego', 'finalizado', 'cancelado'];
-
+const TIPO_CAMPEONATO_VALIDO = ['mechon', 'intercarrera'];
 // Crear campeonato
 export const crearCampeonatoBody = Joi.object({
   nombre: Joi.string().trim().min(5).max(100).required(),
   formato: Joi.string().valid(...FORMATO_VALIDO).required(),
   genero: Joi.string().valid(...GENERO_VALIDO).required(),
+  tipoCampeonato: Joi.string().valid(...TIPO_CAMPEONATO_VALIDO).default('intercarrera'), 
   anio: Joi.number().integer().min(2020).max(2100).required(),
   semestre: Joi.number().integer().valid(1, 2).required(),
   entrenadorId: Joi.number().integer().positive().optional(),

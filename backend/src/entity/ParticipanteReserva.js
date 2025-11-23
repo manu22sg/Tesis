@@ -13,16 +13,11 @@ const ParticipanteReservaSchema = new EntitySchema({
         },
         usuarioId: {
             type: "int",
-            nullable: true,
+            nullable: false,
         },
         rut: {
             type: "varchar",
             length: 15,
-            nullable: true,
-        },
-        nombreOpcional: {
-            type: "varchar",
-            length: 100,
             nullable: true,
         },
         fechaCreacion: {
@@ -41,7 +36,7 @@ const ParticipanteReservaSchema = new EntitySchema({
             type: "many-to-one",
             target: "Usuario",
             joinColumn: { name: "usuarioId" },
-            onDelete: "SET NULL",
+            onDelete: "CASCADE",
         },
     },
 });

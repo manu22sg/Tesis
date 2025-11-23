@@ -83,8 +83,10 @@ export async function authenticateToken(req, res, next) {
       rol: user.rol ? user.rol.toLowerCase() : 'estudiante',
       carreraId: user.carreraId,
       estado: user.estado,
-      verificado: user.verificado
+      verificado: user.verificado,
+      jugador: user.jugador || null,
     };
+    
 
 
     next();

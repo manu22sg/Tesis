@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col, ConfigProvider } from 'antd';
 import { ReloadOutlined, TrophyOutlined, LineChartOutlined } from '@ant-design/icons';
 import { obtenerMisEvaluaciones } from '../services/evaluacion.services.js';
@@ -9,7 +9,6 @@ import locale from 'antd/locale/es_ES';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 export default function MisEvaluaciones() {
   const { usuario } = useAuth();
@@ -25,8 +24,6 @@ export default function MisEvaluaciones() {
     hasta: null,
     sesionId: null
   });
-
-  // Estadísticas calculadas
   const [promedios, setPromedios] = useState({
     tecnica: 0,
     tactica: 0,
@@ -34,6 +31,15 @@ export default function MisEvaluaciones() {
     fisica: 0,
     general: 0
   });
+
+  // ✅ Control de requests (evitar race conditions)
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const calcularPromedios = (evals) => {
     if (!evals || evals.length === 0) {
@@ -67,19 +73,22 @@ export default function MisEvaluaciones() {
     setPromedios(promediosCalc);
   };
 
+  // ✅ Función de carga mejorada
   const fetchData = async (page = 1, limit = 10) => {
+    const reqId = ++requestIdRef.current;
     setLoading(true);
+    
     try {
-      const params = { 
-        page: page,
-        limit: limit
-      };
+      const params = { page, limit };
       
       if (filtros.desde) params.desde = filtros.desde.format('YYYY-MM-DD');
       if (filtros.hasta) params.hasta = filtros.hasta.format('YYYY-MM-DD');
       if (filtros.sesionId) params.sesionId = filtros.sesionId;
 
       const res = await obtenerMisEvaluaciones(params);
+      
+      // Ignorar respuestas viejas
+      if (reqId !== requestIdRef.current) return;
       
       const evalData = res.evaluaciones || [];
       const paginationData = res.pagination || {};
@@ -92,16 +101,19 @@ export default function MisEvaluaciones() {
       });
       calcularPromedios(evalData);
     } catch (err) {
+      if (!mountedRef.current) return;
       message.error('Error cargando tus evaluaciones');
       console.error('Error completo:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
+  // ✅ Effect único: siempre carga página 1 cuando cambian filtros o pageSize
   useEffect(() => { 
     fetchData(1, pagination.pageSize); 
-  }, [filtros]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros, pagination.pageSize]);
 
   const limpiarFiltros = () => {
     setFiltros({
@@ -274,7 +286,6 @@ export default function MisEvaluaciones() {
                 value={promedios.general}
                 precision={1}
                 suffix="/ 10"
-               
                 valueStyle={{ 
                   color: getColorNota(parseFloat(promedios.general)),
                   fontSize: '28px'

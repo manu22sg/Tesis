@@ -50,4 +50,9 @@ export async function obtenerReservaPorId(id) {
 export async function cancelarReserva(id) {
   const res = await api.put(`/reservas/${id}/cancelar`);
   return res.data.data;
+
+}
+export async function editarParticipantesReserva(id, participantes) {
+  const res = await api.put(`/reservas/${id}/participantes`, { participantes });
+  return res.data.data;
 }

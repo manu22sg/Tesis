@@ -296,7 +296,7 @@ function descargarArchivo(blob, nombre) {
       key: 'usuario',
       render: (_, record) => (
         <div>
-          <strong>{record.usuario?.nombre || 'N/A'}</strong>
+          <strong>{record.usuario?.nombre || 'N/A'} {record.usuario?.apellido || ''}</strong>
           <div style={{ fontSize: 12, color: '#888' }}>{record.usuario?.rut || ''}</div>
         </div>
       ),
@@ -430,7 +430,7 @@ function descargarArchivo(blob, nombre) {
 >
                   {usuarios.map((user) => (
                     <Option key={user.id} value={user.id}>
-          {user.nombre} <span>- {user.rut}</span></Option>
+          {user.nombre} {user.apellido} <span>- {user.rut}</span></Option>
                   ))}
                 </Select>
               </Col>
@@ -540,7 +540,7 @@ function descargarArchivo(blob, nombre) {
               <>
                 <Descriptions bordered column={1} size="small">
                   <Descriptions.Item label="Usuario">
-                    {modalAprobar.reserva.usuario?.nombre}
+                    {modalAprobar.reserva.usuario?.nombre} {modalAprobar.reserva.usuario?.apellido}
                   </Descriptions.Item>
                   <Descriptions.Item label="Cancha">
                     {modalAprobar.reserva.cancha?.nombre}
@@ -586,7 +586,7 @@ function descargarArchivo(blob, nombre) {
               <>
                 <Descriptions bordered column={1} size="small">
                   <Descriptions.Item label="Usuario">
-                    {modalRechazar.reserva.usuario?.nombre}
+                    {modalRechazar.reserva.usuario?.nombre} {modalRechazar.reserva.usuario?.apellido}
                   </Descriptions.Item>
                   <Descriptions.Item label="Cancha">
                     {modalRechazar.reserva.cancha?.nombre}

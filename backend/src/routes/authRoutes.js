@@ -7,10 +7,12 @@ import {
   verifyTokenController,
   buscarUsuariosPorRuts, 
   buscarUsuarios,
-  verificarEmail,         //  NUEVO
-  reenviarVerificacion   //  NUEVO
+  verificarEmail,      
+  reenviarVerificacion,
+  solicitarRestablecimiento,
+  restablecerPassword
 } from '../controllers/authController.js';
-import { validateRegistration, validateLogin } from '../middleware/validationMiddleware.js';
+import { validateRegistration, validateLogin,validateRestablecerPasswordMiddleware,validateSolicitarRestablecimientoMiddleware } from '../middleware/validationMiddleware.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -40,6 +42,18 @@ router.get('/verificar/:token',
 router.post('/reenviar-verificacion',
   reenviarVerificacion
 );
+
+router.post('/solicitar-restablecimiento',
+  validateSolicitarRestablecimientoMiddleware,
+  solicitarRestablecimiento
+);
+
+router.post('/restablecer-password/:token',
+  validateRestablecerPasswordMiddleware,
+  restablecerPassword
+);
+
+
 
 //  Rutas protegidas (requieren autenticación)
 router.get('/profile',

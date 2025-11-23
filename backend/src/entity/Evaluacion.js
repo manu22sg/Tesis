@@ -58,6 +58,10 @@ const EvaluacionSchema = new EntitySchema({
       onDelete: "CASCADE",
     },
   },
+  uniques: [
+  { name: "uq_evaluacion_jugador_sesion", columns: ["jugadorId", "sesionId"] }
+]
+  ,
   indices: [
     {
       name: "idx_evaluaciones_jugador_sesion",
@@ -67,6 +71,7 @@ const EvaluacionSchema = new EntitySchema({
       name: "idx_evaluaciones_fecha",
       columns: ["fechaRegistro"],
     },
+    
   ],
 });
 

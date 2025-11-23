@@ -2,7 +2,7 @@ import api from './root.services.js';
 
 export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 5, extra = {}) {
   try {
-    const response = await axios.get('/horario/disponibilidad', {
+    const response = await api.get('/horario/disponibilidad', {
       params: { fecha, page, limit, ...extra } 
     });
     return response.data;

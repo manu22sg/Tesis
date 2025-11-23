@@ -15,6 +15,8 @@ export async function crearEntrenamiento(datos) {
       return [null, 'El título es obligatorio'];
     }
 
+    let ordenFinal = orden;
+
     if (sesionId) {
       const sesion = await sesionRepo.findOne({ where: { id: sesionId } });
       if (!sesion) return [null, 'Sesión no encontrada'];
@@ -28,8 +30,17 @@ export async function crearEntrenamiento(datos) {
         return [null, 'No se pueden agregar entrenamientos a sesiones pasadas'];
       }
 
-      // Validar orden duplicado solo si hay sesionId
-      if (orden !== null && orden !== undefined) {
+      // ✅ Si no se proporciona orden, calcular el siguiente automáticamente
+      if (orden === null || orden === undefined) {
+        const maxOrdenResult = await entrenamientoRepo
+          .createQueryBuilder("e")
+          .select("MAX(e.orden)", "maxOrden")
+          .where("e.sesionId = :sesionId", { sesionId })
+          .getRawOne();
+        
+        ordenFinal = (maxOrdenResult?.maxOrden || 0) + 1;
+      } else {
+        // Validar orden duplicado solo si se proporciona manualmente
         const existeOrden = await entrenamientoRepo.findOne({
           where: { sesionId, orden }
         });
@@ -44,7 +55,7 @@ export async function crearEntrenamiento(datos) {
       titulo: titulo.trim(),
       descripcion: descripcion?.trim() || null,
       duracionMin: duracionMin || null,
-      orden: sesionId ? (orden || null) : null,
+      orden: sesionId ? ordenFinal : null, // ✅ Usa el orden calculado
     });
 
     const guardado = await entrenamientoRepo.save(entrenamiento);
@@ -137,41 +148,63 @@ export async function actualizarEntrenamiento(id, datos) {
     const entrenamiento = await entrenamientoRepo.findOne({ where: { id } });
     if (!entrenamiento) return [null, 'Entrenamiento no encontrado'];
 
-    // Validar sesión si cambia
-    if (datos.sesionId !== undefined && datos.sesionId !== null) {
-  if (datos.sesionId !== entrenamiento.sesionId) {
-    const sesion = await sesionRepo.findOne({ where: { id: datos.sesionId } });
-    if (!sesion) return [null, 'Sesión no encontrada'];
-  }
-}
+    const sesionAnterior = entrenamiento.sesionId; // ✅ Guardar la sesión anterior
+
+    // ✅ Permitir desasignar la sesión (sesionId: null)
+    if (datos.sesionId !== undefined) {
+      if (datos.sesionId === null) {
+        // Desasignar: quitar sesión y orden
+        entrenamiento.sesionId = null;
+        entrenamiento.orden = null;
+      } else if (datos.sesionId !== entrenamiento.sesionId) {
+        // Asignar a una nueva sesión: validar que existe
+        const sesion = await sesionRepo.findOne({ where: { id: datos.sesionId } });
+        if (!sesion) return [null, 'Sesión no encontrada'];
+        
+        // Calcular nuevo orden automáticamente si cambia de sesión
+        const maxOrdenResult = await entrenamientoRepo
+          .createQueryBuilder("e")
+          .select("MAX(e.orden)", "maxOrden")
+          .where("e.sesionId = :sesionId", { sesionId: datos.sesionId })
+          .getRawOne();
+        
+        entrenamiento.sesionId = datos.sesionId;
+        entrenamiento.orden = (maxOrdenResult?.maxOrden || 0) + 1;
+      }
+    }
 
     // Validar título si cambia
     if (datos.titulo !== undefined && (!datos.titulo || datos.titulo.trim() === '')) {
       return [null, 'El título no puede estar vacío'];
     }
 
-    if (datos.orden !== undefined && datos.orden !== entrenamiento.orden) {
-  const existeOrden = await entrenamientoRepo.findOne({
-    where: { 
-      sesionId: datos.sesionId || entrenamiento.sesionId, 
-      orden: datos.orden 
-    }
-  });
-  
-  if (existeOrden && existeOrden.id !== id) {
-    return [null, `Ya existe un entrenamiento con orden ${datos.orden} en esta sesión`];
-  }
-}
-
-
-    // Actualizar campos permitidos
-    Object.keys(datos).forEach(k => {
-      if (datos[k] !== undefined && k !== 'id' && k !== 'fechaCreacion') {
-        entrenamiento[k] = datos[k];
+    // Validar orden solo si hay sesión asignada y el orden cambia manualmente
+    if (datos.orden !== undefined && datos.orden !== entrenamiento.orden && entrenamiento.sesionId) {
+      const existeOrden = await entrenamientoRepo.findOne({
+        where: { 
+          sesionId: entrenamiento.sesionId, 
+          orden: datos.orden 
+        }
+      });
+      
+      if (existeOrden && existeOrden.id !== id) {
+        return [null, `Ya existe un entrenamiento con orden ${datos.orden} en esta sesión`];
       }
-    });
+      
+      entrenamiento.orden = datos.orden;
+    }
+
+    // Actualizar campos permitidos (excepto los ya manejados)
+    if (datos.titulo !== undefined) entrenamiento.titulo = datos.titulo.trim();
+    if (datos.descripcion !== undefined) entrenamiento.descripcion = datos.descripcion?.trim() || null;
+    if (datos.duracionMin !== undefined) entrenamiento.duracionMin = datos.duracionMin;
 
     const actualizado = await entrenamientoRepo.save(entrenamiento);
+
+    // ✅ NUEVO: Si se desasignó de una sesión, reordenar los entrenamientos restantes
+    if (sesionAnterior && datos.sesionId === null) {
+      await reordenarDespuesDeDesasignar(sesionAnterior);
+    }
 
     // Devolver con relación
     const completo = await entrenamientoRepo.findOne({
@@ -263,12 +296,26 @@ export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
     const original = await entrenamientoRepo.findOne({ where: { id } });
     if (!original) return [null, 'Entrenamiento no encontrado'];
 
+    // ✅ Calcular el siguiente orden si hay sesión destino
+    let nuevoOrden = null;
+    const sesionDestino = nuevaSesionId || original.sesionId;
+    
+    if (sesionDestino) {
+      const maxOrdenResult = await entrenamientoRepo
+        .createQueryBuilder("e")
+        .select("MAX(e.orden)", "maxOrden")
+        .where("e.sesionId = :sesionId", { sesionId: sesionDestino })
+        .getRawOne();
+      
+      nuevoOrden = (maxOrdenResult?.maxOrden || 0) + 1;
+    }
+
     const duplicado = entrenamientoRepo.create({
-      sesionId: nuevaSesionId || original.sesionId,
+      sesionId: sesionDestino,
       titulo: `${original.titulo} (Copia)`,
       descripcion: original.descripcion,
       duracionMin: original.duracionMin,
-      orden: null, // Se asignará automáticamente al final
+      orden: nuevoOrden, // ✅ Ahora se asigna correctamente
     });
 
     const guardado = await entrenamientoRepo.save(duplicado);
@@ -284,6 +331,7 @@ export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 export async function obtenerEstadisticasEntrenamientos(sesionId = null) {
   try {
@@ -317,19 +365,66 @@ export async function obtenerEstadisticasEntrenamientos(sesionId = null) {
   }
 }
 
-export async function asignarEntrenamientosASesion(sesionId, ids) {
+export const asignarEntrenamientosASesion = async (sesionId, entrenamientoIds) => {
+  const repo = AppDataSource.getRepository("EntrenamientoSesion");
+  
   try {
-    const repo = AppDataSource.getRepository(EntrenamientoSesionSchema);
+    // 1. Obtener el orden máximo actual en esa sesión
+    const maxOrdenResult = await repo
+      .createQueryBuilder("e")
+      .select("MAX(e.orden)", "maxOrden")
+      .where("e.sesionId = :sesionId", { sesionId })
+      .getRawOne();
+    
+    let siguienteOrden = (maxOrdenResult?.maxOrden || 0) + 1;
 
-    const result = await repo
-      .createQueryBuilder()
-      .update()
-      .set({ sesionId: parseInt(sesionId) })
-      .where("id IN (:...ids)", { ids })
-      .execute();
+    // 2. Asignar cada entrenamiento con el siguiente orden disponible
+    const entrenamientosActualizados = [];
+    
+    for (let i = 0; i < entrenamientoIds.length; i++) {
+      const id = entrenamientoIds[i];
+      const entrenamiento = await repo.findOne({ where: { id: Number(id) } });
+      
+      if (!entrenamiento) {
+        return [null, `Entrenamiento con ID ${id} no encontrado`];
+      }
 
-    return [result, null];
-  } catch (err) {
-    return [null, err.message];
+      // Actualizar sesionId y orden
+      entrenamiento.sesionId = sesionId;
+      entrenamiento.orden = siguienteOrden + i; // Orden secuencial
+      
+      const guardado = await repo.save(entrenamiento);
+      entrenamientosActualizados.push(guardado);
+    }
+    
+    return [
+      { 
+        entrenamientos: entrenamientosActualizados,
+        mensaje: `${entrenamientoIds.length} entrenamiento(s) asignado(s) correctamente`,
+        ordenInicial: siguienteOrden
+      },
+      null
+    ];
+    
+  } catch (error) {
+    console.error("Error asignando entrenamientos:", error);
+    return [null, error.message || "Error al asignar entrenamientos a la sesión"];
+  }
+};
+
+
+async function reordenarDespuesDeDesasignar(sesionId) {
+  const entrenamientoRepo = AppDataSource.getRepository(EntrenamientoSesionSchema);
+  
+  // Obtener todos los entrenamientos de la sesión ordenados
+  const entrenamientos = await entrenamientoRepo.find({
+    where: { sesionId },
+    order: { orden: 'ASC' }
+  });
+  
+  // Reasignar órdenes secuenciales (1, 2, 3, ...)
+  for (let i = 0; i < entrenamientos.length; i++) {
+    entrenamientos[i].orden = i + 1;
+    await entrenamientoRepo.save(entrenamientos[i]);
   }
 }
