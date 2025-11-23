@@ -326,14 +326,8 @@ function descargarArchivo(blob, nombre) {
       dataIndex: 'estado',
       key: 'estado',
       render: (estado) => {
-        const colors = {
-          pendiente: 'gold',
-          aprobada: 'green',
-          rechazada: 'red',
-          completada: 'blue',
-          expirada: 'volcano'
-        };
-       return <Tag color={colors[estado] || 'default'}>{ucfirst(estado || '')}</Tag>;
+        
+       return <span>{ucfirst(estado || '')}</span>;
       },
       width: 130,
       align: 'center',
@@ -342,7 +336,7 @@ function descargarArchivo(blob, nombre) {
       title: 'Participantes',
       key: 'participantes',
       render: (_, record) => (
-        <Badge count={record.participantes?.length || 0} showZero color="#1890ff" />
+        <span>{record.participantes?.length || 0} </span>
       ),
       width: 130,
       align: 'center',

@@ -274,7 +274,7 @@ function descargarArchivo(blob, nombre) {
       key: 'orden',
       width: 60,
       sorter: (a, b) => (a.orden || 999) - (b.orden || 999),
-      render: (orden) => orden ? <Tag color="blue">#{orden}</Tag> : <Text type="secondary">—</Text>
+      render: (orden) => orden ? <span>#{orden}</span> : <Text type="secondary">—</Text>
     },
     {
       title: 'Jugador',
@@ -298,7 +298,7 @@ function descargarArchivo(blob, nombre) {
       title: 'Posición',
       dataIndex: 'posicion',
       key: 'posicion',
-      render: (posicion) => <Tag color="green">{posicion}</Tag>
+      render: (posicion) => <span>{posicion}</span>
     },
     {
       title: 'Comentario',

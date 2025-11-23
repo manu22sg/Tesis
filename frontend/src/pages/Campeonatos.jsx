@@ -10,7 +10,6 @@ import {
   InputNumber,
   Select,
   message,
-  Tag,
   Tooltip,
   Popconfirm,
   Row,
@@ -41,6 +40,7 @@ import { useNavigate } from 'react-router-dom';
 import { campeonatoService } from '../services/campeonato.services.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import MainLayout, { useCampeonatoActivo } from '../components/MainLayout.jsx';
+
 
 const { Option } = Select;
 
@@ -320,23 +320,23 @@ function CampeonatosContent() {
       title: 'Tipo',
       dataIndex: 'tipoCampeonato',
       render: (tipo) => (
-        <Tag color={tipo === 'mechon' ? 'cyan' : 'geekblue'}>
-          {tipo === 'mechon' ? 'Mechón' : 'Intercarrera'}
-        </Tag>
+        <span>
+  {tipo === 'mechon' ? 'Mechón' : 'Intercarrera'}
+</span>
       )
     },
-    {
+    {   
       title: 'Formato',
       dataIndex: 'formato',
-      render: (formato) => <Tag color="purple">{formato}</Tag>
+      render: (formato) => <span>{formato}</span>
     },
     {
       title: 'Género',
       dataIndex: 'genero',
       render: (genero) => (
-        <Tag color={genero === 'masculino' ? 'blue' : genero === 'femenino' ? 'pink' : 'orange'}>
-          {genero.charAt(0).toUpperCase() + genero.slice(1)}
-        </Tag>
+        <span>
+  {genero.charAt(0).toUpperCase() + genero.slice(1)}
+</span>
       )
     },
     {
@@ -347,9 +347,9 @@ function CampeonatosContent() {
       title: 'Estado',
       dataIndex: 'estado',
       render: (estado) => (
-        <Tag color={getEstadoColor(estado)}>
-          {formatEstadoTexto(estado)}
-        </Tag>
+       <span>
+  {formatEstadoTexto(estado)}
+</span>
       )
     },
     {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './global.css';
 import { ConfigProvider, theme, Button } from 'antd';
 import { ubbLightTheme, ubbDarkTheme } from './theme';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
