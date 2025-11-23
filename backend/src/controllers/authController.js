@@ -422,6 +422,7 @@ export async function buscarUsuarios(req, res) {
       rut: user.rut,
       id: user.id,
       nombre: user.nombre,
+      apellido: user.apellido,
       email: user.email,
       rol: user.rol,
       carrera: user.carrera ? {

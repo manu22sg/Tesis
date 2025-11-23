@@ -690,7 +690,6 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
      
     const queryBuilder = userRepository
       .createQueryBuilder('usuario')
-      //  Incluir campos de usuario y carrera
       .select([
         'usuario.id', 
         'usuario.rut', 
@@ -700,14 +699,13 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
         'usuario.rol',
         'usuario.carreraId'
       ])
-      //  Join con carrera para incluir el nombre
       .leftJoinAndSelect('usuario.carrera', 'carrera')
-      //  Búsqueda optimizada: busca en campos individuales Y en nombre completo
+      // 🔥 CAMBIO IMPORTANTE: Mejoramos la búsqueda
       .where(`(
         usuario.rut LIKE :terminoRut 
         OR LOWER(usuario.nombre) LIKE LOWER(:termino)
         OR LOWER(usuario.apellido) LIKE LOWER(:termino)
-        OR LOWER(CONCAT(usuario.nombre, ' ', usuario.apellido)) LIKE LOWER(:termino)
+        OR LOWER(CONCAT(usuario.nombre, ' ', COALESCE(usuario.apellido, ''))) LIKE LOWER(:termino)
         OR LOWER(carrera.nombre) LIKE LOWER(:termino)
       )`, {
         terminoRut: `%${terminoLimpio}%`,
@@ -715,6 +713,7 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       })
       .andWhere('usuario.estado = :estado', { estado })
       .andWhere('usuario.verificado = true');
+
       
      
     // Solo filtrar por roles si se especifica explícitamente

@@ -289,7 +289,7 @@ function descargarArchivo(blob, nombre) {
         />
         </div>
           <span>
-            {record.jugador?.usuario?.nombre} {record.jugador?.usuario?.apellido} - {record.jugador?.usuario?.rut}
+  {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''} - ${record.jugador?.usuario?.rut || 'Sin RUT'}`.trim()}
           </span>
         </Space>
       )

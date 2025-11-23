@@ -263,18 +263,24 @@ const handleExportarPDF = async () => {
 
   // Opciones memoizadas para Select (evita ReactNode -> toLowerCase error)
   const opcionesJugadores = useMemo(() => {
-    return (jugadores || []).map((j) => ({
+  return (jugadores || []).map((j) => {
+    const nombre = j.usuario?.nombre || `Jugador #${j.id}`;
+    const apellido = j.usuario?.apellido || '';
+    const rut = j.usuario?.rut || '';
+    
+    return {
       value: j.id,
-      label: `${j.usuario?.nombre || `Jugador #${j.id}`} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || ''}`.trim(),
-    }));
-  }, [jugadores]);
+      label: `${nombre} ${apellido} - ${rut}`.trim(),
+    };
+  });
+}, [jugadores]);
 
   const columns = [
     {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => {
-        const nombre = (record.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (record.jugador?.usuario?.apellido || '');
+        const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
         const rut = record.jugador?.usuario?.rut || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

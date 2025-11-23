@@ -78,12 +78,19 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {
       .leftJoinAndSelect("jugadorGrupos.grupo", "grupo");
 
     // Búsqueda general por nombre o RUT
-    if (filtros.q) {
+  if (filtros.q) {
       queryBuilder.andWhere(
-        "(usuario.nombre ILIKE :q OR usuario.rut LIKE :q)",
+        `(
+          LOWER(usuario.nombre) ILIKE LOWER(:q) 
+          OR LOWER(usuario.apellido) ILIKE LOWER(:q)
+          OR LOWER(CONCAT(COALESCE(usuario.nombre, ''), ' ', COALESCE(usuario.apellido, ''))) ILIKE LOWER(:q)
+          OR usuario.rut LIKE :q
+        )`,
         { q: `%${filtros.q}%` }
       );
     }
+
+
 
     if (filtros.estado) {
       queryBuilder.andWhere("jugador.estado = :estado", { estado: filtros.estado });

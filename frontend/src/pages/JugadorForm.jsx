@@ -82,12 +82,13 @@ export default function JugadorForm() {
       if (jugador.usuario) {
         setUsuarioSeleccionado({
           id: jugador.usuario.id,
-          nombre: jugador.usuario.nombre,
+nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
+          
           rut: jugador.usuario.rut,
           email: jugador.usuario.email,
           carrera: jugador.usuario.carrera?.nombre || 'Sin carrera'
         });
-        setValorBusqueda(`${jugador.usuario.rut} - ${jugador.usuario.nombre}`);
+        setValorBusqueda(`${jugador.usuario.rut} - ${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim());
       }
     } catch (error) {
       console.error('Error cargando jugador:', error);
@@ -112,18 +113,23 @@ export default function JugadorForm() {
           roles: ['estudiante'],
           excluirJugadores: true
         });
+          
+        const opcionesFormateadas = resultados.map((usuario) => {
+  const nombreCompleto = `${usuario.nombre} ${usuario.apellido || ''}`.trim();
+  const labelCarrera = usuario.carrera?.nombre ? ` - ${usuario.carrera.nombre}` : '';
+  
+  return {
+    value: `${nombreCompleto} - ${usuario.rut}`, 
+    label: `${nombreCompleto} - ${usuario.rut}${labelCarrera}`, 
+    rut: usuario.rut,
+    nombre: nombreCompleto,
+    email: usuario.email,
+    carrera: usuario.carrera?.nombre || 'Sin carrera',
+    usuarioId: usuario.id
+  };
+});
 
-        const opcionesFormateadas = resultados.map((usuario) => ({
-          value: usuario.rut,
-          label: `${usuario.nombre} - ${usuario.rut}${
-            usuario.carrera?.nombre ? ` - ${usuario.carrera.nombre}` : ''
-          }`,
-          rut: usuario.rut,
-          nombre: usuario.nombre,
-          email: usuario.email,
-          carrera: usuario.carrera?.nombre || 'Sin carrera',
-          usuarioId: usuario.id
-        }));
+
 
         setOpcionesAutoComplete(opcionesFormateadas);
       } catch (error) {

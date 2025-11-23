@@ -197,7 +197,7 @@ const handleExportarPDF = async () => {
           <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
-              {record.jugador?.usuario?.nombre || 'Sin nombre'} {record.jugador?.usuario?.apellido || ''}
+  {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim()}
             </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.jugador?.usuario?.rut || 'Sin RUT'}

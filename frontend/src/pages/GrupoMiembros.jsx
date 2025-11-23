@@ -81,18 +81,23 @@ export default function GrupoMiembros() {
     pageSize: 10,
     total: 0
   });
-  //Filtros entrenamientos
+  
+  // Filtros entrenamientos
   const [filtrosEntrenamientos, setFiltrosEntrenamientos] = useState({
-  q: '',
-  canchaId: null,
-});
-const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
+    q: '',
+    canchaId: null,
+  });
+  const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
 
   // Modal agregar miembros
   const [modalAgregar, setModalAgregar] = useState(false);
   const [jugadoresDisponibles, setJugadoresDisponibles] = useState([]);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
   const [agregando, setAgregando] = useState(false);
+  
+  // ✅ Estados para búsqueda backend de jugadores
+  const [busquedaJugador, setBusquedaJugador] = useState('');
+  const [buscandoJugadores, setBuscandoJugadores] = useState(false);
 
   // Entrenamientos/Sesiones (server-side)
   const [tabActiva, setTabActiva] = useState('miembros');
@@ -108,23 +113,23 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
   const requestIdGrupoRef = useRef(0);
   const requestIdSesionesRef = useRef(0);
   const mountedRef = useRef(true);
+  
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {
-  (async () => {
-    try {
-      const r = await obtenerCanchas({ limit: 200 });
-      const lista = r?.canchas || r?.data?.canchas || [];
-      setCanchasOpts(lista);
-    } catch (e) {
-      // no interrumpimos la UI si falla
-      console.warn('No se pudieron cargar canchas', e);
-    }
-  })();
-}, []);
+    (async () => {
+      try {
+        const r = await obtenerCanchas({ limit: 200 });
+        const lista = r?.canchas || r?.data?.canchas || [];
+        setCanchasOpts(lista);
+      } catch (e) {
+        console.warn('No se pudieron cargar canchas', e);
+      }
+    })();
+  }, []);
 
   // Debounce búsqueda (miembros)
   useEffect(() => {
@@ -146,11 +151,10 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
         const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
           id: jg.jugador?.id,
           jugadorGrupoId: jg.id,
-          nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
+          nombre: `${jg.jugador?.usuario?.nombre || 'Sin nombre'} ${jg.jugador?.usuario?.apellido || ''}`.trim(),
           rut: jg.jugador?.usuario?.rut || 'Sin RUT',
           email: jg.jugador?.usuario?.email || '—',
           carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
-          telefono: jg.jugador?.telefono || '—',
           anioIngreso: jg.jugador?.anioIngreso || '—',
           estado: jg.jugador?.estado || 'activo',
           fechaNacimiento: jg.jugador?.fechaNacimiento,
@@ -173,12 +177,49 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
   }, [grupoId]);
 
   useEffect(() => {
-  const delay = setTimeout(() => {
-    setFiltrosEntrenamientos(prev => ({ ...prev, q: busquedaEntrenamiento.trim() }));
-  }, 500);
-  return () => clearTimeout(delay);
-}, [busquedaEntrenamiento]);
+    const delay = setTimeout(() => {
+      setFiltrosEntrenamientos(prev => ({ ...prev, q: busquedaEntrenamiento.trim() }));
+    }, 500);
+    return () => clearTimeout(delay);
+  }, [busquedaEntrenamiento]);
 
+  // ✅ Búsqueda de jugadores con debounce (backend)
+  useEffect(() => {
+    const buscarJugadores = async () => {
+      const termino = busquedaJugador.trim();
+      
+      if (!termino || termino.length < 2) {
+        setJugadoresDisponibles([]);
+        return;
+      }
+
+      try {
+        setBuscandoJugadores(true);
+        
+        const resultado = await obtenerJugadores({
+          q: termino,
+          limite: 50,
+          pagina: 1
+        });
+        
+        const lista = resultado.jugadores || resultado?.data?.jugadores || [];
+        
+        // Filtrar jugadores que ya están en el grupo
+        const idsGrupo = new Set(miembros.map(m => m.id));
+        const disponibles = lista.filter(j => !idsGrupo.has(j.id));
+        
+        setJugadoresDisponibles(disponibles);
+      } catch (error) {
+        console.error('Error buscando jugadores:', error);
+        message.error('Error al buscar jugadores');
+      } finally {
+        setBuscandoJugadores(false);
+      }
+    };
+
+    const timeout = setTimeout(buscarJugadores, 500);
+    return () => clearTimeout(timeout);
+  }, [busquedaJugador, miembros]);
 
   // Filtros y paginado de miembros (todo con useMemo)
   const miembrosFiltrados = useMemo(() => {
@@ -205,7 +246,6 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
     return resultado;
   }, [miembros, qDebounced, filtroEstado, filtroCarrera]);
 
-  // Actualizar total y reset de página si cambian filtros/búsqueda
   useEffect(() => {
     setPaginationMiembros(prev => ({
       ...prev,
@@ -219,125 +259,109 @@ const [busquedaEntrenamiento, setBusquedaEntrenamiento] = useState('');
     return miembrosFiltrados.slice(start, start + paginationMiembros.pageSize);
   }, [miembrosFiltrados, paginationMiembros.current, paginationMiembros.pageSize]);
 
-  // Carreras únicas (para filtro)
   const carrerasUnicas = useMemo(
     () => [...new Set(miembros.map(m => m.carrera).filter(Boolean))],
     [miembros]
   );
 
   // Sesiones 
-const cargarSesiones = async (
-  page = 1,
-  limit = paginationEntrenamientos.pageSize
-) => {
-  const reqId = ++requestIdSesionesRef.current;
-  try {
-    setLoadingSesiones(true);
+  const cargarSesiones = async (
+    page = 1,
+    limit = paginationEntrenamientos.pageSize
+  ) => {
+    const reqId = ++requestIdSesionesRef.current;
+    try {
+      setLoadingSesiones(true);
 
-    // Solo usamos q y canchaId
-    const qParam = (filtrosEntrenamientos.q || '').trim();
-    const canchaIdParam =
-      filtrosEntrenamientos.canchaId != null
-        ? Number(filtrosEntrenamientos.canchaId)
-        : undefined;
+      const qParam = (filtrosEntrenamientos.q || '').trim();
+      const canchaIdParam =
+        filtrosEntrenamientos.canchaId != null
+          ? Number(filtrosEntrenamientos.canchaId)
+          : undefined;
 
-    // Llamada al backend (si no soporta q/canchaId no pasa nada, luego filtramos local)
-    const data = await obtenerSesiones({
-      grupoId,
-      page,
-      limit,
-      ...(qParam ? { q: qParam } : {}),
-      ...(canchaIdParam ? { canchaId: canchaIdParam } : {}),
-    });
-
-    // Evitar condición de carrera
-    if (reqId !== requestIdSesionesRef.current) return;
-
-    const sesionesData = data?.sesiones || data?.data?.sesiones || [];
-    const paginationData = data?.pagination || data?.data?.pagination || {};
-
-    // Filtro local seguro por si el backend no filtra
-    const q = qParam.toLowerCase();
-    const canchaId = canchaIdParam;
-
-    let filtradas = sesionesData;
-    if (q || canchaId) {
-      filtradas = sesionesData.filter((s) => {
-        const canchaNom = String(s?.cancha?.nombre ?? '').toLowerCase();
-        const ubicacion = String(s?.ubicacionExterna ?? '').toLowerCase();
-        const objetivos = String(s?.objetivos ?? '').toLowerCase();
-                const tipoSesion = String(s?.tipoSesion ?? '').toLowerCase();
-
-
-        const okCancha = canchaId
-          ? Number(s?.cancha?.id) === Number(canchaId)
-          : true;
-
-        const okQ = q
-          ? canchaNom.includes(q) ||
-            ubicacion.includes(q) ||
-            tipoSesion.includes(q)
-          : true;
-
-        return okCancha && okQ;
+      const data = await obtenerSesiones({
+        grupoId,
+        page,
+        limit,
+        ...(qParam ? { q: qParam } : {}),
+        ...(canchaIdParam ? { canchaId: canchaIdParam } : {}),
       });
+
+      if (reqId !== requestIdSesionesRef.current) return;
+
+      const sesionesData = data?.sesiones || data?.data?.sesiones || [];
+      const paginationData = data?.pagination || data?.data?.pagination || {};
+
+      const q = qParam.toLowerCase();
+      const canchaId = canchaIdParam;
+
+      let filtradas = sesionesData;
+      if (q || canchaId) {
+        filtradas = sesionesData.filter((s) => {
+          const canchaNom = String(s?.cancha?.nombre ?? '').toLowerCase();
+          const ubicacion = String(s?.ubicacionExterna ?? '').toLowerCase();
+          const tipoSesion = String(s?.tipoSesion ?? '').toLowerCase();
+
+          const okCancha = canchaId
+            ? Number(s?.cancha?.id) === Number(canchaId)
+            : true;
+
+          const okQ = q
+            ? canchaNom.includes(q) ||
+              ubicacion.includes(q) ||
+              tipoSesion.includes(q)
+            : true;
+
+          return okCancha && okQ;
+        });
+      }
+
+      setSesiones(filtradas);
+      setPaginationEntrenamientos({
+        current: paginationData.currentPage || page,
+        pageSize: paginationData.itemsPerPage || limit,
+        total:
+          typeof paginationData.totalItems === 'number'
+            ? paginationData.totalItems
+            : filtradas.length,
+      });
+    } catch (error) {
+      if (!mountedRef.current) return;
+      console.error('Error cargando sesiones:', error);
+      message.error('Error al cargar los entrenamientos');
+    } finally {
+      if (mountedRef.current) setLoadingSesiones(false);
     }
+  };
 
-    setSesiones(filtradas);
-    setPaginationEntrenamientos({
-      current: paginationData.currentPage || page,
-      pageSize: paginationData.itemsPerPage || limit,
-      // Si el backend no manda total, usamos el tamaño filtrado
-      total:
-        typeof paginationData.totalItems === 'number'
-          ? paginationData.totalItems
-          : filtradas.length,
-    });
-  } catch (error) {
-    if (!mountedRef.current) return;
-    console.error('Error cargando sesiones:', error);
-    message.error('Error al cargar los entrenamientos');
-  } finally {
-    if (mountedRef.current) setLoadingSesiones(false);
-  }
-};
-
-
-
-
-  // Primera carga de sesiones al entrar en la pestaña y cuando cambia pageSize
   useEffect(() => {
-  if (tabActiva === 'entrenamientos') {
-    // cada vez que entro a la pestaña, cambie el pageSize, el grupo o los filtros → recargo
-    cargarSesiones(1, paginationEntrenamientos.pageSize);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [tabActiva, paginationEntrenamientos.pageSize, grupoId, filtrosEntrenamientos]);
-
-
+    if (tabActiva === 'entrenamientos') {
+      cargarSesiones(1, paginationEntrenamientos.pageSize);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabActiva, paginationEntrenamientos.pageSize, grupoId, filtrosEntrenamientos]);
 
   // Handlers
   const handleRemoverMiembro = async (jugadorId) => {
     try {
       await removerJugadorDeGrupo(jugadorId, grupoId);
       message.success('Jugador removido del grupo correctamente');
-      // si quedaste sin elementos en la página, retrocede
+      
       const nextPage =
         miembrosPaginados.length === 1 && paginationMiembros.current > 1
           ? paginationMiembros.current - 1
           : paginationMiembros.current;
       setPaginationMiembros(prev => ({ ...prev, current: nextPage }));
-      // recargar miembros
+      
       const grupoData = await obtenerGrupoPorId(grupoId);
       setGrupo(grupoData);
       const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
         id: jg.jugador?.id,
         jugadorGrupoId: jg.id,
-        nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
+        nombre: `${jg.jugador?.usuario?.nombre || 'Sin nombre'} ${jg.jugador?.usuario?.apellido || ''}`.trim(),
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
         carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
-        telefono: jg.jugador?.telefono || '—',
         anioIngreso: jg.jugador?.anioIngreso || '—',
         estado: jg.jugador?.estado || 'activo',
         fechaNacimiento: jg.jugador?.fechaNacimiento,
@@ -380,17 +404,12 @@ const cargarSesiones = async (
     }
   };
 
-  const handleAgregarMiembro = async () => {
-    try {
-      setModalAgregar(true);
-      const todos = await obtenerJugadores({ limit: 1000 });
-      const lista = todos.jugadores || todos?.data?.jugadores || [];
-      const idsGrupo = new Set(miembros.map(m => m.id));
-      setJugadoresDisponibles(lista.filter(j => !idsGrupo.has(j.id)));
-    } catch (error) {
-      console.error('Error cargando jugadores:', error);
-      message.error('Error al cargar jugadores disponibles');
-    }
+  // ✅ Simplificado: solo abre el modal
+  const handleAgregarMiembro = () => {
+    setModalAgregar(true);
+    setBusquedaJugador('');
+    setJugadoresDisponibles([]);
+    setJugadorSeleccionado(null);
   };
 
   const handleConfirmarAgregar = async () => {
@@ -404,16 +423,17 @@ const cargarSesiones = async (
       message.success('Jugador agregado al grupo correctamente');
       setModalAgregar(false);
       setJugadorSeleccionado(null);
-      // recargar grupo/miembros
+      setBusquedaJugador('');
+      setJugadoresDisponibles([]);
+      
       const grupoData = await obtenerGrupoPorId(grupoId);
       const miembrosData = (grupoData.jugadorGrupos || []).map(jg => ({
         id: jg.jugador?.id,
         jugadorGrupoId: jg.id,
-        nombre: (jg.jugador?.usuario?.nombre || 'Sin nombre') + ' ' + (jg.jugador?.usuario?.apellido || ''),
+        nombre: `${jg.jugador?.usuario?.nombre || 'Sin nombre'} ${jg.jugador?.usuario?.apellido || ''}`.trim(),
         rut: jg.jugador?.usuario?.rut || 'Sin RUT',
         email: jg.jugador?.usuario?.email || '—',
         carrera: jg.jugador?.usuario?.carrera?.nombre || '—',
-        telefono: jg.jugador?.telefono || '—',
         anioIngreso: jg.jugador?.anioIngreso || '—',
         estado: jg.jugador?.estado || 'activo',
         fechaNacimiento: jg.jugador?.fechaNacimiento,
@@ -439,16 +459,15 @@ const cargarSesiones = async (
     }
   };
 
-  // Paginación front/back
   const handlePageChangeMiembros = (page, pageSize) => {
     setPaginationMiembros(prev => ({ ...prev, current: page, pageSize }));
   };
+  
   const handlePageChangeEntrenamientos = (page, pageSize) => {
     setPaginationEntrenamientos(prev => ({ ...prev, current: page, pageSize }));
     cargarSesiones(page, pageSize);
   };
 
-  // Columnas entrenamientos
   const columnasEntrenamientos = useMemo(() => [
     {
       title: 'Fecha',
@@ -478,16 +497,15 @@ const cargarSesiones = async (
       render: (tipo) => <Tag color="blue">{tipo || '—'}</Tag>,
     },
     {
-  title: 'Lugar',
-  key: 'lugar',
-  render: (_, record) => (
-    <span>
-      <EnvironmentOutlined /> {record.ubicacionExterna || record.cancha?.nombre || 'Sin cancha'}
-    </span>
-  ),
-  width: 220,
-},
-   
+      title: 'Lugar',
+      key: 'lugar',
+      render: (_, record) => (
+        <span>
+          <EnvironmentOutlined /> {record.ubicacionExterna || record.cancha?.nombre || 'Sin cancha'}
+        </span>
+      ),
+      width: 220,
+    },
     {
       title: 'Acciones',
       key: 'acciones',
@@ -518,9 +536,8 @@ const cargarSesiones = async (
         </Space>
       ),
     },
-  ], []); // columnas estables
+  ], []);
 
-  // Columnas miembros
   const columnsMiembros = useMemo(() => [
     {
       title: 'Jugador',
@@ -529,7 +546,7 @@ const cargarSesiones = async (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.nombre || 'Sin nombre'} {record.apellido || ''}</div>
+            <div style={{ fontWeight: 500 }}>{record.nombre || 'Sin nombre'}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.rut || 'Sin RUT'}
             </Text>
@@ -538,24 +555,14 @@ const cargarSesiones = async (
       ),
       width: 240,
     },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      render: (email) => <Text style={{ fontSize: 13 }}>{email || '—'}</Text>,
-    },
+   
     {
       title: 'Carrera',
       dataIndex: 'carrera',
       key: 'carrera',
       render: (carrera) => <Tag color="blue">{carrera || '—'}</Tag>,
     },
-    {
-      title: 'Teléfono',
-      dataIndex: 'telefono',
-      key: 'telefono',
-      render: (telefono) => <Text style={{ fontSize: 13 }}>{telefono || '—'}</Text>,
-    },
+    
     {
       title: 'Año Ingreso',
       dataIndex: 'anioIngreso',
@@ -606,7 +613,7 @@ const cargarSesiones = async (
         </Space>
       ),
     },
-  ], []); // columnas estables
+  ], []);
 
   if (loading) {
     return (
@@ -635,7 +642,6 @@ const cargarSesiones = async (
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
           <Card>
-            {/* Header */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -673,13 +679,12 @@ const cargarSesiones = async (
               </Space>
             </div>
 
-            {/* Tabs */}
             <Tabs
               activeKey={tabActiva}
               onChange={(k) => {
                 setTabActiva(k);
                 if (k === 'miembros') {
-                  // opcional: nada que recargar, ya está en memoria
+                  // nada
                 } else {
                   setPaginationEntrenamientos(prev => ({ ...prev, current: 1 }));
                 }
@@ -695,7 +700,6 @@ const cargarSesiones = async (
                   ),
                   children: (
                     <>
-                      {/* Filtros Miembros */}
                       <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
                         <Row gutter={[16, 16]}>
                           <Col xs={24} sm={12} md={8}>
@@ -737,7 +741,6 @@ const cargarSesiones = async (
                         </Row>
                       </Card>
 
-                      {/* Tabla Miembros */}
                       <Card>
                         <Table
                           columns={columnsMiembros}
@@ -754,7 +757,6 @@ const cargarSesiones = async (
                             ),
                           }}
                         />
-                        {/* Paginación externa (izquierda) */}
                         {paginationMiembros.total > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
                             <Pagination
@@ -783,65 +785,63 @@ const cargarSesiones = async (
                   ),
                   children: (
                     <>
-                      {/* Acciones entrenamientos */}
-                     <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
-  <Row gutter={[16, 16]} align="middle">
-    <Col xs={24} md={8}>
-      <Input
-        placeholder="Buscar por lugar o tipo de Sesión"
-        prefix={<SearchOutlined />}
-        value={busquedaEntrenamiento}
-        onChange={(e) => setBusquedaEntrenamiento(e.target.value)}
-        allowClear
-        size="middle"
-      />
-    </Col>
+                      <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                        <Row gutter={[16, 16]} align="middle">
+                          <Col xs={24} md={8}>
+                            <Input
+                              placeholder="Buscar por lugar o tipo de Sesión"
+                              prefix={<SearchOutlined />}
+                              value={busquedaEntrenamiento}
+                              onChange={(e) => setBusquedaEntrenamiento(e.target.value)}
+                              allowClear
+                              size="middle"
+                            />
+                          </Col>
 
-    <Col xs={24} sm={12} md={6}>
-      <Select
-        placeholder="Filtrar por cancha"
-        value={filtrosEntrenamientos.canchaId}
-        onChange={(v) =>
-          setFiltrosEntrenamientos(prev => ({ ...prev, canchaId: v || null }))
-        }
-        allowClear
-        style={{ width: '100%' }}
-        showSearch
-        filterOption={(input, option) =>
-          (option?.children ?? '').toString().toLowerCase().includes(input.toLowerCase())
-        }
-      >
-        {canchasOpts.map(c => (
-          <Option key={c.id} value={c.id}>
-            {c.nombre}
-          </Option>
-        ))}
-      </Select>
-    </Col>
+                          <Col xs={24} sm={12} md={6}>
+                            <Select
+                              placeholder="Filtrar por cancha"
+                              value={filtrosEntrenamientos.canchaId}
+                              onChange={(v) =>
+                                setFiltrosEntrenamientos(prev => ({ ...prev, canchaId: v || null }))
+                              }
+                              allowClear
+                              style={{ width: '100%' }}
+                              showSearch
+                              filterOption={(input, option) =>
+                                (option?.children ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                              }
+                            >
+                              {canchasOpts.map(c => (
+                                <Option key={c.id} value={c.id}>
+                                  {c.nombre}
+                                </Option>
+                              ))}
+                            </Select>
+                          </Col>
 
-    <Col xs={24} sm={12} md={4}>
-      <Space>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={() => cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize)}
-          loading={loadingSesiones}
-        >
-          Actualizar
-        </Button>
-        <Button
-          onClick={() => {
-            setFiltrosEntrenamientos({ q: '', canchaId: null });
-            setBusquedaEntrenamiento('');
-          }}
-        >
-          Limpiar
-        </Button>
-      </Space>
-    </Col>
-  </Row>
-</Card>
+                          <Col xs={24} sm={12} md={4}>
+                            <Space>
+                              <Button
+                                icon={<ReloadOutlined />}
+                                onClick={() => cargarSesiones(paginationEntrenamientos.current, paginationEntrenamientos.pageSize)}
+                                loading={loadingSesiones}
+                              >
+                                Actualizar
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setFiltrosEntrenamientos({ q: '', canchaId: null });
+                                  setBusquedaEntrenamiento('');
+                                }}
+                              >
+                                Limpiar
+                              </Button>
+                            </Space>
+                          </Col>
+                        </Row>
+                      </Card>
 
-                      {/* Tabla Entrenamientos */}
                       <Card>
                         <Table
                           columns={columnasEntrenamientos}
@@ -864,7 +864,6 @@ const cargarSesiones = async (
                           }}
                         />
 
-                        {/* Paginación externa (izquierda) */}
                         {paginationEntrenamientos.total > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
                             <Pagination
@@ -887,7 +886,7 @@ const cargarSesiones = async (
             />
           </Card>
 
-          {/* Modal Agregar Miembros */}
+          {/* ✅ Modal Agregar Miembros CON BÚSQUEDA BACKEND */}
           <Modal
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -899,9 +898,19 @@ const cargarSesiones = async (
             onCancel={() => {
               setModalAgregar(false);
               setJugadorSeleccionado(null);
+              setBusquedaJugador('');
+              setJugadoresDisponibles([]);
             }}
             footer={[
-              <Button key="cancel" onClick={() => { setModalAgregar(false); setJugadorSeleccionado(null); }}>
+              <Button 
+                key="cancel" 
+                onClick={() => { 
+                  setModalAgregar(false); 
+                  setJugadorSeleccionado(null);
+                  setBusquedaJugador('');
+                  setJugadoresDisponibles([]);
+                }}
+              >
                 Cancelar
               </Button>,
               <Button
@@ -925,32 +934,39 @@ const cargarSesiones = async (
               <Select
                 value={jugadorSeleccionado}
                 onChange={setJugadorSeleccionado}
-                placeholder="Buscar por nombre, RUT o carrera..."
+                placeholder="Escribe para buscar por nombre, RUT o carrera..."
                 style={{ width: '100%', marginTop: 8 }}
                 showSearch
-                filterOption={(input, option) => {
-                  const hay = (option?.label ?? '').toString().toLowerCase();
-                  return hay.includes(input.toLowerCase());
-                }}
+                searchValue={busquedaJugador}
+                onSearch={setBusquedaJugador}
+                loading={buscandoJugadores}
+                filterOption={false}
+                notFoundContent={
+                  buscandoJugadores ? (
+                    <div style={{ textAlign: 'center', padding: 16 }}>
+                      <Spin size="small" />
+                      <div style={{ marginTop: 8 }}>Buscando...</div>
+                    </div>
+                  ) : busquedaJugador.length < 2 ? (
+                    <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
+                      Escribe al menos 2 caracteres para buscar
+                    </div>
+                  ) : jugadoresDisponibles.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
+                      No se encontraron jugadores disponibles
+                    </div>
+                  ) : null
+                }
                 options={(jugadoresDisponibles || []).map(j => ({
                   value: j.id,
-                  label: `${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`,
+                  label: `${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`.trim(),
                 }))}
               />
 
-              {jugadoresDisponibles.length === 0 && (
-                <Alert
-                  message="No hay jugadores disponibles"
-                  description="Todos los jugadores ya están en este grupo"
-                  type="warning"
-                  showIcon
-                  style={{ marginTop: 16 }}
-                />
-              )}
+             
             </div>
           </Modal>
 
-          {/* Modal Detalle Sesión */}
           <DetalleSesionModal
             open={detalleModal}
             loading={loadingDetalle}
@@ -958,7 +974,6 @@ const cargarSesiones = async (
             onClose={() => { setDetalleModal(false); setSesionDetalle(null); }}
           />
 
-          {/* Modal Detalle Jugador */}
           <JugadorDetalleModal
             visible={modalJugadorVisible}
             loading={loadingJugadorDetalle}

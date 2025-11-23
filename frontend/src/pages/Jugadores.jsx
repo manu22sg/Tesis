@@ -240,7 +240,7 @@ function descargarArchivo(blob, nombre) {
           <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
-              {record.usuario?.nombre || 'Sin nombre'} {record.usuario?.apellido || ''}
+            {`${record.usuario?.nombre || 'Sin nombre'} ${record.usuario?.apellido || ''}`.trim()}
             </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.usuario?.rut || 'Sin RUT'}
