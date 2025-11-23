@@ -325,7 +325,7 @@ export default function MarcarAsistencia() {
             </div>
 
             {(requiereGeoSesion || usarUbicacion) && (
-              <div style={{ border: '1px solid #d9d9d9', padding: 12, borderRadius: 8, background: '#fafafa' }}>
+              <div style={{ border: '1px solid #B9BBBB', padding: 12, borderRadius: 8, background: '#f5f5f5' }}>
                 <Button
                   type="default"
                   icon={<AimOutlined />}

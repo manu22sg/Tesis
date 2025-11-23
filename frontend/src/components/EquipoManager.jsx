@@ -350,7 +350,7 @@ const handleExportarPDF = async () => {
       key: 'nombre',
       render: text => (
         <Space>
-          <TeamOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+          <TeamOutlined style={{ fontSize: 18, color: '#014898' }} />
           <strong>{text}</strong>
         </Space>
       )
@@ -360,7 +360,16 @@ const handleExportarPDF = async () => {
       dataIndex: 'carrera',
       key: 'carrera',
       render: carrera => (
-        <Tag color="purple">{carrera?.nombre || 'Sin carrera'}</Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {carrera?.nombre || 'Sin carrera'}
+</span>
       )
     },
     {
@@ -368,9 +377,16 @@ const handleExportarPDF = async () => {
       dataIndex: 'tipo',
       key: 'tipo',
       render: tipo => (
-        <Tag color={getTipoColor(tipo)}>
-          {tipo?.charAt(0).toUpperCase() + tipo?.slice(1)}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {tipo?.charAt(0).toUpperCase() + tipo?.slice(1)}
+</span>
       )
     },
     {
@@ -403,7 +419,7 @@ const handleExportarPDF = async () => {
               icon={<UserAddOutlined />}
               onClick={() => abrirModalJugador(record)}
               disabled={campeonatoInfo?.estado === 'finalizado'}
-              style={{ color: '#52c41a' }}
+              style={{ color: '#006B5B' }}
             />
           </Tooltip>
 
@@ -453,9 +469,9 @@ const handleExportarPDF = async () => {
       <Card>
   <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
     <Space>
-      <TeamOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+      <TeamOutlined style={{ fontSize: 24, color: '#014898' }} />
       <h3>Equipos del Campeonato</h3>
-      <Badge count={equipos.length} showZero style={{ backgroundColor: '#52c41a' }} />
+      <Badge count={equipos.length} showZero style={{ backgroundColor: '#006B5B' }} />
     </Space>
 
     <Space>
@@ -539,9 +555,42 @@ const handleExportarPDF = async () => {
 
           <Form.Item name="tipo" label="Tipo de Equipo" rules={[{ required: true }]}>
             <Select>
-              <Option value="masculino"><Tag color="blue">Masculino</Tag></Option>
-              <Option value="femenino"><Tag color="pink">Femenino</Tag></Option>
-              <Option value="mixto"><Tag color="orange">Mixto</Tag></Option>
+              <Option value="masculino">
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    Masculino
+  </span>
+</Option>
+<Option value="femenino">
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    Femenino
+  </span>
+</Option>
+<Option value="mixto">
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    Mixto
+  </span>
+</Option>
             </Select>
           </Form.Item>
         </Form>
@@ -554,7 +603,7 @@ const handleExportarPDF = async () => {
         title={
           <Space>
             <TeamOutlined /> {equipoSeleccionado?.nombre}
-            <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#52c41a' }} />
+            <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#006B5B' }} />
           </Space>
         }
         placement="right"
@@ -571,15 +620,31 @@ const handleExportarPDF = async () => {
           <>
             <Descriptions bordered size="small" style={{ marginBottom: 20 }}>
               <Descriptions.Item label="Carrera" span={2}>
-                <Tag color="purple">{equipoSeleccionado.carrera?.nombre}</Tag>
+                <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {equipoSeleccionado.carrera?.nombre}
+</span>
               </Descriptions.Item>
               <Descriptions.Item label="Tipo">
-                <Tag color={getTipoColor(equipoSeleccionado.tipo)}>
-    {equipoSeleccionado.tipo.charAt(0).toUpperCase() + equipoSeleccionado.tipo.slice(1)}
-  </Tag>
+               <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {equipoSeleccionado.tipo.charAt(0).toUpperCase() + equipoSeleccionado.tipo.slice(1)}
+</span>
               </Descriptions.Item>
               <Descriptions.Item label="Total Jugadores">
-                <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#52c41a' }} />
+                <Badge count={jugadoresEquipo.length} style={{ backgroundColor: '#006B5B' }} />
               </Descriptions.Item>
             </Descriptions>
 
@@ -602,7 +667,7 @@ const handleExportarPDF = async () => {
                   >
                     <List.Item.Meta
                       avatar={
-                        <Avatar style={{ backgroundColor: '#1890ff' }} size={50}>
+                        <Avatar style={{ backgroundColor: '#014898' }} size={50}>
                           {jugador.numeroCamiseta}
                         </Avatar>
                       }
@@ -610,9 +675,19 @@ const handleExportarPDF = async () => {
                         <Space>
                           {jugador.nombre}
                           {jugador.numeroCamiseta && (
-                            <Tag color="blue">
-                              <NumberOutlined /> {jugador.numeroCamiseta}
-                            </Tag>
+                            <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <NumberOutlined /> {jugador.numeroCamiseta}
+</span>
                           )}
                         </Space>
                       }

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
   Descriptions,
-  Tag,
   Space,
   Button,
   Modal,
@@ -149,16 +148,7 @@ function CampeonatoInfoContent() {
               <div>
                 <h2 style={{ margin: 0 }}>{campeonato.nombre}</h2>
                 <Space size="small" style={{ marginTop: 8 }}>
-                  <Tag color={getEstadoColor(campeonato.estado)} icon={getEstadoIcon(campeonato.estado)}>
-              {formatEstadoTexto(campeonato.estado)} 
-            </Tag>
-                  <Tag color="purple">{campeonato.formato}</Tag>
-                  <Tag color={
-                    campeonato.genero === 'masculino' ? 'blue' :
-                    campeonato.genero === 'femenino' ? 'pink' : 'orange'
-                  }>
-                    {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
-                  </Tag>
+                  
                 </Space>
               </div>
             </Space>
@@ -188,7 +178,7 @@ function CampeonatoInfoContent() {
           </Col>
           <Col span={6}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#006B5B' }}>
                 <CalendarOutlined style={{ marginRight: 8 }} />
                 {campeonato.partidos?.length || 0}
               </div>
@@ -262,19 +252,13 @@ function CampeonatoInfoContent() {
           </Descriptions.Item>
           
           <Descriptions.Item label="Formato">
-            <Tag color="purple" style={{ fontSize: 14 }}>{campeonato.formato}</Tag>
+            <span style={{ fontSize: 14}}>{campeonato.formato}</span>
           </Descriptions.Item>
           
           <Descriptions.Item label="Género">
-            <Tag 
-              color={
-                campeonato.genero === 'masculino' ? 'blue' :
-                campeonato.genero === 'femenino' ? 'pink' : 'orange'
-              }
-              style={{ fontSize: 14 }}
-            >
-              {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
-            </Tag>
+            <span style={{ fontSize: 14 }}>
+  {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
+</span>
           </Descriptions.Item>
           
           <Descriptions.Item label="Año">
@@ -286,9 +270,9 @@ function CampeonatoInfoContent() {
           </Descriptions.Item>
           
           <Descriptions.Item label="Estado">
-            <Tag color={getEstadoColor(campeonato.estado)} icon={getEstadoIcon(campeonato.estado)}>
-              {formatEstadoTexto(campeonato.estado)} 
-            </Tag>
+            <span>
+  {getEstadoIcon(campeonato.estado)} {formatEstadoTexto(campeonato.estado)}
+</span>
           </Descriptions.Item>
           
           <Descriptions.Item label="Total de Equipos">

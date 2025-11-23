@@ -389,7 +389,7 @@ function descargarArchivo(blob, nombre) {
           {/* Filtros */}
           <Card
             title={<span><FilterOutlined /> Filtros</span>}
-            style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+            style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
             extra={
     <Space>
       <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
@@ -518,7 +518,7 @@ function descargarArchivo(blob, nombre) {
 
           {/* Modal Aprobar Reserva */}
           <Modal
-            title={<span><CheckCircleOutlined style={{ color: '#52c41a' }} /> Aprobar Reserva</span>}
+            title={<span><CheckCircleOutlined style={{ color: '#006B5B' }} /> Aprobar Reserva</span>}
             open={modalAprobar.visible}
             onOk={handleAprobarReserva}
             onCancel={() => {

@@ -244,7 +244,7 @@ function CampeonatoTablaContent() {
               size="middle"
             />
 
-            <div style={{ marginTop: 24, padding: 16, backgroundColor: '#fafafa', borderRadius: 8 }}>
+            <div style={{ marginTop: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
               <h4>Leyenda:</h4>
               <Space direction="vertical" size="small">
                 <span><strong>PJ:</strong> Partidos Jugados</span>

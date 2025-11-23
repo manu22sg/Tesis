@@ -118,8 +118,8 @@ export default function Login() {
           block
           size="large"
           style={{
-            backgroundColor: "#003a8c",
-            borderColor: "#003a8c",
+            backgroundColor: "#014898",
+            borderColor: "#014898",
             borderRadius: 8,
             marginTop: 8,
           }}
@@ -128,7 +128,7 @@ export default function Login() {
         </Button>
         <div style={{ marginTop: 16, textAlign: "center" }}>
   <Text>
-    <a href="/solicitar-restablecimiento" style={{ color: "#003a8c" }}>
+    <a href="/solicitar-restablecimiento" style={{ color: "#014898" }}>
       ¿Olvidaste tu contraseña?
     </a>
   </Text>
@@ -139,7 +139,7 @@ export default function Login() {
           <span>¿No tienes una cuenta? </span>
           <a
             onClick={() => navigate("/register")}
-            style={{ color: "#003a8c", cursor: "pointer" }}
+            style={{ color: "#014898", cursor: "pointer" }}
           >
             Regístrate aquí
           </a>

@@ -58,9 +58,20 @@ export default function EditarAsistenciaModal({
             >
               {Object.entries(ESTADOS).map(([key, config]) => (
                 <Select.Option key={key} value={key}>
-                  <Tag color={config.color} icon={config.icon}>
-                    {config.label}
-                  </Tag>
+                  <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  {config.icon}
+  {config.label}
+</span>
                 </Select.Option>
               ))}
             </Select>

@@ -227,7 +227,7 @@ const ModalAlineacionInteligente = ({
 
               <Select.Option value="defensiva">
                 <Space>
-                  <AimOutlined style={{ color: '#52c41a' }} />
+                  <AimOutlined style={{ color: '#006B5B' }} />
                   <strong>Defensiva</strong>
                 </Space>
               </Select.Option>

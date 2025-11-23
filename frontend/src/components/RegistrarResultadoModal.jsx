@@ -154,7 +154,16 @@ const RegistrarResultadoModal = ({
             <Divider style={{ margin: '8px 0' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Tag color="purple">{capitalize(partido.ronda)}</Tag>
+              javascriptreact<span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {capitalize(partido.ronda)}
+</span>
               <span />
             </div>
           </Card>

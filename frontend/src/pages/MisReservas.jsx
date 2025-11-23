@@ -168,7 +168,7 @@ export default function MisReservas() {
       key: 'fecha',
       render: (fecha) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <CalendarOutlined style={{ color: '#1890ff' }} />
+          <CalendarOutlined style={{ color: '#014898' }} />
           <span>{dayjs(fecha).format('DD/MM/YYYY')}</span>
         </div>
       ),
@@ -179,7 +179,7 @@ export default function MisReservas() {
       key: 'horario',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ClockCircleOutlined style={{ color: '#52c41a' }} />
+          <ClockCircleOutlined style={{ color: '#006B5B' }} />
           <span>
             {formatearHora(record.horaInicio)} - {formatearHora(record.horaFin)}
           </span>
@@ -217,7 +217,18 @@ export default function MisReservas() {
       key: 'estado',
       render: (estado) => {
         const config = estadoConfig[estado] || { color: 'default', text: estado };
-        return <Tag color={config.color}>{config.text}</Tag>;
+        return (
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    {config.text}
+  </span>
+);
       },
       width: 120,
       align: 'center',
@@ -398,9 +409,16 @@ export default function MisReservas() {
                     </div>
                     <div>
                       <strong>Estado:</strong>{' '}
-                      <Tag color={estadoConfig[reservaDetalle.estado]?.color}>
-                        {estadoConfig[reservaDetalle.estado]?.text}
-                      </Tag>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {estadoConfig[reservaDetalle.estado]?.text}
+</span>
                     </div>
                   </div>
                   {reservaDetalle.motivo && (
@@ -428,7 +446,7 @@ export default function MisReservas() {
                         }}
                       >
                         <span>
-                          <UserOutlined style={{ marginRight: 8, color: '#52c41a' }} />
+                          <UserOutlined style={{ marginRight: 8, color: '#006B5B' }} />
                           {p.usuario?.nombre || p.nombreOpcional || 'N/A'}
                         </span>
                         <span style={{ color: '#666', fontSize: 12 }}>{p.rut}</span>

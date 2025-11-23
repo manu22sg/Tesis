@@ -475,7 +475,7 @@ export default function GrupoMiembros() {
       key: 'fecha',
       render: (fecha) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <CalendarOutlined style={{ color: '#1890ff' }} />
+          <CalendarOutlined style={{ color: '#014898' }} />
           <span>{formatearFecha(fecha)}</span>
         </div>
       ),
@@ -485,7 +485,7 @@ export default function GrupoMiembros() {
       key: 'horario',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ClockCircleOutlined style={{ color: '#52c41a' }} />
+          <ClockCircleOutlined style={{ color: '#006B5B' }} />
           <span>{formatearHora(record.horaInicio)} - {formatearHora(record.horaFin)}</span>
         </div>
       ),
@@ -494,7 +494,18 @@ export default function GrupoMiembros() {
       title: 'Tipo',
       dataIndex: 'tipoSesion',
       key: 'tipoSesion',
-      render: (tipo) => <Tag color="blue">{tipo || '—'}</Tag>,
+      render: (tipo) => (
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    {tipo || '—'}
+  </span>
+),
     },
     {
       title: 'Lugar',
@@ -544,7 +555,7 @@ export default function GrupoMiembros() {
       key: 'jugador',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.nombre || 'Sin nombre'}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -560,7 +571,19 @@ export default function GrupoMiembros() {
       title: 'Carrera',
       dataIndex: 'carrera',
       key: 'carrera',
-      render: (carrera) => <Tag color="blue">{carrera || '—'}</Tag>,
+      render: (carrera) => (
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    {carrera || '—'}
+  </span>
+),
+
     },
     
     {
@@ -578,9 +601,16 @@ export default function GrupoMiembros() {
       align: 'center',
       width: 110,
       render: (estado) => (
-        <Tag color={estado === 'activo' ? 'success' : 'default'}>
-          {(estado || '—').toUpperCase()}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {(estado || '—').toUpperCase()}
+</span>
       ),
     },
     {
@@ -700,7 +730,7 @@ export default function GrupoMiembros() {
                   ),
                   children: (
                     <>
-                      <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                      <Card style={{ marginBottom: 16, backgroundColor: '#f5f5f5' }}>
                         <Row gutter={[16, 16]}>
                           <Col xs={24} sm={12} md={8}>
                             <Input
@@ -785,7 +815,7 @@ export default function GrupoMiembros() {
                   ),
                   children: (
                     <>
-                      <Card style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+                      <Card style={{ marginBottom: 16, backgroundColor: '#f5f5f5' }}>
                         <Row gutter={[16, 16]} align="middle">
                           <Col xs={24} md={8}>
                             <Input

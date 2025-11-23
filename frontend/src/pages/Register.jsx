@@ -61,7 +61,7 @@ const passwordScore = (password) =>
 const getStrengthColor = (score) => {
   if (score <= 2) return "#ff4d4f";
   if (score === 3) return "#faad14";
-  if (score >= 4) return "#52c41a";
+  if (score >= 4) return "#8CC63F";
 };
 
 // ----------------------
@@ -237,7 +237,7 @@ export default function Register() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Title level={3} style={{ color: "#003a8c", marginBottom: 4 }}>
+          <Title level={3} style={{ color: "#014898", marginBottom: 4 }}>
             Crear Cuenta
           </Title>
           <Text type="secondary">Completa tus datos institucionales</Text>
@@ -253,7 +253,7 @@ export default function Register() {
             }
             help={
               rutValid === true ? (
-                <span style={{ color: "#52c41a" }}>
+                <span style={{ color: "#8CC63F" }}>
                   <CheckCircleOutlined /> RUT válido
                 </span>
               ) : rutValid === false ? (
@@ -270,7 +270,7 @@ export default function Register() {
               onChange={handleRutChange}
               suffix={
                 rutValid === true ? (
-                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                  <CheckCircleOutlined style={{ color: "#8CC63F" }} />
                 ) : rutValid === false ? (
                   <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
                 ) : null
@@ -442,8 +442,8 @@ export default function Register() {
             block
             size="large"
             style={{
-              backgroundColor: "#003a8c",
-              borderColor: "#003a8c",
+              backgroundColor: "#014898",
+              borderColor: "#014898",
               borderRadius: 8,
               marginTop: 8,
             }}
@@ -454,7 +454,7 @@ export default function Register() {
           <div style={{ marginTop: 16, textAlign: "center" }}>
             <Text>
               ¿Ya tienes cuenta?{" "}
-              <a href="/login" style={{ color: "#003a8c" }}>
+              <a href="/login" style={{ color: "#014898" }}>
                 Inicia sesión
               </a>
             </Text>

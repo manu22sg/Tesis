@@ -284,7 +284,7 @@ const handleExportarPDF = async () => {
         const rut = record.jugador?.usuario?.rut || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+            <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
             <div>
               <div style={{ fontWeight: 500 }}>{nombre}</div>
               {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
@@ -334,13 +334,35 @@ const handleExportarPDF = async () => {
       key: 'estado',
       render: (_, record) =>
         record.fechaAltaReal ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Recuperado
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <CheckCircleOutlined />
+  Recuperado
+</span>
         ) : (
-          <Tag icon={<ClockCircleOutlined />} color="warning">
-            Activa
-          </Tag>
+         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <ClockCircleOutlined />
+  Activa
+</span>
         ),
       align: 'center',
       width: 120,

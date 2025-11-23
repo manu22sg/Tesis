@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './global.css';
-import { ConfigProvider, theme, Button } from 'antd';
+import { ConfigProvider, theme, Button, App as AntApp } from 'antd';
 import { ubbLightTheme, ubbDarkTheme } from './theme';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
@@ -365,6 +365,7 @@ export default function App() {
 
   return (
     <ConfigProvider theme={darkMode ? ubbDarkTheme : ubbLightTheme}>
+      <AntApp>
       <Router>
         <ScrollToTop />
         <AuthProvider>
@@ -384,6 +385,7 @@ export default function App() {
           <AppRoutes />
         </AuthProvider>
       </Router>
+       </AntApp>
     </ConfigProvider>
   );
 }

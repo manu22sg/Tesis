@@ -115,7 +115,7 @@ export default function CampeonatosPublico() {
           {/* FILTROS */}
           <Card
             title={<Space><FilterOutlined /> Filtros</Space>}
-            style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
+            style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}
             extra={<Button onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>Limpiar</Button>}
           >
             <Row gutter={[16, 16]}>
@@ -224,7 +224,16 @@ export default function CampeonatosPublico() {
                       }}>
                         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                           <TrophyOutlined style={{ fontSize: 32 }} />
-                          <Tag color={estadoConfig.color}>{estadoConfig.text}</Tag>
+                          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {estadoConfig.text}
+</span>
                         </Space>
                         <h3 style={{ marginTop: 12 }}>{c.nombre}</h3>
                       </div>
@@ -237,20 +246,33 @@ export default function CampeonatosPublico() {
       {/* Formato */}
       <Col span={12}>
         <span style={{ color: '#999' }}>Formato</span>
-        <Tag color="purple">
-          {(c.formato || "").charAt(0).toUpperCase() + (c.formato || "").slice(1)}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  marginLeft: 8
+}}>
+  {(c.formato || "").charAt(0).toUpperCase() + (c.formato || "").slice(1)}
+</span>
       </Col>
 
       {/* Género con colores dinámicos */}
       <Col span={12}>
         <span style={{ color: '#999' }}>Género </span>
-        <Tag color={
-          c.genero === "masculino" ? "blue" :
-          c.genero === "femenino" ? "pink" : "orange"
-        }>
-          {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  marginLeft: 8
+}}>
+  {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
+</span>
       </Col>
 
     </Row>
@@ -259,11 +281,11 @@ export default function CampeonatosPublico() {
 
                           <Row gutter={12}>
                             <Col span={12}>
-                              <TeamOutlined style={{ color: '#1890ff' }} />
+                              <TeamOutlined style={{ color: '#014898' }} />
                               <strong style={{ marginLeft: 8 }}>{equiposCount}</strong> Equipos
                             </Col>
                             <Col span={12}>
-                              <CalendarOutlined style={{ color: '#52c41a' }} />
+                              <CalendarOutlined style={{ color: '#006B5B' }} />
                               <strong style={{ marginLeft: 8 }}>
                                 {finalizados}/{totalPartidos}
                               </strong> Partidos

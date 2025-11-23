@@ -118,7 +118,7 @@ export default function JugadorGrupos() {
       key: 'grupo',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <TeamOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+          <TeamOutlined style={{ fontSize: 18, color: '#014898' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
               {record.grupo?.nombre || 'Sin nombre'}
@@ -137,7 +137,16 @@ export default function JugadorGrupos() {
       dataIndex: ['grupo', 'categoria'],
       key: 'categoria',
       render: (categoria) => (
-        <Tag color="blue">{categoria || '—'}</Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {categoria || '—'}
+</span>
       ),
       width: 150,
     },
@@ -146,9 +155,16 @@ export default function JugadorGrupos() {
       dataIndex: ['grupo', 'estado'],
       key: 'estado',
       render: (estado) => (
-        <Tag color={estado === 'activo' ? 'success' : 'default'}>
-          {estado?.toUpperCase() || 'N/A'}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {estado?.toUpperCase() || 'N/A'}
+</span>
       ),
       width: 100,
       align: 'center',
@@ -211,7 +227,7 @@ export default function JugadorGrupos() {
           gap: 16
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <UserOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+            <UserOutlined style={{ fontSize: 32, color: '#014898' }} />
             <div>
               <Title level={4} style={{ margin: 0 }}>
                 {jugador.usuario?.nombre || 'Jugador'}
@@ -351,9 +367,17 @@ export default function JugadorGrupos() {
         <TeamOutlined />
         <span>{grupo.nombre}</span>
         {grupo.categoria && (
-          <Tag color="blue" style={{ marginLeft: 'auto' }}>
-            {grupo.categoria}
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  marginLeft: 'auto'
+}}>
+  {grupo.categoria}
+</span>
         )}
       </div>
     </Option>

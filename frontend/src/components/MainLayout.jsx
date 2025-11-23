@@ -331,7 +331,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                <Avatar style={{ backgroundColor: '#014898' }} icon={<UserOutlined />} />
                 {!collapsed && <span>{usuario?.nombre || 'Usuario'}</span>}
               </div>
             </Dropdown>

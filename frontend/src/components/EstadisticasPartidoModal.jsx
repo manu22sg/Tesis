@@ -169,7 +169,16 @@ const EstadisticasPartidoModal = ({
               <span>
                 #{jugador.numeroCamiseta} {jugador.usuario?.nombre} {jugador.usuario?.apellido ?? ''}
               </span>
-              <Tag size="small">{jugador.posicion}</Tag>
+              <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {jugador.posicion}
+</span>
             </Space>
             <Text type="secondary" style={{ fontSize: '12px', marginLeft: 20 }}>
               {jugador.equipo?.nombre}
@@ -265,28 +274,56 @@ const EstadisticasPartidoModal = ({
 
           <div style={{ textAlign: 'center' }}>
             <Space size="small" wrap>
-              <Tag color="purple">
-                {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
-              </Tag>
+             <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
+</span>
 
               {partido.fecha && (
-                <Tag>
-                  {formatearFecha(partido.fecha)}
-                </Tag>
+                <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {formatearFecha(partido.fecha)}
+</span>
               )}
 
               {partido.estado && (
-                <Tag color={partido.estado === 'finalizado' ? 'green' : partido.estado === 'en_juego' ? 'blue' : 'default'}>
-                  {partido.estado}
-                </Tag>
+               <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {partido.estado}
+</span>
               )}
 
               {fueAPenales && (
-                <Tag color="red">
-                  {hayPenales
-                    ? `Definido por penales: ${partido.penalesA} - ${partido.penalesB}`
-                    : 'Definido por penales'}
-                </Tag>
+               <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {hayPenales
+    ? `Definido por penales: ${partido.penalesA} - ${partido.penalesB}`
+    : 'Definido por penales'}
+</span>
               )}
             </Space>
           </div>

@@ -110,13 +110,35 @@ export default function MisLesiones() {
       width: 120,
       render: (_, record) =>
         record.fechaAltaReal ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            Recuperado
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <CheckCircleOutlined />
+  Recuperado
+</span>
         ) : (
-          <Tag icon={<ClockCircleOutlined />} color="warning">
-            Activa
-          </Tag>
+         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <ClockCircleOutlined />
+  Activa
+</span>
         ),
     },
   ];

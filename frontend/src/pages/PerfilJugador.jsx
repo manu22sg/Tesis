@@ -106,7 +106,7 @@ export default function PerfilJugador() {
             <Avatar 
               size={100} 
               icon={<UserOutlined />} 
-              style={{ backgroundColor: '#1890ff' }}
+              style={{ backgroundColor: '#014898' }}
             />
             <div style={{ flex: 1 }}>
               <Title level={2} style={{ margin: 0 }}>
@@ -140,7 +140,7 @@ export default function PerfilJugador() {
                   title="Campeonatos"
                   value={totalesGenerales.campeonatos}
                   prefix={<TrophyOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
+                  valueStyle={{ color: '#014898' }}
                 />
               </Card>
             </Col>
@@ -150,7 +150,7 @@ export default function PerfilJugador() {
                   title="Goles Totales"
                   value={totalesGenerales.goles}
                   prefix="⚽"
-                  valueStyle={{ color: '#52c41a' }}
+                  valueStyle={{ color: '#006B5B' }}
                   suffix={
                     <Text type="secondary" style={{ fontSize: 14 }}>
                       ({promedios.golesPartido}/partido)
@@ -165,7 +165,7 @@ export default function PerfilJugador() {
                   title="Asistencias Totales"
                   value={totalesGenerales.asistencias}
                   prefix="🎯"
-                  valueStyle={{ color: '#722ed1' }}
+                  valueStyle={{ color: '#014898' }}
                   suffix={
                     <Text type="secondary" style={{ fontSize: 14 }}>
                       ({promedios.asistenciasPartido}/partido)
@@ -254,17 +254,62 @@ export default function PerfilJugador() {
                     width: '100%'
                   }}>
                     <Space>
-                      <TrophyOutlined style={{ color: '#1890ff' }} />
+                      <TrophyOutlined style={{ color: '#014898' }} />
                       <Text strong>{campeonato.campeonatoNombre}</Text>
-                      <Tag color="blue">
-                        {campeonato.anio}-{campeonato.semestre}
-                      </Tag>
-                      <Tag>{campeonato.formato}</Tag>
+                     <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.anio}-{campeonato.semestre}
+</span>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.formato}
+</span>
                     </Space>
                     <Space size="middle">
-                      <Tag color="green">⚽ {campeonato.estadisticas.goles}</Tag>
-                      <Tag color="purple">🎯 {campeonato.estadisticas.asistencias}</Tag>
-                      <Tag>🏟️ {campeonato.estadisticas.partidosJugados} partidos</Tag>
+                     <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  ⚽ {campeonato.estadisticas.goles}
+</span>
+<span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  marginLeft: '4px'
+}}>
+  🎯 {campeonato.estadisticas.asistencias}
+</span>
+<span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  marginLeft: '4px'
+}}>
+  🏟️ {campeonato.estadisticas.partidosJugados} partidos
+</span>
                     </Space>
                   </div>
                 ),
@@ -286,7 +331,16 @@ export default function PerfilJugador() {
                       </Descriptions.Item>
                       <Descriptions.Item label="Camiseta">
                         {campeonato.numeroCamiseta ? (
-                          <Tag color="blue">#{campeonato.numeroCamiseta}</Tag>
+                         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  #{campeonato.numeroCamiseta}
+</span>
                         ) : 'N/A'}
                       </Descriptions.Item>
                     </Descriptions>
@@ -299,7 +353,7 @@ export default function PerfilJugador() {
                             title="Goles"
                             value={campeonato.estadisticas.goles}
                             prefix="⚽"
-                            valueStyle={{ color: '#52c41a', fontSize: 24 }}
+                            valueStyle={{ color: '#006B5B', fontSize: 24 }}
                           />
                         </Card>
                       </Col>
@@ -382,9 +436,16 @@ export default function PerfilJugador() {
                               if (!resultado) return <Text type="secondary">Pendiente</Text>;
                               return (
                                 <div>
-                                  <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold' }}>
-                                    {resultado}
-                                  </Tag>
+                                  <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {resultado}
+</span>
                                   {record.definidoPorPenales && (
                                     <div style={{ fontSize: 11, marginTop: 4 }}>
                                       <Text type="secondary">
@@ -403,7 +464,16 @@ export default function PerfilJugador() {
                             align: 'center',
                             width: 60,
                             render: (goles) => (
-                              <Tag color={goles > 0 ? 'green' : 'default'}>{goles}</Tag>
+                             <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {goles}
+</span>
                             )
                           },
                           {
@@ -413,7 +483,16 @@ export default function PerfilJugador() {
                             align: 'center',
                             width: 60,
                             render: (asist) => (
-                              <Tag color={asist > 0 ? 'purple' : 'default'}>{asist}</Tag>
+                             <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {asist}
+</span>
                             )
                           },
                           {
@@ -422,7 +501,16 @@ export default function PerfilJugador() {
                             key: 'atajadasJugador',
                             align: 'center',
                             width: 60,
-                            render: (ataj) => ataj > 0 ? <Tag color="orange">{ataj}</Tag> : '—'
+                            render: (ataj) => ataj > 0 ?<span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {ataj}
+</span> : '—'
                           },
                           {
                             title: '🟨',
@@ -430,7 +518,16 @@ export default function PerfilJugador() {
                             key: 'tarjetasAmarillasJugador',
                             align: 'center',
                             width: 60,
-                            render: (am) => am > 0 ? <Tag color="gold">{am}</Tag> : '—'
+                            render: (am) => am > 0 ?<span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {am}
+</span> : '—'
                           },
                           {
                             title: '🟥',
@@ -438,7 +535,16 @@ export default function PerfilJugador() {
                             key: 'tarjetasRojasJugador',
                             align: 'center',
                             width: 60,
-                            render: (roj) => roj > 0 ? <Tag color="red">{roj}</Tag> : '—'
+                            render: (roj) => roj > 0 ? <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {roj}
+</span> : '—'
                           },
                           {
                             title: 'Min.',

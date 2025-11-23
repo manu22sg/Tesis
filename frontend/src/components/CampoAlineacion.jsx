@@ -160,7 +160,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             <Avatar
               size={56}
               style={{
-                backgroundColor: '#1890ff',
+                backgroundColor: '#014098',
                 fontSize: 18,
                 fontWeight: 'bold',
                 border: '3px solid white',
@@ -171,7 +171,16 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             </Avatar>
             <div className="jugador-info-overlay">
               <div className="jugador-nombre-campo">{nombre}</div>
-              {jugador.orden && <Tag className="jugador-numero-campo" color="blue">#{jugador.orden}</Tag>}
+              {jugador.orden && <span className="jugador-numero-campo" style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  #{jugador.orden}
+</span>}
             </div>
           </div>
         </Tooltip>

@@ -302,7 +302,7 @@ const handleExportarPDF = async () => {
       {/* Filtros (mismo look&feel que Evaluaciones) */}
       <Card
         title={<Space><FilterOutlined /><span>Filtros</span></Space>}
-        style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
+        style={{ marginBottom: 16, backgroundColor: '#f5f5f5' }}
         extra={
           <Button icon={<ReloadOutlined />} onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>
             Limpiar
@@ -348,8 +348,28 @@ const handleExportarPDF = async () => {
     <Space>
       <ThunderboltOutlined />
       <span>Estadísticas del Campeonato</span>
-      <Tag color="blue">{estadisticasFiltradas.length} registros</Tag>
-      {hayFiltrosActivos && <Tag color="orange">Filtrado</Tag>}
+      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {estadisticasFiltradas.length} registros
+</span>
+     {hayFiltrosActivos && (
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    Filtrado
+  </span>
+)}
     </Space>
   }
   extra={

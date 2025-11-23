@@ -176,19 +176,54 @@ const ListaEstadisticas = ({
     }
 
     base.push(
-      { title: 'Goles', dataIndex: 'goles', key: 'goles', align: 'center', width: 90,
-        render: (v) => <Tag color={v > 0 ? 'green' : 'default'}>{v ?? 0}</Tag> },
-      { title: 'Asistencias', dataIndex: 'asistencias', key: 'asistencias', align: 'center', width: 110,
-        render: (v) => <Tag color={v > 0 ? 'blue' : 'default'}>{v ?? 0}</Tag> },
-      { title: 'Minutos', dataIndex: 'minutosJugados', key: 'minutosJugados', align: 'center', width: 100,
-        render: (v) => v ?? 0 },
-      { title: 'T. Amarillas', dataIndex: 'tarjetasAmarillas', key: 'tarjetasAmarillas', align: 'center', width: 120,
-        render: (v) => <Tag color={v > 0 ? 'gold' : 'default'}>{v ?? 0}</Tag> },
-      { title: 'T. Rojas', dataIndex: 'tarjetasRojas', key: 'tarjetasRojas', align: 'center', width: 100,
-        render: (v) => <Tag color={v > 0 ? 'red' : 'default'}>{v ?? 0}</Tag> },
-      { title: 'Arcos Invictos', dataIndex: 'arcosInvictos', key: 'arcosInvictos', align: 'center', width: 130,
-        render: (v) => <Tag color={v > 0 ? 'cyan' : 'default'}>{v ?? 0}</Tag> },
-    );
+  { title: 'Goles', dataIndex: 'goles', key: 'goles', align: 'center', width: 90,
+    render: (v) => <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>{v ?? 0}</span> },
+  { title: 'Asistencias', dataIndex: 'asistencias', key: 'asistencias', align: 'center', width: 110,
+    render: (v) => <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>{v ?? 0}</span> },
+  { title: 'Minutos', dataIndex: 'minutosJugados', key: 'minutosJugados', align: 'center', width: 100,
+    render: (v) => v ?? 0 },
+  { title: 'T. Amarillas', dataIndex: 'tarjetasAmarillas', key: 'tarjetasAmarillas', align: 'center', width: 120,
+    render: (v) => <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>{v ?? 0}</span> },
+  { title: 'T. Rojas', dataIndex: 'tarjetasRojas', key: 'tarjetasRojas', align: 'center', width: 100,
+    render: (v) => <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>{v ?? 0}</span> },
+  { title: 'Arcos Invictos', dataIndex: 'arcosInvictos', key: 'arcosInvictos', align: 'center', width: 130,
+    render: (v) => <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>{v ?? 0}</span> },
+);
 
     if (userRole !== 'estudiante') {
       base.push({

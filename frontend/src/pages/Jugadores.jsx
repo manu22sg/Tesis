@@ -246,7 +246,7 @@ function descargarArchivo(blob, nombre) {
       key: 'jugador',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
             {`${record.usuario?.nombre || 'Sin nombre'} ${record.usuario?.apellido || ''}`.trim()}
@@ -308,14 +308,24 @@ function descargarArchivo(blob, nombre) {
         return (
           <Space size={4} wrap>
             {grupos.map((jg) => (
-              <Tag
-                key={`${jg.grupo?.id}-${jg.grupo?.nombre}`}
-                icon={<TeamOutlined />}
-                color="blue"
-                style={{ fontSize: 12 }}
-              >
-                {jg.grupo?.nombre}
-              </Tag>
+              <span
+  key={`${jg.grupo?.id}-${jg.grupo?.nombre}`}
+  style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    marginRight: '4px'
+  }}
+>
+  <TeamOutlined />
+  {jg.grupo?.nombre}
+</span>
             ))}
           </Space>
         );
@@ -412,7 +422,7 @@ function descargarArchivo(blob, nombre) {
                   <FilterOutlined /> Filtros
                 </span>
               }
-              style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
+              style={{ marginBottom: 16, backgroundColor: '#f5f5f5' }}
               extra={
                 hayFiltrosActivos && (
                   <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>

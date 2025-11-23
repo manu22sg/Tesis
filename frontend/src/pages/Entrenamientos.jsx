@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Card, Table, Button, Space, message, Empty, Tooltip,
+  Card, Table, Button, Space, Empty, Tooltip,
   Modal, Popconfirm, Input, Pagination, ConfigProvider,
-  InputNumber, Form, Typography, Divider, Tag, Statistic, Row, Col, Select, Spin
+  InputNumber, Form, Typography, Divider, Tag, Statistic, Row, Col, Select, Spin,App
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
@@ -67,7 +67,7 @@ function SortableRow({ id, children, ...props }) {
 export default function Entrenamientos() {
   const navigate = useNavigate();
   const { sesionId } = useParams();
-
+const { message } = App.useApp(); 
   const [entrenamientos, setEntrenamientos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
@@ -210,7 +210,6 @@ export default function Entrenamientos() {
       }
     }
     
-    console.log('📦 Payload final:', payload);
 
     if (editando) {
       await actualizarEntrenamiento(editando.id, payload);
@@ -337,11 +336,31 @@ export default function Entrenamientos() {
       key: 'orden',
       render: (orden, record) => (
         <Space direction="vertical" size={0}>
-          <Tag color="blue" icon={<OrderedListOutlined />}>
-            {orden || '—'}
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <OrderedListOutlined />
+  {orden || '—'}
+</span>
           {!record.sesionId && (
-            <Tag color="gold">Global</Tag>
+           <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  Global
+</span>
           )}
         </Space>
       ),
@@ -354,7 +373,7 @@ export default function Entrenamientos() {
       key: 'titulo',
       render: (titulo) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <FileTextOutlined style={{ color: '#1890ff' }} />
+          <FileTextOutlined/>
           <Text strong>{titulo}</Text>
         </div>
       ),
@@ -375,7 +394,7 @@ export default function Entrenamientos() {
       key: 'duracionMin',
       render: (duracion) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ClockCircleOutlined style={{ color: '#52c41a' }} />
+          <ClockCircleOutlined style={{ color: '#006B5B' }} />
           <span>{duracion ? `${duracion} min` : '—'}</span>
         </div>
       ),

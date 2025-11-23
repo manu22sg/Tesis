@@ -136,9 +136,16 @@ export default function JugadorDetalleModal({
         <div>
           <Text strong>Estado:</Text>
           <div>
-            <Tag color={ESTADO_COLORS[jugador.estado]}>
-              {jugador.estado?.toUpperCase() || 'N/A'}
-            </Tag>
+            <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {jugador.estado?.toUpperCase() || 'N/A'}
+</span>
           </div>
         </div>
       )}
@@ -165,14 +172,23 @@ export default function JugadorDetalleModal({
           {jugador.jugadorGrupos?.length > 0 ? (
             <Space wrap>
               {jugador.jugadorGrupos.map((jg) => (
-                <Tag 
-                  key={jg.grupo?.id} 
-                  icon={<TeamOutlined />} 
-                  color="blue"
-                  style={{ padding: '4px 12px' }}
-                >
-                  {jg.grupo?.nombre}
-                </Tag>
+               <span 
+  key={jg.grupo?.id}
+  style={{
+    padding: '4px 12px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px'
+  }}
+>
+  <TeamOutlined />
+  {jg.grupo?.nombre}
+</span>
               ))}
             </Space>
           ) : (

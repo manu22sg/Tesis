@@ -9,7 +9,6 @@ import {
   Input,
   InputNumber,
   Select,
-  message,
   Tag,
   Tooltip,
   Popconfirm,
@@ -19,7 +18,7 @@ import {
   Alert,
   ConfigProvider,
   Pagination,
-  Empty
+  Empty,App
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -57,7 +56,7 @@ export default function GestionCanchas() {
   const [modalMode, setModalMode] = useState('crear');
   const [canchaSeleccionada, setCanchaSeleccionada] = useState(null);
   const [form] = Form.useForm();
-
+  const { message } = App.useApp();
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [qDebounced, setQDebounced] = useState('');
@@ -144,7 +143,7 @@ export default function GestionCanchas() {
       const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
       cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
     } catch (error) {
-      message.error(error?.message || 'Error al guardar la cancha');
+      message.error(error || 'Error al guardar la cancha');
     }
   };
 
@@ -230,14 +229,30 @@ function descargarArchivo(blob, nombre) {
  
   //  Render estado
   const renderEstadoTag = useCallback((estado) => {
-    const map = {
-      disponible: { color: 'green', icon: <CheckCircleOutlined />, text: 'Disponible' },
-      mantenimiento: { color: 'orange', icon: <ToolOutlined />, text: 'Mantenimiento' },
-      fuera_servicio: { color: 'red', icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' },
-    };
-    const { color, icon, text } = map[estado] || map.disponible;
-    return <Tag color={color} icon={icon}>{text}</Tag>;
-  }, []);
+  const map = {
+    disponible: { icon: <CheckCircleOutlined />, text: 'Disponible' },
+    mantenimiento: { icon: <ToolOutlined />, text: 'Mantenimiento' },
+    fuera_servicio: { icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' },
+  };
+  const { icon, text } = map[estado] || map.disponible;
+  return (
+    <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px'
+    }}>
+      {icon}
+      {text}
+    </span>
+  );
+}, []);
+
 
   //  Columnas tabla
   const columns = useMemo(() => [
@@ -252,14 +267,14 @@ function descargarArchivo(blob, nombre) {
       dataIndex: 'descripcion',
       key: 'descripcion',
       ellipsis: true,
-      render: (v) => v || <span style={{ color: '#999' }}>Sin descripción</span>
+      render: (v) => v || <span style={{ color: '#6F6F6F' }}>Sin descripción</span>
     },
     {
       title: 'Capacidad',
       dataIndex: 'capacidadMaxima',
       key: 'capacidadMaxima',
       align: 'center',
-      render: (cap) => <Badge count={cap} showZero color="#1890ff" />
+      render: (cap) => <Badge count={cap} showZero color="#014898" />
     },
     {
       title: 'Estado',
@@ -294,7 +309,7 @@ function descargarArchivo(blob, nombre) {
                   type="default"
                   size="middle"
                   icon={<UndoOutlined />}
-                  style={{ color: '#52c41a', borderColor: '#52c41a' }}
+                  style={{ color: '#006B5B', borderColor: '#006B5B' }}
                 />
               </Tooltip>
             </Popconfirm>
@@ -323,7 +338,7 @@ function descargarArchivo(blob, nombre) {
       <ConfigProvider locale={locale}>
         <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} variant="filled">
           
-       <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+       <Card style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
   <Row gutter={[12, 12]} align="middle" justify="start">
 
     {/* Buscador */}

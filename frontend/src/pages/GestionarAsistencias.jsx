@@ -259,7 +259,7 @@ export default function GestionarAsistencias() {
           <Avatar 
             size={40} 
             icon={<UserOutlined />} 
-            style={{ backgroundColor: '#1890ff' }}
+            style={{ backgroundColor: '#014898' }}
           />
           <div>
             <div style={{ fontWeight: 500 }}>
@@ -280,9 +280,20 @@ export default function GestionarAsistencias() {
       render: (estado) => {
         const config = ESTADOS[estado] || ESTADOS.presente;
         return (
-          <Tag color={config.color} icon={config.icon}>
-            {config.label}
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  {config.icon}
+  {config.label}
+</span>
         );
       },
       align: 'center',
@@ -293,9 +304,16 @@ export default function GestionarAsistencias() {
       dataIndex: 'origen',
       key: 'origen',
       render: (origen) => (
-        <Tag color={origen === 'jugador' ? 'blue' : 'purple'}>
-          {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+</span>
       ),
       align: 'center',
       width: 120,
@@ -306,7 +324,7 @@ export default function GestionarAsistencias() {
       render: (_, record) => (
         record.latitud && record.longitud ? (
           <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
-            <EnvironmentOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+            <EnvironmentOutlined style={{ color: '#006B5B', fontSize: 18 }} />
           </Tooltip>
         ) : (
           <Text type="secondary">—</Text>
@@ -394,11 +412,31 @@ export default function GestionarAsistencias() {
                       {sesion.cancha?.nombre || 'Sin cancha'}
                     </Text>
                     {sesion.latitudToken && sesion.longitudToken ? (
-                      <Tag color="green" icon={<EnvironmentOutlined />}>
-                        Token con ubicación activa
-                      </Tag>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <EnvironmentOutlined />
+  Token con ubicación activa
+</span>
                     ) : (
-                      <Tag color="default">Token sin ubicación</Tag>
+                     <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  Token sin ubicación
+</span>
                     )}
                     {sesion.grupo && (
                       <Text type="secondary">
@@ -605,9 +643,20 @@ export default function GestionarAsistencias() {
                 <Select>
                   {Object.entries(ESTADOS).map(([key, config]) => (
                     <Select.Option key={key} value={key}>
-                      <Tag color={config.color} icon={config.icon}>
-                        {config.label}
-                      </Tag>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  {config.icon}
+  {config.label}
+</span>
                     </Select.Option>
                   ))}
                 </Select>
@@ -634,8 +683,8 @@ export default function GestionarAsistencias() {
               border: '1px solid #91d5ff'
             }}>
               <Space direction="vertical" size={4}>
-                <Text strong style={{ color: '#0050b3' }}>
-                  ℹ️ Información importante:
+                <Text strong style={{ color: '#014898' }}>
+                   Información importante:
                 </Text>
                 <Text style={{ fontSize: 12 }}>
                   • Este registro se marcará con origen "Entrenador"

@@ -93,7 +93,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
             placeholder="Buscar jugador por nombre o RUT..."
             filterOption={false}
             onSearch={loadJugadores}
-            onChange={(value) => setJugadorSeleccionado(value)} // 👈 carga sesiones al elegir
+            onChange={(value) => setJugadorSeleccionado(value)} 
             notFoundContent={loadingJugadores ? <Spin size="small" /> : 'No encontrado'}
             optionFilterProp="children"
           >

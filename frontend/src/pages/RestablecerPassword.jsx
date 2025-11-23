@@ -119,8 +119,8 @@ export default function RestablecerPassword() {
             size="large"
             onClick={() => navigate("/solicitar-restablecimiento")}
             style={{
-              backgroundColor: "#003a8c",
-              borderColor: "#003a8c",
+              backgroundColor: "#014898",
+              borderColor: "#014898",
               borderRadius: 8,
             }}
           >
@@ -152,7 +152,7 @@ export default function RestablecerPassword() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <Title level={3} style={{ color: "#003a8c", marginBottom: 4 }}>
+          <Title level={3} style={{ color: "#014898", marginBottom: 4 }}>
             Nueva contraseña
           </Title>
           <Text type="secondary">
@@ -277,14 +277,14 @@ export default function RestablecerPassword() {
                     }}
                   >
                     {isValid ? (
-                      <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                      <CheckCircleOutlined style={{ color: "#8CC63F" }} />
                     ) : (
-                      <CloseCircleOutlined style={{ color: "#d9d9d9" }} />
+                      <CloseCircleOutlined style={{ color: "#B9BBBB" }} />
                     )}
                     <Text
                       style={{
                         fontSize: 13,
-                        color: isValid ? "#52c41a" : "#8c8c8c",
+                        color: isValid ? "#8CC63F" : "#8c8c8c",
                       }}
                     >
                       {req.text}
@@ -303,8 +303,8 @@ export default function RestablecerPassword() {
             block
             size="large"
             style={{
-              backgroundColor: "#003a8c",
-              borderColor: "#003a8c",
+              backgroundColor: "#014898",
+              borderColor: "#014898",
               borderRadius: 8,
             }}
           >

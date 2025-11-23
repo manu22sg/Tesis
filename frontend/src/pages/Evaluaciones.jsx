@@ -194,7 +194,7 @@ const handleExportarPDF = async () => {
       key: 'jugador',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
           <div>
             <div style={{ fontWeight: 500 }}>
   {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim()}
@@ -273,7 +273,7 @@ const handleExportarPDF = async () => {
         <Card title={<><StarOutlined /> Evaluaciones de Jugadores</>} variant="outlined">
           
           {/*  Filtros y acciones */}
-          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+          <Card style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
            <Row gutter={[16, 16]} align="middle">
   <Col xs={24} sm={12} md={7}>
     <Input

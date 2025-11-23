@@ -402,7 +402,7 @@ function CampeonatosContent() {
         {/* Filtros */}
         <Card
           title={<span><FilterOutlined /> Filtros</span>}
-          style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}
+          style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
           extra={
             <Space>
               <Dropdown

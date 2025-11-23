@@ -66,8 +66,19 @@ const SesionesTable = memo(({
     {
       title: 'Tipo',
       dataIndex: 'tipoSesion',
-      render: (t) => <Tag color={colorForTipo(t)}>{t || '—'}</Tag>,
-      width: 100,
+      render: (t) => <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-block',
+  marginRight: '4px'
+}}>
+  {t || '—'}
+</span>,
+      width: 180,
     },
     {
       title: 'Token',
@@ -76,15 +87,51 @@ const SesionesTable = memo(({
         const vigente = r.tokenVigente !== undefined ? r.tokenVigente : r.tokenActivo;
         
         if (vigente) {
-          return <Tag color="green" icon={<UnlockOutlined />}>Activo</Tag>;
+          return <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <UnlockOutlined />Activo
+</span>;
         }
         
         // Si tokenActivo es true pero tokenVigente es false, significa que expiró
         if (r.tokenActivo && r.tokenVigente === false) {
-          return <Tag color="orange" icon={<LockOutlined />}>Expirado</Tag>;
+          return <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <LockOutlined />Expirado
+</span>;
         }
         
-        return <Tag icon={<LockOutlined />}>Inactivo</Tag>;
+        return <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <LockOutlined />Inactivo
+</span>;
       },
       width: 100,
     },
@@ -115,7 +162,7 @@ const SesionesTable = memo(({
               icon={<KeyOutlined />}
               onClick={() => { setSesionToken(r); setTokenModal(true); }}
               style={{ 
-                color: r.tokenVigente ? '#52c41a' : (r.tokenActivo && !r.tokenVigente ? '#faad14' : '#8c8c8c')
+                color: r.tokenVigente ? '#006B5B' : (r.tokenActivo && !r.tokenVigente ? '#faad14' : '#8c8c8c')
               }}
             />
           </Tooltip>

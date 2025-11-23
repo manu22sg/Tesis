@@ -67,7 +67,16 @@ const DetalleSesionModal = memo(({ open, loading, sesion, onClose }) => {
                 <strong>Grupo:</strong> {sesion.grupo?.nombre || 'Sin grupo'}
               </div>
               <div>
-                <strong>Tipo:</strong> <Tag color={colorForTipo(sesion.tipoSesion)}>{sesion.tipoSesion}</Tag>
+                <strong>Tipo:</strong> <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {sesion.tipoSesion}
+</span>
               </div>
             </div>
             

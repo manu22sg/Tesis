@@ -24,6 +24,7 @@ export const actualizarCancha = async (id, datosActualizacion) => {
     const response = await api.patch('/canchas', { id, ...datosActualizacion });
     return response.data;
   } catch (error) {
+    console.log(error.response?.data?.message);
     throw error.response?.data?.message || 'Error al actualizar la cancha';
   }
 }; 

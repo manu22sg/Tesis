@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  DatePicker, Button, Card, Table, Tag, message, Spin,
+  DatePicker, Button, Card, Table,  message, Spin,
   ConfigProvider, Pagination, Select, Space
 } from 'antd';
 import { FilterOutlined, PlusOutlined } from '@ant-design/icons';
@@ -63,9 +63,27 @@ export default function DisponibilidadCancha() {
       width: '60%',
       render: (disp, record) =>
         disp ? (
-          <Tag color="green">Disponible</Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  Disponible
+</span>
         ) : (
-          <Tag color="red">{record.motivo || 'Ocupado'}</Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {record.motivo || 'Ocupado'}
+</span>
         )
     }
   ]), []);
@@ -250,7 +268,7 @@ export default function DisponibilidadCancha() {
           </div>
 
           {/* filtros */}
-          <Card type="inner" title={<span><FilterOutlined style={{ marginRight: 8 }} />Filtros de búsqueda</span>} style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+          <Card type="inner" title={<span><FilterOutlined style={{ marginRight: 8 }} />Filtros de búsqueda</span>} style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
             <Space direction="horizontal" wrap size="middle" style={{ width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <Select

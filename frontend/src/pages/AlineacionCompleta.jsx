@@ -285,7 +285,7 @@ function descargarArchivo(blob, nombre) {
         <Avatar 
           size={40} 
           icon={<UserOutlined />} 
-          style={{ backgroundColor: '#1890ff' }}
+          style={{ backgroundColor: '#014898' }}
         />
         </div>
           <span>

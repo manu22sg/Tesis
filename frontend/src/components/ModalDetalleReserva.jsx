@@ -59,9 +59,16 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
         </Descriptions.Item>
 
         <Descriptions.Item label="Estado" span={2}>
-          <Tag color={getEstadoColor(reserva.estado)}>
-            {ucfirst(reserva.estado || '')}
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {ucfirst(reserva.estado || '')}
+</span>
         </Descriptions.Item>
 
         <Descriptions.Item label="Participantes" span={2}>
@@ -69,7 +76,19 @@ const ModalDetalleReserva = ({ visible, reserva, onClose }) => {
           {reserva.participantes?.length > 0 && (
             <div style={{ marginTop: '8px' }}>
               {reserva.participantes.map((p, idx) => (
-                <Tag key={idx}>{p.usuario?.nombre || 'N/A'} {p.usuario?.apellido || ''}</Tag>
+               <span 
+  key={idx}
+  style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}
+>
+  {p.usuario?.nombre || 'N/A'} {p.usuario?.apellido || ''}
+</span>
               ))}
             </div>
           )}

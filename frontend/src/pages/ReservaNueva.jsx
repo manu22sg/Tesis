@@ -428,9 +428,9 @@ export default function ReservaNueva() {
                 <div style={{ 
                   marginBottom: 16, 
                   padding: 12, 
-                  background: '#fafafa', 
+                  background: '#F5F5F5', 
                   borderRadius: 8,
-                  border: '1px solid #d9d9d9'
+                  border: '1px solid #B9BBBB'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <strong>Participantes agregados:</strong>
@@ -450,7 +450,7 @@ export default function ReservaNueva() {
                             border: '1px solid #91d5ff'
                           } : {}}
                         >
-                          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                          <CheckCircleOutlined style={{ color: '#8CC63F' }} />
                           <span>
                             {rut}
                             {info && (

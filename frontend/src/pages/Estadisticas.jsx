@@ -238,7 +238,7 @@ export default function Estadisticas() {
             }
           >
             {/* Filtros principales */}
-            <Card style={{ marginBottom: 16, background: '#fafafa' }}>
+            <Card style={{ marginBottom: 16, background: '#f5f5f5' }}>
               <Row gutter={[16, 16]} align="middle">
                 <Col xs={24} md={6}>
                   <Text type="secondary">Ver estadísticas por</Text>

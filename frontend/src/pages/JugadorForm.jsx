@@ -243,7 +243,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+                        <CheckCircleOutlined style={{ color: '#006B5B', fontSize: 18 }} />
                         <div>
                           <div style={{ fontWeight: 'bold' }}>{usuarioSeleccionado.nombre}</div>
                           <div style={{ fontSize: 12, color: '#666' }}>

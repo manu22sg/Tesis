@@ -144,7 +144,7 @@ export default function Ojeador() {
           <Avatar 
             size={45} 
             icon={<UserOutlined />} 
-            style={{ backgroundColor: '#1890ff' }} 
+            style={{ backgroundColor: '#014898' }} 
           />
           <div>
             <div style={{ fontWeight: 500, fontSize: 14 }}>
@@ -171,9 +171,20 @@ export default function Ojeador() {
       key: 'totalCampeonatos',
       align: 'center',
       render: (total) => (
-        <Tag color="blue" icon={<TrophyOutlined />}>
-          {total}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <TrophyOutlined />
+  {total}
+</span>
       ),
       width: 130
     },
@@ -183,9 +194,16 @@ export default function Ojeador() {
       key: 'totalGoles',
       align: 'center',
       render: (goles) => (
-        <Tag color="green" style={{ fontSize: 14, fontWeight: 'bold' }}>
-          ⚽ {goles}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: 14,
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  ⚽ {goles}
+</span>
       ),
       width: 100
     },
@@ -195,9 +213,16 @@ export default function Ojeador() {
       key: 'totalAsistencias',
       align: 'center',
       render: (asist) => (
-        <Tag color="purple" style={{ fontSize: 14 }}>
-          🎯 {asist}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: 14,
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  🎯 {asist}
+</span>
       ),
       width: 120
     },
@@ -208,9 +233,16 @@ export default function Ojeador() {
       align: 'center',
       render: (ataj) => (
         ataj > 0 ? (
-          <Tag color="orange" style={{ fontSize: 14 }}>
-            🧤 {ataj}
-          </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: 14,
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  🧤 {ataj}
+</span>
         ) : <Text type="secondary">—</Text>
       ),
       width: 100
@@ -239,7 +271,7 @@ export default function Ojeador() {
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <TrophyOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                <TrophyOutlined style={{ fontSize: 24, color: '#014898' }} />
                 <span style={{ fontSize: 20 }}>Ojeador de Jugadores</span>
               </div>
             }
@@ -252,7 +284,7 @@ export default function Ojeador() {
                   <FilterOutlined /> Búsqueda y Filtros
                 </span>
               }
-              style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
+              style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}
               extra={
                 hayFiltrosActivos && (
                   <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>

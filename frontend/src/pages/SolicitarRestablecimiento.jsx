@@ -72,7 +72,7 @@ export default function SolicitarRestablecimiento() {
         </Button>
 
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <Title level={3} style={{ color: "#003a8c", marginBottom: 4 }}>
+          <Title level={3} style={{ color: "#014898", marginBottom: 4 }}>
             ¿Olvidaste tu contraseña?
           </Title>
           <AntText type="secondary">
@@ -96,8 +96,8 @@ export default function SolicitarRestablecimiento() {
               size="large"
               onClick={() => navigate("/login")}
               style={{
-                backgroundColor: "#003a8c",
-                borderColor: "#003a8c",
+                backgroundColor: "#014898",
+                borderColor: "#014898",
                 borderRadius: 8,
               }}
             >
@@ -144,8 +144,8 @@ export default function SolicitarRestablecimiento() {
               block
               size="large"
               style={{
-                backgroundColor: "#003a8c",
-                borderColor: "#003a8c",
+                backgroundColor: "#014898",
+                borderColor: "#014898",
                 borderRadius: 8,
               }}
             >

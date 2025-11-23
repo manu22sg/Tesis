@@ -238,9 +238,16 @@ export default function ModalEditarParticipantes({
           </div>
           <div>
             <strong>Capacidad:</strong>{' '}
-            <Tag color={participantesCount === capacidadMaxima ? 'green' : 'orange'}>
-              {participantesCount} / {capacidadMaxima}
-            </Tag>
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {participantesCount} / {capacidadMaxima}
+</span>
           </div>
         </div>
       </div>
@@ -259,7 +266,7 @@ export default function ModalEditarParticipantes({
         <div>
           <strong>
             {participantesCount === capacidadMaxima ? (
-              <span style={{ color: '#52c41a' }}>
+              <span style={{ color: '#006B5B' }}>
                 <CheckCircleOutlined /> Capacidad completa
               </span>
             ) : (
@@ -333,11 +340,11 @@ export default function ModalEditarParticipantes({
       <div style={{ 
         maxHeight: 250, 
         overflowY: 'auto',
-        border: '1px solid #d9d9d9',
+        border: '1px solid #B9BBBB',
         borderRadius: 8,
         padding: 12,
         marginBottom: 16,
-        background: '#fafafa'
+        background: '#f5f5f5'
       }}>
         {participantesSeleccionados.length > 0 ? (
           <Space direction="vertical" style={{ width: '100%' }} size="small">
@@ -356,19 +363,19 @@ export default function ModalEditarParticipantes({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    border: esCreador ? '2px solid #1890ff' : '1px solid #e8e8e8'
+                    border: esCreador ? '2px solid #014898' : '1px solid #e8e8e8'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Avatar 
                       size="small" 
                       icon={<UserOutlined />} 
-                      style={{ background: esCreador ? '#1890ff' : '#52c41a' }} 
+                      style={{ background: esCreador ? '#014898' : '#006B5B' }} 
                     />
                     <div>
                       <div style={{ fontWeight: 500 }}>
                         {participante?.usuario?.nombre || participante?.nombreOpcional || rut}
-                        {esTu && <span style={{ marginLeft: 4, color: '#1890ff' }}>(Tú)</span>}
+                        {esTu && <span style={{ marginLeft: 4, color: '#014898' }}>(Tú)</span>}
                       </div>
                       <div style={{ fontSize: 12, color: '#999' }}>{rut}</div>
                     </div>
@@ -376,12 +383,36 @@ export default function ModalEditarParticipantes({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {esCreador ? (
                       <>
-                        <Tag color="blue" icon={<LockOutlined />}>Creador</Tag>
-                        <LockOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <LockOutlined />Creador
+</span>
+                        <LockOutlined style={{ fontSize: 18, color: '#014898' }} />
                       </>
                     ) : (
                       <>
-                        <Tag color="green" icon={<CheckCircleOutlined />}>Seleccionado</Tag>
+                        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <CheckCircleOutlined />Seleccionado
+</span>
                         <CloseCircleOutlined 
                           onClick={() => handleRemoveParticipante(rut)}
                           style={{ 
@@ -415,7 +446,7 @@ export default function ModalEditarParticipantes({
       <div style={{ 
         maxHeight: 200, 
         overflowY: 'auto',
-        border: '1px solid #d9d9d9',
+        border: '1px solid #B9BBBB',
         borderRadius: 8,
         padding: 8
       }}>
@@ -428,7 +459,7 @@ export default function ModalEditarParticipantes({
                   key={idx}
                   style={{
                     padding: '8px 12px',
-                    background: '#fafafa',
+                    background: '#f5f5f5',
                     borderRadius: 6,
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -444,9 +475,16 @@ export default function ModalEditarParticipantes({
                       <div style={{ fontSize: 12, color: '#999' }}>{p.rut}</div>
                     </div>
                   </div>
-                  <Tag color={esCreador ? "blue" : "default"}>
-                    {esCreador ? 'Creador' : 'Actual'}
-                  </Tag>
+                  <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {esCreador ? 'Creador' : 'Actual'}
+</span>
                 </div>
               );
             })}

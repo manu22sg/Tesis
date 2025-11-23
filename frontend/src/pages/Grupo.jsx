@@ -292,7 +292,7 @@ export default function Grupos() {
         const count = Array.isArray(record.jugadorGrupos) ? record.jugadorGrupos.length : 0;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-            <UserOutlined style={{ color: '#52c41a' }} />
+            <UserOutlined style={{ color: '#006B5B' }} />
             <strong style={{ fontSize: 16 }}>{count}</strong>
           </div>
         );
@@ -345,7 +345,7 @@ export default function Grupos() {
       <ConfigProvider locale={locale}>
         <Card title={<><TeamOutlined />{' '}Gestión de Grupos</>} variant="filled">
           {/* Filtros y Acciones */}
-          <Card style={{ marginBottom: '1rem', backgroundColor: '#fafafa' }}>
+          <Card style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
             <Row gutter={16} align="middle">
               <Col flex="auto">
                 <Input

@@ -123,7 +123,7 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
           <FilterOutlined /> Filtros
         </span>
       }
-      style={{ marginBottom: 24, backgroundColor: '#fafafa' }}
+      style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}
       extra={hayFiltros && <Button onClick={limpiar}>Limpiar Filtros</Button>}
     >
       <Row gutter={[16, 16]} align="middle">

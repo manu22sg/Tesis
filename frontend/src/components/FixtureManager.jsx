@@ -430,7 +430,7 @@ const handleExportarPDF = async () => {
         const equipo = campeonato.equipos?.find(e => e.id === id);
         return (
           <Space>
-            <TeamOutlined style={{ color: '#1890ff' }} />
+            <TeamOutlined style={{ color: '#014898' }} />
             <Text strong>{equipo?.nombre || `Equipo ${id}`}</Text>
           </Space>
         );
@@ -465,7 +465,7 @@ const handleExportarPDF = async () => {
         const equipo = campeonato.equipos?.find(e => e.id === id);
         return (
           <Space>
-            <TeamOutlined style={{ color: '#52c41a' }} />
+            <TeamOutlined style={{ color: '#006B5B' }} />
             <Text strong>{equipo?.nombre || `Equipo ${id}`}</Text>
           </Space>
         );
@@ -480,9 +480,16 @@ const handleExportarPDF = async () => {
         if (!id) return <Text type="secondary">-</Text>;
         const equipo = campeonato.equipos?.find(e => e.id === id);
         return (
-          <Tag color="gold" >
-            {equipo?.nombre || `Equipo ${id}`}
-          </Tag>
+         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {equipo?.nombre || `Equipo ${id}`}
+</span>
         );
       }
     },
@@ -521,9 +528,16 @@ const handleExportarPDF = async () => {
       key: 'estado',
       width: 120,
       render: (estado) => (
-        <Tag color={getEstadoColor(estado)}>
-          {getEstadoText(estado)}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {getEstadoText(estado)}
+</span>
       )
     },
     {
@@ -648,24 +662,40 @@ const handleExportarPDF = async () => {
       >
         <Descriptions column={4} size="small">
           <Descriptions.Item label="Formato">
-            <Tag color="purple">{campeonato.formato}</Tag>
+            <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.formato}
+</span>
           </Descriptions.Item>
           <Descriptions.Item label="Género">
-            <Tag color={
-              campeonato.genero === 'masculino' ? 'blue' :
-              campeonato.genero === 'femenino' ? 'pink' : 'orange'
-            }>
-              {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
-            </Tag>
+           <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
+</span>
           </Descriptions.Item>
           <Descriptions.Item label="Estado">
-            <Tag color={
-              campeonato.estado === 'creado' ? 'blue' :
-              campeonato.estado === 'en_juego' ? 'green' :
-              campeonato.estado === 'finalizado' ? 'gold' : 'default'
-            }>
-              {getEstadoText(campeonato.estado)}
-            </Tag>
+            <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {getEstadoText(campeonato.estado)}
+</span>
           </Descriptions.Item>
           <Descriptions.Item label="Año/Semestre">
             {campeonato.anio} - S{campeonato.semestre}
@@ -728,13 +758,30 @@ const handleExportarPDF = async () => {
                   <Space>
                     <FireOutlined style={{ color: '#ff4d4f' }} />
                     <span>{getRondaNombre(ronda)}</span>
-                    <Tag>
-                      {partidosRonda.length} {partidosRonda.length === 1 ? 'partido' : 'partidos'}
-                    </Tag>
+                   <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {partidosRonda.length} {partidosRonda.length === 1 ? 'partido' : 'partidos'}
+</span>
                     {todosFinalizados && (
-                      <Tag icon={<CheckCircleOutlined />} color="success">
-                        Completa
-                      </Tag>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <CheckCircleOutlined /> Completa
+</span>
                     )}
                   </Space>
                 }
@@ -829,8 +876,16 @@ const handleExportarPDF = async () => {
 
   {/* Fila de Info */}
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-    <Tag color="purple">{getRondaNombre(partidoSeleccionado.ronda)}</Tag>
-    
+   <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {getRondaNombre(partidoSeleccionado.ronda)}
+</span>    
     {(partidoSeleccionado.fecha || partidoSeleccionado.horaInicio) && (
       <Text type="secondary" style={{ fontSize: 12 }}>
         {partidoSeleccionado.fecha ? formatearFecha(partidoSeleccionado.fecha) : ''}
@@ -864,9 +919,16 @@ const handleExportarPDF = async () => {
                         
                         {cancha.nombre}
                         {cancha.estado && (
-                          <Tag color={cancha.estado === 'disponible' ? 'green' : 'red'}>
-                            {cancha.estado}
-                          </Tag>
+                          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {cancha.estado}
+</span>
                         )}
                       </Space>
                     </Option>

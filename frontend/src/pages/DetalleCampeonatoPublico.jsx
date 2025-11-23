@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Tabs, Table, Tag, Space, Empty, Spin,
+  Card, Tabs, Table, Space, Empty, Spin,
   Avatar, Badge, Button, Breadcrumb, ConfigProvider,
   Row, Col, Statistic, Select
 } from 'antd';
@@ -121,7 +121,7 @@ const EstadisticasPublicas = ({ campeonato, jugadores, estadisticas }) => {
           style={{
             padding: "6px 12px",
             borderRadius: 6,
-            border: "1px solid #d9d9d9",
+            border: "1px solid #B9BBBB",
             width: 200
           }}
         />
@@ -328,7 +328,18 @@ export default function DetalleCampeonatoPublico() {
       width: 160,
       render: (_, p) => (
         <Space direction="vertical" size={0}>
-          {p.fecha ? formatearFecha(p.fecha) : <Tag>Por programar</Tag>}
+          {p.fecha ? formatearFecha(p.fecha) : (
+  <span style={{
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: '12px',
+    fontWeight: 500,
+    border: '1px solid #B9BBBB',
+    backgroundColor: '#f5f5f5'
+  }}>
+    Por programar
+  </span>
+)}
           {p.horaInicio &&
             <span style={{ fontSize: 12, color: "#999" }}>
               {formatearRangoHoras(p.horaInicio, p.horaFin)}
@@ -342,24 +353,27 @@ export default function DetalleCampeonatoPublico() {
       width: 120,
       align: "center",
       render: estado => {
-        const colores = {
-          pendiente: "default",
-          programado: "blue",
-          en_juego: "orange",
-          en_curso: "processing",
-          finalizado: "success",
-          cancelado: "error"
-        };
-        const textos = {
-          pendiente: "Pendiente",
-          programado: "Programado",
-          en_juego: "En Juego",
-          en_curso: "En Curso",
-          finalizado: "Finalizado",
-          cancelado: "Cancelado",
-        };
-        return <Tag color={colores[estado]}>{textos[estado]}</Tag>;
-      }
+  const textos = {
+    pendiente: "Pendiente",
+    programado: "Programado",
+    en_juego: "En Juego",
+    en_curso: "En Curso",
+    finalizado: "Finalizado",
+    cancelado: "Cancelado",
+  };
+  return (
+    <span style={{
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: '12px',
+      fontWeight: 500,
+      border: '1px solid #B9BBBB',
+      backgroundColor: '#f5f5f5'
+    }}>
+      {textos[estado]}
+    </span>
+  );
+}
     }
   ];
 
@@ -399,7 +413,7 @@ export default function DetalleCampeonatoPublico() {
                   <Avatar
                     size={40}
                     style={{
-                      backgroundColor: idx < 3 ? "#faad14" : "#d9d9d9",
+                      backgroundColor: idx < 3 ? "#faad14" : "#B9BBBB",
                       color: idx < 3 ? "#fff" : "#000",
                       fontWeight: "bold"
                     }}
@@ -461,7 +475,16 @@ export default function DetalleCampeonatoPublico() {
                   <Space>
                     <FireOutlined style={{ color: "#ff4d4f" }} />
                     {ronda.toUpperCase()}
-                    <Tag>{partidosPorRonda[ronda].length} partidos</Tag>
+                    <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {partidosPorRonda[ronda].length} partidos
+</span>
                   </Space>
                 }
               >
@@ -507,9 +530,16 @@ export default function DetalleCampeonatoPublico() {
                     </div>
                   </Space>
 
-                <Tag color="purple">
+                <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
   {(e.tipo || "").charAt(0).toUpperCase() + (e.tipo || "").slice(1)}
-</Tag>
+</span>
 
                   {e.jugadores && (
                     <div>
@@ -564,23 +594,40 @@ export default function DetalleCampeonatoPublico() {
                     <h2 style={{ margin: 0 }}>{campeonato.nombre}</h2>
 
                     <Space style={{ marginTop: 8 }}>
-                      <Tag color="purple">{campeonato.formato}</Tag>
+                     <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.formato}
+</span>
 
-                      <Tag color={
-                        campeonato.genero === "masculino" ? "blue" :
-                        campeonato.genero === "femenino" ? "pink" : "orange"
-                      }>
-                         {(campeonato.genero || "").charAt(0).toUpperCase() + (campeonato.genero || "").slice(1)}
-                      </Tag>
+                      <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {(campeonato.genero || "").charAt(0).toUpperCase() + (campeonato.genero || "").slice(1)}
+</span>
 
-                      <Tag color={
-                        campeonato.estado === "en_juego" ? "green" :
-                        campeonato.estado === "finalizado" ? "gold" : "blue"
-                      }>
-                        {campeonato.estado === "en_juego" ? "En Curso" :
-                         campeonato.estado === "finalizado" ? "Finalizado" :
-                         "Próximamente"}
-                      </Tag>
+                    <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {campeonato.estado === "en_juego" ? "En Curso" :
+   campeonato.estado === "finalizado" ? "Finalizado" :
+   "Próximamente"}
+</span>
                     </Space>
                   </div>
                 </Space>

@@ -131,8 +131,8 @@ export default function MisEvaluaciones() {
   const hayFiltrosActivos = filtros.desde || filtros.hasta || filtros.sesionId;
 
   const getColorNota = (nota) => {
-    if (nota >= 9) return '#52c41a';
-    if (nota >= 7) return '#1890ff';
+    if (nota >= 9) return '#006B5B';
+    if (nota >= 7) return '#014898';
     if (nota >= 5) return '#faad14';
     return '#ff4d4f';
   };
@@ -157,9 +157,16 @@ export default function MisEvaluaciones() {
       key: 'tecnica',
       align: 'center',
       render: (nota) => (
-        <Tag color={getColorNota(nota)} style={{ fontSize: '14px', fontWeight: 'bold' }}>
-          {nota || 0}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {nota || 0}
+</span>
       ),
     },
     {
@@ -168,9 +175,16 @@ export default function MisEvaluaciones() {
       key: 'tactica',
       align: 'center',
       render: (nota) => (
-        <Tag color={getColorNota(nota)} style={{ fontSize: '14px', fontWeight: 'bold' }}>
-          {nota || 0}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {nota || 0}
+</span>
       ),
     },
     {
@@ -179,9 +193,16 @@ export default function MisEvaluaciones() {
       key: 'actitudinal',
       align: 'center',
       render: (nota) => (
-        <Tag color={getColorNota(nota)} style={{ fontSize: '14px', fontWeight: 'bold' }}>
-          {nota || 0}
-        </Tag>
+       <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {nota || 0}
+</span>
       ),
     },
     {
@@ -190,9 +211,16 @@ export default function MisEvaluaciones() {
       key: 'fisica',
       align: 'center',
       render: (nota) => (
-        <Tag color={getColorNota(nota)} style={{ fontSize: '14px', fontWeight: 'bold' }}>
-          {nota || 0}
-        </Tag>
+        <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {nota || 0}
+</span>
       ),
     },
     {
@@ -202,9 +230,16 @@ export default function MisEvaluaciones() {
       render: (_, record) => {
         const prom = ((record.tecnica + record.tactica + record.actitudinal + record.fisica) / 4).toFixed(1);
         return (
-          <Tag color={getColorNota(parseFloat(prom))} style={{ fontSize: '14px', fontWeight: 'bold' }}>
-            {prom}
-          </Tag>
+         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '14px',
+  fontWeight: 'bold',
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5'
+}}>
+  {prom}
+</span>
         );
       },
     },

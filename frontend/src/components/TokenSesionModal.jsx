@@ -231,10 +231,10 @@ const TokenSesionModal = memo(function TokenSesionModal({
               {requiereUbicacion && (
                 <div
                   style={{
-                    border: '1px solid #d9d9d9',
+                    border: '1px solid #B9BBBB',
                     borderRadius: 8,
                     padding: 12,
-                    background: '#fafafa',
+                    background: '#f5f5f5',
                     marginBottom: 16,
                   }}
                 >
@@ -286,7 +286,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
                     >
                       <Space direction="vertical" size={4}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                          <CheckCircleOutlined style={{ color: '#006B5B' }} />
                           <Text strong>Ubicación fijada</Text>
                         </div>
                         <Text type="secondary">Lat: {ubicacion.latitud.toFixed(6)}</Text>
