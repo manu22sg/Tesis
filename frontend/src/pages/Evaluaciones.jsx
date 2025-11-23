@@ -219,10 +219,16 @@ export default function Evaluaciones() {
   const handleExportarExcel = async () => {
     setExportando(true);
     try {
-      const params = {
-        tipo: modo,
-        id: modo === 'sesion' ? sesionId : jugadorId
-      };
+      const params = {};
+      
+      // ✅ Enviar parámetros correctos según el modo
+      if (modo === 'sesion' && sesionId) {
+        params.sesionId = sesionId;
+        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+      } else if (modo === 'jugador' && jugadorId) {
+        params.jugadorId = jugadorId;
+        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+      }
 
       const blob = await exportarEvaluacionesExcel(params);
       
@@ -247,10 +253,16 @@ export default function Evaluaciones() {
   const handleExportarPDF = async () => {
     setExportando(true);
     try {
-      const params = {
-        tipo: modo,
-        id: modo === 'sesion' ? sesionId : jugadorId
-      };
+      const params = {};
+      
+      // ✅ Enviar parámetros correctos según el modo
+      if (modo === 'sesion' && sesionId) {
+        params.sesionId = sesionId;
+        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+      } else if (modo === 'jugador' && jugadorId) {
+        params.jugadorId = jugadorId;
+        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+      }
 
       const blob = await exportarEvaluacionesPDF(params);
       

@@ -286,7 +286,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             top: 0,
             bottom: 0,
             zIndex: 100,
-            overflow: 'auto',
+            overflow: 'hidden',
           }}
         >
           <div

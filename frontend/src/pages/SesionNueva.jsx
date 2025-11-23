@@ -463,15 +463,17 @@ export default function SesionNueva() {
 
               {/* Tipo de sesión */}
             <Form.Item
-  name="tipoSesion"
-  label="Tipo de sesión"
-  rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
->
-  <Select placeholder="Selecciona el tipo de sesión">
-    <Select.Option value="Entrenamiento">Entrenamiento</Select.Option>
-    <Select.Option value="Partido">Partido</Select.Option>
-  </Select>
-</Form.Item>
+                name="tipoSesion"
+                label="Tipo de sesión"
+                rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
+              >
+                <Select placeholder="Selecciona el tipo de sesión">
+                  <Select.Option value="Entrenamiento">Entrenamiento</Select.Option>
+                  <Select.Option value="Partido">Partido</Select.Option>
+                  <Select.Option value="Partido Amistoso">Partido Amistoso</Select.Option>
+                  <Select.Option value="Charla Técnica">Charla Técnica</Select.Option>
+                </Select>
+              </Form.Item>
 
               {/* Objetivos */}
               <Form.Item name="objetivos" label="Objetivos (opcional)">

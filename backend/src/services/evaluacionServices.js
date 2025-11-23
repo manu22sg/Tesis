@@ -15,6 +15,18 @@ export async function crearEvaluacion(data) {
     const sesion = await sesionRepo.findOne({ where: { id: data.sesionId } });
     if (!sesion) return [null, 'Sesión no encontrada'];
 
+    // ✅ Verificar si ya existe una evaluación
+    const existente = await repo.findOne({
+      where: { 
+        jugadorId: data.jugadorId, 
+        sesionId: data.sesionId 
+      }
+    });
+    
+    if (existente) {
+      return [null, 'Ya existe una evaluación para este jugador en esta sesión'];
+    }
+
     const nuevo = repo.create(data);
     const saved = await repo.save(nuevo);
     const completo = await repo.findOne({
@@ -28,7 +40,7 @@ export async function crearEvaluacion(data) {
   }
 }
 
-export async function obtenerEvaluaciones({ page = 1, limit = 10, jugadorId, sesionId, desde, hasta, q }) {
+export async function obtenerEvaluaciones({ page = 1, limit = 50, jugadorId, sesionId, desde, hasta, q }) {
   try {
     const repo = AppDataSource.getRepository(EvaluacionSchema);
     const qb = repo.createQueryBuilder('e')

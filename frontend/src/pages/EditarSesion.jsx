@@ -381,16 +381,17 @@ export default function EditarSesion() {
               </Form.Item>
 
               {/* Tipo de sesión */}
-              <Form.Item
+               <Form.Item
                 name="tipoSesion"
                 label="Tipo de sesión"
-                rules={[{ required: true, message: 'Ingresa el tipo de sesión' }]}
+                rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
               >
-                <Input
-                  showCount
-                  maxLength={50}
-                  placeholder="Ejemplo: técnica, táctica, fuerza, resistencia..."
-                />
+                <Select placeholder="Selecciona el tipo de sesión">
+                  <Select.Option value="Entrenamiento">Entrenamiento</Select.Option>
+                  <Select.Option value="Partido">Partido</Select.Option>
+                  <Select.Option value="Partido Amistoso">Partido Amistoso</Select.Option>
+                  <Select.Option value="Charla Técnica">Charla Técnica</Select.Option>
+                </Select>
               </Form.Item>
 
               {/* Objetivos */}

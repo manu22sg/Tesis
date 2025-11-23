@@ -4,10 +4,9 @@ import api from './root.services.js';
 export const crearEvaluacion = async (data) => {
   try {
     const response = await api.post('/evaluaciones', data);
-    
     return response.data;
   } catch (error) {
-    throw error.response?.data || error;
+    throw error.response?.data?.message
   }
 };
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import {
-  Card, Button, Space, message, Pagination, ConfigProvider
+  Card, Button, Space, message, Pagination, ConfigProvider, Dropdown
 } from 'antd';
-import { CalendarOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CalendarOutlined, PlusOutlined, ReloadOutlined, DownloadOutlined,FilePdfOutlined,FileExcelOutlined} from '@ant-design/icons';
 import locale from 'antd/locale/es_ES';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -31,7 +31,9 @@ export default function Sesiones() {
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  
+     const [exportando, setExportando] = useState(false);
+
+
   const [filtros, setFiltros] = useState({
     q: '',
     fecha: null,
@@ -174,7 +176,7 @@ export default function Sesiones() {
   window.URL.revokeObjectURL(url);
 };
 
-const handleExportarExcel = async () => {
+const handleExportExcel = async () => {
   try {
     const query = {};
 
@@ -197,7 +199,7 @@ const handleExportarExcel = async () => {
 };
 
 
-const handleExportarPDF = async () => {
+const handleExportPDF = async () => {
   try {
     const query = {};
 
@@ -219,6 +221,22 @@ const handleExportarPDF = async () => {
   }
 };
 
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportPDF,
+    },
+  ],
+};
 
 
 
@@ -233,17 +251,18 @@ const handleExportarPDF = async () => {
       
       {/* Botones de la izquierda */}
       <Space>
+        <Dropdown menu={menuExportar} trigger={['click']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
+        </Button>
+      </Dropdown>
         <Button icon={<ReloadOutlined />} onClick={() => cargarSesiones(pagination.current, pagination.pageSize)}>
           Actualizar
         </Button>
-
-        <Button onClick={handleExportarExcel}>
-          Exportar Excel
-        </Button>
-
-        <Button onClick={handleExportarPDF}>
-          Exportar PDF
-        </Button>
+         
       </Space>
 
       {/* Esto empuja el botón de Nueva Sesión hacia la derecha */}

@@ -74,8 +74,9 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
       }
       onSuccess();
     } catch (err) {
-      console.error('Error guardando evaluación:', err);
-      message.error('Error al guardar');
+          const errorMsg = typeof err === 'string' ? err : err?.message || 'Error al guardar la evaluación';
+
+    message.error(errorMsg);
     }
   };
 
@@ -99,7 +100,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
           >
             {jugadores.map((j) => (
               <Select.Option key={j.id} value={j.id}>
-                {j.usuario?.nombre || `Jugador #${j.id}`} — {j.usuario?.rut || 'Sin RUT'}
+{`${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} — ${j.usuario?.rut || 'Sin RUT'}`}
               </Select.Option>
             ))}
           </Select>
