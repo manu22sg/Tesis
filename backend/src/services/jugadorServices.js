@@ -65,7 +65,7 @@ export async function crearJugador(datosJugador) {
 }
 
 
-export async function obtenerTodosJugadores(pagina = 1, limite = 10, filtros = {}) {
+export async function obtenerTodosJugadores(pagina = 1, limite = 50, filtros = {}) {
   try {
     const jugadorRepository = AppDataSource.getRepository(JugadorSchema);
     const skip = (pagina - 1) * limite;

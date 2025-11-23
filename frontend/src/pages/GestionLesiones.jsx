@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
   message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
-  Pagination, ConfigProvider, Input as AntInput
+  Pagination, ConfigProvider, Input as AntInput, Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
-  FilePdfOutlined,FileExcelOutlined,
+  FileExcelOutlined,
   PlusOutlined, EditOutlined, DeleteOutlined,
   MedicineBoxOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  SearchOutlined, UserOutlined
+  SearchOutlined, UserOutlined, DownloadOutlined,FilePdfOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -31,6 +31,7 @@ export default function GestionLesiones() {
   const { usuario } = useAuth();
   const rolUsuario = usuario?.rol;
   const jugadorId = usuario?.jugadorId;
+   const [exportando, setExportando] = useState(false);
 
   const [lesiones, setLesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -240,6 +241,22 @@ const handleExportarPDF = async () => {
     message.error(error.message || 'Error al exportar a PDF');
   }
 };
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportarExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportarPDF,
+    },
+  ],
+};
 
 
   const abrirModalEditar = (record) => {
@@ -280,7 +297,7 @@ const handleExportarPDF = async () => {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => {
-        const nombre = record.jugador?.usuario?.nombre || 'Sin nombre';
+const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim();
         const rut = record.jugador?.usuario?.rut || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -419,20 +436,14 @@ const handleExportarPDF = async () => {
             extra={
   puedeEditar && (
     <Space>
-      {/* 📥 Botones de exportación */}
-      <Button 
-        icon={<FileExcelOutlined />}
-        onClick={handleExportarExcel}
-      >
-        Exportar Excel
-      </Button>
-
-      <Button 
-        icon={<FilePdfOutlined />}
-        onClick={handleExportarPDF}
-      >
-        Exportar PDF
-      </Button>
+      <Dropdown menu={menuExportar} trigger={['click']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
+        </Button>
+      </Dropdown>
 
       {/* ➕ Botón Nueva Lesión */}
       <Button

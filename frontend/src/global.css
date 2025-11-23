@@ -1,3 +1,10 @@
 body {
   font-family: Arial, sans-serif !important;
 }
+input:focus,
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  outline: none !important;
+  box-shadow: none !important;
+}

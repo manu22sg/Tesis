@@ -4,11 +4,12 @@ import { Form, Input, Button, message, Card, Spin, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { loginRequest } from '../services/auth.services.js';
 import { useAuth } from '../context/AuthContext';
-
+import LogoCancha from '../assets/figura113.png';
 const { Title, Text } = Typography;
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
   const { login, isAuthenticated, usuario, loading: authLoading } = useAuth();
 
@@ -19,23 +20,23 @@ export default function Login() {
   }, [isAuthenticated, usuario, authLoading, navigate]);
 
   const onFinish = async (values) => {
-  setLoading(true);
-  try {
-    const result = await loginRequest(values);
+    setLoading(true);
+    try {
+      const result = await loginRequest(values);
 
-    if (result?.user) {
-      login(result.user); 
-      navigate('/dashboard', { replace: true });
-      return;
+      if (result?.user) {
+        login(result.user); 
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+
+      message.error('No se recibió información del usuario');
+    } catch (error) {
+      message.error(error);
+    } finally {
+      setLoading(false);
     }
-
-    message.error('No se recibió información del usuario');
-  } catch (error) {
-    message.error( error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (authLoading) {
     return (
@@ -48,104 +49,120 @@ export default function Login() {
   if (isAuthenticated) return null;
 
   return (
-  <div
-    style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#f7f9fb",
-      padding: "24px",
-    }}
-  >
-    <Card
+    <div
       style={{
-        width: "100%",
-        maxWidth: 380,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
-        borderRadius: 12,
-        backgroundColor: "#ffffff",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f5f5f5",
+        padding: "24px",
       }}
     >
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <Title level={3} style={{ margin: 0, color: "#003a8c" }}>
-          Iniciar Sesión
-        </Title>
-      </div>
-
-      <Form layout="vertical" onFinish={onFinish}>
-        
-        {/* EMAIL */}
-        <Form.Item
-          label="Email"
-          name="email"
-          validateTrigger={["onBlur", "onSubmit"]}
-          rules={[
-            { required: true, message: "Por favor ingresa tu email" },
-            {
-              pattern: /^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/,
-              message: "Debe ser un correo institucional UBB",
-            },
-          ]}
-        >
-          <Input
-            prefix={<UserOutlined />}
-            placeholder="usuario@alumnos.ubiobio.cl"
-            size="large"
+      <Card
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+          borderRadius: 12,
+          backgroundColor: "#ffffff",
+          paddingTop: 30,
+        }}
+      >
+        {/* LOGO */}
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          <img
+            src={LogoCancha}
+            alt="Logo"
+            style={{
+              width: 200,
+              height: 200,
+              objectFit: "contain",
+              marginBottom: 10,
+            }}
           />
-        </Form.Item>
-
-        {/* PASSWORD */}
-        <Form.Item
-          label="Contraseña"
-          name="password"
-          rules={[
-            { required: true, message: "Por favor ingresa tu contraseña" },
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="••••••••"
-            size="large"
-          />
-        </Form.Item>
-
-        {/* LOGIN BUTTON */}
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={loading}
-          block
-          size="large"
-          style={{
-            backgroundColor: "#014898",
-            borderColor: "#014898",
-            borderRadius: 8,
-            marginTop: 8,
-          }}
-        >
-          Iniciar Sesión
-        </Button>
-        <div style={{ marginTop: 16, textAlign: "center" }}>
-  <Text>
-    <a href="/solicitar-restablecimiento" style={{ color: "#014898" }}>
-      ¿Olvidaste tu contraseña?
-    </a>
-  </Text>
-</div>
-
-        {/* LINK TO REGISTER */}
-        <div style={{ marginTop: 16, textAlign: "center" }}>
-          <span>¿No tienes una cuenta? </span>
-          <a
-            onClick={() => navigate("/register")}
-            style={{ color: "#014898", cursor: "pointer" }}
-          >
-            Regístrate aquí
-          </a>
         </div>
-      </Form>
-    </Card>
-  </div>
-);
+
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Title level={3} style={{ margin: 0, color: "#014898" }}>
+            Iniciar Sesión
+          </Title>
+        </div>
+
+        <Form layout="vertical" onFinish={onFinish}>
+          {/* EMAIL */}
+          <Form.Item
+            label="Email"
+            name="email"
+            validateTrigger={["onBlur", "onSubmit"]}
+            rules={[
+              { required: true, message: "Por favor ingresa tu email" },
+              {
+                pattern: /^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/,
+                message: "Debe ser un correo institucional UBB",
+              },
+            ]}
+          >
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Ingrese su correo institucional UBB"
+              size="large"
+            />
+          </Form.Item>
+
+          {/* PASSWORD */}
+          <Form.Item
+            label="Contraseña"
+            name="password"
+            rules={[{ required: true, message: "Por favor ingresa tu contraseña" }]}
+          >
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Ingrese su contraseña"
+              size="large"
+            />
+          </Form.Item>
+
+          {/* LOGIN BUTTON */}
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            block
+            size="large"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={{
+              backgroundColor: isHovered ? "#0056b3" : "#014898",
+              borderColor: isHovered ? "#0056b3" : "#014898",
+              borderRadius: 8,
+              marginTop: 8,
+              transition: "all 0.3s ease",
+              transform: isHovered ? "translateY(-2px)" : "translateY(0)",
+              boxShadow: isHovered ? "0 4px 12px rgba(1, 72, 152, 0.4)" : "none",
+            }}
+          >
+            Iniciar Sesión
+          </Button>
+
+          {/* LINKS */}
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <a href="/solicitar-restablecimiento" style={{ color: "#014898" }}>
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <span>¿No tienes una cuenta? </span>
+            <a
+              onClick={() => navigate("/register")}
+              style={{ color: "#014898", cursor: "pointer" }}
+            >
+              Regístrate aquí
+            </a>
+          </div>
+        </Form>
+      </Card>
+    </div>
+  );
 }

@@ -34,7 +34,7 @@ export async function obtenerTodosJugadoresController(req, res) {
   try {
     const { 
       pagina = 1, 
-      limite = 10, 
+      limite = 50, 
       estado, 
       carreraId,        // Filtro por ID de carrera (recomendado)
       carreraNombre,    // Filtro por nombre de carrera

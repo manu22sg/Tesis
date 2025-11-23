@@ -36,7 +36,7 @@ export async function upsertEstadistica(payload) {
   }
 }
 
-export async function obtenerEstadisticasPorJugador({ jugadorId, pagina=1, limite=10 }) {
+export async function obtenerEstadisticasPorJugador({ jugadorId, pagina=1, limite=50 }) {
   try {
     const repo = AppDataSource.getRepository(EstadisticaBasicaSchema);
     const skip = (pagina-1)*limite;
@@ -53,7 +53,7 @@ export async function obtenerEstadisticasPorJugador({ jugadorId, pagina=1, limit
   }
 }
 
-export async function obtenerEstadisticasPorSesion({ sesionId, pagina=1, limite=10 }) {
+export async function obtenerEstadisticasPorSesion({ sesionId, pagina=1, limite=50 }) {
   try {
     const repo = AppDataSource.getRepository(EstadisticaBasicaSchema);
     const skip = (pagina-1)*limite;

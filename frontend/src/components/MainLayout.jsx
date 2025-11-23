@@ -41,9 +41,7 @@ function getItem(label, key, icon, children) {
 }
 
 const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
-  // ======================================
-  // 🚨 TODOS LOS HOOKS DEBEN IR AQUÍ ARRIBA
-  // ======================================
+
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario, logout, loading } = useAuth();
@@ -302,7 +300,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
               fontWeight: 'bold',
             }}
           >
-            {collapsed ? '⚽' : 'Sistema Deportivo'}
+            {collapsed ? '⚽' : 'SportUBB'}
           </div>
 
           <Menu

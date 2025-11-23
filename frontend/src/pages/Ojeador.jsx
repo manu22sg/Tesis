@@ -267,7 +267,7 @@ export default function Ojeador() {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -278,70 +278,71 @@ export default function Ojeador() {
            
           >
             {/* Card de Filtros */}
-            <Card
-              title={
-                <span>
-                  <FilterOutlined /> Búsqueda y Filtros
-                </span>
-              }
-              style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}
-              extra={
-                hayFiltrosActivos && (
-                  <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-                )
-              }
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2fr 1fr 1fr',
-                  gap: 16,
-                  alignItems: 'center'
-                }}
-              >
-                <Input
-                  size="large"
-                  allowClear
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  prefix={<SearchOutlined />}
-                  placeholder="Buscar por nombre o RUT del jugador..."
-                />
+           
+<Card
+  title={
+    <span>
+      <FilterOutlined /> Búsqueda y Filtros
+    </span>
+  }
+  style={{ marginBottom: 24, backgroundColor: '#f5f5f5' }}
+  extra={
+    hayFiltrosActivos && (
+      <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+    )
+  }
+>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '2fr 1fr 1fr',
+      gap: 16,
+      alignItems: 'center'
+    }}
+  >
+    <Input
+      size="middle"
+      allowClear
+      value={busqueda}
+      onChange={(e) => setBusqueda(e.target.value)}
+      prefix={<SearchOutlined />}
+      placeholder="Buscar por nombre o RUT del jugador..."
+    />
 
-                <Select
-                  size="large"
-                  allowClear
-                  showSearch
-                  placeholder="Seleccionar carrera"
-                  value={filtroCarreraId}
-                  onChange={setFiltroCarreraId}
-                  loading={loadingCarreras}
-                  filterOption={(input, option) =>
-                    (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {carrerasOpts.map(carrera => (
-                    <Option key={carrera.id} value={carrera.id}>
-                      {carrera.nombre}
-                    </Option>
-                  ))}
-                </Select>
+    <Select
+      size="middle"
+      allowClear
+      showSearch
+      placeholder="Seleccionar carrera"
+      value={filtroCarreraId}
+      onChange={setFiltroCarreraId}
+      loading={loadingCarreras}
+      filterOption={(input, option) =>
+        (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+      }
+    >
+      {carrerasOpts.map(carrera => (
+        <Option key={carrera.id} value={carrera.id}>
+          {carrera.nombre}
+        </Option>
+      ))}
+    </Select>
 
-                <Select
-                  size="large"
-                  allowClear
-                  placeholder="Filtrar por año"
-                  value={filtroAnio}
-                  onChange={setFiltroAnio}
-                >
-                  {[2025, 2024, 2023, 2022, 2021].map(year => (
-                    <Option key={year} value={year}>
-                      {year}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-            </Card>
+    <Select
+      size="middle"
+      allowClear
+      placeholder="Filtrar por año"
+      value={filtroAnio}
+      onChange={setFiltroAnio}
+    >
+      {[2025, 2024, 2023, 2022, 2021].map(year => (
+        <Option key={year} value={year}>
+          {year}
+        </Option>
+      ))}
+    </Select>
+  </div>
+</Card>
 
             {/* Tabla de Jugadores */}
             <Table

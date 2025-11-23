@@ -14,7 +14,7 @@ import {
   Pagination,
   Avatar,
   Typography,
-  ConfigProvider
+  ConfigProvider,Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -26,7 +26,10 @@ import {
   PlusOutlined,
   SearchOutlined,
   TeamOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -44,6 +47,8 @@ import JugadorDetalleModal from '../components/JugadorDetalleModal.jsx';
 const { Text } = Typography;
 const { Option } = Select;
 
+
+
 const ESTADO_COLORS = {
   activo: 'success',
   inactivo: 'default',
@@ -53,6 +58,7 @@ const ESTADO_COLORS = {
 
 export default function Jugadores() {
   const navigate = useNavigate();
+   const [exportando, setExportando] = useState(false);
 
   // Data y carga
   const [jugadores, setJugadores] = useState([]);
@@ -239,6 +245,22 @@ function descargarArchivo(blob, nombre) {
   window.URL.revokeObjectURL(url);
 }
 
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportPDF,
+    },
+  ],
+};
 
   const columns = useMemo(() => [
     {
@@ -397,14 +419,14 @@ function descargarArchivo(blob, nombre) {
   }
   extra={
     <Space>
-      <Space size="small">
-        <Button onClick={handleExportExcel}>
-          Exportar Excel
+       <Dropdown menu={menuExportar} trigger={['click']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
         </Button>
-        <Button onClick={handleExportPDF}>
-          Exportar PDF
-        </Button>
-      </Space>
+      </Dropdown>
       <Button
         type="primary"
         icon={<PlusOutlined />}

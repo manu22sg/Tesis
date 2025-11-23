@@ -17,14 +17,19 @@ import {
   Descriptions,
   Empty,
   ConfigProvider,
-  Pagination
+  Pagination,
+  Dropdown
 } from 'antd';
 import { 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   EyeOutlined,
   FilterOutlined,
-  TeamOutlined
+  TeamOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined,
+
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -55,7 +60,7 @@ const AprobarReservasPage = () => {
   const [canchasDisponibles, setCanchasDisponibles] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
-
+const [exportando, setExportando] = useState(false);
   const [estadisticas, setEstadisticas] = useState({
     pendiente: 0,
     aprobada: 0,
@@ -263,6 +268,22 @@ function descargarArchivo(blob, nombre) {
   a.click();
   window.URL.revokeObjectURL(url);
 }
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportPDF,
+    },
+  ],
+};
 
 
   // Limpiar filtros
@@ -392,13 +413,19 @@ function descargarArchivo(blob, nombre) {
             style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
             extra={
     <Space>
+      <Dropdown menu={menuExportar} trigger={['click']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
+        </Button>
+      </Dropdown>
       <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-      <Space size="small">
-        <Button onClick={handleExportExcel}>Exportar Excel</Button>
-        <Button onClick={handleExportPDF}>Exportar PDF</Button>
-      </Space>
+      
     </Space>
   }
+
 
             
           >

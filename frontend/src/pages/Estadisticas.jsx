@@ -19,6 +19,9 @@ const { Text } = Typography;
 const PRELOAD_LIMIT = 50;
 
 export default function Estadisticas() {
+const [busquedaJugador, setBusquedaJugador] = useState('');
+const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
+const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
   const [modo, setModo] = useState('sesion');
   const [sesiones, setSesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -34,6 +37,8 @@ export default function Estadisticas() {
   const [editando, setEditando] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
+
+    
   // ✅ CARGAR DATOS INICIALES - Solo una vez al montar
   useEffect(() => {
     const cargarBase = async () => {
@@ -141,6 +146,41 @@ export default function Estadisticas() {
     message.success('Estadística guardada');
     setReloadKey(k => k + 1);
   };
+const buscarJugadoresConQ = useCallback(async (q) => {
+  if (!q || q.trim().length < 2) {
+    setJugadoresBusqueda([]);
+    return;
+  }
+
+  setLoadingBusquedaJugador(true);
+  try {
+    // ✅ Petición al backend con parámetro de búsqueda
+    const resJug = await obtenerJugadores({ 
+      q: q.trim(), 
+      limit: 100 // límite razonable para búsqueda
+    });
+
+    const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
+    console.log('Jugadores encontrados con búsqueda:', listaJug.length);
+    setJugadoresBusqueda(listaJug);
+  } catch (e) {
+    console.error('Error buscando jugadores:', e);
+    setJugadoresBusqueda([]);
+  } finally {
+    setLoadingBusquedaJugador(false);
+  }
+}, []);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (busquedaJugador.trim().length >= 2) {
+      buscarJugadoresConQ(busquedaJugador);
+    } else {
+      setJugadoresBusqueda([]);
+    }
+  }, 500);
+
+  return () => clearTimeout(timer);
+}, [busquedaJugador, buscarJugadoresConQ]);
 
   const handleExportarExcel = async () => {
     try {
@@ -305,54 +345,63 @@ export default function Estadisticas() {
                 )}
 
                 {modo === 'jugador' && (
-                  <>
-                    <Col xs={24} md={10}>
-                      <Text type="secondary">Jugador</Text>
-                      <Select
-                        value={jugadorId}
-                        onChange={onSeleccionarJugador}
-                        style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Selecciona un jugador"
-                        loading={loadingBase}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                        }
-                        options={(jugadores || []).map(j => ({
-                          value: j.id,
-                          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
-                        }))}
-                      />
-                    </Col>
+  <>
+    <Col xs={24} md={10}>
+      <Text type="secondary">Jugador</Text>
+      <Select
+        value={jugadorId}
+        onChange={onSeleccionarJugador}
+        style={{ width: '100%', marginTop: 6 }}
+        placeholder="Busca por nombre o RUT..."
+        loading={loadingBase || loadingBusquedaJugador}
+        allowClear
+        showSearch
+        searchValue={busquedaJugador}
+        onSearch={setBusquedaJugador}
+        filterOption={false} // ✅ Desactivar filtro local, usamos backend
+        notFoundContent={
+          loadingBusquedaJugador 
+            ? 'Buscando...' 
+            : busquedaJugador.length >= 2 && jugadoresBusqueda.length === 0
+            ? 'No se encontraron jugadores'
+            : busquedaJugador.length > 0 && busquedaJugador.length < 2
+            ? 'Escribe al menos 2 caracteres para buscar'
+            : 'Escribe para buscar jugadores'
+        }
+        options={(busquedaJugador.length >= 2 ? jugadoresBusqueda : jugadores).map(j => ({
+          value: j.id,
+          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
+        }))}
+      />
+    </Col>
 
-                    <Col xs={24} md={8}>
-                      <Text type="secondary">Sesión (opcional)</Text>
-                      <Select
-                        value={filtroSesionDelJugador}
-                        onChange={setFiltroSesionDelJugador}
-                        style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Todas las sesiones"
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                        }
-                        options={(sesionesDelJugador.length ? sesionesDelJugador : sesiones).map(s => {
-                          const fecha = formatearFecha(s.fecha);
-                          const hi = formatearHora(s.horaInicio);
-                          const hf = s.horaFin ? formatearHora(s.horaFin) : '';
-                          const nombre = s.nombre ? `${s.nombre} — ` : '';
-                          return {
-                            value: s.id,
-                            label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
-                          };
-                        })}
-                        disabled={!jugadorId}
-                      />
-                    </Col>
-                  </>
-                )}
+    <Col xs={24} md={8}>
+      <Text type="secondary">Sesión (opcional)</Text>
+      <Select
+        value={filtroSesionDelJugador}
+        onChange={setFiltroSesionDelJugador}
+        style={{ width: '100%', marginTop: 6 }}
+        placeholder="Todas las sesiones"
+        allowClear
+        showSearch
+        filterOption={(input, option) =>
+          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+        }
+        options={(sesionesDelJugador.length ? sesionesDelJugador : sesiones).map(s => {
+          const fecha = formatearFecha(s.fecha);
+          const hi = formatearHora(s.horaInicio);
+          const hf = s.horaFin ? formatearHora(s.horaFin) : '';
+          const nombre = s.nombre ? `${s.nombre} — ` : '';
+          return {
+            value: s.id,
+            label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
+          };
+        })}
+        disabled={!jugadorId}
+      />
+    </Col>
+  </>
+)}
 
                 <Col xs={24} md={24} style={{ textAlign: 'right' }}>
                   {(sesionId || jugadorId || filtroJugadorEnSesion || filtroSesionDelJugador) && (

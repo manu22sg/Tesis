@@ -11,7 +11,7 @@ export const upsertEstadistica = async (data) => {
 };
 
 // Obtener estadísticas por jugador
-export const obtenerEstadisticasPorJugador = async (jugadorId, pagina = 1, limite = 10) => {
+export const obtenerEstadisticasPorJugador = async (jugadorId, pagina = 1, limite = 50) => {
   try {
     const response = await api.get(`/estadisticas/jugador/${jugadorId}`, {
       params: { pagina, limite }
@@ -23,7 +23,7 @@ export const obtenerEstadisticasPorJugador = async (jugadorId, pagina = 1, limit
 };
 
 // Obtener mis estadísticas (para estudiantes)
-export const obtenerMisEstadisticas = async (pagina = 1, limite = 10) => {
+export const obtenerMisEstadisticas = async (pagina = 1, limite = 50) => {
   try {
     const response = await api.get('/estadisticas/mias', {
       params: { pagina, limite }
@@ -35,7 +35,7 @@ export const obtenerMisEstadisticas = async (pagina = 1, limite = 10) => {
 };
 
 // Obtener estadísticas por sesión
-export const obtenerEstadisticasPorSesion = async (sesionId, pagina = 1, limite = 10) => {
+export const obtenerEstadisticasPorSesion = async (sesionId, pagina = 1, limite = 50) => {
   try {
     const response = await api.get(`/estadisticas/sesion/${sesionId}`, {
       params: { pagina, limite }
