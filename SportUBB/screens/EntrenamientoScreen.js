@@ -298,7 +298,7 @@ export default function EntrenamientosScreen({ route, navigation }) {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando entrenamientos...</Text>
       </View>
     );
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
@@ -510,16 +510,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   topBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#014898',
   },
   primaryBtn: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#014898',
+    borderColor: '#014898',
   },
   primaryBtnText: {
     color: '#fff',
@@ -528,14 +528,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#e3f2fd',
     padding: 15,
     borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
+    borderLeftColor: '#014898',
     marginHorizontal: 15,
     marginBottom: 10,
     borderRadius: 8,
   },
   reordenarBannerText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
     marginBottom: 10,
   },
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   },
   reordenarBannerBtn: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingVertical: 8,
     borderRadius: 6,
     alignItems: 'center',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   ordenBadge: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submitModalBtn: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
   },
   submitModalBtnText: {
     color: '#fff',

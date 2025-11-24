@@ -85,6 +85,8 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
+    getItem('Asistencias', 'asistencias', <CheckCircleOutlined />),
+
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
     getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
@@ -158,6 +160,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/reservas/mis-reservas': 'reservas-mis',
     '/aprobar-reservas': 'aprobar-reservas',
     '/sesiones': 'sesiones',
+     '/asistencias': 'asistencias',
     '/sesiones/nueva': 'sesiones-nueva',
     '/entrenamientos': 'entrenamientos',
     '/lesiones': 'lesiones',
@@ -221,6 +224,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       'aprobar-reservas': '/aprobar-reservas',
       sesiones: '/sesiones',
       'sesiones-nueva': '/sesiones/nueva',
+      asistencias: '/asistencias',
       entrenamientos: '/entrenamientos',
       lesiones: '/lesiones',
       'mis-lesiones': '/mis-lesiones',

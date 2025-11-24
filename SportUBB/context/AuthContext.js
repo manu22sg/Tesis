@@ -12,6 +12,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -20,9 +21,11 @@ export function AuthProvider({ children }) {
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
+      console.log('🔍 Verificando token:', token ? 'existe' : 'no existe');
       
       if (!token) {
         setUsuario(null);
+        setIsAuthenticated(false);
         setLoading(false);
         return;
       }
@@ -30,17 +33,19 @@ export function AuthProvider({ children }) {
       const response = await verifyToken();
       const user = response?.data?.user;
 
-      // 🔥 Verificar que el usuario exista Y esté verificado
       if (user && user.verificado) {
+        console.log('✅ Usuario verificado:', user.nombre, '- Rol:', user.rol);
         setUsuario(user);
+        setIsAuthenticated(true);
       } else {
         console.warn('⚠️ Usuario no verificado o no encontrado');
         setUsuario(null);
+        setIsAuthenticated(false);
         await AsyncStorage.removeItem('token');
       }
     } catch (error) {
-      console.error('❌ Error verificando sesión:', error.message);
       setUsuario(null);
+      setIsAuthenticated(false);
       await AsyncStorage.removeItem('token');
     } finally {
       setLoading(false);
@@ -51,33 +56,39 @@ export function AuthProvider({ children }) {
     try {
       const response = await loginRequest(credentials);
       
+      console.log('📥 Respuesta de login:', JSON.stringify(response, null, 2));
+      
       if (response.success && response.data?.user) {
         const user = response.data.user;
         
-        // 🔥 Verificar si el usuario está verificado
         if (!user.verificado) {
-          console.warn('⚠️ Usuario NO verificado en frontend');
+          console.warn('⚠️ Usuario NO verificado');
           await AsyncStorage.removeItem('token');
           
           return { 
             success: false, 
-            message: 'Debes verificar tu correo institucional antes de iniciar sesión. Revisa tu bandeja de entrada.',
+            message: 'Debes verificar tu correo institucional antes de iniciar sesión.',
             needsVerification: true
           };
         }
 
+        console.log('✅ Estableciendo usuario:', user.nombre, '- Rol:', user.rol);
         setUsuario(user);
+        setIsAuthenticated(true);
+        
+        // Pequeño delay para asegurar que el estado se actualizó
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         return { success: true, data: response.data };
       }
       
       console.warn('⚠️ Respuesta sin success o sin user');
-      return { success: false, message: response.message };
+      return { success: false, message: response.message || 'Error desconocido' };
     } catch (error) {
-      // 🔥 Manejar específicamente el error de verificación
-      const errorData = error.response?.data;
-      const errorMessage = errorData?.message || 'Error al iniciar sesión';
       
-      // Si el backend dice que falta verificar
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || error.message || 'Error al iniciar sesión';
+      
       if (errorMessage.toLowerCase().includes('verificar') || 
           errorMessage.toLowerCase().includes('correo')) {
         return { 
@@ -98,6 +109,8 @@ export function AuthProvider({ children }) {
       console.warn('⚠️ Error en logout (ignorado):', error.message);
     } finally {
       setUsuario(null);
+      setIsAuthenticated(false);
+      console.log('✅ Logout exitoso');
     }
   };
 
@@ -107,13 +120,22 @@ export function AuthProvider({ children }) {
       return { success: true, data: response };
     } catch (error) {
       const errorMessage = error.response?.data?.message 
+        || error.message
         || 'Error al registrarse';
       
       return { success: false, message: errorMessage };
     }
   };
 
-  const userRole = usuario?.rol || null; // 'entrenador' o 'estudiante'
+  const userRole = usuario?.rol || null;
+  
+  console.log('🔍 AuthContext state:', { 
+    usuario: usuario?.nombre || 'null', 
+    rol: userRole, 
+    isAuthenticated,
+    loading
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -123,7 +145,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
         register,
-        isAuthenticated: !!usuario,
+        isAuthenticated,
         checkAuth
       }}
     >

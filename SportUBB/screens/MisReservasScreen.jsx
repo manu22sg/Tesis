@@ -273,7 +273,7 @@ export default function MisReservasScreen({ navigation }) {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando tus reservas...</Text>
       </View>
     );
@@ -397,7 +397,7 @@ export default function MisReservasScreen({ navigation }) {
             <Text style={styles.modalTitle}>Detalle de la Reserva</Text>
 
             {loadingDetalle ? (
-              <ActivityIndicator size="large" color="#1976d2" style={{ marginVertical: 40 }} />
+              <ActivityIndicator size="large" color="#014898" style={{ marginVertical: 40 }} />
             ) : reservaDetalle ? (
               <ScrollView 
                 style={styles.detalleScroll}
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   },
   participantesMas: {
     fontSize: 13,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
     marginTop: 4,
   },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   verDetalleButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   nuevaReservaButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   },
   filtroItemTextSelected: {
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   detalleScroll: {
     maxHeight: 500,

@@ -4,7 +4,7 @@ export default {
     slug: "tu-app",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/images/figura113.png",
     userInterfaceStyle: "light",
     splash: {
       image: "./assets/splash.png",

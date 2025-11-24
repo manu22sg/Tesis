@@ -12,9 +12,20 @@ export const idParamSchema = Joi.object({
       'any.required': 'ID es requerido'
     })
 });
-
+export const jugadorIdParamSchema = Joi.object({
+  jugadorId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'jugadorId debe ser un número',
+      'number.integer': 'jugadorId debe ser un número entero',
+      'number.positive': 'jugadorId debe ser positivo',
+      'any.required': 'jugadorId es requerido'
+    })
+});
 export const paginacionSchema = Joi.object({
-  pagina: Joi.number()
+  page: Joi.number()
     .integer()
     .min(1)
     .optional()
@@ -25,7 +36,7 @@ export const paginacionSchema = Joi.object({
       'number.min': 'pagina debe ser mayor a 0'
     }),
 
-  limite: Joi.number()
+  limit: Joi.number()
     .integer()
     .min(1)
     .max(100)

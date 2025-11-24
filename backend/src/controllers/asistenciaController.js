@@ -2,7 +2,9 @@ import {
   actualizarAsistencia,
   eliminarAsistencia,
   listarAsistenciasDeSesion,
-  marcarAsistenciaPorToken,registrarAsistenciaManual
+  marcarAsistenciaPorToken,registrarAsistenciaManual,
+  listarAsistenciasDeJugador,
+  obtenerEstadisticasAsistenciaJugador
 } from "../services/asistenciaServices.js";
 import { success, error } from "../utils/responseHandler.js";
 import JugadorSchema from "../entity/Jugador.js";
@@ -74,35 +76,66 @@ export async function eliminarAsistenciaController(req, res) {
 
 export async function listarAsistenciasDeSesionController(req, res) {
   const sesionId = parseInt(req.params.id);
-  const { pagina, limite, estado } = req.query;
-  const [data, err, status] = await listarAsistenciasDeSesion(sesionId, { pagina, limite, estado });
+  const { pagina, limite, estado, jugadorId } = req.query; // ✅ Agregar jugadorId aquí
+  
+  const [data, err, status] = await listarAsistenciasDeSesion(sesionId, { 
+    pagina, 
+    limite, 
+    estado,
+    jugadorId: jugadorId ? parseInt(jugadorId) : undefined // ✅ Parsear y pasar
+  });
+  
   if (err) return error(res, err, status || 400);
   return success(res, data, "Asistencias obtenidas correctamente");
 }
 
+
 export async function exportarAsistenciasExcel(req, res) {
   try {
-    const sesionId = parseInt(req.query.sesionId);
-    if (!sesionId || isNaN(sesionId)) {
+    const sesionId = req.query.sesionId ? parseInt(req.query.sesionId) : null;
+    const jugadorId = req.query.jugadorId ? parseInt(req.query.jugadorId) : null;
+
+    // ✅ Validar que al menos uno esté presente
+    if (!sesionId && !jugadorId) {
       return res.status(400).json({ 
         success: false, 
-        message: "sesionId válido es requerido" 
+        message: "Debe proporcionar sesionId o jugadorId" 
       });
     }
 
+    const isMobile = req.query.mobile === 'true';
 
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const accept = (req.headers["accept"] || "").toLowerCase();
+    let result, err, status;
 
-    const isMobile =
-      ua.includes("okhttp") ||           // Android via Expo
-      accept.includes("application/json");// Expo pide JSON
-
-
-    const [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
-      pagina: 1,
-      limite: 5000
-    });
+    // ✅ Determinar cuál es el ID principal y cuál es el filtro
+    if (sesionId && !jugadorId) {
+      // Modo sesión: listar asistencias de la sesión
+      [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
+        pagina: 1,
+        limite: 5000
+      });
+    } else if (sesionId && jugadorId) {
+      // Modo sesión CON filtro de jugador
+      [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
+        pagina: 1,
+        limite: 5000,
+        jugadorId: jugadorId
+      });
+    } else if (jugadorId && !sesionId) {
+      // Modo jugador: listar asistencias del jugador
+      [result, err, status] = await listarAsistenciasDeJugador(jugadorId, {
+        pagina: 1,
+        limite: 5000
+      });
+    } else if (jugadorId && sesionId) {
+      // Este caso ya está cubierto arriba, pero lo dejamos por claridad
+      // Es cuando tenemos ambos IDs (sesión es principal, jugador es filtro)
+      [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
+        pagina: 1,
+        limite: 5000,
+        jugadorId: jugadorId
+      });
+    }
 
     if (err) {
       return res.status(status || 400).json({
@@ -114,61 +147,89 @@ export async function exportarAsistenciasExcel(req, res) {
     if (!result?.asistencias?.length) {
       return res.status(404).json({
         success: false,
-        message: "No hay asistencias registradas para esta sesión"
+        message: "No hay asistencias registradas"
       });
     }
 
     const asistencias = result.asistencias;
-
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Asistencias");
 
-    sheet.columns = [
-      { header: "Jugador", key: "jugador", width: 30 },
-      { header: "RUT", key: "rut", width: 15 },
-      { header: "Correo", key: "email", width: 25 },
-      { header: "Estado", key: "estado", width: 12 },
-      { header: "Origen", key: "origen", width: 12 },
-      { header: "Fecha Registro", key: "fecha", width: 18 },
-      { header: "Latitud", key: "latitud", width: 12 },
-      { header: "Longitud", key: "longitud", width: 12 }
-    ];
+    // ✅ Determinar vista según qué ID es el principal
+    const esModoSesion = sesionId && !jugadorId;
+    const esModoJugador = jugadorId && !sesionId;
+    const esSesionConFiltro = sesionId && jugadorId;
 
-    sheet.getRow(1).font = { bold: true };
+    if (esModoSesion || esSesionConFiltro) {
+      // Vista por sesión: mostrar jugadores
+      sheet.columns = [
+        { header: "Jugador", key: "jugador", width: 30 },
+        { header: "RUT", key: "rut", width: 15 },
+        { header: "Correo", key: "email", width: 25 },
+        { header: "Estado", key: "estado", width: 12 },
+        { header: "Origen", key: "origen", width: 12 },
+        { header: "Fecha Registro", key: "fecha", width: 18 },
+        { header: "Latitud", key: "latitud", width: 12 },
+        { header: "Longitud", key: "longitud", width: 12 }
+      ];
 
-    asistencias.forEach(a => {
-      sheet.addRow({
-        jugador: a.jugador?.usuario?.nombre || "Desconocido",
-        rut: a.jugador?.usuario?.rut || "—",
-        email: a.jugador?.usuario?.email || "—",
-        estado: a.estado,
-        origen: a.origen,
-        fecha: a.fechaRegistro,
-        latitud: a.latitud || "—",
-        longitud: a.longitud || "—"
+      asistencias.forEach(a => {
+        sheet.addRow({
+          jugador: `${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Desconocido",
+          rut: a.jugador?.usuario?.rut || "—",
+          email: a.jugador?.usuario?.email || "—",
+          estado: a.estado,
+          origen: a.origen,
+          fecha: a.fechaRegistro,
+          latitud: a.latitud || "—",
+          longitud: a.longitud || "—"
+        });
       });
-    });
+    } else {
+      // Vista por jugador: mostrar sesiones
+      sheet.columns = [
+        { header: "Sesión", key: "sesion", width: 25 },
+        { header: "Fecha", key: "fechaSesion", width: 15 },
+        { header: "Cancha", key: "cancha", width: 20 },
+        { header: "Estado", key: "estado", width: 12 },
+        { header: "Origen", key: "origen", width: 12 },
+        { header: "Fecha Registro", key: "fecha", width: 18 },
+        { header: "Latitud", key: "latitud", width: 12 },
+        { header: "Longitud", key: "longitud", width: 12 }
+      ];
 
-    const buffer = await workbook.xlsx.writeBuffer();
-
-    
-
-    if (isMobile) {
-      const base64 = buffer.toString("base64");
-
-
-      return res.json({
-        success: true,
-        base64,
-        fileName: `asistencias_sesion_${sesionId}.xlsx`
+      asistencias.forEach(a => {
+        sheet.addRow({
+          sesion: a.sesion?.tipoSesion || "Sin nombre",
+          fechaSesion: a.sesion?.fecha || "—",
+          cancha: a.sesion?.cancha?.nombre || "—",
+          estado: a.estado,
+          origen: a.origen,
+          fecha: a.fechaRegistro,
+          latitud: a.latitud || "—",
+          longitud: a.longitud || "—"
+        });
       });
     }
 
-    // 🖥️ WEB → enviar archivo binario
-    res.setHeader("Content-Type", "application/octet-stream");
+    sheet.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // ✅ Respuesta según plataforma
+    if (isMobile) {
+      const base64 = buffer.toString("base64");
+      return res.json({
+        success: true,
+        base64,
+        fileName: `asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}.xlsx`
+      });
+    }
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="asistencias_sesion_${sesionId}.xlsx"`
+      `attachment; filename="asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}.xlsx"`
     );
     return res.send(buffer);
 
@@ -182,29 +243,42 @@ export async function exportarAsistenciasExcel(req, res) {
   }
 }
 
-
-
-
 export async function exportarAsistenciasPDF(req, res) {
   try {
-    const sesionId = parseInt(req.query.sesionId);
+    const sesionId = req.query.sesionId ? parseInt(req.query.sesionId) : null;
+    const jugadorId = req.query.jugadorId ? parseInt(req.query.jugadorId) : null;
     
-    if (!sesionId || isNaN(sesionId)) {
+    // ✅ Validar que al menos uno esté presente
+    if (!sesionId && !jugadorId) {
       return res.status(400).json({ 
         success: false, 
-        message: "sesionId válido es requerido" 
+        message: "Debe proporcionar sesionId o jugadorId" 
       });
     }
 
-    const estado = req.query.estado || null;
+    let result, err, status;
 
-
-    const [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
-      pagina: 1,
-      limite: 5000,
-      estado
-    });
-
+    // ✅ Determinar cuál es el ID principal y cuál es el filtro
+    if (sesionId && !jugadorId) {
+      // Modo sesión: listar asistencias de la sesión
+      [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
+        pagina: 1,
+        limite: 5000
+      });
+    } else if (sesionId && jugadorId) {
+      // Modo sesión CON filtro de jugador
+      [result, err, status] = await listarAsistenciasDeSesion(sesionId, {
+        pagina: 1,
+        limite: 5000,
+        jugadorId: jugadorId
+      });
+    } else if (jugadorId && !sesionId) {
+      // Modo jugador: listar asistencias del jugador
+      [result, err, status] = await listarAsistenciasDeJugador(jugadorId, {
+        pagina: 1,
+        limite: 5000
+      });
+    }
 
     if (err) {
       return res.status(status || 400).json({
@@ -216,18 +290,17 @@ export async function exportarAsistenciasPDF(req, res) {
     if (!result || !result.asistencias || result.asistencias.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No hay asistencias registradas para esta sesión"
+        message: "No hay asistencias registradas"
       });
     }
 
     const asistencias = result.asistencias;
-
     const doc = new PDFDocument({ margin: 40 });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="asistencias_sesion_${sesionId}_${Date.now()}.pdf"`
+      `attachment; filename="asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.pdf"`
     );
 
     doc.pipe(res);
@@ -235,12 +308,20 @@ export async function exportarAsistenciasPDF(req, res) {
     doc.fontSize(18).font("Helvetica-Bold").text("Listado de Asistencias", { align: "center" });
     doc.moveDown(1);
 
+    // ✅ Determinar vista según qué ID es el principal
+    const esModoSesion = sesionId && !jugadorId;
+    const esModoJugador = jugadorId && !sesionId;
+    const esSesionConFiltro = sesionId && jugadorId;
+
     asistencias.forEach((a, index) => {
       if (doc.y > 700) doc.addPage();
 
-      doc.fontSize(12).font("Helvetica-Bold").text(a.jugador?.usuario?.nombre || "Jugador Desconocido");
-
-      doc.font("Helvetica").fontSize(10).text(`
+      if (esModoSesion || esSesionConFiltro) {
+        // Vista por sesión: mostrar jugadores
+        doc.fontSize(12).font("Helvetica-Bold").text(
+          `${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Jugador Desconocido"
+        );
+        doc.font("Helvetica").fontSize(10).text(`
 RUT: ${a.jugador?.usuario?.rut || "—"}
 Correo: ${a.jugador?.usuario?.email || "—"}
 Estado: ${a.estado}
@@ -248,7 +329,20 @@ Origen: ${a.origen}
 Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}
 Latitud: ${a.latitud || "—"}
 Longitud: ${a.longitud || "—"}
-      `);
+        `);
+      } else {
+        // Vista por jugador: mostrar sesiones
+        doc.fontSize(12).font("Helvetica-Bold").text(a.sesion?.tipoSesion || "Sesión Desconocida");
+        doc.font("Helvetica").fontSize(10).text(`
+Fecha: ${a.sesion?.fecha || "—"}
+Cancha: ${a.sesion?.cancha?.nombre || "—"}
+Estado: ${a.estado}
+Origen: ${a.origen}
+Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}
+Latitud: ${a.latitud || "—"}
+Longitud: ${a.longitud || "—"}
+        `);
+      }
 
       if (index < asistencias.length - 1) {
         doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
@@ -260,9 +354,6 @@ Longitud: ${a.longitud || "—"}
 
   } catch (error) {
     console.error("Error exportando PDF:", error);
-    console.error("Stack:", error.stack);
-    
-    // Solo enviar JSON si no se ha enviado el PDF
     if (!res.headersSent) {
       res.status(500).json({ 
         success: false, 
@@ -271,6 +362,8 @@ Longitud: ${a.longitud || "—"}
     }
   }
 }
+
+
 
 
 
@@ -328,3 +421,48 @@ export async function registrarAsistenciaManualController(req, res) {
     });
   }
 }
+
+export async function listarAsistenciasDeJugadorController(req, res) {
+  try {
+    const jugadorId = parseInt(req.params.jugadorId);
+    const { pagina, limite, estado, sesionId } = req.query;
+
+    if (!jugadorId || isNaN(jugadorId)) {
+      return error(res, "jugadorId válido es requerido", 400);
+    }
+
+    const [data, err, status] = await listarAsistenciasDeJugador(jugadorId, {
+      pagina: parseInt(pagina) || 1,
+      limite: parseInt(limite) || 10,
+      estado,
+      sesionId: sesionId ? parseInt(sesionId) : undefined
+    });
+
+    if (err) return error(res, err, status || 400);
+    return success(res, data, "Asistencias del jugador obtenidas correctamente");
+  } catch (e) {
+    console.error("Error en listarAsistenciasDeJugadorController:", e);
+    return error(res, "Error interno del servidor", 500);
+  }
+}
+
+// Controlador: Obtener estadísticas de asistencia de un jugador
+export async function obtenerEstadisticasAsistenciaJugadorController(req, res) {
+  try {
+    const jugadorId = parseInt(req.params.jugadorId);
+
+    if (!jugadorId || isNaN(jugadorId)) {
+      return error(res, "jugadorId válido es requerido", 400);
+    }
+
+    const [data, err, status] = await obtenerEstadisticasAsistenciaJugador(jugadorId);
+
+    if (err) return error(res, err, status || 400);
+    return success(res, data, "Estadísticas obtenidas correctamente");
+  } catch (e) {
+    console.error("Error en obtenerEstadisticasAsistenciaJugadorController:", e);
+    return error(res, "Error interno del servidor", 500);
+  }
+}
+
+

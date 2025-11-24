@@ -8,42 +8,87 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { reenviarVerificacionRequest } from '../services/authServices';
+import { loginRequest, reenviarVerificacionRequest } from '../services/authServices.js';
+import { Ionicons } from '@expo/vector-icons';
+
+// Importa tu logo aquí
+ import LogoCancha from '../assets/images/figura113.png';
+
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isAuthenticated, usuario, loading: authLoading } = useAuth();
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && usuario) {
+      // Navegar a la pantalla principal
+      navigation.replace('Main'); // o 'Dashboard' o como se llame tu pantalla principal
+    }
+  }, [isAuthenticated, usuario, authLoading, navigation]);
 
   const toggleShowPassword = useCallback(() => {
     setShowPassword(prev => !prev);
   }, []);
 
+  // Validación de email
+  const validateEmail = (text) => {
+    setEmail(text);
+    if (text && !/^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/.test(text)) {
+      setEmailError('Debe ser un correo institucional UBB');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  // Validación de contraseña
+  const validatePassword = (text) => {
+    setPassword(text);
+    if (text && text.length < 1) {
+      setPasswordError('Por favor ingresa tu contraseña');
+    } else {
+      setPasswordError('');
+    }
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
+    // Validaciones
+    let hasError = false;
+
+    if (!email) {
+      setEmailError('Por favor ingresa tu email');
+      hasError = true;
+    } else if (!/^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/.test(email)) {
+      setEmailError('Debe ser un correo institucional UBB');
+      hasError = true;
     }
 
-    if (!email.endsWith('@ubiobio.cl') && !email.endsWith('@alumnos.ubiobio.cl')) {
-      Alert.alert('Error', 'Debes usar tu correo institucional (@ubiobio.cl o @alumnos.ubiobio.cl)');
-      return;
+    if (!password) {
+      setPasswordError('Por favor ingresa tu contraseña');
+      hasError = true;
     }
+
+    if (hasError) return;
 
     setLoading(true);
     try {
       const result = await login({ email, password });
       
+    
       if (result.success) {
-        console.log('✅ Login exitoso');
+        // El AppContent detectará isAuthenticated y navegará automáticamente
       } else {
-        // 🔥 Si necesita verificación, mostrar opción para reenviar
+        // Si necesita verificación
         if (result.needsVerification) {
           Alert.alert(
             '📧 Verificación requerida',
@@ -61,13 +106,13 @@ export default function LoginScreen({ navigation }) {
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Error al iniciar sesión');
+      console.error(' Error en handleLogin:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔥 Función para reenviar verificación
+  // Función para reenviar verificación
   const handleReenviarVerificacion = async (emailToVerify) => {
     try {
       await reenviarVerificacionRequest(emailToVerify);
@@ -83,6 +128,15 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  if (authLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#014898" />
+        <Text style={styles.loadingText}>Verificando sesión...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -91,84 +145,125 @@ export default function LoginScreen({ navigation }) {
       <ScrollView 
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>SportUBB</Text>
-          <Text style={styles.subtitle}>Inicie sesión con su correo institucional</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email institucional"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-            returnKeyType="next"
-          />
-
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Contraseña"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              editable={!loading}
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              textContentType="password"
-              autoComplete="password"
-            />
-            <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={toggleShowPassword}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.eyeIcon}>
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </Text>
-            </TouchableOpacity>
+        <View style={styles.card}>
+          {/* LOGO */}
+          <View style={styles.logoContainer}>
+            {/* Descomenta y usa tu logo aquí */}
+            <Image 
+              source={LogoCancha} 
+              style={styles.logo}
+              resizeMode="contain"
+            /> 
+            
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Iniciar Sesión</Text>
-            )}
-          </TouchableOpacity>
+          {/* TÍTULO */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Iniciar Sesión</Text>
+          </View>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.navigate('Register')}
-            disabled={loading}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.linkText}>
-              ¿No tienes cuenta? Regístrate aquí
-            </Text>
-          </TouchableOpacity>
+          {/* FORM */}
+          <View style={styles.formContainer}>
+            {/* EMAIL INPUT */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <View style={[styles.inputContainer, emailError && styles.inputError]}>
+                <Ionicons name="person-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ingrese su correo institucional UBB"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={validateEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                />
+              </View>
+              {emailError ? (
+                <Text style={styles.errorText}>{emailError}</Text>
+              ) : null}
+            </View>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => Alert.alert('Próximamente', 'Función de recuperación de contraseña en desarrollo')}
-            disabled={loading}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.linkTextSecondary}>
-              ¿Olvidaste tu contraseña?
-            </Text>
-          </TouchableOpacity>
+            {/* PASSWORD INPUT */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contraseña</Text>
+              <View style={[styles.inputContainer, passwordError && styles.inputError]}>
+                <Ionicons name="lock-closed-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ingrese su contraseña"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={validatePassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  textContentType="password"
+                  autoComplete="password"
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={toggleShowPassword}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                >
+                  <Ionicons 
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+                    size={22} 
+                    color="#8c8c8c" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? (
+                <Text style={styles.errorText}>{passwordError}</Text>
+              ) : null}
+            </View>
+
+            {/* LOGIN BUTTON */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Iniciar Sesión</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* FORGOT PASSWORD LINK */}
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={() => navigation.navigate('SolicitarRestablecimiento')}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.forgotPasswordText}>
+                ¿Olvidaste tu contraseña?
+              </Text>
+            </TouchableOpacity>
+
+            {/* REGISTER LINK */}
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>¿No tienes una cuenta? </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.registerLink}>Regístrate aquí</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -180,69 +275,119 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#014898',
+  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+    padding: 24,
   },
-  formContainer: {
-    padding: 20,
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#1976d2',
-    textAlign: 'center',
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 10,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 40,
+  logo: {
+    width: 200,
+    height: 200,
+    marginBottom: 10,
   },
-  input: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  logoPlaceholder: {
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 100,
+    marginBottom: 10,
   },
-  passwordContainer: {
+  logoText: {
+    fontSize: 80,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#014898',
+    margin: 0,
+  },
+  formContainer: {
+    width: '100%',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#262626',
+    marginBottom: 8,
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 25,
+    borderWidth: 0,
+    paddingHorizontal: 16,
+    height: 50,
   },
-  passwordInput: {
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#ff4d4f',
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  input: {
     flex: 1,
-    padding: 15,
     fontSize: 16,
     color: '#000',
+    padding: 0,
   },
   eyeButton: {
-    padding: 15,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  eyeIcon: {
-    fontSize: 22,
+  errorText: {
+    fontSize: 12,
+    color: '#ff4d4f',
+    marginTop: 4,
   },
   button: {
-    backgroundColor: '#1976d2',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#014898',
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#014898',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -250,19 +395,29 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  linkButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#1976d2',
-    fontSize: 14,
     fontWeight: '600',
   },
-  linkTextSecondary: {
-    color: '#999',
-    fontSize: 13,
+  forgotPasswordButton: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  forgotPasswordText: {
+    color: '#014898',
+    fontSize: 14,
+  },
+  registerContainer: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerText: {
+    fontSize: 14,
+    color: '#262626',
+  },
+  registerLink: {
+    fontSize: 14,
+    color: '#014898',
+    fontWeight: '600',
   },
 });

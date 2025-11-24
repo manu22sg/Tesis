@@ -7,10 +7,12 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  Modal,KeyboardAvoidingView,
+  Modal,
+  KeyboardAvoidingView,
   Platform
 } from 'react-native';
 import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { crearReserva } from '../services/reservaServices';
 import { getDisponibilidadPorFecha } from '../services/horarioServices';
 import { buscarUsuarios } from '../services/authServices';
@@ -61,25 +63,24 @@ export default function NuevaReservaScreen({ navigation }) {
   };
 
   const buscarUsuariosHandler = async (query) => {
-  if (!query || query.trim().length < 2) {
-    setSugerencias([]);
-    return;
-  }
+    if (!query || query.trim().length < 2) {
+      setSugerencias([]);
+      return;
+    }
 
-  try {
-    const resultados = await buscarUsuarios(query, { 
-  roles: JSON.stringify(['estudiante','academico']) 
-    });
-    
-    // Como el servicio ya devuelve un array garantizado, solo filtramos
-    const filtrados = resultados.filter(r => !participantes.includes(r.rut));
-    setSugerencias(filtrados);
-    
-  } catch (error) {
-    console.error('Error buscando usuarios:', error);
-    setSugerencias([]);
-  }
-};
+    try {
+      const resultados = await buscarUsuarios(query, { 
+        roles: JSON.stringify(['estudiante','academico']) 
+      });
+      
+      const filtrados = resultados.filter(r => !participantes.includes(r.rut));
+      setSugerencias(filtrados);
+      
+    } catch (error) {
+      console.error('Error buscando usuarios:', error);
+      setSugerencias([]);
+    }
+  };
 
   const agregarParticipante = (usuario) => {
     if (!canchaSeleccionada) {
@@ -172,7 +173,10 @@ export default function NuevaReservaScreen({ navigation }) {
         {/* Info del solicitante */}
         {usuario && (
           <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>👤 Solicitante:</Text>
+            <View style={styles.infoHeader}>
+              <Ionicons name="person-circle" size={20} color="#014898" />
+              <Text style={styles.infoLabel}>Solicitante:</Text>
+            </View>
             <Text style={styles.infoValue}>{usuario.nombre}</Text>
             <Text style={styles.infoRut}>{usuario.rut}</Text>
           </View>
@@ -180,9 +184,12 @@ export default function NuevaReservaScreen({ navigation }) {
 
         {/* Selección de cancha */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚽ Cancha</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="location" size={20} color="#014898" />
+            <Text style={styles.sectionTitle}>Cancha</Text>
+          </View>
           {loadingCanchas ? (
-            <ActivityIndicator color="#1976d2" />
+            <ActivityIndicator color="#014898" />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {canchas.map((item, index) => (
@@ -198,9 +205,10 @@ export default function NuevaReservaScreen({ navigation }) {
                   }}
                 >
                   <Text style={styles.canchaItemNombre}>{item.cancha.nombre}</Text>
-                  <Text style={styles.canchaItemCapacidad}>
-                    👥 {item.cancha.capacidadMaxima}
-                  </Text>
+                  <View style={styles.capacidadContainer}>
+                    <Ionicons name="people" size={14} color="#666" />
+                    <Text style={styles.canchaItemCapacidad}>{item.cancha.capacidadMaxima}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -210,7 +218,10 @@ export default function NuevaReservaScreen({ navigation }) {
         {/* Selección de horario */}
         {canchaSeleccionada && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕐 Horario</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="time" size={20} color="#014898" />
+              <Text style={styles.sectionTitle}>Horario</Text>
+            </View>
             <View style={styles.horariosGrid}>
               {horariosDisponibles.map((horario, index) => (
                 <TouchableOpacity
@@ -234,7 +245,10 @@ export default function NuevaReservaScreen({ navigation }) {
         {canchaSeleccionada && (
           <View style={styles.section}>
             <View style={styles.participantesHeader}>
-              <Text style={styles.sectionTitle}>👥 Participantes</Text>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="people" size={20} color="#014898" />
+                <Text style={styles.sectionTitle}>Participantes</Text>
+              </View>
               <Text style={styles.participantesCount}>
                 {participantes.length}/{canchaSeleccionada.cancha.capacidadMaxima}
               </Text>
@@ -245,19 +259,23 @@ export default function NuevaReservaScreen({ navigation }) {
               onPress={() => setModalBusqueda(true)}
               disabled={participantes.length >= canchaSeleccionada.cancha.capacidadMaxima}
             >
-              <Text style={styles.buscarButtonText}>➕ Agregar participantes</Text>
+              <Ionicons name="add-circle" size={18} color="#fff" />
+              <Text style={styles.buscarButtonText}>Agregar participantes</Text>
             </TouchableOpacity>
 
             <View style={styles.participantesList}>
               {participantes.map((rut, index) => (
                 <View key={index} style={styles.participanteItem}>
-                  <Text style={styles.participanteRut}>
-                    {rut}
-                    {usuario?.rut === rut && <Text style={styles.tuText}> (Tú)</Text>}
-                  </Text>
+                  <View style={styles.participanteInfo}>
+                    <Ionicons name="person" size={16} color="#52c41a" />
+                    <Text style={styles.participanteRut}>
+                      {rut}
+                      {usuario?.rut === rut && <Text style={styles.tuText}> (Tú)</Text>}
+                    </Text>
+                  </View>
                   {usuario?.rut !== rut && (
                     <TouchableOpacity onPress={() => removerParticipante(rut)}>
-                      <Text style={styles.removerText}>✕</Text>
+                      <Ionicons name="close-circle" size={22} color="#ff4d4f" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -268,7 +286,10 @@ export default function NuevaReservaScreen({ navigation }) {
 
         {/* Motivo */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Motivo (opcional)</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="document-text" size={20} color="#014898" />
+            <Text style={styles.sectionTitle}>Motivo (opcional)</Text>
+          </View>
           <TextInput
             style={styles.textArea}
             value={motivo}
@@ -307,7 +328,10 @@ export default function NuevaReservaScreen({ navigation }) {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.submitButtonText}>Reservar</Text>
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Text style={styles.submitButtonText}>Reservar</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -315,69 +339,85 @@ export default function NuevaReservaScreen({ navigation }) {
 
       {/* Modal de búsqueda */}
       <Modal
-  visible={modalBusqueda}
-  animationType="slide"
-  transparent={true}
-  onRequestClose={() => setModalBusqueda(false)}
->
-  <KeyboardAvoidingView
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    style={styles.modalOverlay}
-  >
-    <TouchableOpacity
-      activeOpacity={1}
-      style={styles.modalOverlayTouch}
-      onPress={() => {
-        setModalBusqueda(false);
-        setSearchQuery('');
-        setSugerencias([]);
-      }}
-    >
-      <TouchableOpacity activeOpacity={1} style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-        <Text style={styles.modalTitle}>Buscar participante</Text>
-
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={(text) => {
-            setSearchQuery(text);
-            buscarUsuariosHandler(text);
-          }}
-          placeholder="Buscar por nombre o RUT..."
-          autoFocus
-        />
-
-        <ScrollView 
-          style={styles.sugerenciasList}
-          keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled={true}
+        visible={modalBusqueda}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalBusqueda(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
         >
-          {sugerencias.map((usuario, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.sugerenciaItem}
-              onPress={() => agregarParticipante(usuario)}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalOverlayTouch}
+            onPress={() => {
+              setModalBusqueda(false);
+              setSearchQuery('');
+              setSugerencias([]);
+            }}
+          >
+            <TouchableOpacity 
+              activeOpacity={1} 
+              style={styles.modalContent} 
+              onPress={(e) => e.stopPropagation()}
             >
-              <Text style={styles.sugerenciaNombre}>{usuario.nombre}</Text>
-              <Text style={styles.sugerenciaRut}>{usuario.rut}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              <View style={styles.modalHeader}>
+                <Ionicons name="search" size={24} color="#014898" />
+                <Text style={styles.modalTitle}>Buscar participante</Text>
+              </View>
 
-        <TouchableOpacity
-          style={styles.modalCloseButton}
-          onPress={() => {
-            setModalBusqueda(false);
-            setSearchQuery('');
-            setSugerencias([]);
-          }}
-        >
-          <Text style={styles.modalCloseButtonText}>Cerrar</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  </KeyboardAvoidingView>
-</Modal>
+              <View style={styles.searchInputContainer}>
+                <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
+                    buscarUsuariosHandler(text);
+                  }}
+                  placeholder="Buscar por nombre o RUT..."
+                  autoFocus
+                />
+              </View>
+
+              <ScrollView 
+                style={styles.sugerenciasList}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+              >
+                {sugerencias.map((usuario, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.sugerenciaItem}
+                    onPress={() => agregarParticipante(usuario)}
+                  >
+                    <View style={styles.sugerenciaContent}>
+                      <Ionicons name="person-circle-outline" size={32} color="#014898" />
+                      <View style={styles.sugerenciaTextos}>
+                        <Text style={styles.sugerenciaNombre}>{usuario.nombre}</Text>
+                        <Text style={styles.sugerenciaRut}>{usuario.rut}</Text>
+                      </View>
+                    </View>
+                    <Ionicons name="add-circle-outline" size={24} color="#014898" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setModalBusqueda(false);
+                  setSearchQuery('');
+                  setSugerencias([]);
+                }}
+              >
+                <Text style={styles.modalCloseButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -391,29 +431,36 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
   },
-    infoCard: {
+  infoCard: {
     backgroundColor: '#e3f2fd',
     padding: 15,
     borderRadius: 12,
     marginBottom: 15,
     borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
+    borderLeftColor: '#014898',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
+    marginLeft: 28,
   },
   infoRut: {
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+    marginLeft: 28,
   },
   section: {
     backgroundColor: '#fff',
@@ -426,11 +473,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
   },
   canchaItem: {
     backgroundColor: '#f5f5f5',
@@ -443,13 +495,18 @@ const styles = StyleSheet.create({
   },
   canchaItemSelected: {
     backgroundColor: '#e3f2fd',
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   canchaItemNombre: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  capacidadContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   canchaItemCapacidad: {
     fontSize: 12,
@@ -471,7 +528,7 @@ const styles = StyleSheet.create({
   },
   horarioItemSelected: {
     backgroundColor: '#e3f2fd',
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   horarioText: {
     fontSize: 14,
@@ -488,13 +545,16 @@ const styles = StyleSheet.create({
   participantesCount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   buscarButton: {
-    backgroundColor: '#1976d2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#014898',
     paddingVertical: 12,
     borderRadius: 8,
-    alignItems: 'center',
     marginBottom: 12,
   },
   buscarButtonText: {
@@ -515,18 +575,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#b7eb8f',
   },
+  participanteInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   participanteRut: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
   tuText: {
-    color: '#1976d2',
-    fontWeight: 'bold',
-  },
-  removerText: {
-    fontSize: 18,
-    color: '#ff4d4f',
+    color: '#014898',
     fontWeight: 'bold',
   },
   textArea: {
@@ -560,10 +621,13 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#014898',
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
   },
   submitButtonDisabled: {
     backgroundColor: '#ccc',
@@ -574,15 +638,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'flex-end',
-},
-modalOverlayTouch: {
-  flex: 1,
-  justifyContent: 'flex-end',
-},
-
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalOverlayTouch: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
@@ -590,35 +653,61 @@ modalOverlayTouch: {
     padding: 20,
     maxHeight: '70%',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 15,
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
-    textAlign: 'center',
   },
-  searchInput: {
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     marginBottom: 15,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
   },
   sugerenciasList: {
     maxHeight: 300,
   },
   sugerenciaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  sugerenciaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  sugerenciaTextos: {
+    flex: 1,
   },
   sugerenciaNombre: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   sugerenciaRut: {
     fontSize: 14,

@@ -113,7 +113,7 @@ const handleDesactivarToken = () => {
 
   const getBadgeColor = (tipo) => {
     const colores = {
-      'tecnica': '#1976d2',
+      'tecnica': '#014898',
       'táctica': '#4caf50',
       'tactica': '#4caf50',
       'fisica': '#ff9800',
@@ -127,7 +127,7 @@ const handleDesactivarToken = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando sesión...</Text>
       </View>
     );
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
   },
   deleteButton: {
     backgroundColor: '#f44336',

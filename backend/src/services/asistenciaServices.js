@@ -118,7 +118,7 @@ export async function eliminarAsistencia(id) {
   }
 }
 
-export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite = 10, estado }) {
+export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite = 50, estado, jugadorId }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
     const skip = (pagina - 1) * limite;
@@ -130,6 +130,9 @@ export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite =
       .where("a.sesionId = :sesionId", { sesionId });
 
     if (estado) qb.andWhere("a.estado = :estado", { estado });
+    
+    // ✅ AGREGAR ESTE FILTRO
+    if (jugadorId) qb.andWhere("a.jugadorId = :jugadorId", { jugadorId });
 
     const [items, total] = await qb
       .orderBy("a.fechaRegistro", "DESC")  
@@ -189,5 +192,74 @@ export async function registrarAsistenciaManual({
   } catch (error) {
     console.error("Error registrando asistencia manual:", error);
     return [null, "Error al registrar asistencia", 500];
+  }
+}
+
+
+
+export async function listarAsistenciasDeJugador(jugadorId, { pagina = 1, limite = 50, estado, sesionId }) {
+  try {
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
+    const skip = (pagina - 1) * limite;
+
+    const qb = asistenciaRepo
+      .createQueryBuilder("a")
+      .leftJoinAndSelect("a.sesion", "sesion")
+      .leftJoinAndSelect("sesion.cancha", "cancha")
+      .leftJoinAndSelect("sesion.grupo", "grupo")
+      .where("a.jugadorId = :jugadorId", { jugadorId });
+
+    if (estado) qb.andWhere("a.estado = :estado", { estado });
+    if (sesionId) qb.andWhere("a.sesionId = :sesionId", { sesionId });
+
+    const [items, total] = await qb
+      .orderBy("sesion.fecha", "DESC")
+      .addOrderBy("sesion.horaInicio", "DESC")
+      .skip(skip)
+      .take(limite)
+      .getManyAndCount();
+
+    return [{
+      asistencias: items,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite),
+    }, null, 200];
+  } catch (error) {
+    console.error("Error listando asistencias del jugador:", error);
+    return [null, "Error al obtener asistencias del jugador", 500];
+  }
+}
+
+export async function obtenerEstadisticasAsistenciaJugador(jugadorId) {
+  try {
+    const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
+
+    const asistencias = await asistenciaRepo.find({
+      where: { jugadorId }
+    });
+
+    const total = asistencias.length;
+    const presente = asistencias.filter(a => a.estado === 'presente').length;
+    const ausente = asistencias.filter(a => a.estado === 'ausente').length;
+    const justificado = asistencias.filter(a => a.estado === 'justificado').length;
+
+    const porcentajePresente = total > 0 ? ((presente / total) * 100).toFixed(1) : 0;
+    const porcentajeAusente = total > 0 ? ((ausente / total) * 100).toFixed(1) : 0;
+    const porcentajeJustificado = total > 0 ? ((justificado / total) * 100).toFixed(1) : 0;
+
+    return [{
+      total,
+      presente,
+      ausente,
+      justificado,
+      porcentajePresente,
+      porcentajeAusente,
+      porcentajeJustificado
+    }, null, 200];
+  } catch (error) {
+    console.error("Error obteniendo estadísticas de asistencia:", error);
+    return [null, "Error al obtener estadísticas", 500];
   }
 }

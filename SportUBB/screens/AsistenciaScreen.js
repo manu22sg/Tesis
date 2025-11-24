@@ -210,7 +210,7 @@ const handleExportExcel = async () => {
   if (loading && asistencias.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando asistencias...</Text>
       </View>
     );
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   statLabel: {
     fontSize: 12,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   },
   botonEditar: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
   },
   modalButtonConfirm: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',

@@ -10,6 +10,7 @@ const JugadorCampeonatoSchema = new EntitySchema({
     campeonatoId: { type: "int", nullable: false },
     numeroCamiseta: { type: "int", nullable: true },
     posicion: { type: "varchar", length: 50, nullable: true },
+    posicionSecundaria: { type: "varchar", length: 50, nullable: true },
     golesCampeonato: { type: "int", default: 0 },
     asistenciasCampeonato: { type: "int", default: 0 },
     atajadasCampeonato: { type: "int", default: 0 },

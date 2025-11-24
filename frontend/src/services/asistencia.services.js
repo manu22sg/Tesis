@@ -50,7 +50,7 @@ export async function eliminarAsistencia(asistenciaId) {
 export async function listarAsistenciasDeSesion(sesionId, params = {}) {
   try {
     const response = await api.get(`/asistencia/${sesionId}`, { params });
-    return response.data?.data;
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('Error obteniendo asistencias:', error);
     throw error;
@@ -58,9 +58,11 @@ export async function listarAsistenciasDeSesion(sesionId, params = {}) {
 }
 
 
+
 export async function exportarAsistenciasExcel(params = {}) {
-  if (!params.sesionId) {
-    throw new Error("sesionId es requerido");
+  // ✅ Validar que al menos uno esté presente
+  if (!params.sesionId && !params.jugadorId) {
+    throw new Error("Debe proporcionar sesionId o jugadorId");
   }
   
   try {
@@ -96,11 +98,10 @@ export async function exportarAsistenciasExcel(params = {}) {
   }
 }
 
-
-
 export async function exportarAsistenciasPDF(params = {}) {
-  if (!params.sesionId) {
-    throw new Error("sesionId es requerido");
+  // ✅ Validar que al menos uno esté presente
+  if (!params.sesionId && !params.jugadorId) {
+    throw new Error("Debe proporcionar sesionId o jugadorId");
   }
   
   try {
@@ -136,6 +137,7 @@ export async function exportarAsistenciasPDF(params = {}) {
   }
 }
 
+
 export async function registrarAsistenciaManual(data) {
   try {
     const payload = limpiarPayload(data);
@@ -143,6 +145,26 @@ export async function registrarAsistenciaManual(data) {
     return response.data?.data;
   } catch (error) {
     console.error('Error registrando asistencia manual:', error);
+    throw error;
+  }
+}
+
+export async function obtenerAsistenciasPorJugador(jugadorId, params = {}) {
+  try {
+    const response = await api.get(`/asistencia/jugador/${jugadorId}`, { params });
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error('Error obteniendo asistencias del jugador:', error);
+    throw error;
+  }
+}
+
+export async function obtenerEstadisticasAsistenciaJugador(jugadorId) {
+  try {
+    const response = await api.get(`/asistencia/jugador/${jugadorId}/estadisticas`);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error('Error obteniendo estadísticas de asistencia:', error);
     throw error;
   }
 }

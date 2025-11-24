@@ -368,7 +368,7 @@ export default function NuevoJugadorScreen({ navigation }) {
             />
 
             {buscandoUsuarios ? (
-              <ActivityIndicator size="large" color="#1976d2" style={{ marginTop: 20 }} />
+              <ActivityIndicator size="large" color="#014898" style={{ marginTop: 20 }} />
             ) : (
               <FlatList
                 data={usuariosEncontrados}
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     color: '#52c41a',
   },
   cambiarButton: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -639,11 +639,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 2,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
     borderStyle: 'dashed',
   },
   buscarUsuarioText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
   },
   usuarioCarrera: {
     fontSize: 11,
-    color: '#1976d2',
+    color: '#014898',
     marginTop: 2,
   },
   emptyText: {
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
   },
   modalOptionTextSelected: {
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   aniosList: {
     maxHeight: 300,

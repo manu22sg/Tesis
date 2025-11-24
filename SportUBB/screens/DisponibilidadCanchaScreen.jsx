@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { getDisponibilidadPorFecha } from '../services/horarioServices';
 import { useAuth } from '../context/AuthContext';
 
@@ -82,7 +83,7 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando disponibilidad...</Text>
       </View>
     );
@@ -92,7 +93,10 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚽ Disponibilidad de Canchas</Text>
+        <View style={styles.headerContent}>
+          <Ionicons name="football" size={28} color="#fff" />
+          <Text style={styles.headerTitle}>Disponibilidad de Canchas</Text>
+        </View>
       </View>
 
       {/* Selector de fecha */}
@@ -101,7 +105,8 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
           style={styles.dateButton}
           onPress={() => cambiarDia(-1)}
         >
-          <Text style={styles.dateButtonText}>◀ Anterior</Text>
+          <Ionicons name="chevron-back" size={20} color="#014898" />
+          <Text style={styles.dateButtonText}>Anterior</Text>
         </TouchableOpacity>
 
         <View style={styles.dateDisplay}>
@@ -112,7 +117,8 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
           style={styles.dateButton}
           onPress={() => cambiarDia(1)}
         >
-          <Text style={styles.dateButtonText}>Siguiente ▶</Text>
+          <Text style={styles.dateButtonText}>Siguiente</Text>
+          <Ionicons name="chevron-forward" size={20} color="#014898" />
         </TouchableOpacity>
       </View>
 
@@ -121,7 +127,8 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
           style={styles.todayButton}
           onPress={irHoy}
         >
-          <Text style={styles.todayButtonText}>📅 Hoy</Text>
+          <Ionicons name="today" size={18} color="#014898" />
+          <Text style={styles.todayButtonText}>Hoy</Text>
         </TouchableOpacity>
       </View>
 
@@ -132,7 +139,8 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
             style={styles.reservarButton}
             onPress={() => navigation.navigate('NuevaReserva')}
           >
-            <Text style={styles.reservarButtonText}>➕ Reservar cancha</Text>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.reservarButtonText}>Reservar cancha</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -146,7 +154,7 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
       >
         {disponibilidad.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📅</Text>
+            <Ionicons name="calendar-outline" size={64} color="#ccc" />
             <Text style={styles.emptyText}>
               No hay canchas disponibles para esta fecha
             </Text>
@@ -155,11 +163,13 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
           disponibilidad.map((item, index) => (
             <View key={index} style={styles.canchaCard}>
               <View style={styles.canchaHeader}>
-                <Text style={styles.canchaNombre}>{item.cancha.nombre}</Text>
+                <View style={styles.canchaTitleContainer}>
+                  <Ionicons name="location" size={20} color="#014898" />
+                  <Text style={styles.canchaNombre}>{item.cancha.nombre}</Text>
+                </View>
                 <View style={styles.capacidadBadge}>
-                  <Text style={styles.capacidadText}>
-                    👥 {item.cancha.capacidadMaxima}
-                  </Text>
+                  <Ionicons name="people" size={14} color="#014898" />
+                  <Text style={styles.capacidadText}>{item.cancha.capacidadMaxima}</Text>
                 </View>
               </View>
 
@@ -170,7 +180,10 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
               )}
 
               <View style={styles.bloquesContainer}>
-                <Text style={styles.bloquesTitle}>Horarios disponibles:</Text>
+                <View style={styles.bloquesTitleContainer}>
+                  <Ionicons name="time-outline" size={16} color="#333" />
+                  <Text style={styles.bloquesTitle}>Horarios disponibles:</Text>
+                </View>
                 {item.bloques.map((bloque, bIndex) => (
                   <View 
                     key={bIndex} 
@@ -186,8 +199,13 @@ export default function DisponibilidadCanchaScreen({ navigation }) {
                       styles.bloqueEstado,
                       bloque.disponible ? styles.estadoDisponible : styles.estadoOcupado
                     ]}>
+                      <Ionicons 
+                        name={bloque.disponible ? "checkmark-circle" : "close-circle"} 
+                        size={14} 
+                        color="#fff" 
+                      />
                       <Text style={styles.bloqueEstadoText}>
-                        {bloque.disponible ? '✓ Disponible' : bloque.motivo || '✗ Ocupado'}
+                        {bloque.disponible ? 'Disponible' : bloque.motivo || 'Ocupado'}
                       </Text>
                     </View>
                   </View>
@@ -218,12 +236,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
   },
@@ -237,6 +260,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
   },
   dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#f5f5f5',
@@ -244,7 +270,7 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
   },
   dateDisplay: {
@@ -266,16 +292,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   todayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 8,
     backgroundColor: '#e3f2fd',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   todayButtonText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
   },
   reservarContainer: {
@@ -285,10 +314,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
   },
   reservarButton: {
-    backgroundColor: '#1976d2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#014898',
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
   },
   reservarButtonText: {
     color: '#fff',
@@ -316,6 +348,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  canchaTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   canchaNombre: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -323,6 +361,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   capacidadBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#e3f2fd',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -331,21 +372,27 @@ const styles = StyleSheet.create({
   capacidadText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   canchaDescripcion: {
     fontSize: 14,
     color: '#666',
     marginBottom: 12,
+    marginLeft: 28,
   },
   bloquesContainer: {
     marginTop: 10,
+  },
+  bloquesTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
   },
   bloquesTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 8,
   },
   bloqueItem: {
     flexDirection: 'row',
@@ -372,6 +419,9 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   bloqueEstado: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -394,13 +444,10 @@ const styles = StyleSheet.create({
     padding: 40,
     marginTop: 40,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
   emptyText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginTop: 16,
   },
 });

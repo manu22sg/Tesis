@@ -1,9 +1,8 @@
 // navigation/EstudianteTabNavigator.js
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
 import DisponibilidadCanchaScreen from '../screens/DisponibilidadCanchaScreen';
@@ -32,7 +31,7 @@ function DisponibilidadStack() {
         options={{
           title: 'Nueva Reserva',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1976d2' },
+          headerStyle: { backgroundColor: '#014898' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
@@ -83,18 +82,27 @@ export default function EstudianteTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1976d2',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#fff',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)',
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          height: 60,
-          paddingBottom: 5,
+          backgroundColor: '#014898',
+          borderTopWidth: 0,
+          height: 65,
+          paddingBottom: 8,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
     >
@@ -103,8 +111,12 @@ export default function EstudianteTabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>🏠</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -113,8 +125,12 @@ export default function EstudianteTabNavigator() {
         component={DisponibilidadStack}
         options={{
           tabBarLabel: 'Canchas',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>⚽</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'football' : 'football-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -122,9 +138,13 @@ export default function EstudianteTabNavigator() {
         name="MisReservas"
         component={MisReservasStack}
         options={{
-          tabBarLabel: 'Mis Reservas',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>📅</Text>
+          tabBarLabel: 'Reservas',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'calendar' : 'calendar-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -136,8 +156,12 @@ export default function EstudianteTabNavigator() {
           component={MarcarAsistenciaStack}
           options={{
             tabBarLabel: 'Asistencia',
-            tabBarIcon: ({ color, size }) => (
-              <Text style={{ fontSize: size }}>✓</Text>
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons 
+                name={focused ? 'checkmark-circle' : 'checkmark-circle-outline'} 
+                size={24} 
+                color={color} 
+              />
             ),
           }}
         />
@@ -148,8 +172,12 @@ export default function EstudianteTabNavigator() {
         component={HomeScreen} // TODO: Crear pantalla de perfil
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>👤</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />

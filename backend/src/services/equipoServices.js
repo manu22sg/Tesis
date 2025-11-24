@@ -281,17 +281,33 @@ export const insertarUsuarioEnEquipo = async ({
     );
   }
 
-  // 🆕 3. Obtener campeonato y validar según tipo
+  // 3. Obtener campeonato
   const campeonato = await campeonatoRepositorio.findOne({
     where: { id: Number(campeonatoId) }
   });
   if (!campeonato) throw new Error("Campeonato no encontrado");
 
-  // 🆕 VALIDACIONES SEGÚN TIPO DE CAMPEONATO
+  // 3.1 VALIDACIÓN DE GÉNERO DEL CAMPEONATO
+  const generoCamp = campeonato.genero?.trim().toLowerCase(); // masculino | femenino | mixto
+  const sexoUsuario = usuario.sexo?.trim().toLowerCase();
+
+  if (!sexoUsuario) {
+    throw new Error(`El usuario ${usuario.nombre} no tiene sexo registrado en el sistema`);
+  }
+
+  if (generoCamp !== "mixto") {
+    if (sexoUsuario !== generoCamp) {
+      throw new Error(
+        `Este campeonato es ${generoCamp}. ` +
+        `El usuario ${usuario.nombre} es de sexo ${sexoUsuario}, por lo que no puede inscribirse.`
+      );
+    }
+  }
+
+  // 🟦 VALIDACIONES DE TIPO DE CAMPEONATO (YA EXISTENTES)
   if (campeonato.tipoCampeonato === 'mechon') {
-    // Para campeonatos mechón: validar que sea del año actual
     const anioActual = new Date().getFullYear();
-    
+
     if (!usuario.anioIngresoUniversidad) {
       throw new Error(
         `El usuario ${usuario.nombre} no tiene registrado su año de ingreso a la carrera`
@@ -305,7 +321,6 @@ export const insertarUsuarioEnEquipo = async ({
       );
     }
   } else if (campeonato.tipoCampeonato === 'intercarrera') {
-    // Para campeonatos intercarrera: validar que usuario y equipo sean de la misma carrera
     if (usuario.carreraId !== equipo.carreraId) {
       throw new Error(
         `El usuario ${usuario.nombre} pertenece a la carrera "${usuario.carrera.nombre}" ` +
@@ -314,7 +329,7 @@ export const insertarUsuarioEnEquipo = async ({
     }
   }
 
-  // 4. Validar que el usuario no esté en otro equipo del campeonato
+  // 4. Validar que no esté en otro equipo
   const yaParticipa = await jugadorRepo.findOne({
     where: {
       campeonatoId: Number(campeonatoId),
@@ -327,7 +342,7 @@ export const insertarUsuarioEnEquipo = async ({
     );
   }
 
-  // 5. Validación de número de camiseta único dentro del equipo
+  // 5. Validar número de camiseta
   if (numeroCamiseta !== null && numeroCamiseta !== undefined) {
     const camisetaRepetida = await jugadorRepo.findOne({
       where: {
@@ -342,7 +357,7 @@ export const insertarUsuarioEnEquipo = async ({
     }
   }
 
-  // 6. Validación de límite de jugadores según formato
+  // 6. Validación de límite por formato
   const limites = {
     "5v5": { min: 5, max: 10 },
     "7v7": { min: 7, max: 14 },

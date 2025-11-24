@@ -466,7 +466,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando datos del grupo...</Text>
       </View>
     );
@@ -489,7 +489,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1976d2" />
+      <StatusBar barStyle="light-content" backgroundColor="#014898" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -720,7 +720,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
             ListEmptyComponent={
               loadingSesiones ? (
                 <View style={{ padding: 40, alignItems: 'center' }}>
-                  <ActivityIndicator size="large" color="#1976d2" />
+                  <ActivityIndicator size="large" color="#014898" />
                 </View>
               ) : (
                 <View style={styles.emptyList}>
@@ -932,7 +932,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
             {loadingDetalle ? (
               <View style={styles.modalLoading}>
-                <ActivityIndicator size="large" color="#1976d2" />
+                <ActivityIndicator size="large" color="#014898" />
               </View>
             ) : sesionDetalle ? (
               <ScrollView style={styles.detalleScroll}>
@@ -1017,7 +1017,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
             {loadingJugadorDetalle ? (
               <View style={styles.modalLoading}>
-                <ActivityIndicator size="large" color="#1976d2" />
+                <ActivityIndicator size="large" color="#014898" />
               </View>
             ) : jugadorDetalle ? (
               <ScrollView style={styles.detalleScroll}>
@@ -1126,7 +1126,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1137,7 +1137,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -1191,7 +1191,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActiva: {
-    borderBottomColor: '#1976d2',
+    borderBottomColor: '#014898',
   },
   tabText: {
     fontSize: 14,
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActiva: {
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: 'bold',
   },
   content: {
@@ -1259,7 +1259,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filtroValueActive: {
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: 'bold',
   },
   activeFiltersContainer: {
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
   },
   activeFiltersText: {
     fontSize: 12,
-    color: '#1976d2',
+    color: '#014898',
     textAlign: 'center',
   },
   filtroEstadoContainer: {
@@ -1285,8 +1285,8 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
   },
   filtroChipActivo: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#014898',
+    borderColor: '#014898',
   },
   filtroChipText: {
     fontSize: 13,
@@ -1306,7 +1306,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   filtrosButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1402,7 +1402,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   verPerfilButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1443,7 +1443,7 @@ const styles = StyleSheet.create({
   tipoText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   lugarText: {
     fontSize: 14,
@@ -1460,7 +1460,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   verDetalleButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addFirstButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1515,7 +1515,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
   },
   jugadorItemSeleccionado: {
     backgroundColor: '#e3f2fd',
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   jugadorNombre: {
     fontSize: 15,
@@ -1601,7 +1601,7 @@ const styles = StyleSheet.create({
   },
   canchaItemSeleccionado: {
     backgroundColor: '#e3f2fd',
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   canchaNombre: {
     fontSize: 14,
@@ -1633,7 +1633,7 @@ const styles = StyleSheet.create({
   },
   canchaItemSeleccionado: {
     backgroundColor: '#e3f2fd',
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   canchaNombre: {
     fontSize: 14,
@@ -1659,7 +1659,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -1699,7 +1699,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,

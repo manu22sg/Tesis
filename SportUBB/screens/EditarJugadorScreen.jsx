@@ -149,7 +149,7 @@ export default function EditarJugadorScreen({ navigation, route }) {
   if (loadingData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando datos...</Text>
       </View>
     );
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   },
   usuarioCarrera: {
     fontSize: 13,
-    color: '#1976d2',
+    color: '#014898',
     marginTop: 2,
   },
   form: {
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   },
   modalOptionTextSelected: {
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   aniosList: {
     maxHeight: 300,

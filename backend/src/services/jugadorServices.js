@@ -279,7 +279,6 @@ export async function removerJugadorDeGrupo(jugadorId, grupoId) {
   }
 }
 
-// NUEVA FUNCIÓN: Obtener estadísticas de jugadores por carrera
 export async function obtenerEstadisticasPorCarrera() {
   try {
     const jugadorRepository = AppDataSource.getRepository(JugadorSchema);

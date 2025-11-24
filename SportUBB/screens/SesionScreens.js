@@ -236,7 +236,7 @@ export default function SesionScreens({ navigation }) {
         onPress={() => handleVerDetalle(item)}
         style={{
           marginTop: 10,
-          backgroundColor: '#1976d2',
+          backgroundColor: '#014898',
           paddingVertical: 10,
           borderRadius: 8,
           alignItems: 'center'
@@ -250,7 +250,7 @@ export default function SesionScreens({ navigation }) {
   if (loading && sesiones.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando sesiones...</Text>
       </View>
     );
@@ -273,7 +273,7 @@ export default function SesionScreens({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#1976d2']}
+            colors={['#014898']}
           />
         }
         onEndReached={cargarMas}
@@ -287,7 +287,7 @@ export default function SesionScreens({ navigation }) {
             )}
 
             {loading && sesiones.length > 0 && (
-              <ActivityIndicator size="small" color="#1976d2" />
+              <ActivityIndicator size="small" color="#014898" />
             )}
 
             {!loading && sesiones.length < pagination.total && (
@@ -296,7 +296,7 @@ export default function SesionScreens({ navigation }) {
                 style={{
                   paddingVertical: 10,
                   paddingHorizontal: 20,
-                  backgroundColor: '#1976d2',
+                  backgroundColor: '#014898',
                   borderRadius: 10,
                 }}
               >
@@ -356,7 +356,7 @@ const formatearHora = (hora) => {
 
 const getBadgeColor = (tipo) => {
   const colores = {
-    'tecnica': { backgroundColor: '#1976d2' },
+    'tecnica': { backgroundColor: '#014898' },
     'táctica': { backgroundColor: '#4caf50' },
     'tactica': { backgroundColor: '#4caf50' },
     'fisica': { backgroundColor: '#ff9800' },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   list: {
     padding: 15,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   width: 60,
   height: 60,
   borderRadius: 30,
-  backgroundColor: '#1976d2',
+  backgroundColor: '#014898',
   justifyContent: 'center',
   alignItems: 'center',
   shadowColor: '#000',

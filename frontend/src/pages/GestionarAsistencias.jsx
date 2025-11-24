@@ -32,7 +32,8 @@ import {
   EnvironmentOutlined,
   UserOutlined,
   UserAddOutlined,
-  SearchOutlined
+  SearchOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -57,6 +58,7 @@ const ESTADOS = {
   presente: { label: 'Presente', color: 'success', icon: <CheckCircleOutlined /> },
   ausente: { label: 'Ausente', color: 'error', icon: <CloseCircleOutlined /> },
   justificado: { label: 'Justificado', color: 'warning', icon: <QuestionCircleOutlined /> },
+  tarde: { label: 'Tarde', color: 'default', icon: <ClockCircleOutlined /> },
 };
 
 export default function GestionarAsistencias() {
@@ -662,41 +664,9 @@ export default function GestionarAsistencias() {
                 </Select>
               </Form.Item>
 
-              <Form.Item
-                label="Observación (opcional)"
-                name="observacion"
-              >
-                <Input.TextArea 
-                  rows={3} 
-                  placeholder="Ej: Llegó tarde por motivos personales..."
-                  maxLength={500}
-                  showCount
-                />
-              </Form.Item>
             </Form>
 
-            <div style={{ 
-              marginTop: 16, 
-              padding: 12, 
-              background: '#e6f7ff', 
-              borderRadius: 6,
-              border: '1px solid #91d5ff'
-            }}>
-              <Space direction="vertical" size={4}>
-                <Text strong style={{ color: '#014898' }}>
-                   Información importante:
-                </Text>
-                <Text style={{ fontSize: 12 }}>
-                  • Este registro se marcará con origen "Entrenador"
-                </Text>
-                <Text style={{ fontSize: 12 }}>
-                  • No se validará ubicación geográfica
-                </Text>
-                <Text style={{ fontSize: 12 }}>
-                  • Usa esto cuando un jugador no pueda marcar por sí mismo
-                </Text>
-              </Space>
-            </div>
+            
           </Modal>
         </div>
       </ConfigProvider>

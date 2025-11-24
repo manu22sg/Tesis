@@ -260,7 +260,7 @@ const isFirstLoadRef = useRef(true);
   if (loading && !refreshing && grupos.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando grupos...</Text>
       </View>
     );
@@ -331,7 +331,7 @@ const isFirstLoadRef = useRef(true);
           ListEmptyComponent={
             loading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#1976d2" />
+                <ActivityIndicator size="large" color="#014898" />
               </View>
             ) : null
           }
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nuevoButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   verMiembrosButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   crearPrimerButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',

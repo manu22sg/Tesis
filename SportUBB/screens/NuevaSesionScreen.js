@@ -322,7 +322,7 @@ if (!horaFin) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   radioOptionSelected: {
-    borderColor: '#1976d2',
+    borderColor: '#014898',
     backgroundColor: '#f0f8ff',
   },
   radio: {
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
   },
   radioText: {
     fontSize: 14,
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#1976d2',
+    color: '#014898',
   },
   dispContainer: {
     marginTop: 8,
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     color: '#f44336',
   },
   saveButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     marginTop: 15,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -963,13 +963,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
   },
   checkmark: {
     color: '#fff',

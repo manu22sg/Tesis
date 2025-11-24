@@ -257,7 +257,7 @@ export default function JugadoresScreen({ navigation }) {
   if (loading && !refreshing && jugadores.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando jugadores...</Text>
       </View>
     );
@@ -348,7 +348,7 @@ export default function JugadoresScreen({ navigation }) {
           ListEmptyComponent={
             loading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#1976d2" />
+                <ActivityIndicator size="large" color="#014898" />
               </View>
             ) : null
           }
@@ -424,7 +424,7 @@ export default function JugadoresScreen({ navigation }) {
             <Text style={styles.modalTitle}>Detalle del Jugador</Text>
 
             {loadingDetalle ? (
-              <ActivityIndicator size="large" color="#1976d2" style={{ marginVertical: 40 }} />
+              <ActivityIndicator size="large" color="#014898" style={{ marginVertical: 40 }} />
             ) : jugadorDetalle ? (
               <ScrollView
                 style={styles.detalleScroll}
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   nuevoButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
   },
   jugadorPosicion: {
     fontSize: 12,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
   },
   estadoBadge: {
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   grupoText: {
     fontSize: 11,
-    color: '#1976d2',
+    color: '#014898',
     fontWeight: '600',
   },
   accionesContainer: {
@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
     borderColor: '#90caf9',
   },
   verDetalleButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   nuevaReservaButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
   },
   filtroItemTextSelected: {
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   detalleScroll: {
     maxHeight: 500,
@@ -930,7 +930,7 @@ const styles = StyleSheet.create({
   grupoDetalleNombre: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#014898',
   },
   modalCloseButton: {
     backgroundColor: '#f5f5f5',

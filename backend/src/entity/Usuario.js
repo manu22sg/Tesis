@@ -35,6 +35,11 @@ const UsuarioSchema = new EntitySchema({
       type: "varchar",
       length: 20,
     },
+    sexo: {
+      type: "varchar",
+      length: 10,
+      nullable: true,
+    },
     estado: {
       type: "varchar",
       length: 20,

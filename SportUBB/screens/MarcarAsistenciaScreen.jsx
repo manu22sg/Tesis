@@ -280,7 +280,7 @@ export default function MarcarAsistenciaScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#014898" />
         <Text style={styles.loadingText}>Cargando sesiones...</Text>
       </View>
     );
@@ -376,7 +376,7 @@ export default function MarcarAsistenciaScreen() {
                       setUsarUbicacion(v);
                       if (!v) setUbicacion({ latitud: null, longitud: null });
                     }}
-                    trackColor={{ false: '#ccc', true: '#1976d2' }}
+                    trackColor={{ false: '#ccc', true: '#014898' }}
                     thumbColor={usarUbicacion ? '#fff' : '#f4f3f4'}
                   />
                 )}
@@ -390,7 +390,7 @@ export default function MarcarAsistenciaScreen() {
                     disabled={loadingUbicacion}
                   >
                     {loadingUbicacion ? (
-                      <ActivityIndicator color="#1976d2" />
+                      <ActivityIndicator color="#014898" />
                     ) : (
                       <Text style={styles.ubicacionButtonText}>
                         🎯 {hasCoords(ubicacion.latitud, ubicacion.longitud)
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     padding: 20,
     paddingTop: 60,
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   tipoSesion: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
     marginBottom: 6,
   },
   fecha: {
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   marcarButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -668,10 +668,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1976d2',
+    borderColor: '#014898',
   },
   ubicacionButtonText: {
-    color: '#1976d2',
+    color: '#014898',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   },
   confirmarButton: {
     flex: 1,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',

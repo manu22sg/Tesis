@@ -45,6 +45,7 @@ import SolicitarRestablecimiento from './pages/SolicitarRestablecimiento.jsx';
 import RestablecerPassword from './pages/RestablecerPassword.jsx';
 import PerfilJugador from './pages/PerfilJugador.jsx';
 import Ojeador from './pages/Ojeador.jsx';
+import Asistencias from './pages/Asistencias.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // Componente para manejar la redirección de la raíz
@@ -83,6 +84,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/asistencias"
+        element={
+          <ProtectedRoute>
+            <Asistencias />
           </ProtectedRoute>
         }
       />

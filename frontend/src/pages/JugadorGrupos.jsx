@@ -132,43 +132,7 @@ export default function JugadorGrupos() {
         </div>
       ),
     },
-    {
-      title: 'Categoría',
-      dataIndex: ['grupo', 'categoria'],
-      key: 'categoria',
-      render: (categoria) => (
-       <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {categoria || '—'}
-</span>
-      ),
-      width: 150,
-    },
-    {
-      title: 'Estado',
-      dataIndex: ['grupo', 'estado'],
-      key: 'estado',
-      render: (estado) => (
-        <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {estado?.toUpperCase() || 'N/A'}
-</span>
-      ),
-      width: 100,
-      align: 'center',
-    },
+    
     {
       title: 'Acciones',
       key: 'acciones',

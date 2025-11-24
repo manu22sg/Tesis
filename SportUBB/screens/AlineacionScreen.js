@@ -387,12 +387,11 @@ return (
 
 }
 
-// -------- STYLES --------
 const styles = StyleSheet.create({
   container: { padding: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   backBtn: { marginBottom: 10 },
-  backTxt: { fontSize: 16, color: "#1976d2" },
+  backTxt: { fontSize: 16, color: "#014898" },
 
   sesionBox: {
     padding: 12,
@@ -407,7 +406,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: "#444" },
 
   primaryBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#014898",
     padding: 14,
     borderRadius: 10,
     marginTop: 10,

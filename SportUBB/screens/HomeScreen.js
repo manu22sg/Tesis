@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#014898',
     paddingTop: 60,
     paddingBottom: 30,
     paddingHorizontal: 20,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
   },
   welcomeText: {
     fontSize: 24,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   cardPrimary: {
     borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
+    borderLeftColor: '#014898',
   },
   cardSecondary: {
     borderLeftWidth: 4,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#014898',
     marginBottom: 5,
   },
   statLabel: {

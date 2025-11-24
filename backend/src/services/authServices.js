@@ -576,7 +576,6 @@ export async function solicitarRestablecimientoService(email) {
       return [null, 'Error al enviar el correo. Intente nuevamente.'];
     }
 
-    // ✅ CAMBIO: Mensaje de éxito específico
     return [{
       success: true,
       email: usuario.email,

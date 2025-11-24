@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen.js';
 import SesionScreens from '../screens/SesionScreens.js';
@@ -17,6 +17,7 @@ import NuevoJugadorScreen from '../screens/NuevoJugadorScreen.jsx';
 import EditarJugadorScreen from '../screens/EditarJugadorScreen.jsx';
 import GruposScreen from '../screens/GrupoScreen.jsx';
 import GrupoMiembrosScreen from '../screens/GrupoMiembros.jsx';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -38,7 +39,7 @@ function SesionesStack() {
         options={{
           title: 'Detalle de Sesión',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1976d2' },
+          headerStyle: { backgroundColor: '#014898' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
@@ -49,7 +50,7 @@ function SesionesStack() {
         options={{
           title: 'Nueva Sesión',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1976d2' },
+          headerStyle: { backgroundColor: '#014898' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
@@ -60,7 +61,7 @@ function SesionesStack() {
         options={{
           title: 'Editar Sesión',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1976d2' },
+          headerStyle: { backgroundColor: '#014898' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
@@ -71,7 +72,7 @@ function SesionesStack() {
         options={{
           title: 'Gestionar Asistencias',
           headerShown: true,
-          headerStyle: { backgroundColor: '#1976d2' },
+          headerStyle: { backgroundColor: '#014898' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
@@ -90,7 +91,7 @@ function SesionesStack() {
   );
 }
 
-// ✅ Stack de Jugadores (con todas sus pantallas)
+// Stack de Jugadores
 function JugadoresStack() {
   return (
     <Stack.Navigator
@@ -112,8 +113,9 @@ function JugadoresStack() {
       />
     </Stack.Navigator>
   );
-
 }
+
+// Stack de Grupos
 function GruposStack() {
   return (
     <Stack.Navigator
@@ -139,18 +141,27 @@ export default function EntrenadorTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1976d2',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#fff',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)',
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          height: 60,
-          paddingBottom: 5,
+          backgroundColor: '#014898',
+          borderTopWidth: 0,
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
     >
@@ -159,8 +170,12 @@ export default function EntrenadorTabNavigator() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>🏠</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -169,19 +184,26 @@ export default function EntrenadorTabNavigator() {
         component={SesionesStack}
         options={{
           tabBarLabel: 'Sesiones',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>📅</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'calendar' : 'calendar-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
-      {/* ✅ Nueva pestaña de Jugadores */}
       <Tab.Screen
         name="Jugadores"
         component={JugadoresStack}
         options={{
           tabBarLabel: 'Jugadores',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>🏆</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'people' : 'people-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -190,8 +212,12 @@ export default function EntrenadorTabNavigator() {
         component={GruposStack}
         options={{
           tabBarLabel: 'Grupos',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: size }}>👥</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'folder' : 'folder-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />

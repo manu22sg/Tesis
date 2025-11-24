@@ -8,11 +8,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Modal
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { registerRequest } from '../services/authServices.js';
 import { carreraService } from '../services/carreraServices.js';
+import { Ionicons } from '@expo/vector-icons';
 
 // Validación de RUT
 const validateRut = (rut) => {
@@ -47,7 +49,7 @@ const passwordRequirements = [
   { test: (p) => /[A-Z]/.test(p), text: "una mayúscula" },
   { test: (p) => /[a-z]/.test(p), text: "una minúscula" },
   { test: (p) => /[0-9]/.test(p), text: "un número" },
-  { test: (p) => /[^A-Za-z0-9]/.test(p), text: "un símbolo" },
+  { test: (p) => /[@$!%*?&_.#\-'"]/.test(p), text: "un símbolo" },
 ];
 
 const passwordScore = (password) =>
@@ -56,7 +58,7 @@ const passwordScore = (password) =>
 const getStrengthColor = (score) => {
   if (score <= 2) return "#ff4d4f";
   if (score === 3) return "#faad14";
-  if (score >= 4) return "#52c41a";
+  if (score >= 4) return "#8CC63F";
 };
 
 export default function RegisterScreen({ navigation }) {
@@ -64,14 +66,17 @@ export default function RegisterScreen({ navigation }) {
   const [loadingCarreras, setLoadingCarreras] = useState(true);
   const [carreras, setCarreras] = useState([]);
   const [showCarrerasPicker, setShowCarrerasPicker] = useState(false);
+  const [showSexoPicker, setShowSexoPicker] = useState(false);
 
   // Form fields
   const [rut, setRut] = useState('');
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState('');
+  const [sexo, setSexo] = useState('');
   const [carreraId, setCarreraId] = useState(null);
   const [carreraNombre, setCarreraNombre] = useState('');
+  const [anioIngreso, setAnioIngreso] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -79,6 +84,12 @@ export default function RegisterScreen({ navigation }) {
   const [rutValid, setRutValid] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [esEstudiante, setEsEstudiante] = useState(false);
+
+  const sexoOpciones = [
+    { value: 'Masculino', label: 'Masculino' },
+    { value: 'Femenino', label: 'Femenino' }
+  ];
 
   // Cargar carreras
   useEffect(() => {
@@ -116,6 +127,20 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
+  // Detectar si es estudiante por el email
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    const isStudent = text.includes('@alumnos.ubiobio.cl');
+    setEsEstudiante(isStudent);
+    
+    // Si no es estudiante, limpiar campos opcionales
+    if (!isStudent) {
+      setAnioIngreso('');
+      setCarreraId(null);
+      setCarreraNombre('');
+    }
+  };
+
   const toggleShowPassword = useCallback(() => {
     setShowPassword(prev => !prev);
   }, []);
@@ -125,9 +150,9 @@ export default function RegisterScreen({ navigation }) {
   }, []);
 
   const handleRegister = async () => {
-    // Validaciones
-    if (!rut || !nombre || !apellido || !email || !carreraId || !password || !confirmPassword) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+    // Validaciones básicas
+    if (!rut || !nombre || !apellido || !email || !sexo || !password || !confirmPassword) {
+      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
 
@@ -139,6 +164,18 @@ export default function RegisterScreen({ navigation }) {
     if (!/^.+@(alumnos\.)?ubiobio\.cl$/.test(email)) {
       Alert.alert('Error', 'Debe ser un correo institucional UBB');
       return;
+    }
+
+    // Validaciones condicionales para estudiantes
+    if (esEstudiante) {
+      if (!anioIngreso) {
+        Alert.alert('Error', 'Los estudiantes deben ingresar su año de ingreso');
+        return;
+      }
+      if (!carreraId) {
+        Alert.alert('Error', 'Los estudiantes deben seleccionar su carrera');
+        return;
+      }
     }
 
     if (passwordScore(password) < 5) {
@@ -159,9 +196,15 @@ export default function RegisterScreen({ navigation }) {
         nombre,
         apellido,
         email,
-        carreraId,
+        sexo,
         password
       };
+
+      // Agregar campos opcionales solo si es estudiante
+      if (esEstudiante) {
+        payload.carreraId = carreraId;
+        payload.anioIngresoUniversidad = parseInt(anioIngreso);
+      }
 
       await registerRequest(payload);
 
@@ -177,7 +220,7 @@ export default function RegisterScreen({ navigation }) {
       );
     } catch (error) {
       console.error('Error en registro:', error);
-      const errorMsg = error.response?.data?.message || 'Error al registrarse';
+      const errorMsg = error.response?.data?.message || error.message || 'Error al registrarse';
       Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);
@@ -192,213 +235,338 @@ export default function RegisterScreen({ navigation }) {
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>🏀 SportUBB</Text>
-          <Text style={styles.subtitle}>Crear cuenta</Text>
+        <View style={styles.card}>
+          {/* TÍTULO */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Crear Cuenta</Text>
+            <Text style={styles.subtitle}>Completa tus datos institucionales</Text>
+          </View>
 
-          {/* RUT */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>RUT</Text>
-            <View style={[
-              styles.input,
-              rutValid === true && styles.inputSuccess,
-              rutValid === false && styles.inputError
-            ]}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="12345678-9"
-                value={rut}
-                onChangeText={handleRutChange}
-                keyboardType="numeric"
-                maxLength={10}
-              />
-              {rutValid !== null && (
-                <Text style={styles.validationIcon}>
-                  {rutValid ? '✓' : '✗'}
-                </Text>
+          {/* FORM */}
+          <View style={styles.formContainer}>
+            {/* RUT */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>RUT</Text>
+              <View style={[
+                styles.inputContainer,
+                rutValid === true && styles.inputSuccess,
+                rutValid === false && styles.inputError
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="12345678-9"
+                  value={rut}
+                  onChangeText={handleRutChange}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  editable={!loading}
+                />
+                {rutValid !== null && (
+                  <Ionicons 
+                    name={rutValid ? "checkmark-circle" : "close-circle"} 
+                    size={20} 
+                    color={rutValid ? "#8CC63F" : "#ff4d4f"} 
+                  />
+                )}
+              </View>
+              {rutValid === true && (
+                <Text style={styles.successText}>RUT válido</Text>
+              )}
+              {rutValid === false && (
+                <Text style={styles.errorText}>RUT inválido</Text>
               )}
             </View>
-            {rutValid === true && (
-              <Text style={styles.successText}>RUT válido</Text>
-            )}
-            {rutValid === false && (
-              <Text style={styles.errorText}>RUT inválido</Text>
-            )}
-          </View>
 
-          {/* Nombre */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nombre</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Juan"
-              value={nombre}
-              onChangeText={setNombre}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Apellido */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Apellido</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Pérez"
-              value={apellido}
-              onChangeText={setApellido}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Correo institucional</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="ejemplo@ubiobio.cl"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Carrera */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Carrera</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowCarrerasPicker(true)}
-              disabled={loadingCarreras}
-            >
-              <Text style={carreraNombre ? styles.textInput : styles.placeholder}>
-                {loadingCarreras ? 'Cargando...' : carreraNombre || 'Selecciona tu carrera'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Selector de carreras (simple) */}
-          {showCarrerasPicker && (
-            <View style={styles.pickerContainer}>
-              <ScrollView style={styles.pickerScroll}>
-                {carreras.map((carrera) => (
-                  <TouchableOpacity
-                    key={carrera.id}
-                    style={styles.pickerItem}
-                    onPress={() => {
-                      setCarreraId(carrera.id);
-                      setCarreraNombre(carrera.nombre);
-                      setShowCarrerasPicker(false);
-                    }}
-                  >
-                    <Text style={styles.pickerItemText}>{carrera.nombre}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <TouchableOpacity
-                style={styles.pickerCloseButton}
-                onPress={() => setShowCarrerasPicker(false)}
-              >
-                <Text style={styles.pickerCloseText}>Cancelar</Text>
-              </TouchableOpacity>
+            {/* NOMBRE */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nombre</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Juan"
+                  value={nombre}
+                  onChangeText={setNombre}
+                  autoCapitalize="words"
+                  editable={!loading}
+                />
+              </View>
             </View>
-          )}
 
-          {/* Contraseña */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
+            {/* APELLIDO */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Apellido</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Pérez"
+                  value={apellido}
+                  onChangeText={setApellido}
+                  autoCapitalize="words"
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            {/* EMAIL */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Correo institucional</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="correo@alumnos.ubiobio.cl"
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            {/* SEXO */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Sexo</Text>
               <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={toggleShowPassword}
+                style={styles.inputContainer}
+                onPress={() => setShowSexoPicker(true)}
+                disabled={loading}
               >
-                <Text style={styles.eyeIcon}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                <Ionicons name="male-female-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <Text style={sexo ? styles.inputText : styles.placeholder}>
+                  {sexo || 'Seleccione su sexo'}
                 </Text>
+                <Ionicons name="chevron-down-outline" size={20} color="#8c8c8c" />
               </TouchableOpacity>
             </View>
 
-            {/* Barra de fuerza */}
-            {password.length > 0 && (
-              <View style={styles.strengthContainer}>
-                <View style={styles.strengthBar}>
-                  <View
-                    style={[
-                      styles.strengthFill,
-                      {
-                        width: `${(passwordScore(password) / 5) * 100}%`,
-                        backgroundColor: getStrengthColor(passwordScore(password))
-                      }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.strengthText}>
-                  Debe tener: 8 caracteres, mayúscula, minúscula, número y símbolo
-                </Text>
+            {/* CARRERA - Solo para estudiantes */}
+            {esEstudiante && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Carrera</Text>
+                <TouchableOpacity
+                  style={styles.inputContainer}
+                  onPress={() => setShowCarrerasPicker(true)}
+                  disabled={loadingCarreras || loading}
+                >
+                  <Ionicons name="school-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                  <Text style={carreraNombre ? styles.inputText : styles.placeholder}>
+                    {loadingCarreras ? 'Cargando...' : carreraNombre || 'Seleccione su carrera'}
+                  </Text>
+                  <Ionicons name="chevron-down-outline" size={20} color="#8c8c8c" />
+                </TouchableOpacity>
               </View>
             )}
-          </View>
 
-          {/* Confirmar contraseña */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirmar contraseña</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
+            {/* AÑO INGRESO - Solo para estudiantes */}
+            {esEstudiante && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Año de Ingreso a la Universidad</Text>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="calendar-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={`Ej: ${new Date().getFullYear()}`}
+                    value={anioIngreso}
+                    onChangeText={setAnioIngreso}
+                    keyboardType="numeric"
+                    maxLength={4}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* CONTRASEÑA */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contraseña</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={toggleShowPassword}
+                  disabled={loading}
+                >
+                  <Ionicons 
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+                    size={22} 
+                    color="#8c8c8c" 
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Barra de fuerza */}
+              {password.length > 0 && (
+                <View style={styles.strengthContainer}>
+                  <View style={styles.strengthBar}>
+                    <View
+                      style={[
+                        styles.strengthFill,
+                        {
+                          width: `${(passwordScore(password) / 5) * 100}%`,
+                          backgroundColor: getStrengthColor(passwordScore(password))
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.strengthText}>
+                    La contraseña debe tener: 8 caracteres, mayúscula, minúscula, número y símbolo.
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* CONFIRMAR CONTRASEÑA */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmar contraseña</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#8c8c8c" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={toggleShowConfirmPassword}
+                  disabled={loading}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} 
+                    size={22} 
+                    color="#8c8c8c" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {confirmPassword && password !== confirmPassword && (
+                <Text style={styles.errorText}>Las contraseñas no coinciden</Text>
+              )}
+            </View>
+
+            {/* BOTÓN DE REGISTRO */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Registrarse</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* LINK A LOGIN */}
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>¿Ya tienes cuenta? </Text>
               <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={toggleShowConfirmPassword}
+                onPress={() => navigation.navigate('Login')}
+                disabled={loading}
               >
-                <Text style={styles.eyeIcon}>
-                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                <Text style={styles.registerLink}>Inicia sesión</Text>
               </TouchableOpacity>
             </View>
-            {confirmPassword && password !== confirmPassword && (
-              <Text style={styles.errorText}>Las contraseñas no coinciden</Text>
-            )}
           </View>
-
-          {/* Botón de registro */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Registrarse</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Link a login */}
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.navigate('Login')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              ¿Ya tienes cuenta? Inicia sesión
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* MODAL SEXO */}
+      <Modal
+        visible={showSexoPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSexoPicker(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSexoPicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccione su sexo</Text>
+            {sexoOpciones.map((opcion) => (
+              <TouchableOpacity
+                key={opcion.value}
+                style={styles.modalItem}
+                onPress={() => {
+                  setSexo(opcion.value);
+                  setShowSexoPicker(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>{opcion.label}</Text>
+                {sexo === opcion.value && (
+                  <Ionicons name="checkmark" size={24} color="#014898" />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowSexoPicker(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* MODAL CARRERAS */}
+      <Modal
+        visible={showCarrerasPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCarrerasPicker(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCarrerasPicker(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccione su carrera</Text>
+            <ScrollView style={styles.modalScroll}>
+              {carreras.map((carrera) => (
+                <TouchableOpacity
+                  key={carrera.id}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setCarreraId(carrera.id);
+                    setCarreraNombre(carrera.nombre);
+                    setShowCarrerasPicker(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{carrera.nombre}</Text>
+                  {carreraId === carrera.id && (
+                    <Ionicons name="checkmark" size={24} color="#014898" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowCarrerasPicker(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -411,49 +579,71 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingVertical: 20,
+    paddingHorizontal: 24,
   },
-  formContainer: {
-    padding: 20,
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#1976d2',
-    textAlign: 'center',
-    marginBottom: 10,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#014898',
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
+    fontSize: 14,
+    color: '#8c8c8c',
+  },
+  formContainer: {
+    width: '100%',
   },
   inputGroup: {
-    marginBottom: 15,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 5,
+    fontWeight: '500',
+    color: '#262626',
+    marginBottom: 8,
   },
-  input: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    height: 50,
+    borderWidth: 0,
   },
   inputSuccess: {
-    borderColor: '#52c41a',
+    borderWidth: 1,
+    borderColor: '#8CC63F',
   },
   inputError: {
+    borderWidth: 1,
     borderColor: '#ff4d4f',
   },
-  textInput: {
+  inputIcon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+    padding: 0,
+  },
+  inputText: {
     flex: 1,
     fontSize: 16,
     color: '#000',
@@ -463,38 +653,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
   },
-  validationIcon: {
-    fontSize: 18,
-    marginLeft: 10,
+  eyeButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   successText: {
-    color: '#52c41a',
     fontSize: 12,
-    marginTop: 5,
+    color: '#8CC63F',
+    marginTop: 4,
+    marginLeft: 16,
   },
   errorText: {
-    color: '#ff4d4f',
     fontSize: 12,
-    marginTop: 5,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 15,
-    fontSize: 16,
-  },
-  eyeButton: {
-    padding: 15,
-  },
-  eyeIcon: {
-    fontSize: 22,
+    color: '#ff4d4f',
+    marginTop: 4,
+    marginLeft: 16,
   },
   strengthContainer: {
     marginTop: 10,
@@ -515,16 +689,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   button: {
-    backgroundColor: '#1976d2',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#014898',
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    justifyContent: 'center',
+    marginTop: 8,
+    shadowColor: '#014898',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -532,52 +707,68 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  linkButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#1976d2',
-    fontSize: 14,
     fontWeight: '600',
   },
-  pickerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  registerContainer: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerText: {
+    fontSize: 14,
+    color: '#262626',
+  },
+  registerLink: {
+    fontSize: 14,
+    color: '#014898',
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     padding: 20,
-    zIndex: 1000,
   },
-  pickerScroll: {
+  modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 12,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#014898',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalScroll: {
     maxHeight: 400,
   },
-  pickerItem: {
-    padding: 15,
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#f0f0f0',
   },
-  pickerItemText: {
+  modalItemText: {
     fontSize: 16,
     color: '#333',
+    flex: 1,
   },
-  pickerCloseButton: {
-    backgroundColor: '#f44336',
+  modalCloseButton: {
+    backgroundColor: '#014898',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 25,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 16,
   },
-  pickerCloseText: {
+  modalCloseText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
