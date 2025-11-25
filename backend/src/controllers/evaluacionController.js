@@ -1,27 +1,27 @@
 import { success, error, notFound } from '../utils/responseHandler.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
-
 import { crearEvaluacion, obtenerEvaluaciones, obtenerEvaluacionPorId, actualizarEvaluacion, eliminarEvaluacion } from '../services/evaluacionServices.js';
 
-export async function postCrearEvaluacion(req,res){
+export async function postCrearEvaluacion(req, res) {
   const [data, err] = await crearEvaluacion(req.body);
-  if (err) return error(res, err, err.includes('no encontrada')?404:400);
+  if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, data, 'Evaluación creada', 201);
 }
+
 export async function getEvaluaciones(req, res) {
-  // Convertir query params a números
+  const { page = 1, limit = 10, q, jugadorId, sesionId, desde, hasta } = req.query;
+  
   const filtros = {
-    page: parseInt(req.query.page) || 1,
-    limit: parseInt(req.query.limit) || 10,
+    page: parseInt(page),
+    limit: parseInt(limit)
   };
   
-  // Agregar filtros opcionales
-  if (req.query.q) filtros.q = req.query.q; 
-  if (req.query.jugadorId) filtros.jugadorId = parseInt(req.query.jugadorId);
-  if (req.query.sesionId) filtros.sesionId = parseInt(req.query.sesionId);
-  if (req.query.desde) filtros.desde = req.query.desde;
-  if (req.query.hasta) filtros.hasta = req.query.hasta;
+  if (q) filtros.q = q;
+  if (jugadorId) filtros.jugadorId = parseInt(jugadorId);
+  if (sesionId) filtros.sesionId = parseInt(sesionId);
+  if (desde) filtros.desde = desde;
+  if (hasta) filtros.hasta = hasta;
   
   // Si el rol es estudiante, forzar su propio jugadorId
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
@@ -32,7 +32,6 @@ export async function getEvaluaciones(req, res) {
   if (err) return error(res, err);
   return success(res, data, 'Evaluaciones obtenidas');
 }
-
 
 export async function getEvaluacionPorId(req, res) {
   const [data, err] = await obtenerEvaluacionPorId(parseInt(req.params.id));
@@ -55,57 +54,45 @@ export async function deleteEvaluacion(req, res) {
 
 export async function getEvaluacionesPorJugador(req, res) {
   const jugadorId = parseInt(req.params.jugadorId, 10);
+  const { page = 1, limit = 10, desde, hasta, sesionId } = req.query;
+  
   const filtros = {
-    page: parseInt(req.query.page) || 1,
-    limit: parseInt(req.query.limit) || 10,
+    page: parseInt(page),
+    limit: parseInt(limit),
     jugadorId
   };
   
-  if (req.query.desde) filtros.desde = req.query.desde;
-  if (req.query.hasta) filtros.hasta = req.query.hasta;
-  if (req.query.sesionId) filtros.sesionId = parseInt(req.query.sesionId);
+  if (desde) filtros.desde = desde;
+  if (hasta) filtros.hasta = hasta;
+  if (sesionId) filtros.sesionId = parseInt(sesionId);
 
   const [data, err] = await obtenerEvaluaciones(filtros);
   if (err) return error(res, err);
   return success(res, data, 'Evaluaciones del jugador obtenidas');
 }
 
-// GET /evaluaciones/mias (estudiante)
 export async function getMisEvaluaciones(req, res) {
   const jugadorId = req.user.jugadorId;
+  const { page = 1, limit = 10, desde, hasta, sesionId } = req.query;
+  
   const filtros = {
-    page: parseInt(req.query.page) || 1,
-    limit: parseInt(req.query.limit) || 10,
+    page: parseInt(page),
+    limit: parseInt(limit),
     jugadorId
   };
   
-  if (req.query.desde) filtros.desde = req.query.desde;
-  if (req.query.hasta) filtros.hasta = req.query.hasta;
-  if (req.query.sesionId) filtros.sesionId = parseInt(req.query.sesionId);
+  if (desde) filtros.desde = desde;
+  if (hasta) filtros.hasta = hasta;
+  if (sesionId) filtros.sesionId = parseInt(sesionId);
 
   const [data, err] = await obtenerEvaluaciones(filtros);
   if (err) return error(res, err);
   return success(res, data, 'Tus evaluaciones');
 }
 
-
 export async function exportarEvaluacionesExcel(req, res) {
   try {
-    const { 
-      jugadorId,
-      sesionId,
-      desde,
-      hasta,
-      q
-    } = req.query;
-
-    // ✅ Validar que al menos uno esté presente
-    if (!jugadorId && !sesionId) {
-      return res.status(400).json({
-        success: false,
-        message: "Debe proporcionar jugadorId o sesionId"
-      });
-    }
+    const { jugadorId, sesionId, desde, hasta, q } = req.query; // ✅ Ya validado
 
     const filtros = {
       page: 1,
@@ -145,9 +132,7 @@ export async function exportarEvaluacionesExcel(req, res) {
     workbook.creator = "Sistema de Gestión Deportiva";
     const sheet = workbook.addWorksheet("Evaluaciones");
 
-    // ✅ Columnas dinámicas según el contexto
     if (sesionId && !jugadorId) {
-      // Vista por sesión: mostrar jugadores
       sheet.columns = [
         { header: "Jugador", key: "jugador", width: 30 },
         { header: "RUT", key: "rut", width: 15 },
@@ -179,7 +164,6 @@ export async function exportarEvaluacionesExcel(req, res) {
         });
       });
     } else {
-      // Vista por jugador: mostrar sesiones
       sheet.columns = [
         { header: "Sesión", key: "sesion", width: 25 },
         { header: "Fecha Sesión", key: "fechaSesion", width: 15 },
@@ -237,21 +221,7 @@ export async function exportarEvaluacionesExcel(req, res) {
 
 export async function exportarEvaluacionesPDF(req, res) {
   try {
-    const { 
-      jugadorId,
-      sesionId,
-      desde,
-      hasta,
-      q
-    } = req.query;
-
-    // ✅ Validar que al menos uno esté presente
-    if (!jugadorId && !sesionId) {
-      return res.status(400).json({
-        success: false,
-        message: "Debe proporcionar jugadorId o sesionId"
-      });
-    }
+    const { jugadorId, sesionId, desde, hasta, q } = req.query; // ✅ Ya validado
 
     const filtros = {
       page: 1,
@@ -304,7 +274,6 @@ export async function exportarEvaluacionesPDF(req, res) {
       if (doc.y > 680) doc.addPage();
 
       if (sesionId && !jugadorId) {
-        // Vista por sesión: mostrar jugadores
         const jugadorNombre = e.jugador?.usuario?.nombre 
           ? `${e.jugador.usuario.nombre} ${e.jugador.usuario.apellido || ''}`.trim()
           : "Usuario Desconocido";
@@ -325,7 +294,6 @@ Promedio: ${promedio}
 Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"}
         `);
       } else {
-        // Vista por jugador: mostrar sesiones
         doc.fontSize(12).font("Helvetica-Bold").text(e.sesion?.tipoSesion || e.sesion?.nombre || "Sesión Desconocida");
 
         const fechaSesion = e.sesion?.fecha || "—";

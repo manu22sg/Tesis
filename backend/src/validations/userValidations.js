@@ -102,6 +102,15 @@ export const registerSchema = Joi.object({
       'string.pattern.base': 'La contraseña debe tener: mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&_.#-\'")'
     }),
 
+  sexo: Joi.string()
+    .valid('Masculino', 'Femenino', 'Otro')
+    .required()
+    .messages({
+      'string.empty': 'El sexo es obligatorio',
+      'any.required': 'El sexo es obligatorio',
+      'any.only': 'El sexo debe ser Masculino, Femenino u Otro'
+    }),
+
   carreraId: Joi.number()
     .integer()
     .positive()
@@ -114,7 +123,6 @@ export const registerSchema = Joi.object({
       'number.positive': 'Debe seleccionar una carrera válida'
     }),
 
-  // ✅ NUEVO: Año de ingreso a la carrera (condicional)
   anioIngresoUniversidad: Joi.number()
     .integer()
     .min(1990)

@@ -10,14 +10,14 @@ import {
  */
 export async function buscarJugadoresController(req, res) {
   try {
-    const { q, carreraId, anio, pagina, limite } = req.query;
+    const { q, carreraId, anio, page, limit } = req.query;
 
     const filtros = {
       q: q || '',
       carreraId: carreraId ? Number(carreraId) : undefined,
       anio: anio ? Number(anio) : undefined,
-      pagina: pagina ? Number(pagina) : 1,
-      limite: limite ? Number(limite) : 20
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20
     };
 
     const [resultado, error] = await buscarJugadoresCampeonato(filtros);

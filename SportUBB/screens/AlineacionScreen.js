@@ -95,7 +95,7 @@ const jugadoresFiltrados = jugadoresDisponibles.filter(
   const cargarJugadores = async () => {
     try {
       const data = await obtenerJugadores({
-        limite: 100,
+        limit: 100,
         grupoId: sesionInfo?.grupo?.id,
       });
 

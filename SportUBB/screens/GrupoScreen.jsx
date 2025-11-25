@@ -73,8 +73,8 @@ const isFirstLoadRef = useRef(true);
       const params = { 
         page, 
         limit: pageSize,
-        pagina: page,
-        limite: pageSize
+        page,
+        limit: pageSize
       };
       if (q) {
         params.nombre = q;
@@ -86,8 +86,8 @@ const isFirstLoadRef = useRef(true);
       // Manejar diferentes formatos de respuesta
       const gruposData = resultado?.grupos || resultado?.data?.grupos || resultado?.data || [];
       const paginationData = resultado?.pagination || resultado?.data?.pagination || {
-        currentPage: resultado?.pagina || page,
-        itemsPerPage: resultado?.limite || pageSize,
+        currentPage: resultado?.page || page,
+        itemsPerPage: resultado?.limit || pageSize,
         totalItems: resultado?.total || gruposData.length,
       };
 

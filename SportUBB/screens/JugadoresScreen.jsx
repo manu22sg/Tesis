@@ -79,7 +79,7 @@ export default function JugadoresScreen({ navigation }) {
         setJugadores([]);
       }
       setLoading(true);
-      const params = { pagina: page, limite: pageSize };
+      const params = { page: page, limit: pageSize };
       if (q) params.q = q;
       if (estado) params.estado = estado;
       
@@ -88,7 +88,7 @@ export default function JugadoresScreen({ navigation }) {
       if (response.jugadores) {
         setJugadores(response.jugadores);
         setPagination({
-          current: response.pagina || 1,
+          current: response.page || 1,
           pageSize: pageSize,
           total: response.total || 0,
         });

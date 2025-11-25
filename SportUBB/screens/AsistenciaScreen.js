@@ -54,14 +54,14 @@ export default function AsistenciasScreen({ route, navigation }) {
     try {
       setLoading(true);
       const data = await listarAsistenciasDeSesion(sesionId, {
-        pagina: page,
-        limite: 10
+         page,
+        limit: 10
       });
 
       setAsistencias(data.asistencias || []);
       setPagination({
-        current: data.pagina,
-        pageSize: data.limite,
+        current: data.page,
+        pageSize: data.limit,
         total: data.total
       });
     } catch (error) {

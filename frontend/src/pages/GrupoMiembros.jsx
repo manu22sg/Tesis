@@ -198,8 +198,8 @@ export default function GrupoMiembros() {
         
         const resultado = await obtenerJugadores({
           q: termino,
-          limite: 50,
-          pagina: 1
+          limit: 50,
+          page: 1
         });
         
         const lista = resultado.jugadores || resultado?.data?.jugadores || [];

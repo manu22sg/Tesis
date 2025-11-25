@@ -1,66 +1,89 @@
 import { success, error, notFound } from '../utils/responseHandler.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
-
 import { crearLesion, obtenerLesiones, obtenerLesionPorId, actualizarLesion, eliminarLesion } from '../services/lesionServices.js';
 
-export async function postCrearLesion(req,res){
+export async function postCrearLesion(req, res) {
   const [data, err] = await crearLesion(req.body);
-  if (err) return error(res, err, err.includes('no encontrada')?404:400);
+  if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, data, 'Lesión registrada', 201);
 }
-export async function getLesiones(req,res){
-  const filtros = { ...req.query };
+
+export async function getLesiones(req, res) {
+  const { page = 1, limit = 10, jugadorId, desde, hasta, q } = req.query; // ✅ Cambio aquí
+  
+  const filtros = {
+    page: parseInt(page),     // ✅ Mapeo
+    limit: parseInt(limit)    // ✅ Mapeo
+  };
+  
+  if (jugadorId) filtros.jugadorId = parseInt(jugadorId);
+  if (desde) filtros.desde = desde;
+  if (hasta) filtros.hasta = hasta;
+  if (q) filtros.q = q;
+  
+  // Si es estudiante, forzar su jugadorId
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
     filtros.jugadorId = req.user.jugadorId;
   }
+  
   const [data, err] = await obtenerLesiones(filtros);
   if (err) return error(res, err);
   return success(res, data, 'Lesiones obtenidas');
 }
 
-export async function getLesionPorId(req,res){
+export async function getLesionPorId(req, res) {
   const [data, err] = await obtenerLesionPorId(parseInt(req.params.id));
   if (err) return notFound(res, err);
   return success(res, data, 'Lesión encontrada');
 }
-export async function patchLesion(req,res){
+
+export async function patchLesion(req, res) {
   const id = parseInt(req.params.id, 10);
   const payload = req.body;
   const [data, err] = await actualizarLesion(id, payload);
-  if (err) return error(res, err, err.includes('no encontrada')?404:400);
+  if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, data, 'Lesión actualizada');
 }
 
-export async function deleteLesion(req,res){
+export async function deleteLesion(req, res) {
   const [ok, err] = await eliminarLesion(parseInt(req.params.id));
-  if (err) return error(res, err, err.includes('no encontrada')?404:400);
+  if (err) return error(res, err, err.includes('no encontrada') ? 404 : 400);
   return success(res, { eliminado: !!ok }, 'Lesión eliminada');
 }
 
 export async function getLesionesPorJugador(req, res) {
   const jugadorId = parseInt(req.params.id, 10);
-  const { pagina = 1, limite = 10, desde, hasta, q } = req.query;
+  const { page = 1, limit = 10, desde, hasta, q } = req.query; // ✅ Cambio aquí
 
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {
     return error(res, 'No tienes permiso para ver lesiones de otro jugador', 403);
   }
 
-  const [data, err] = await obtenerLesiones({ pagina, limite, jugadorId, desde, hasta, q });
+  const filtros = {
+    page: parseInt(page),     // ✅ Mapeo
+    limit: parseInt(limit),   // ✅ Mapeo
+    jugadorId
+  };
+  
+  if (desde) filtros.desde = desde;
+  if (hasta) filtros.hasta = hasta;
+  if (q) filtros.q = q;
+
+  const [data, err] = await obtenerLesiones(filtros);
   if (err) return error(res, err);
   return success(res, data, 'Lesiones del jugador obtenidas');
 }
 
 export async function exportarLesionesExcel(req, res) {
   try {
-    const { 
-      jugadorId,
-      desde,
-      hasta,
-      q
-    } = req.query;
+    const { jugadorId, desde, hasta, q } = req.query; // ✅ Ya validado
 
-    const filtros = {};
+    const filtros = {
+      page: 1,
+      limit: 5000
+    };
+    
     if (jugadorId) filtros.jugadorId = parseInt(jugadorId);
     if (desde) filtros.desde = desde;
     if (hasta) filtros.hasta = hasta;
@@ -71,11 +94,7 @@ export async function exportarLesionesExcel(req, res) {
       filtros.jugadorId = req.user.jugadorId;
     }
 
-    const [resultado, err] = await obtenerLesiones({
-      pagina: 1,
-      limite: 5000,
-      ...filtros
-    });
+    const [resultado, err] = await obtenerLesiones(filtros);
 
     if (err) {
       return res.status(500).json({
@@ -116,14 +135,11 @@ export async function exportarLesionesExcel(req, res) {
         : "—";
       
       const rut = l.jugador?.usuario?.rut || "—";
-      
       const fechaInicio = l.fechaInicio || "—";
       const fechaAltaEstimada = l.fechaAltaEstimada || "—";
       const fechaAltaReal = l.fechaAltaReal || "—";
-      
       const estado = l.fechaAltaReal ? "Recuperado" : "Activa";
       
-      // Calcular días de lesión
       let diasLesion = "—";
       if (l.fechaInicio) {
         const inicio = new Date(l.fechaInicio);
@@ -166,17 +182,15 @@ export async function exportarLesionesExcel(req, res) {
   }
 }
 
-// GET /api/lesiones/pdf - Exportar lesiones a PDF
 export async function exportarLesionesPDF(req, res) {
   try {
-    const { 
-      jugadorId,
-      desde,
-      hasta,
-      q
-    } = req.query;
+    const { jugadorId, desde, hasta, q } = req.query; // ✅ Ya validado
 
-    const filtros = {};
+    const filtros = {
+      page: 1,
+      limit: 5000
+    };
+    
     if (jugadorId) filtros.jugadorId = parseInt(jugadorId);
     if (desde) filtros.desde = desde;
     if (hasta) filtros.hasta = hasta;
@@ -187,11 +201,7 @@ export async function exportarLesionesPDF(req, res) {
       filtros.jugadorId = req.user.jugadorId;
     }
 
-    const [resultado, err] = await obtenerLesiones({
-      pagina: 1,
-      limite: 5000,
-      ...filtros
-    });
+    const [resultado, err] = await obtenerLesiones(filtros);
 
     if (err) {
       return res.status(500).json({
@@ -238,7 +248,6 @@ export async function exportarLesionesPDF(req, res) {
       const fechaAltaReal = l.fechaAltaReal || "—";
       const estado = l.fechaAltaReal ? "Recuperado" : "Activa";
 
-      // Calcular días de lesión
       let diasLesion = "—";
       if (l.fechaInicio) {
         const inicio = new Date(l.fechaInicio);
@@ -278,7 +287,7 @@ Días de Lesión: ${diasLesion}
 }
 
 function formatearFechaExcel(fecha) {
-  if (!fecha) return "—";
+  if (!fecha || fecha === "—") return "—";
   const d = new Date(fecha);
   const dia = String(d.getDate()).padStart(2, '0');
   const mes = String(d.getMonth() + 1).padStart(2, '0');

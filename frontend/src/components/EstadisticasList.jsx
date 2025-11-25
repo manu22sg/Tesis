@@ -81,7 +81,7 @@ const ListaEstadisticas = ({
 
       setEstadisticas(listFiltrada);
       setPaginacion({
-        actual: datos.pagina || page,
+        actual: datos.page || page,
         tamanioPagina: limit,
         total: (filtroJugadorId || filtroSesionId) ? listFiltrada.length : total,
       });

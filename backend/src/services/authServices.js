@@ -131,7 +131,7 @@ export async function registerService(userData) {
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
     const carreraRepository = AppDataSource.getRepository(CarreraSchema);
 
-    const { rut, nombre, apellido, email, password, carreraId,anioIngresoUniversidad } = userData;
+    const { rut, nombre, apellido, email, password, carreraId, anioIngresoUniversidad, sexo } = userData;
 
     // -----------------------------
     // 1. Validación de existencia de carrera
@@ -164,15 +164,13 @@ export async function registerService(userData) {
     // -----------------------------
     const userRole = email.endsWith('@alumnos.ubiobio.cl') ? 'estudiante' : 'academico';
 
-      if (userRole === 'estudiante' && !anioIngresoUniversidad) {
+    if (userRole === 'estudiante' && !anioIngresoUniversidad) {
       return [null, createErrorMessage('anioIngresoUniversidad', 'Debe ingresar su año de ingreso')];
     }
 
-      
     if (userRole === 'estudiante' && !carreraId) {
       return [null, createErrorMessage('carreraId', 'Debe seleccionar una carrera')];
     }
-
 
     // -----------------------------
     // 5. Crear usuario pendiente y no verificado
@@ -184,6 +182,7 @@ export async function registerService(userData) {
       email,
       password: hashedPassword,
       rol: userRole,
+      sexo,
       carreraId: carreraId || null,
       estado: 'pendiente',
       verificado: false,
@@ -206,7 +205,6 @@ export async function registerService(userData) {
     );
 
     const urlVerificacion = `${FRONTEND_URL}/verificar/${tokenVerificacion}`;
-
 
     // -----------------------------
     // 7. Envío de correo
@@ -250,6 +248,7 @@ export async function registerService(userData) {
       apellido: savedUser.apellido,
       email: savedUser.email,
       rol: savedUser.rol,
+      sexo: savedUser.sexo,
       carreraId: savedUser.carreraId,
       anioIngresoUniversidad: savedUser.anioIngresoUniversidad,
       estado: savedUser.estado,

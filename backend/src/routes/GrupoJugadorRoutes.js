@@ -18,7 +18,11 @@ import { authenticateToken, requireRole } from '../middleware/authMiddleware.js'
 
 const router = Router();
 
-router.post("/",authenticateToken,requireRole(['entrenador']), validarBody(crearGrupoSchema), crearGrupoController);
+router.get("/export/excel", authenticateToken, requireRole(['entrenador']), exportarGruposExcel);
+router.get("/export/pdf", authenticateToken, requireRole(['entrenador']), exportarGruposPDF);
+
+// Luego las rutas CRUD normales
+router.post("/", authenticateToken, requireRole(['entrenador']), validarBody(crearGrupoSchema), crearGrupoController);
 router.get(
   "/",
   authenticateToken,
@@ -26,15 +30,10 @@ router.get(
   validarQuery(paginacionSchema),
   obtenerTodosGruposController
 );
-router.get("/:id", authenticateToken,requireRole(['entrenador']),validarParams(idParamSchema), obtenerGrupoPorIdController);
-router.patch("/:id",authenticateToken, requireRole(['entrenador']),validarParams(idParamSchema), validarBody(actualizarGrupoSchema), actualizarGrupoController);
-router.delete("/:id",authenticateToken,requireRole(['entrenador']), validarParams(idParamSchema), eliminarGrupoController);
 
-
-
-router.get("/export/excel",authenticateToken,requireRole(['entrenador']), exportarGruposExcel);
-router.get("/export/pdf" ,authenticateToken,requireRole(['entrenador']), exportarGruposPDF);
-
-
+// ✅ Rutas con parámetros AL FINAL
+router.get("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), obtenerGrupoPorIdController);
+router.patch("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), validarBody(actualizarGrupoSchema), actualizarGrupoController);
+router.delete("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), eliminarGrupoController);
 
 export default router;

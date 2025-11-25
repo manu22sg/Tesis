@@ -86,13 +86,12 @@ export default function Grupos() {
     const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
-      // Compatibilidad: algunos servicios usan page/limit/nombre; otros pagina/limite/q
       const params = {
         page,
         limit,
         nombre: nombre || undefined,
-        pagina: page,
-        limite: limit,
+       page,
+        limit,
         q: nombre || undefined,
       };
 
@@ -108,10 +107,10 @@ export default function Grupos() {
       const paginationData = resultado?.pagination
         || resultado?.data?.pagination
         || {
-          currentPage: resultado?.pagina ?? page,
-          itemsPerPage: resultado?.limite ?? limit,
+          currentPage: resultado?.page ?? page,
+          itemsPerPage: resultado?.limit ?? limit,
           totalItems: resultado?.total ?? (Array.isArray(gruposData) ? gruposData.length : 0),
-          totalPages: resultado?.totalPaginas ?? 1,
+          totalPages: resultado?.totalPages ?? 1,
         };
 
       setGrupos(Array.isArray(gruposData) ? gruposData : []);

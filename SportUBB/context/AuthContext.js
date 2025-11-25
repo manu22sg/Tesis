@@ -21,7 +21,6 @@ export function AuthProvider({ children }) {
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('🔍 Verificando token:', token ? 'existe' : 'no existe');
       
       if (!token) {
         setUsuario(null);
@@ -34,7 +33,6 @@ export function AuthProvider({ children }) {
       const user = response?.data?.user;
 
       if (user && user.verificado) {
-        console.log('✅ Usuario verificado:', user.nombre, '- Rol:', user.rol);
         setUsuario(user);
         setIsAuthenticated(true);
       } else {
@@ -56,7 +54,6 @@ export function AuthProvider({ children }) {
     try {
       const response = await loginRequest(credentials);
       
-      console.log('📥 Respuesta de login:', JSON.stringify(response, null, 2));
       
       if (response.success && response.data?.user) {
         const user = response.data.user;
@@ -72,7 +69,6 @@ export function AuthProvider({ children }) {
           };
         }
 
-        console.log('✅ Estableciendo usuario:', user.nombre, '- Rol:', user.rol);
         setUsuario(user);
         setIsAuthenticated(true);
         
@@ -110,7 +106,6 @@ export function AuthProvider({ children }) {
     } finally {
       setUsuario(null);
       setIsAuthenticated(false);
-      console.log('✅ Logout exitoso');
     }
   };
 
@@ -129,12 +124,7 @@ export function AuthProvider({ children }) {
 
   const userRole = usuario?.rol || null;
   
-  console.log('🔍 AuthContext state:', { 
-    usuario: usuario?.nombre || 'null', 
-    rol: userRole, 
-    isAuthenticated,
-    loading
-  });
+ 
 
   return (
     <AuthContext.Provider

@@ -4,7 +4,6 @@ import {
   obtenerGrupoPorId,
   actualizarGrupo,
   eliminarGrupo,
-  // obtenerMiembrosDeGrupo
   obtenerGruposParaExportar
 } from "../services/grupoJugadorServices.js";
 import { success, error } from "../utils/responseHandler.js";
@@ -78,10 +77,10 @@ export async function eliminarGrupoController(req, res) {
 
 export async function obtenerMiembrosDeGrupoController(req, res) {
   const grupoId = parseInt(req.params.id);
-  const { pagina, limite, estado, carrera, anioIngreso } = req.query;
+  const { page, limit, estado, carrera, anioIngreso } = req.query;
 
   const [resultado, err] = await obtenerMiembrosDeGrupo(
-    grupoId, pagina, limite, { estado, carrera, anioIngreso }
+    grupoId, page, limit, { estado, carrera, anioIngreso }
   );
   if (err) return error(res, err);
   return success(res, resultado, "Miembros obtenidos correctamente");

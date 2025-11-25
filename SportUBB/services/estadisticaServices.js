@@ -11,10 +11,10 @@ export const upsertEstadistica = async (data) => {
 };
 
 // Obtener estadísticas por jugador
-export const obtenerEstadisticasPorJugador = async (jugadorId, pagina = 1, limite = 10) => {
+export const obtenerEstadisticasPorJugador = async (jugadorId, page = 1, limit = 10) => {
   try {
     const response = await api.get(`/estadisticas/jugador/${jugadorId}`, {
-      params: { pagina, limite }
+      params: { page, limit }
     });
     return response.data;
   } catch (error) {
@@ -23,10 +23,10 @@ export const obtenerEstadisticasPorJugador = async (jugadorId, pagina = 1, limit
 };
 
 // Obtener mis estadísticas (para estudiantes)
-export const obtenerMisEstadisticas = async (pagina = 1, limite = 10) => {
+export const obtenerMisEstadisticas = async (page = 1, limit = 10) => {
   try {
     const response = await api.get('/estadisticas/mias', {
-      params: { pagina, limite }
+      params: { page, limit }
     });
     return response.data;
   } catch (error) {
@@ -35,10 +35,10 @@ export const obtenerMisEstadisticas = async (pagina = 1, limite = 10) => {
 };
 
 // Obtener estadísticas por sesión
-export const obtenerEstadisticasPorSesion = async (sesionId, pagina = 1, limite = 10) => {
+export const obtenerEstadisticasPorSesion = async (sesionId, page = 1, limit = 10) => {
   try {
     const response = await api.get(`/estadisticas/sesion/${sesionId}`, {
-      params: { pagina, limite }
+      params: { page, limit }
     });
     return response.data;
   } catch (error) {

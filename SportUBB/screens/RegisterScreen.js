@@ -241,7 +241,6 @@ export default function RegisterScreen({ navigation }) {
           {/* TÍTULO */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Crear Cuenta</Text>
-            <Text style={styles.subtitle}>Completa tus datos institucionales</Text>
           </View>
 
           {/* FORM */}

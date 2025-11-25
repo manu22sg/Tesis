@@ -9,7 +9,6 @@ import {
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 
-
 export async function postUpsertEstadistica(req,res){
   const [data, err] = await upsertEstadistica(req.body);
   if (err) return error(res, err, err.includes('no encontrada')?404:400);
@@ -18,29 +17,47 @@ export async function postUpsertEstadistica(req,res){
 
 export async function getEstadisticasPorJugador(req,res){
   const jugadorId = parseInt(req.params.jugadorId,10);
-  const { pagina=1, limite=10 } = req.query;
-  // regla estudiante: solo sus propias “mías”
+  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
+  
+  // regla estudiante: solo sus propias "mías"
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {
     return error(res,'No tienes permiso para ver estadísticas de otro jugador',403);
   }
-  const [data, err] = await obtenerEstadisticasPorJugador({ jugadorId, pagina, limite });
+  
+  const [data, err] = await obtenerEstadisticasPorJugador({ 
+    jugadorId, 
+    pagina: page,  // ✅ Mapeo
+    limite: limit 
+  });
+  
   if (err) return error(res, err);
   return success(res, data, 'Estadísticas por jugador');
 }
 
 export async function getMisEstadisticas(req,res){
-  // attachJugadorId debe haber corrido para estudiantes
   const jugadorId = req.user?.jugadorId;
-  const { pagina=1, limite=10 } = req.query;
-  const [data, err] = await obtenerEstadisticasPorJugador({ jugadorId, pagina, limite });
+  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
+  
+  const [data, err] = await obtenerEstadisticasPorJugador({ 
+    jugadorId, 
+    pagina: page,  // ✅ Mapeo
+    limite: limit 
+  });
+  
   if (err) return error(res, err);
   return success(res, data, 'Mis estadísticas');
 }
 
 export async function getEstadisticasPorSesion(req,res){
   const sesionId = parseInt(req.params.sesionId,10);
-  const { pagina=1, limite=10 } = req.query;
-  const [data, err] = await obtenerEstadisticasPorSesion({ sesionId, pagina, limite });
+  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
+  
+  const [data, err] = await obtenerEstadisticasPorSesion({ 
+    sesionId, 
+    pagina: page,  // ✅ Mapeo
+    limite: limit 
+  });
+  
   if (err) return error(res, err);
   return success(res, data, 'Estadísticas por sesión');
 }
@@ -59,17 +76,9 @@ export async function deleteEstadistica(req,res){
   return success(res, { eliminado: !!ok }, 'Estadística eliminada');
 }
 
-
 export async function exportarEstadisticasExcel(req, res) {
   try {
-    const { tipo, id, jugadorId, sesionId } = req.query;
-
-    if (!tipo || !id) {
-      return res.status(400).json({
-        success: false,
-        message: "Parámetros requeridos: tipo (sesion|jugador) e id"
-      });
-    }
+    const { tipo, id } = req.query; // ✅ Ya validado por Joi
 
     let resultado, err;
     
@@ -84,11 +93,6 @@ export async function exportarEstadisticasExcel(req, res) {
         sesionId: parseInt(id),
         pagina: 1,
         limite: 5000
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "Tipo debe ser 'sesion' o 'jugador'"
       });
     }
 
@@ -112,7 +116,6 @@ export async function exportarEstadisticasExcel(req, res) {
     workbook.creator = "Sistema de Gestión Deportiva";
     const sheet = workbook.addWorksheet("Estadísticas");
 
-    // Configurar columnas según el tipo
     if (tipo === 'sesion') {
       sheet.columns = [
         { header: "Jugador", key: "jugador", width: 30 },
@@ -197,14 +200,7 @@ export async function exportarEstadisticasExcel(req, res) {
 
 export async function exportarEstadisticasPDF(req, res) {
   try {
-    const { tipo, id } = req.query;
-
-    if (!tipo || !id) {
-      return res.status(400).json({
-        success: false,
-        message: "Parámetros requeridos: tipo (sesion|jugador) e id"
-      });
-    }
+    const { tipo, id } = req.query; // ✅ Ya validado por Joi
 
     let resultado, err;
     
@@ -219,11 +215,6 @@ export async function exportarEstadisticasPDF(req, res) {
         sesionId: parseInt(id),
         pagina: 1,
         limite: 5000
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "Tipo debe ser 'sesion' o 'jugador'"
       });
     }
 
@@ -316,11 +307,8 @@ Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString
 
 function formatearHora(horaStr) {
   if (!horaStr) return "—";
-
   const [h, m] = horaStr.split(":");
-
   const hh = String(h).padStart(2, '0');
   const mm = String(m).padStart(2, '0');
-
   return `${hh}:${mm}`;
 }

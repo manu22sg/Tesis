@@ -1,50 +1,99 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole, attachJugadorId } from '../middleware/authMiddleware.js';
-import { validarBody, validarQuery, validarParams, crearLesionBody, actualizarLesionBody, obtenerLesionesQuery, idParamSchema } from '../validations/lesionValidations.js';
-import { postCrearLesion, getLesiones, getLesionPorId, patchLesion, deleteLesion, getLesionesPorJugador,exportarLesionesExcel,exportarLesionesPDF } from '../controllers/lesionController.js';
+import { 
+  validarBody, 
+  validarParams, 
+  validarQuery,
+  idParamSchema,
+  paginacionLesionesSchema,
+  exportarLesionesQuerySchema
+} from '../validations/commonValidations.js';
+import { 
+  crearLesionBody, 
+  actualizarLesionBody 
+} from '../validations/lesionValidations.js';
+import { 
+  postCrearLesion, 
+  getLesiones, 
+  getLesionPorId, 
+  patchLesion, 
+  deleteLesion, 
+  getLesionesPorJugador,
+  exportarLesionesExcel,
+  exportarLesionesPDF 
+} from '../controllers/lesionController.js';
 
 const router = Router();
 
-// POST, PATCH, DELETE
-router.post('/', authenticateToken, requireRole(['entrenador','superadmin']), validarBody(crearLesionBody), postCrearLesion);
+// ✅ Rutas específicas PRIMERO
 router.get('/excel', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin' ]), 
+  requireRole(['entrenador', 'superadmin']),
+  validarQuery(exportarLesionesQuerySchema), // ✅ Validación
   exportarLesionesExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin' ]), 
+  requireRole(['entrenador', 'superadmin']),
+  validarQuery(exportarLesionesQuerySchema), // ✅ Validación
   exportarLesionesPDF
 );
 
-router.patch('/:id', authenticateToken, requireRole(['entrenador','superadmin']),validarParams(idParamSchema),validarBody(actualizarLesionBody), patchLesion);
-router.delete('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), deleteLesion);
-
-// Para que el estudiante vea solo sus lesiones
+// Ruta para estudiantes
 router.get('/mias', 
   authenticateToken, 
-  requireRole('estudiante'), 
-  attachJugadorId,                     //  req.user.jugadorId
-  validarQuery(obtenerLesionesQuery),  // pagina, limite, desde, hasta (opcional)
-  getLesiones                       
+  requireRole(['estudiante']), 
+  attachJugadorId,
+  validarQuery(paginacionLesionesSchema), // ✅ Usa schema con filtros
+  getLesiones
 );
 
 // Lesiones de un jugador específico (para entrenadores)
 router.get('/jugador/:id',
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
-  validarParams(idParamSchema),        // valida :id de jugador
-  validarQuery(obtenerLesionesQuery),  // pagina, limite, desde, hasta (opcional)
+  validarParams(idParamSchema),
+  validarQuery(paginacionLesionesSchema), // ✅ Usa schema con filtros
   getLesionesPorJugador
 );
 
+// CRUD básico
+router.post('/', 
+  authenticateToken, 
+  requireRole(['entrenador','superadmin']), 
+  validarBody(crearLesionBody), 
+  postCrearLesion
+);
 
-// GET: entrenador/superadmin todas las lesiones
-router.get('/', authenticateToken, requireRole(['entrenador','superadmin']), validarQuery(obtenerLesionesQuery), getLesiones);
+router.get('/', 
+  authenticateToken, 
+  requireRole(['entrenador','superadmin']), 
+  validarQuery(paginacionLesionesSchema), // ✅ Usa schema con filtros
+  getLesiones
+);
 
-// GET: lesión específica por ID
-router.get('/:id', authenticateToken, requireRole(['entrenador','superadmin']), validarParams(idParamSchema), getLesionPorId);
+// ✅ Rutas con parámetros dinámicos AL FINAL
+router.get('/:id', 
+  authenticateToken, 
+  requireRole(['entrenador','superadmin']), 
+  validarParams(idParamSchema), 
+  getLesionPorId
+);
+
+router.patch('/:id', 
+  authenticateToken, 
+  requireRole(['entrenador','superadmin']),
+  validarParams(idParamSchema),
+  validarBody(actualizarLesionBody), 
+  patchLesion
+);
+
+router.delete('/:id', 
+  authenticateToken, 
+  requireRole(['entrenador','superadmin']), 
+  validarParams(idParamSchema), 
+  deleteLesion
+);
 
 export default router;

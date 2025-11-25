@@ -121,7 +121,7 @@ export default function Jugadores() {
   try {
     setLoading(true);
 
-    const params = { pagina: page, limite: pageSize };
+    const params = { page, limit: pageSize };
     if (q) params.q = q;
     if (filtroEstado) params.estado = filtroEstado;
     if (filtroCarreraId) params.carreraId = filtroCarreraId;
@@ -134,7 +134,7 @@ export default function Jugadores() {
 
     setJugadores(lista);
     setPagination({
-      current: data.pagina ?? page,
+      current: data.page ?? page,
       pageSize: pageSize,
       total: data.total ?? 0,
       totalPages: data.totalPaginas

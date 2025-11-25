@@ -65,7 +65,7 @@ const ListaAsistencias = ({
     
     try {
       let respuesta;
-      const params = { pagina: page, limite: limit };
+      const params = {  page,limit };
 
       if (tipo === 'sesion') {
         // ✅ Agregar el filtro de jugador a los params
@@ -98,7 +98,7 @@ const ListaAsistencias = ({
 
       setAsistencias(lista);
       setPaginacion({
-        actual: respuesta?.pagina || page,
+        actual: respuesta?.page || page,
         tamanioPagina: limit,
         total: total,
       });

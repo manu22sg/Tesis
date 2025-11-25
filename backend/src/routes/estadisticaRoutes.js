@@ -1,13 +1,16 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole, attachJugadorId } from '../middleware/authMiddleware.js';
-import { validarBody, validarParams, validarQuery } from '../validations/commonValidations.js';
-import {
-  upsertEstadisticaBody,
+import { 
+  validarBody, 
+  validarParams, 
+  validarQuery,
   idParamSchema,
-  paginarQuery,
-  listarPorJugadorParams,
-  listarPorSesionParams
-} from '../validations/estadisticaValidations.js';
+  jugadorIdParamSchema,
+  sesionIdParamSchema,
+  paginacionBaseSchema,
+  exportarEstadisticasQuerySchema
+} from '../validations/commonValidations.js';
+import { upsertEstadisticaBody } from '../validations/estadisticaValidations.js';
 import {
   postUpsertEstadistica,
   getEstadisticasPorJugador,
@@ -17,12 +20,35 @@ import {
   getMisEstadisticas,
   exportarEstadisticasExcel,    
   exportarEstadisticasPDF        
-
 } from '../controllers/estadisticaController.js';
 
 const router = Router();
 
-// Crear/actualizar— entrenador/superadmin
+router.get('/excel', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']),
+  validarQuery(exportarEstadisticasQuerySchema), 
+  exportarEstadisticasExcel
+);
+
+router.get('/pdf', 
+  authenticateToken, 
+  requireRole(['entrenador', 'superadmin']),
+  validarQuery(exportarEstadisticasQuerySchema), 
+  exportarEstadisticasPDF
+);
+
+// Ruta para estudiantes (mis estadísticas)
+router.get(
+  '/mias',
+  authenticateToken,
+  requireRole(['estudiante']),
+  attachJugadorId,
+  validarQuery(paginacionBaseSchema), // ✅ Usa base
+  getMisEstadisticas
+);
+
+// Crear/actualizar
 router.post(
   '/',
   authenticateToken,
@@ -30,49 +56,28 @@ router.post(
   validarBody(upsertEstadisticaBody),
   postUpsertEstadistica
 );
-router.get('/excel', 
-  authenticateToken, 
-  requireRole(['entrenador', 'superadmin']), 
-  exportarEstadisticasExcel
-);
 
-router.get('/pdf', 
-  authenticateToken, 
-  requireRole(['entrenador', 'superadmin']), 
-  exportarEstadisticasPDF
-);
-
-// Listar por jugador — entrenador/superadmin pueden ver cualquiera
+// Listar por jugador
 router.get(
   '/jugador/:jugadorId',
   authenticateToken,
   requireRole(['entrenador','superadmin']),
-  validarParams(listarPorJugadorParams),
-  validarQuery(paginarQuery),
+  validarParams(jugadorIdParamSchema),
+  validarQuery(paginacionBaseSchema), // ✅ Usa base
   getEstadisticasPorJugador
 );
 
-//  estudiante ve solo las suyas (para eso attachJugadorId) 
-router.get(
-  '/mias',
-  authenticateToken,
-  requireRole(['estudiante']),
-  attachJugadorId,
-  validarQuery(paginarQuery),
-  getMisEstadisticas
-);
-
-// Listar por sesión — entrenador/superadmin
+// Listar por sesión
 router.get(
   '/sesion/:sesionId',
   authenticateToken,
   requireRole(['entrenador','superadmin']),
-  validarParams(listarPorSesionParams),
-  validarQuery(paginarQuery),
+  validarParams(sesionIdParamSchema),
+  validarQuery(paginacionBaseSchema), // ✅ Usa base
   getEstadisticasPorSesion
 );
 
-// Detalle por id — entrenador/superadmin 
+// ✅ Rutas con parámetros dinámicos AL FINAL
 router.get(
   '/:id',
   authenticateToken,
@@ -81,7 +86,6 @@ router.get(
   getEstadisticaPorId
 );
 
-// Eliminar — entrenador/superadmin 
 router.delete(
   '/:id',
   authenticateToken,

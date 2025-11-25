@@ -1,9 +1,16 @@
 import { Router } from "express";
-import { validarBody, validarParams, validarQuery, idParamSchema, jugadorIdParamSchema} from "../validations/commonValidations.js";
+import { 
+  validarBody, 
+  validarParams, 
+  validarQuery, 
+  idParamSchema, 
+  jugadorIdParamSchema,
+  paginacionAsistenciasSchema,    //  Importar de common
+  exportarAsistenciasQuerySchema  //  Importar de common
+} from "../validations/commonValidations.js";
 import { authenticateToken, requireRole } from "../middleware/authMiddleware.js";
 import {
   actualizarAsistenciaBodySchema,
-  paginacionAsistenciasSchema,
   marcarAsistenciaPorTokenBodySchema 
 } from "../validations/asistenciaValidations.js";
 import {
@@ -20,31 +27,33 @@ import {
 
 const router = Router();
 
-// ✅ Exportación (soporta sesionId y jugadorId)
+//  Rutas específicas PRIMERO
 router.get("/excel", 
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
+  validarQuery(exportarAsistenciasQuerySchema), //  Validación
   exportarAsistenciasExcel
 );
 
 router.get("/pdf",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
+  validarQuery(exportarAsistenciasQuerySchema), //  Validación
   exportarAsistenciasPDF
 );
 
-// ✅ NUEVAS RUTAS: Asistencias por jugador
+// Rutas por jugador
 router.get("/jugador/:jugadorId",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   validarParams(jugadorIdParamSchema), 
-  validarQuery(paginacionAsistenciasSchema),
+  validarQuery(paginacionAsistenciasSchema), //  Usa schema de common
   listarAsistenciasDeJugadorController
 );
 
 router.get("/jugador/:jugadorId/estadisticas",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   validarParams(jugadorIdParamSchema),
   obtenerEstadisticasAsistenciaJugadorController
 );
@@ -52,7 +61,7 @@ router.get("/jugador/:jugadorId/estadisticas",
 // Marcar asistencia por token (estudiante)
 router.post('/marcar-asistencia',
   authenticateToken,
-  requireRole('estudiante'),
+  requireRole(['estudiante']),
   validarBody(marcarAsistenciaPorTokenBodySchema),
   postMarcarAsistenciaPorToken
 );
@@ -60,14 +69,14 @@ router.post('/marcar-asistencia',
 // Registro manual de asistencia (entrenador)
 router.post("/registrar-manual",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   registrarAsistenciaManualController
 );
 
 // Editar asistencia (entrenador)
 router.patch("/:id",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   validarParams(idParamSchema),
   validarBody(actualizarAsistenciaBodySchema),
   actualizarAsistenciaController
@@ -76,17 +85,17 @@ router.patch("/:id",
 // Eliminar asistencia (entrenador)
 router.delete("/:id", 
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   validarParams(idParamSchema),
   eliminarAsistenciaController
 );
 
-// Listar asistencias de una sesión (entrenador)
+
 router.get("/:id",
   authenticateToken,
-  requireRole("entrenador"),
+  requireRole(["entrenador"]),
   validarParams(idParamSchema),
-  validarQuery(paginacionAsistenciasSchema),
+  validarQuery(paginacionAsistenciasSchema), //  Usa schema de common
   listarAsistenciasDeSesionController
 );
 

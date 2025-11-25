@@ -75,7 +75,7 @@ export default function GestionLesiones() {
 
   const cargarJugadores = async () => {
     try {
-      const data = await obtenerJugadores({ limite: 100 });
+      const data = await obtenerJugadores({ limit: 100 });
       setJugadores(data.data?.jugadores || data.jugadores || []);
     } catch (error) {
       console.error('Error cargando jugadores:', error);
@@ -94,8 +94,8 @@ export default function GestionLesiones() {
     setLoading(true);
     try {
       const params = {
-        pagina: page,
-        limite: pageSize,
+        page,
+        limit: pageSize,
       };
       if (q) params.q = q; // 🔹 búsqueda server-side
       if (jugador) params.jugadorId = jugador;
@@ -111,10 +111,10 @@ export default function GestionLesiones() {
       setLesiones(lista);
       setPagination(prev => ({
         ...prev,
-        current: response.data?.pagina ?? page,
+        current: response.data?.page ?? page,
         pageSize,
         total: response.data?.total ?? 0,
-        totalPages: response.data?.totalPaginas,
+        totalPages: response.data?.totalPages,
       }));
     } catch (error) {
       if (!mountedRef.current) return;

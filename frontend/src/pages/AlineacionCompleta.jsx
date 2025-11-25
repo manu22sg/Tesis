@@ -111,12 +111,12 @@ export default function AlineacionCompleta() {
     try {
       if (sesionInfo?.grupo?.id) {
         const data = await obtenerJugadores({
-          limite: 100,
+          limit: 100,
           grupoId: sesionInfo.grupo.id
         });
         setJugadoresDisponibles(data.jugadores || []);
       } else {
-        const data = await obtenerJugadores({ limite: 100 });
+        const data = await obtenerJugadores({ limit: 100 });
         setJugadoresDisponibles(data.jugadores || []);
       }
     } catch (error) {

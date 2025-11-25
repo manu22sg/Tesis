@@ -85,8 +85,8 @@ export default function Ojeador() {
       setLoading(true);
 
       const params = {
-        pagina: page,
-        limite: pageSize
+         page,
+        limit: pageSize
       };
 
       if (qDebounced) params.q = qDebounced;

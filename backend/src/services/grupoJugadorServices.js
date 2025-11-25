@@ -84,7 +84,7 @@ export async function obtenerGrupoPorId(id) {
         "jugadorGrupos",
         "jugadorGrupos.jugador",
         "jugadorGrupos.jugador.usuario",
-        "jugadorGrupos.jugador.usuario.carrera" // ← También aquí
+        "jugadorGrupos.jugador.usuario.carrera" 
       ],
     });
 

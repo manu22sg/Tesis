@@ -16,11 +16,11 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
       q = '',
       carreraId,
       anio,
-      pagina = 1,
-      limite = 20
+      page = 1,
+      limit = 20
     } = filtros;
 
-    const skip = (pagina - 1) * limite;
+    const skip = (page - 1) * limit;
 
 
     // Query corregido con alias que respetan mayúsculas/minúsculas
@@ -77,7 +77,7 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
       .orderBy('"totalGoles"', 'DESC')  
       .addOrderBy('u.nombre', 'ASC')
       .offset(skip)
-      .limit(limite)
+      .limit(limit)
       .getRawMany();
 
 
@@ -96,12 +96,12 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
         };
       }),
       pagination: {
-        currentPage: pagina,
-        itemsPerPage: limite,
+        currentPage: page,
+        itemsPerPage: limit,
         totalItems: total,
-        totalPages: Math.ceil(total / limite),
-        hasNext: pagina * limite < total,
-        hasPrev: pagina > 1
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
       }
     }, null];
 

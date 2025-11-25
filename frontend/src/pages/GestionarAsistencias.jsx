@@ -106,16 +106,16 @@ export default function GestionarAsistencias() {
     try {
       setLoading(true);
       const data = await listarAsistenciasDeSesion(parseInt(sesionId), {
-        pagina: page,
-        limite: pageSize
+        page,
+        limit: pageSize
       });
 
       setAsistencias(data.asistencias || []);
       setPagination({
-        current: data.pagina,
-        pageSize: data.limite,
+        current: data.page,
+        pageSize: data.limit,
         total: data.total,
-        totalPages: data.totalPaginas
+        totalPages: data.totalPages
       });
     } catch (error) {
       console.error('Error cargando asistencias:', error);
@@ -141,7 +141,7 @@ export default function GestionarAsistencias() {
   const cargarJugadoresDelGrupo = async () => {
     try {
       const data = await obtenerJugadores({
-        limite: 100,
+        limit: 100,
         grupoId: sesion.grupo.id
       });
       setJugadores(data.jugadores || []);

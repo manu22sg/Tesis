@@ -10,7 +10,6 @@ import {
 } from '../services/jugadorServices.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
-
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 
 export async function crearJugadorController(req, res) {
@@ -33,40 +32,39 @@ export async function crearJugadorController(req, res) {
 export async function obtenerTodosJugadoresController(req, res) {
   try {
     const { 
-      pagina = 1, 
-      limite = 50, 
+      page = 1,           // ✅ Cambio aquí
+      limit = 50,         // ✅ Cambio aquí
       estado, 
-      carreraId,        // Filtro por ID de carrera (recomendado)
-      carreraNombre,    // Filtro por nombre de carrera
+      carreraId,
+      carreraNombre,
       anioIngreso, 
       q,
       grupoId,
-      posicion,         // Filtro por posición
-      piernaHabil       // Filtro por pierna hábil
+      posicion,
+      posicionSecundaria, // ✅ Nuevo filtro
+      piernaHabil
     } = req.query;
 
     const filtros = {};
     
-    // Filtros básicos
     if (estado) filtros.estado = estado;
     if (q) filtros.q = q;
     if (anioIngreso) filtros.anioIngreso = parseInt(anioIngreso);
     if (grupoId) filtros.grupoId = parseInt(grupoId);
     
-    // Filtros de carrera (usar carreraId preferentemente)
     if (carreraId) {
       filtros.carreraId = parseInt(carreraId);
     } else if (carreraNombre) {
       filtros.carreraNombre = carreraNombre;
     }
     
-    // Filtros adicionales
     if (posicion) filtros.posicion = posicion;
+    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria; 
     if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
     const [resultado, err] = await obtenerTodosJugadores(
-      parseInt(pagina),
-      parseInt(limite),
+      parseInt(page),     
+      parseInt(limit),    
       filtros
     );
 
@@ -171,7 +169,6 @@ export async function removerJugadorDeGrupoController(req, res) {
   }
 }
 
-// Nuevo endpoint: Estadísticas por carrera
 export async function obtenerEstadisticasPorCarreraController(req, res) {
   try {
     const [estadisticas, err] = await obtenerEstadisticasPorCarrera();
@@ -187,8 +184,6 @@ export async function obtenerEstadisticasPorCarreraController(req, res) {
   }
 }
 
-
-
 export async function exportarJugadoresExcel(req, res) {
   try {
     const { 
@@ -199,8 +194,9 @@ export async function exportarJugadoresExcel(req, res) {
       q,
       grupoId,
       posicion,
+      posicionSecundaria, // ✅ Nuevo
       piernaHabil
-    } = req.query;
+    } = req.query; // ✅ Ya validado por Joi
 
     const filtros = {};
     if (estado) filtros.estado = estado;
@@ -210,6 +206,7 @@ export async function exportarJugadoresExcel(req, res) {
     if (carreraId) filtros.carreraId = parseInt(carreraId);
     else if (carreraNombre) filtros.carreraNombre = carreraNombre;
     if (posicion) filtros.posicion = posicion;
+    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria; // ✅ Nuevo
     if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
     const [resultado, err] = await obtenerTodosJugadores(1, 5000, filtros);
@@ -238,7 +235,8 @@ export async function exportarJugadoresExcel(req, res) {
       { header: "Nombre", key: "nombre", width: 30 },
       { header: "RUT", key: "rut", width: 15 },
       { header: "Correo", key: "email", width: 30 },
-      { header: "Posición", key: "posicion", width: 15 },
+      { header: "Posición", key: "posicion", width: 20 },
+      { header: "Posición Secundaria", key: "posicionSecundaria", width: 20 }, // ✅ Nueva columna
       { header: "Carrera", key: "carrera", width: 35 },
       { header: "Año Ingreso", key: "anioIngreso", width: 12 },
       { header: "Pierna Hábil", key: "piernaHabil", width: 12 },
@@ -258,10 +256,10 @@ export async function exportarJugadoresExcel(req, res) {
 
       sheet.addRow({
         nombre: `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim() || "—",
-
         rut: j.usuario?.rut || "—",
         email: j.usuario?.email || "—",
         posicion: j.posicion || "—",
+        posicionSecundaria: j.posicionSecundaria || "—", // ✅ Nueva
         carrera: j.usuario?.carrera?.nombre || "—",
         anioIngreso: j.anioIngreso || "—",
         piernaHabil: j.piernaHabil || "—",
@@ -293,7 +291,6 @@ export async function exportarJugadoresExcel(req, res) {
   }
 }
 
-// GET /api/jugadores/pdf - Exportar jugadores a PDF
 export async function exportarJugadoresPDF(req, res) {
   try {
     const { 
@@ -304,8 +301,9 @@ export async function exportarJugadoresPDF(req, res) {
       q,
       grupoId,
       posicion,
+      posicionSecundaria, // ✅ Nuevo
       piernaHabil
-    } = req.query;
+    } = req.query; // ✅ Ya validado por Joi
 
     const filtros = {};
     if (estado) filtros.estado = estado;
@@ -315,6 +313,7 @@ export async function exportarJugadoresPDF(req, res) {
     if (carreraId) filtros.carreraId = parseInt(carreraId);
     else if (carreraNombre) filtros.carreraNombre = carreraNombre;
     if (posicion) filtros.posicion = posicion;
+    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria; // ✅ Nuevo
     if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
     const [resultado, err] = await obtenerTodosJugadores(1, 5000, filtros);
@@ -352,20 +351,24 @@ export async function exportarJugadoresPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       doc.fontSize(12)
-   .font("Helvetica-Bold")
-   .text(
-     `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim() || "Usuario Desconocido"
-   );
+        .font("Helvetica-Bold")
+        .text(
+          `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim() || "Usuario Desconocido"
+        );
 
       const grupos = (j.jugadorGrupos || [])
         .map(jg => jg.grupo?.nombre)
         .filter(Boolean)
         .join(', ') || 'Sin grupos';
 
+      // ✅ Agregar posición secundaria al PDF
+      const posicionInfo = j.posicion || "—";
+      const posicionSecundariaInfo = j.posicionSecundaria ? ` / ${j.posicionSecundaria}` : "";
+
       doc.font("Helvetica").fontSize(10).text(`
 RUT: ${j.usuario?.rut || "—"}
 Correo: ${j.usuario?.email || "—"}
-Posición: ${j.posicion || "—"}
+Posición: ${posicionInfo}${posicionSecundariaInfo}
 Carrera: ${j.usuario?.carrera?.nombre || "—"}
 Año Ingreso: ${j.anioIngreso || "—"}
 Pierna Hábil: ${j.piernaHabil || "—"}
@@ -394,7 +397,6 @@ Grupos: ${grupos}
   }
 }
 
-// Función auxiliar
 function formatearEstado(estado) {
   const estados = {
     activo: "Activo",

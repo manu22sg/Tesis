@@ -16,7 +16,7 @@ import { success, error, conflict, unauthorized, forbidden, notFound } from '../
 
 export async function register(req, res) {
   try {
-    const { rut, nombre, apellido, email, password, carreraId,anioIngresoUniversidad } = req.body;
+    const { rut, nombre, apellido, email, password, carreraId,anioIngresoUniversidad,sexo } = req.body;
 
     const [result, errorMsg] = await registerService({
       rut,
@@ -25,7 +25,8 @@ export async function register(req, res) {
       email,
       password,
       carreraId,
-      anioIngresoUniversidad
+      anioIngresoUniversidad,
+      sexo
     });
 
     if (errorMsg) {
