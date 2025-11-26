@@ -78,7 +78,7 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
 
 
 
-export async function actualizarAsistencia(id, { estado, latitud, longitud, origen }) {
+export async function actualizarAsistencia(id, { estado, latitud, longitud, origen, entregoMaterial }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
     const asistencia = await asistenciaRepo.findOne({ where: { id } });
@@ -90,6 +90,10 @@ export async function actualizarAsistencia(id, { estado, latitud, longitud, orig
       }
       asistencia.estado = estado;
     }
+    if (entregoMaterial !== undefined) {
+  asistencia.entregoMaterial = entregoMaterial === null ? null : !!entregoMaterial;
+}
+
 
     // Actualizar otros campos opcionales
     if (latitud !== undefined) asistencia.latitud = latitud;
@@ -157,7 +161,8 @@ export async function registrarAsistenciaManual({
   sesionId, 
   jugadorId, 
   estado, 
-  observacion 
+  observacion,
+  entregoMaterial
 }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
@@ -177,7 +182,8 @@ export async function registrarAsistenciaManual({
       origen: "entrenador", 
       latitud: null,
       longitud: null,
-      observacion // opcional: para que el entrenador agregue notas
+      observacion, // opcional: para que el entrenador agregue notas
+      entregoMaterial: entregoMaterial ?? null // opcional: si el entrenador indica si se entregó material
     });
 
     try {

@@ -56,9 +56,9 @@ export async function postMarcarAsistenciaPorToken(req, res) {
 
 export async function actualizarAsistenciaController(req, res) {
   const id = parseInt(req.params.id);
-  const { estado, latitud, longitud, origen } = req.body;
-
-  const [data, err, status] = await actualizarAsistencia(id, { estado, latitud, longitud, origen });
+  const { estado, latitud, longitud, origen, entregoMaterial } = req.body;
+  
+  const [data, err, status] = await actualizarAsistencia(id, { estado, latitud, longitud, origen, entregoMaterial });
   if (err) return error(res, err, status || 400);
   return success(res, data, "Asistencia actualizada correctamente");
 }
@@ -87,7 +87,7 @@ export async function listarAsistenciasDeSesionController(req, res) {
 
 export async function registrarAsistenciaManualController(req, res) {
   try {
-    const { sesionId, jugadorId, estado, observacion } = req.body;
+    const { sesionId, jugadorId, estado, observacion, entregoMaterial } = req.body;
     const entrenadorId = req.user.id; 
 
     if (!req.user || !req.user.id) {
@@ -107,7 +107,8 @@ export async function registrarAsistenciaManualController(req, res) {
       jugadorId,
       estado,
       entrenadorId,
-      observacion
+      observacion,
+      entregoMaterial
     });
 
     if (errorMsg) {
@@ -130,7 +131,7 @@ export async function registrarAsistenciaManualController(req, res) {
 export async function listarAsistenciasDeJugadorController(req, res) {
   try {
     const jugadorId = parseInt(req.params.jugadorId);
-    const { page = 1, limit = 10, estado, sesionId } = req.query; // ✅ Cambio aquí
+    const { page = 1, limit = 10, estado, sesionId } = req.query; 
 
     if (!jugadorId || isNaN(jugadorId)) {
       return error(res, "jugadorId válido es requerido", 400);
@@ -172,7 +173,12 @@ export async function obtenerEstadisticasAsistenciaJugadorController(req, res) {
 export async function exportarAsistenciasExcel(req, res) {
   try {
     const { sesionId, jugadorId, mobile } = req.query; // ✅ Ya validado
-
+if (!sesionId && !jugadorId) {
+  return res.status(400).json({
+    success: false,
+    message: "Debe enviar sesionId o jugadorId"
+  });
+}
     const isMobile = mobile === 'true';
 
     let result, err, status;
@@ -225,7 +231,8 @@ export async function exportarAsistenciasExcel(req, res) {
         { header: "Origen", key: "origen", width: 12 },
         { header: "Fecha Registro", key: "fecha", width: 18 },
         { header: "Latitud", key: "latitud", width: 12 },
-        { header: "Longitud", key: "longitud", width: 12 }
+        { header: "Longitud", key: "longitud", width: 12 },
+        { header: "Entregó Material", key: "entregoMaterial", width: 15 }
       ];
 
       asistencias.forEach(a => {
@@ -237,7 +244,8 @@ export async function exportarAsistenciasExcel(req, res) {
           origen: a.origen,
           fecha: a.fechaRegistro,
           latitud: a.latitud || "—",
-          longitud: a.longitud || "—"
+          longitud: a.longitud || "—",
+          entregoMaterial: a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")
         });
       });
     } else {
@@ -249,7 +257,8 @@ export async function exportarAsistenciasExcel(req, res) {
         { header: "Origen", key: "origen", width: 12 },
         { header: "Fecha Registro", key: "fecha", width: 18 },
         { header: "Latitud", key: "latitud", width: 12 },
-        { header: "Longitud", key: "longitud", width: 12 }
+        { header: "Longitud", key: "longitud", width: 12 },
+        { header: "Entregó Material", key: "entregoMaterial", width: 15 }
       ];
 
       asistencias.forEach(a => {
@@ -261,7 +270,8 @@ export async function exportarAsistenciasExcel(req, res) {
           origen: a.origen,
           fecha: a.fechaRegistro,
           latitud: a.latitud || "—",
-          longitud: a.longitud || "—"
+          longitud: a.longitud || "—",
+          entregoMaterial: a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")
         });
       });
     }
@@ -299,7 +309,12 @@ export async function exportarAsistenciasExcel(req, res) {
 export async function exportarAsistenciasPDF(req, res) {
   try {
     const { sesionId, jugadorId } = req.query; // ✅ Ya validado
-    
+    if (!sesionId && !jugadorId) {
+  return res.status(400).json({
+    success: false,
+    message: "Debe enviar sesionId o jugadorId"
+  });
+}
     let result, err, status;
 
     if (sesionId && !jugadorId) {
@@ -362,7 +377,8 @@ export async function exportarAsistenciasPDF(req, res) {
 RUT: ${a.jugador?.usuario?.rut || "—"}
 Correo: ${a.jugador?.usuario?.email || "—"}
 Estado: ${a.estado}
-Origen: ${a.origen}
+Origen: ${a.origen},
+Entregó Material: ${a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")}
 Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}
 Latitud: ${a.latitud || "—"}
 Longitud: ${a.longitud || "—"}

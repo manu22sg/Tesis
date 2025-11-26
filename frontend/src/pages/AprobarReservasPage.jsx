@@ -413,7 +413,7 @@ const menuExportar = {
             style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
             extra={
     <Space>
-      <Dropdown menu={menuExportar} trigger={['click']}>
+      <Dropdown menu={menuExportar} trigger={['hover']}>
         <Button
           icon={<DownloadOutlined />}
           loading={exportando}

@@ -263,7 +263,7 @@ export default function SesionNueva() {
       <ConfigProvider locale={locale}>
         <Spin spinning={loading}>
           <Card
-            title="Nueva Sesión de Entrenamiento"
+            title="Nueva Sesión"
             style={{ maxWidth: 650, margin: '0 auto' }}
           >
             <Form layout="vertical" form={form} onFinish={onFinish}>

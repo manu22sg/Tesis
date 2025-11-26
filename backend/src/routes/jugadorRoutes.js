@@ -18,20 +18,19 @@ import {
   validarBody, 
   validarParams, 
   validarQuery,
-  paginacionJugadoresSchema,    // ✅ Usa este en lugar de paginacionSchema
-  exportarJugadoresQuerySchema   // ✅ Nuevo para exportar
+  paginacionJugadoresSchema,    
+  exportarJugadoresQuerySchema   
 } from "../validations/commonValidations.js";
 
 const router = Router();
 
-// ✅ Rutas específicas PRIMERO
 router.get("/excel", 
-  validarQuery(exportarJugadoresQuerySchema), // ✅ Validación
+  validarQuery(exportarJugadoresQuerySchema), 
   exportarJugadoresExcel
 );
 
 router.get("/pdf", 
-  validarQuery(exportarJugadoresQuerySchema), // ✅ Validación
+  validarQuery(exportarJugadoresQuerySchema), 
   exportarJugadoresPDF
 );
 

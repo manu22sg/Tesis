@@ -245,7 +245,7 @@ const menuExportar = {
       <ConfigProvider locale={locale}>
         <div style={{ padding: 24, backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
         <Card
-  title={<><CalendarOutlined /> Sesiones de Entrenamiento</>}
+  title={<><CalendarOutlined /> Sesiones</>}
   extra={
     <Space style={{ width: '100%' }}>
       

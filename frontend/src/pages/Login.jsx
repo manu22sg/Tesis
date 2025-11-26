@@ -96,7 +96,7 @@ export default function Login() {
             name="email"
             validateTrigger={["onBlur", "onSubmit"]}
             rules={[
-              { required: true, message: "Por favor ingresa tu email" },
+              { required: true, message: "Por favor ingrese su email institucional" },
               {
                 pattern: /^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/,
                 message: "Debe ser un correo institucional UBB",
@@ -148,17 +148,17 @@ export default function Login() {
           {/* LINKS */}
           <div style={{ marginTop: 16, textAlign: "center" }}>
             <a href="/solicitar-restablecimiento" style={{ color: "#014898" }}>
-              ¿Olvidaste tu contraseña?
+              ¿Olvidó su contraseña?
             </a>
           </div>
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
-            <span>¿No tienes una cuenta? </span>
+            <span>¿No tiene una cuenta? </span>
             <a
               onClick={() => navigate("/register")}
               style={{ color: "#014898", cursor: "pointer" }}
             >
-              Regístrate aquí
+              Regístrese aquí
             </a>
           </div>
         </Form>

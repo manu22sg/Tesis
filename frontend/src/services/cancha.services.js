@@ -34,6 +34,7 @@ export const eliminarCancha = async (id) => {
     const response = await api.delete('/canchas/eliminar', { data: { id } });
     return response.data;
   } catch (error) {
+    console.log(error.response?.data?.message);
     throw error.response?.data?.message || 'Error al eliminar la cancha';
   }
 };

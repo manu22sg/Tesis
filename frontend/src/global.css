@@ -8,3 +8,12 @@ input:focus,
   outline: none !important;
   box-shadow: none !important;
 }
+
+.custom-sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-sidebar-scroll {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;  /* Firefox */
+}

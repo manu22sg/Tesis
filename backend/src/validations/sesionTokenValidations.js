@@ -4,7 +4,6 @@ export const activarTokenSchema = Joi.object({
     .messages({ "number.max": "ttlMin no puede superar 240 minutos" }),
   tokenLength: Joi.number().integer().min(4).max(20).default(6),
 
-  // 🔑 flag que decide si será obligatorio pedir ubicación a los jugadores
   requiereUbicacion: Joi.boolean().default(false),
 
   // Si requiere ubicacion, las coords son obligatorias; si no, se normalizan a null

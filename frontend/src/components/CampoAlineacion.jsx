@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Avatar, Tag, Tooltip, Button, Space, Switch, message, Modal,Popconfirm } from 'antd';
-import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined,DeleteOutlined } from '@ant-design/icons';
+import { Avatar, Tag, Tooltip, Button, Space, Switch, message, Modal, Popconfirm } from 'antd';
+import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined, DeleteOutlined } from '@ant-design/icons';
 
 const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJugador }) => {
-  
-
   const [jugadoresConPosicion, setJugadoresConPosicion] = useState([]);
   const [jugadorArrastrado, setJugadorArrastrado] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(true);
@@ -171,16 +169,18 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             </Avatar>
             <div className="jugador-info-overlay">
               <div className="jugador-nombre-campo">{nombre}</div>
-              {jugador.orden && <span className="jugador-numero-campo" style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  #{jugador.orden}
-</span>}
+              {jugador.orden && (
+                <span className="jugador-numero-campo" style={{
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  border: '1px solid #B9BBBB',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  #{jugador.orden}
+                </span>
+              )}
             </div>
           </div>
         </Tooltip>
@@ -203,6 +203,8 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           );
           border-radius: 12px;
           height: 700px;
+          max-width: 900px;
+          margin: 0 auto;
           position: relative;
           box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4),
                       0 10px 40px rgba(0, 0, 0, 0.3);
@@ -210,6 +212,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           border: 4px solid #1a4d2e;
         }
 
+        /* Línea media horizontal */
         .campo-futbol-interactivo::before {
           content: '';
           position: absolute;
@@ -219,8 +222,10 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           height: 3px;
           background: rgba(255, 255, 255, 0.4);
           transform: translateY(-50%);
+          z-index: 1;
         }
 
+        /* Círculo central */
         .campo-futbol-interactivo::after {
           content: '';
           position: absolute;
@@ -231,32 +236,113 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           border: 3px solid rgba(255, 255, 255, 0.4);
           border-radius: 50%;
           transform: translate(-50%, -50%);
+          z-index: 1;
         }
 
+        /* Área grande (18 yardas) */
         .area-grande {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
           width: 50%;
           height: 18%;
-          border: 3px solid rgba(255, 255, 255, 0.3);
+          border: 3px solid rgba(255, 255, 255, 0.4);
+          z-index: 1;
         }
 
         .area-grande.top { top: 0; border-top: none; }
         .area-grande.bottom { bottom: 0; border-bottom: none; }
 
+        /* Área pequeña (6 yardas) - área del portero */
+        .area-pequena {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 25%;
+          height: 8%;
+          border: 3px solid rgba(255, 255, 255, 0.4);
+          z-index: 1;
+        }
+
+        .area-pequena.top { top: 0; border-top: none; }
+        .area-pequena.bottom { bottom: 0; border-bottom: none; }
+
+        /* Punto de penal */
+        .punto-penal {
+          position: absolute;
+          left: 50%;
+          width: 8px;
+          height: 8px;
+          background: rgba(255, 255, 255, 0.7);
+          border-radius: 50%;
+          transform: translateX(-50%);
+          z-index: 2;
+        }
+
+        .punto-penal.top { top: 12%; }
+        .punto-penal.bottom { bottom: 12%; }
+
+        /* Punto central */
         .punto-central {
           position: absolute;
           top: 50%;
           left: 50%;
           width: 8px;
           height: 8px;
-          background: rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.7);
           border-radius: 50%;
           transform: translate(-50%, -50%);
+          z-index: 2;
         }
 
-        .jugador-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        /* SVG para arcos del área */
+        .lineas-svg {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        /* Círculos de las esquinas */
+        .circulo-esquina {
+          position: absolute;
+          width: 18px;
+          height: 18px;
+          border: 3px solid rgba(255, 255, 255, 0.4);
+          border-radius: 50%;
+          z-index: 1;
+        }
+
+        .circulo-esquina.top-left {
+          top: -9px;
+          left: -9px;
+        }
+
+        .circulo-esquina.top-right {
+          top: -9px;
+          right: -9px;
+        }
+
+        .circulo-esquina.bottom-left {
+          bottom: -9px;
+          left: -9px;
+        }
+
+        .circulo-esquina.bottom-right {
+          bottom: -9px;
+          right: -9px;
+        }
+
+        .jugador-card { 
+          display: flex; 
+          flex-direction: column; 
+          align-items: center; 
+          gap: 8px; 
+        }
+
         .jugador-info-overlay {
           background: linear-gradient(135deg, rgba(24, 144, 255, 0.95), rgba(16, 100, 200, 0.95));
           padding: 6px 12px;
@@ -286,6 +372,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           transform: scale(0.5);
           transition: all 0.3s ease;
           pointer-events: none;
+          z-index: 1000;
         }
 
         .zona-eliminacion.activa {
@@ -300,6 +387,17 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           bottom: 12px;
           font-size: 12px;
           font-weight: bold;
+        }
+
+        .campo-controles {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+          padding: 12px;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         @keyframes pulse {
@@ -324,7 +422,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
 
           {cambiosPendientes && (
             <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '8px 12px', borderRadius: 4 }}>
-               Tienes cambios sin guardar
+              ⚠️ Tienes cambios sin guardar
             </div>
           )}
 
@@ -339,63 +437,100 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
         </div>
 
         <div ref={campoRef} className="campo-futbol-interactivo" onDragOver={handleDragOver} onDrop={handleDrop}>
+          {/* SVG con los arcos del área - Arcos PEQUEÑOS centrados desde el punto de penal */}
+          <svg className="lineas-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Arco superior - semicírculo pequeño centrado que sale del área hacia afuera */}
+            <path
+              d="M 42 18 A 8 6 0 0 0 58 18"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.4)"
+              strokeWidth="0.3"
+            />
+            
+            {/* Arco inferior - semicírculo pequeño centrado que sale del área hacia afuera */}
+            <path
+              d="M 42 82 A 8 6 0 0 1 58 82"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.4)"
+              strokeWidth="0.3"
+            />
+          </svg>
+          
+          {/* Punto central */}
           <div className="punto-central" />
+          
+          {/* Áreas grandes (18 yardas) */}
           <div className="area-grande top" />
           <div className="area-grande bottom" />
+          
+          {/* Áreas pequeñas (6 yardas - área del portero) */}
+          <div className="area-pequena top" />
+          <div className="area-pequena bottom" />
+          
+          {/* Puntos de penal */}
+          <div className="punto-penal top" />
+          <div className="punto-penal bottom" />
+          
+          {/* Círculos de las esquinas */}
+          <div className="circulo-esquina top-left" />
+          <div className="circulo-esquina top-right" />
+          <div className="circulo-esquina bottom-left" />
+          <div className="circulo-esquina bottom-right" />
+          
+          {/* Jugadores */}
           {jugadoresConPosicion.map(renderJugador)}
         </div>
 
         {modoEdicion && (
           <div style={{ marginTop: 16, padding: 12, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 8 }}>
-             <strong>Instrucciones:</strong> Arrastra jugadores hacia la papelera para eliminarlos.
+            ℹ️ <strong>Instrucciones:</strong> Arrastra jugadores hacia la papelera para eliminarlos.
           </div>
         )}
 
-        <div
-          className={`zona-eliminacion ${zonaEliminacionActiva ? 'activa' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          onDrop={handleDropEnZonaEliminacion}
+        {/* Zona de eliminación - PAPELERA */}
+        <Popconfirm
+          title="¿Eliminar jugador de la alineación?"
+          description={
+            <span>
+              ¿Estás seguro de quitar a{' '}
+              <strong>
+                {jugadorParaEliminar?.jugador?.usuario?.nombre || ''}{' '}
+                {jugadorParaEliminar?.jugador?.usuario?.apellido || ''}
+              </strong>{' '}
+              de la alineación?
+            </span>
+          }
+          open={confirmVisible}
+          onConfirm={async () => {
+            if (!jugadorParaEliminar || !onEliminarJugador) return;
+            try {
+              await onEliminarJugador(jugadorParaEliminar.jugadorId);
+              message.success('Jugador eliminado de la alineación');
+            } catch (error) {
+              console.error(error);
+              message.error('Error al eliminar el jugador');
+            } finally {
+              setConfirmVisible(false);
+              setJugadorParaEliminar(null);
+            }
+          }}
+          onCancel={() => {
+            setConfirmVisible(false);
+            setJugadorParaEliminar(null);
+          }}
+          okText="Sí, eliminar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true }}
         >
-          <div>🗑️</div>
-          <div className="zona-eliminacion-texto">Eliminar</div>
-        </div>
-
-     <Popconfirm
-  title="¿Eliminar jugador de la alineación?"
-  description={
-    <span>
-      ¿Estás seguro de quitar a{' '}
-      <strong>
-        {jugadorParaEliminar?.jugador?.usuario?.nombre || ''}{' '}
-        {jugadorParaEliminar?.jugador?.usuario?.apellido || ''}
-      </strong>{' '}
-      de la alineación?
-    </span>
-  }
-  open={confirmVisible}
-  onConfirm={async () => {
-    if (!jugadorParaEliminar || !onEliminarJugador) return;
-    try {
-      await onEliminarJugador(jugadorParaEliminar.jugadorId);
-    } catch (error) {
-      console.error(error);
-      message.error('Error al eliminar el jugador');
-    } finally {
-      setConfirmVisible(false);
-      setJugadorParaEliminar(null);
-    }
-  }}
-  onCancel={() => {
-    setConfirmVisible(false);
-    setJugadorParaEliminar(null);
-  }}
-  okText="Sí, eliminar"
-  cancelText="Cancelar"
-  okButtonProps={{ danger: true }}
->
-  {/* Aquí va el botón o elemento que dispara el popconfirm */}
-  <Button danger icon={<DeleteOutlined />} />
-</Popconfirm>
+          <div
+            className={`zona-eliminacion ${zonaEliminacionActiva ? 'activa' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={handleDropEnZonaEliminacion}
+          >
+            <div>🗑️</div>
+            <div className="zona-eliminacion-texto">Eliminar</div>
+          </div>
+        </Popconfirm>
       </div>
     </div>
   );

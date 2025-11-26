@@ -18,7 +18,9 @@ import {
   Alert,
   ConfigProvider,
   Pagination,
-  Empty,App
+  Empty,
+  App,
+  Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -32,7 +34,10 @@ import {
   UndoOutlined,
   AppstoreOutlined,
   SearchOutlined,
-  ClearOutlined
+  ClearOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import {
   crearCancha,
@@ -42,7 +47,6 @@ import {
   reactivarCancha,
   exportarCanchasExcel,
   exportarCanchasPDF
-
 } from '../services/cancha.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 
@@ -60,6 +64,7 @@ export default function GestionCanchas() {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [qDebounced, setQDebounced] = useState('');
+  const [exportando, setExportando] = useState(false);
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -155,7 +160,7 @@ export default function GestionCanchas() {
       const estado = filtroEstado === 'todos' ? undefined : filtroEstado;
       cargarCanchas(pagination.current, pagination.pageSize, estado, qDebounced);
     } catch (error) {
-      message.error(error?.message || 'Error al eliminar cancha');
+      message.error(error || 'Error al eliminar cancha');
     }
   };
 
@@ -174,45 +179,51 @@ export default function GestionCanchas() {
   const handlePageChange = (page, pageSize) => {
     setPagination(prev => ({ ...prev, current: page, pageSize }));
   };
+
   const handleExportExcel = async () => {
-  try {
-    const params = {};
-    if (filtroEstado !== 'todos') params.estado = filtroEstado;
-    if (qDebounced) params.q = qDebounced;
+    setExportando(true);
+    try {
+      const params = {};
+      if (filtroEstado !== 'todos') params.estado = filtroEstado;
+      if (qDebounced) params.q = qDebounced;
 
-    const blob = await exportarCanchasExcel(params);
-    descargarArchivo(blob, `canchas_${Date.now()}.xlsx`);
-    message.success("Excel descargado correctamente");
-  } catch (error) {
-    console.error("Error al exportar Excel:", error);
-    message.error(error.message || "Error al exportar Excel");
+      const blob = await exportarCanchasExcel(params);
+      descargarArchivo(blob, `canchas_${Date.now()}.xlsx`);
+      message.success("Excel descargado correctamente");
+    } catch (error) {
+      console.error("Error al exportar Excel:", error);
+      message.error(error.message || "Error al exportar Excel");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExportando(true);
+    try {
+      const params = {};
+      if (filtroEstado !== 'todos') params.estado = filtroEstado;
+      if (qDebounced) params.q = qDebounced;
+
+      const blob = await exportarCanchasPDF(params);
+      descargarArchivo(blob, `canchas_${Date.now()}.pdf`);
+      message.success("PDF descargado correctamente");
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      message.error(error.message || "Error al exportar PDF");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
-};
-
-const handleExportPDF = async () => {
-  try {
-    const params = {};
-    if (filtroEstado !== 'todos') params.estado = filtroEstado;
-    if (qDebounced) params.q = qDebounced;
-
-    const blob = await exportarCanchasPDF(params);
-    descargarArchivo(blob, `canchas_${Date.now()}.pdf`);
-    message.success("PDF descargado correctamente");
-  } catch (error) {
-    console.error("Error al exportar PDF:", error);
-    message.error(error.message || "Error al exportar PDF");
-  }
-};
-
-function descargarArchivo(blob, nombre) {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  window.URL.revokeObjectURL(url);
-}
-
 
   const aplicarFiltro = (estado) => {
     setFiltroEstado(estado);
@@ -226,33 +237,31 @@ function descargarArchivo(blob, nombre) {
     setPagination(prev => ({ ...prev, current: 1 }));
   };
 
- 
   //  Render estado
   const renderEstadoTag = useCallback((estado) => {
-  const map = {
-    disponible: { icon: <CheckCircleOutlined />, text: 'Disponible' },
-    mantenimiento: { icon: <ToolOutlined />, text: 'Mantenimiento' },
-    fuera_servicio: { icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' },
-  };
-  const { icon, text } = map[estado] || map.disponible;
-  return (
-    <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px'
-    }}>
-      {icon}
-      {text}
-    </span>
-  );
-}, []);
-
+    const map = {
+      disponible: { icon: <CheckCircleOutlined />, text: 'Disponible' },
+      mantenimiento: { icon: <ToolOutlined />, text: 'Mantenimiento' },
+      fuera_servicio: { icon: <CloseCircleOutlined />, text: 'Fuera de Servicio' },
+    };
+    const { icon, text } = map[estado] || map.disponible;
+    return (
+      <span style={{
+        padding: '2px 8px',
+        borderRadius: 4,
+        fontSize: '12px',
+        fontWeight: 500,
+        border: '1px solid #B9BBBB',
+        backgroundColor: '#f5f5f5',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px'
+      }}>
+        {icon}
+        {text}
+      </span>
+    );
+  }, []);
 
   //  Columnas tabla
   const columns = useMemo(() => [
@@ -336,74 +345,85 @@ function descargarArchivo(blob, nombre) {
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
-        <Card title={<><AppstoreOutlined /> Gestión de Canchas</>} variant="filled">
+        <Card 
+          title={<><AppstoreOutlined /> Gestión de Canchas</>} 
+          variant="filled"
+          extra={
+            <Space>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'excel',
+                      icon: <FileExcelOutlined />,
+                      label: 'Exportar a Excel',
+                      onClick: handleExportExcel,
+                    },
+                    {
+                      key: 'pdf',
+                      icon: <FilePdfOutlined />,
+                      label: 'Exportar a PDF',
+                      onClick: handleExportPDF,
+                    },
+                  ],
+                }}
+                placement="bottomRight"
+              >
+                <Button icon={<DownloadOutlined />} loading={exportando}>
+                  Exportar
+                </Button>
+              </Dropdown>
+
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={abrirModalCrear}
+              >
+                Nueva Cancha
+              </Button>
+            </Space>
+          }
+        >
           
-       <Card style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
-  <Row gutter={[12, 12]} align="middle" justify="start">
+          <Card style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}>
+            <Row gutter={[12, 12]} align="middle" justify="start">
+              {/* Buscador */}
+              <Col xs={24} md={10}>
+                <Input
+                  placeholder="Buscar por nombre o descripción..."
+                  prefix={<SearchOutlined />}
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  onPressEnter={() => setQDebounced(busqueda.trim())}
+                  allowClear
+                />
+              </Col>
 
-    {/* Buscador */}
-    <Col xs={24} md={7}>
-      <Input
-        placeholder="Buscar por nombre o descripción..."
-        prefix={<SearchOutlined />}
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        onPressEnter={() => setQDebounced(busqueda.trim())}
-        allowClear
-      />
-    </Col>
+              {/* Select Estado */}
+              <Col xs={24} md={6}>
+                <Select
+                  style={{ width: '100%' }}
+                  value={filtroEstado}
+                  onChange={aplicarFiltro}
+                >
+                  <Option value="todos">Todos los estados</Option>
+                  <Option value="disponible">Disponible</Option>
+                  <Option value="mantenimiento">Mantenimiento</Option>
+                  <Option value="fuera_servicio">Fuera de Servicio</Option>
+                </Select>
+              </Col>
 
-    {/*  Select Estado — más pegado */}
-    <Col xs={24} md={4}>
-      <Select
-        style={{ width: '100%' }}
-        value={filtroEstado}
-        onChange={aplicarFiltro}
-      >
-        <Option value="todos">Todos los estados</Option>
-        <Option value="disponible">Disponible</Option>
-        <Option value="mantenimiento">Mantenimiento</Option>
-        <Option value="fuera_servicio">Fuera de Servicio</Option>
-      </Select>
-    </Col>
+              {/* Limpiar */}
+              <Col xs={24} md={4}>
+                {(qDebounced || filtroEstado !== 'todos') && (
+                  <Button block onClick={limpiarFiltros}>
+                    Limpiar
+                  </Button>
+                )}
+              </Col>
+            </Row>
+          </Card>
 
-    {/* Limpiar — aparece inmediatamente después del select */}
-    <Col xs={24} md={3}>
-      {(qDebounced || filtroEstado !== 'todos') && (
-        <Button block onClick={limpiarFiltros}>
-          Limpiar
-        </Button>
-      )}
-    </Col>
-
-    {/*  Exportar Excel */}
-    <Col xs={24} md={3}>
-      <Button block onClick={handleExportExcel}>
-       Exportar Excel
-      </Button>
-    </Col>
-
-    {/*  Exportar PDF */}
-    <Col xs={24} md={3}>
-      <Button block onClick={handleExportPDF}>
-        Exportar PDF
-      </Button>
-    </Col>
-
-    {/*  Nueva */}
-    <Col xs={24} md={4}>
-      <Button
-        block
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={abrirModalCrear}
-      >
-        Nueva Cancha
-      </Button>
-    </Col>
-
-  </Row>
-</Card>
           {/* Tabla */}
           <Card>
             <Table
@@ -420,7 +440,7 @@ function descargarArchivo(blob, nombre) {
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                   >
                     {(qDebounced || filtroEstado !== 'todos') && (
-                      <Button onClick={limpiarFiltros} >
+                      <Button onClick={limpiarFiltros}>
                         Limpiar filtros
                       </Button>
                     )}
@@ -445,7 +465,7 @@ function descargarArchivo(blob, nombre) {
             )}
           </Card>
 
-          {/*  Modal Crear/Editar */}
+          {/* Modal Crear/Editar */}
           <Modal
             title={modalMode === 'crear' ? (<><PlusOutlined /> Nueva Cancha</>) : (<><EditOutlined /> Editar Cancha</>)}
             open={modalVisible}

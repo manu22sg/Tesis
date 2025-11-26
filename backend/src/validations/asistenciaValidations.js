@@ -38,7 +38,14 @@ export const actualizarAsistenciaBodySchema = Joi.object({
     .optional()
     .messages({
       'any.only': 'origen debe ser "entrenador"'
-    })
+    }),
+    entregoMaterial: Joi.boolean()
+  .optional()
+  .allow(null)
+  .messages({
+    'boolean.base': "entregoMaterial debe ser true o false"
+  })
+
 });
 
 // Marcar por token (jugador/entrenador)
@@ -164,5 +171,45 @@ export const activarTokenSchema = Joi.object({
       .default(null)
   })
 });
+
+export const registrarAsistenciaManualSchema = Joi.object({
+  sesionId: Joi.number()
+    .integer()
+    .required()
+    .messages({
+      "any.required": "sesionId es requerido",
+      "number.base": "sesionId debe ser un número entero"
+    }),
+
+  jugadorId: Joi.number()
+    .integer()
+    .required()
+    .messages({
+      "any.required": "jugadorId es requerido",
+      "number.base": "jugadorId debe ser un número entero"
+    }),
+
+  estado: Joi.string()
+    .valid(...ESTADOS_ASISTENCIA)
+    .required()
+    .messages({
+      "any.only": `estado debe ser: ${ESTADOS_ASISTENCIA.join(", ")}`,
+      "any.required": "estado es requerido"
+    }),
+
+  observacion: Joi.string()
+    .max(500)
+    .optional()
+    .allow(null, ""),
+
+  // 🔥 Nuevo campo
+  entregoMaterial: Joi.boolean()
+    .optional()
+    .allow(null)
+    .messages({
+      "boolean.base": "entregoMaterial debe ser true o false"
+    })
+}).unknown(false);
+
 
 export const desactivarTokenSchema = Joi.object({});

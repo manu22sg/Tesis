@@ -73,10 +73,10 @@ export default function SolicitarRestablecimiento() {
 
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <Title level={3} style={{ color: "#014898", marginBottom: 4 }}>
-            ¿Olvidaste tu contraseña?
+            ¿Olvidó su contraseña?
           </Title>
           <AntText type="secondary">
-            Ingresa tu correo institucional y te enviaremos un enlace para restablecerla
+            Ingrese su correo institucional y le enviaremos un enlace para restablecerla
           </AntText>
         </div>
 
@@ -84,7 +84,7 @@ export default function SolicitarRestablecimiento() {
           <>
             <Alert
               message="¡Correo enviado!"
-              description="Hemos enviado un enlace a tu correo. Revisa tu bandeja de entrada y la carpeta de spam. El enlace expira en 1 hora."
+              description="Hemos enviado un enlace a su correo. Revise su bandeja de entrada y la carpeta de spam. El enlace expira en 1 hora."
               type="success"
               showIcon
               style={{ marginBottom: 16 }}
@@ -132,7 +132,7 @@ export default function SolicitarRestablecimiento() {
             >
               <Input
                 prefix={<MailOutlined />}
-                placeholder="tu.correo@ubiobio.cl"
+                placeholder="Ingrese su correo institucional"
                 size="large"
               />
             </Form.Item>

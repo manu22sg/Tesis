@@ -240,7 +240,6 @@ export default function Register() {
           <Title level={3} style={{ color: "#014898", marginBottom: 4 }}>
             Crear Cuenta
           </Title>
-          <Text type="secondary">Completa tus datos institucionales</Text>
         </div>
 
         <Form form={form} layout="vertical" onFinish={onFinish}>
@@ -296,24 +295,40 @@ export default function Register() {
             <Input prefix={<UserOutlined />} placeholder="Ej: Pérez" />
           </Form.Item>
 
+          {/* SEXO */}
+          <Form.Item
+            label="Sexo"
+            name="sexo"
+            rules={[{ required: true, message: "Seleccione su sexo" }]}
+          >
+            <Select placeholder="Seleccione una opción">
+              <Option value="Masculino">Masculino</Option>
+              <Option value="Femenino">Femenino</Option>
+              <Option value="Otro">Otro</Option>
+            </Select>
+          </Form.Item>
+
           {/* CORREO */}
           <Form.Item
-            label="Correo institucional"
-            name="email"
-            rules={[
-              { required: true, message: "Ingrese su correo" },
-              {
-                pattern: /.+@(alumnos\.)?ubiobio\.cl$/,
-                message: "Debe ser un correo institucional (@alumnos.ubiobio.cl o @ubiobio.cl)",
-              },
-            ]}
-          >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder="correo@alumnos.ubiobio.cl"
-              onChange={handleEmailChange}
-            />
-          </Form.Item>
+  label="Correo institucional"
+  name="email"
+  validateTrigger="onBlur"  // ← Validar solo cuando el campo pierde el foco
+  validateFirst={true}
+
+  rules={[
+    { required: true, message: "Ingrese su correo" },
+    {
+      pattern: /.+@(alumnos\.)?ubiobio\.cl$/,
+      message: "Debe ser un correo institucional (@alumnos.ubiobio.cl o @ubiobio.cl)",
+    },
+  ]}
+>
+  <Input
+    prefix={<MailOutlined />}
+    placeholder="correo@alumnos.ubiobio.cl"
+    onChange={handleEmailChange}
+  />
+</Form.Item>
 
           {/* CARRERA - Solo para estudiantes */}
           {esEstudiante && (
@@ -453,9 +468,9 @@ export default function Register() {
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
             <Text>
-              ¿Ya tienes cuenta?{" "}
+              ¿Ya tiene cuenta?{" "}
               <a href="/login" style={{ color: "#014898" }}>
-                Inicia sesión
+                Iniciar sesión
               </a>
             </Text>
           </div>

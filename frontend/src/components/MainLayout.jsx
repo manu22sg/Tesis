@@ -245,7 +245,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: usuario?.nombre || 'Usuario',
+    label: `${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Usuario',
       disabled: true,
     },
     { type: 'divider' },
@@ -278,7 +278,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   } else {
     contenido = (
       <Layout style={{ minHeight: '100vh' }}>
-        <Sider
+       <Sider
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
@@ -290,8 +290,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             top: 0,
             bottom: 0,
             zIndex: 100,
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}
+          className="custom-sidebar-scroll"
         >
           <div
             style={{
@@ -304,7 +306,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
               fontWeight: 'bold',
             }}
           >
-            {collapsed ? '⚽' : 'SportUBB'}
+            {collapsed ? '⚽' : 'SPORTUBB'}
           </div>
 
           <Menu
@@ -334,7 +336,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Avatar style={{ backgroundColor: '#014898' }} icon={<UserOutlined />} />
-                {!collapsed && <span>{usuario?.nombre || 'Usuario'}</span>}
+{!collapsed && <span>{`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Usuario'}</span>}
               </div>
             </Dropdown>
           </Header>

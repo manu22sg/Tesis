@@ -12,7 +12,7 @@ const PartidoCampeonatoSchema = new EntitySchema({
     // Participantes neutros (sin local/visita)
     equipoAId: { type: "int", nullable: false },
     equipoBId: { type: "int", nullable: false },
-
+    arbitroId: { type: "int", nullable: true }, // FALSE en produccion
     ronda: { type: "varchar", length: 20 }, // ej: "cuartos", "semifinal", "final"
     fecha: { type: "date", nullable: true },
     horaInicio: { type: "time", nullable: true },
@@ -32,6 +32,12 @@ const PartidoCampeonatoSchema = new EntitySchema({
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true },
   },
+  arbitro: {
+  type: "many-to-one",
+  target: "Usuario",
+  joinColumn: { name: "arbitroId" },
+  onDelete: "RESTRICT",
+},
   relations: {
     campeonato: {
       type: "many-to-one",

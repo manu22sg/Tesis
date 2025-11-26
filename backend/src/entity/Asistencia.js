@@ -10,8 +10,8 @@ const AsistenciaSchema = new EntitySchema({
     jugadorId: { type: "int" },
     sesionId: { type: "int" },
 
-estado: { type: "enum", enum: ESTADOS_ASISTENCIA },
-
+  estado: { type: "enum", enum: ESTADOS_ASISTENCIA },
+  entregoMaterial: { type: "boolean", nullable: true ,default: null},
     fechaRegistro: {
       type: "timestamp",
       default: () => "CURRENT_TIMESTAMP",
@@ -19,7 +19,6 @@ estado: { type: "enum", enum: ESTADOS_ASISTENCIA },
     latitud: { type: "decimal", precision: 9, scale: 6, nullable: true },
     longitud: { type: "decimal", precision: 9, scale: 6, nullable: true },
     origen: { type: "varchar", length: 20, nullable: true },
-
     fechaActualizacion: { type: "timestamp", updateDate: true, nullable: true },
   },
   relations: {
@@ -35,6 +34,12 @@ estado: { type: "enum", enum: ESTADOS_ASISTENCIA },
       joinColumn: { name: "sesionId" },
       onDelete: "CASCADE",
     },
+    arbitro: {
+  type: "many-to-one",
+  target: "Usuario",
+  joinColumn: { name: "arbitroId" },
+  onDelete: "SET NULL",
+}
   },
   uniques: [
     //  UNICO por jugador-sesión

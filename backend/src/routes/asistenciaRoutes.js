@@ -11,7 +11,8 @@ import {
 import { authenticateToken, requireRole } from "../middleware/authMiddleware.js";
 import {
   actualizarAsistenciaBodySchema,
-  marcarAsistenciaPorTokenBodySchema 
+  marcarAsistenciaPorTokenBodySchema,
+  registrarAsistenciaManualSchema
 } from "../validations/asistenciaValidations.js";
 import {
   actualizarAsistenciaController,
@@ -68,8 +69,10 @@ router.post('/marcar-asistencia',
 
 // Registro manual de asistencia (entrenador)
 router.post("/registrar-manual",
+
   authenticateToken,
   requireRole(["entrenador"]),
+  validarBody(registrarAsistenciaManualSchema),
   registrarAsistenciaManualController
 );
 
