@@ -72,13 +72,19 @@ export async function eliminarAsistenciaController(req, res) {
 
 export async function listarAsistenciasDeSesionController(req, res) {
   const sesionId = parseInt(req.params.id);
-  const { page = 1, limit = 10, estado, jugadorId } = req.query; // ✅ Cambio aquí
+  const { page = 1, limit = 10, estado, jugadorId, entregoMaterial } = req.query; // ✅ Cambio aquí
   
   const [data, err, status] = await listarAsistenciasDeSesion(sesionId, { 
     pagina: parseInt(page),     // ✅ Mapeo
     limite: parseInt(limit),    // ✅ Mapeo
     estado,
-    jugadorId: jugadorId ? parseInt(jugadorId) : undefined
+    jugadorId: jugadorId ? parseInt(jugadorId) : undefined,
+    entregoMaterial: entregoMaterial === "null"
+    ? null
+    : entregoMaterial !== undefined
+      ? entregoMaterial === "true"
+      : undefined
+
   });
   
   if (err) return error(res, err, status || 400);

@@ -451,7 +451,18 @@ export const paginacionAsistenciasSchema = paginacionBaseSchema.keys({
       'number.base': 'sesionId debe ser un número',
       'number.integer': 'sesionId debe ser un número entero',
       'number.positive': 'sesionId debe ser positivo'
-    })
+    }),
+    entregoMaterial: Joi.alternatives()
+    .try(
+      Joi.boolean(),
+      Joi.valid(null,'')
+    )
+    .optional()
+    .messages({
+      'any.only': 'entregoMaterial debe ser true, false o null',
+      'boolean.base': 'entregoMaterial debe ser booleano'
+    }),
+
 });
 
 // ✅ Schema para exportar asistencias

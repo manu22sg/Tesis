@@ -60,7 +60,6 @@ export async function listarAsistenciasDeSesion(sesionId, params = {}) {
 
 
 export async function exportarAsistenciasExcel(params = {}) {
-  // ✅ Validar que al menos uno esté presente
   if (!params.sesionId && !params.jugadorId) {
     throw new Error("Debe proporcionar sesionId o jugadorId");
   }
@@ -99,7 +98,6 @@ export async function exportarAsistenciasExcel(params = {}) {
 }
 
 export async function exportarAsistenciasPDF(params = {}) {
-  // ✅ Validar que al menos uno esté presente
   if (!params.sesionId && !params.jugadorId) {
     throw new Error("Debe proporcionar sesionId o jugadorId");
   }

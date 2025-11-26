@@ -73,11 +73,11 @@ router.get(
   authenticateToken,
   requireRole(['entrenador','superadmin']),
   validarParams(sesionIdParamSchema),
-  validarQuery(paginacionBaseSchema), // ✅ Usa base
+  validarQuery(paginacionBaseSchema), 
   getEstadisticasPorSesion
 );
 
-// ✅ Rutas con parámetros dinámicos AL FINAL
+
 router.get(
   '/:id',
   authenticateToken,
@@ -85,6 +85,7 @@ router.get(
   validarParams(idParamSchema),
   getEstadisticaPorId
 );
+
 
 router.delete(
   '/:id',

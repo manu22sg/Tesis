@@ -359,11 +359,11 @@ export const insertarUsuarioEnEquipo = async ({
 
   // 6. Validación de límite por formato
   const limites = {
-    "5v5": { min: 5, max: 10 },
-    "7v7": { min: 7, max: 14 },
-    "11v11": { min: 11, max: 22 },
-  };
-
+  "5v5":  { min: 10,  max: 20 },
+  "7v7":  { min: 14,  max: 28 },
+  "8v8":  { min: 16,  max: 32 },  // puedes ajustar el max según tus reglas
+  "11v11":{ min: 22, max: 44 }
+};
   const formato = campeonato.formato?.toLowerCase();
   const reglas = limites[formato] || limites["11v11"];
 

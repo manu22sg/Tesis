@@ -26,6 +26,7 @@ export async function obtenerEntrenamientoPorId(id) {
   const res = await api.get(`/entrenamientos/${id}`);
   return res.data.data;
 }
+  
 
 export async function obtenerEntrenamientosPorSesion(sesionId) {
   const res = await api.get(`/entrenamientos/sesion/${sesionId}`);
@@ -42,16 +43,7 @@ export async function eliminarEntrenamiento(id) {
   return res.data.data;
 }
 
-// ============================================
-// NUEVAS FUNCIONES (Avanzadas)
-// ============================================
 
-/**
- * Reordenar múltiples entrenamientos de una sesión
- * @param {number} sesionId - ID de la sesión
- * @param {Array} entrenamientos - Array de {id, orden}
- * @returns {Promise} Lista de entrenamientos actualizados
- */
 export async function reordenarEntrenamientos(sesionId, entrenamientos) {
   const res = await api.post('/entrenamientos/reordenar', {
     sesionId,
@@ -60,23 +52,14 @@ export async function reordenarEntrenamientos(sesionId, entrenamientos) {
   return res.data.data;
 }
 
-/**
- * Duplicar un entrenamiento existente
- * @param {number} id - ID del entrenamiento a duplicar
- * @param {number} nuevaSesionId - (Opcional) ID de la sesión destino
- * @returns {Promise} Entrenamiento duplicado
- */
+
 export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
   const payload = nuevaSesionId ? { nuevaSesionId } : {};
   const res = await api.post(`/entrenamientos/${id}/duplicar`, payload);
   return res.data.data;
 }
 
-/**
- * Obtener estadísticas de entrenamientos
- * @param {number} sesionId - (Opcional) ID de la sesión para filtrar
- * @returns {Promise} Estadísticas de entrenamientos
- */
+
 export async function obtenerEstadisticas(sesionId = null) {
   const query = sesionId ? `?sesionId=${sesionId}` : '';
   const res = await api.get(`/entrenamientos/estadisticas${query}`);

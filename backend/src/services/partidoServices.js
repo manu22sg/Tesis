@@ -6,6 +6,8 @@ import SesionEntrenamientoSchema from "../entity/SesionEntrenamiento.js";
 import ReservaCanchaSchema from "../entity/ReservaCancha.js";
 import CampeonatoSchema from "../entity/Campeonato.js";
 import { parseDateLocal, formatYMD } from "../utils/dateLocal.js";
+import UsuarioSchema from "../entity/Usuario.js";
+
   const PartidoRepo = () => AppDataSource.getRepository(PartidoCampeonatoSchema);
 
 async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInicio, horaFin, partidoIdExcluir = null) {
@@ -66,7 +68,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
   }
 }
  // Programar un partido: asignar cancha, fecha y hora con validaciones temporales
-export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFin }) {
+export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFin, arbitroId }) {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
   await queryRunner.startTransaction();
@@ -90,17 +92,29 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
       if (cancha.estado !== "disponible")
         return [null, "La cancha no está disponible"];
 
+      
+
       const minJugadores =
-        camp.formato === "11v11" ? 11 : camp.formato === "7v7" ? 7 : 5;
+  camp.formato === "11v11" ? 11 :
+  camp.formato === "8v8"  ? 8  :
+  camp.formato === "7v7"  ? 7  :
+  5;
+
       if (cancha.capacidadMaxima < minJugadores)
         return [null, `La cancha ${cancha.nombre} no soporta formato ${camp.formato}`];
     }
+    if (arbitroId) {
+  const usuarioRepo = manager.getRepository(UsuarioSchema);
+  const arbitro = await usuarioRepo.findOne({ where: { id: arbitroId } });
+  if (!arbitro) return [null, "Árbitro no encontrado"];
+}
 
     //Usar valores actuales si no se proporcionan nuevos
     const nuevaCanchaId = canchaId ?? partido.canchaId;
     const nuevaFecha = fecha ?? partido.fecha;
     const nuevaHoraInicio = horaInicio ?? partido.horaInicio;
     const nuevaHoraFin = horaFin ?? partido.horaFin;
+    partido.arbitroId = arbitroId ?? partido.arbitroId;
 
     const fechaLocal = formatYMD(parseDateLocal(nuevaFecha));
     const hoy = formatYMD(new Date());
@@ -260,7 +274,7 @@ export const obtenerPartidosPorCampeonato = async (campeonatoId, filtros = {}) =
 
   return await repo.find({
     where,
-    relations: ["equipoA", "equipoB", "cancha"],
+    relations: ["equipoA", "equipoB", "cancha", "arbitro"],
     order: { id: "ASC" },
   });
 };
@@ -270,7 +284,7 @@ export const obtenerPartidosConRelaciones = async (campeonatoId) => {
   const repo = PartidoRepo();
   return await repo.find({
     where: { campeonatoId: Number(campeonatoId) },
-    relations: ["equipoA", "equipoB", "cancha"],
+    relations: ["equipoA", "equipoB", "cancha", "arbitro"],
     order: { id: "ASC" }
   });
 };

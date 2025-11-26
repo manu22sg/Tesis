@@ -27,18 +27,17 @@ import {
 
 const router = Router();
 
-// ✅ Rutas específicas PRIMERO
 router.get('/excel', 
   authenticateToken, 
   requireRole(['entrenador', 'superadmin']),
-  validarQuery(exportarEvaluacionesQuerySchema), // ✅ Validación
+  validarQuery(exportarEvaluacionesQuerySchema), 
   exportarEvaluacionesExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
   requireRole(['entrenador', 'superadmin']),
-  validarQuery(exportarEvaluacionesQuerySchema), // ✅ Validación
+  validarQuery(exportarEvaluacionesQuerySchema), 
   exportarEvaluacionesPDF
 );
 
@@ -48,7 +47,7 @@ router.get(
   authenticateToken,
   requireRole(['estudiante']),
   attachJugadorId, 
-  validarQuery(paginacionEvaluacionesSchema), // ✅ Usa schema con filtros
+  validarQuery(paginacionEvaluacionesSchema), 
   getMisEvaluaciones
 );
 
@@ -64,7 +63,7 @@ router.get(
   '/', 
   authenticateToken, 
   requireRole(['entrenador','superadmin']), 
-  validarQuery(paginacionEvaluacionesSchema), // ✅ Usa schema con filtros
+  validarQuery(paginacionEvaluacionesSchema), 
   getEvaluaciones
 );
 
@@ -74,11 +73,10 @@ router.get(
   authenticateToken,
   requireRole(['entrenador', 'superadmin']),
   validarParams(jugadorIdParamSchema),
-  validarQuery(paginacionEvaluacionesSchema), // ✅ Usa schema con filtros
+  validarQuery(paginacionEvaluacionesSchema),
   getEvaluacionesPorJugador
 );
 
-// ✅ Rutas con parámetros dinámicos AL FINAL
 router.get(
   '/:id', 
   authenticateToken, 

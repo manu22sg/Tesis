@@ -22,7 +22,7 @@ import {
   obtenerEstadisticas,
   asignarEntrenamientosASesion,
 } from '../services/entrenamientoSesion.services.js';
-import { obtenerSesionPorId, obtenerSesiones } from '../services/sesion.services.js'; // ← si no tienes obtenerSesiones, el modal hace fallback a InputNumber
+import { obtenerSesionPorId, obtenerSesiones } from '../services/sesion.services.js'; 
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';

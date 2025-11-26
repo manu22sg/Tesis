@@ -100,7 +100,6 @@ export async function findUserById(id) {
         'usuario.fechaActualizacion',
         'carrera.id',
         'carrera.nombre',
-        // ✅ AGREGAR CAMPOS DEL JUGADOR
         'jugador.id',
         'jugador.posicion',
         'jugador.altura',

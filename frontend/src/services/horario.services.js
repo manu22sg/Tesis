@@ -12,18 +12,6 @@ export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 5, extr
   }
 }
 
-export async function getDisponibilidadPorRango(fechaInicio, fechaFin, page = 1, limit = 10) {
-  try {
-    const response = await api.get('/horario/disponibilidad/rango', {
-      params: { fechaInicio, fechaFin, page, limit }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error:', error);
-    throw error;
-  }
-}
-
 
 export async function verificarDisponibilidad(
   canchaId,

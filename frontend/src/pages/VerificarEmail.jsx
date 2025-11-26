@@ -1,4 +1,3 @@
-// src/pages/VerificarEmail.jsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { verificarEmailRequest } from '../services/auth.services.js';

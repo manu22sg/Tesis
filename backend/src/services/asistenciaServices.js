@@ -122,7 +122,7 @@ export async function eliminarAsistencia(id) {
   }
 }
 
-export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite = 50, estado, jugadorId }) {
+export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite = 50, estado, jugadorId, entregoMaterial }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
     const skip = (pagina - 1) * limite;
@@ -137,6 +137,11 @@ export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite =
     
     // ✅ AGREGAR ESTE FILTRO
     if (jugadorId) qb.andWhere("a.jugadorId = :jugadorId", { jugadorId });
+
+    if (entregoMaterial !== undefined) {
+  qb.andWhere("a.entregoMaterial = :entregoMaterial", { entregoMaterial });
+}
+
 
     const [items, total] = await qb
       .orderBy("a.fechaRegistro", "DESC")  

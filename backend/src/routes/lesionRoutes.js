@@ -18,7 +18,6 @@ import {
   getLesionPorId, 
   patchLesion, 
   deleteLesion, 
-  getLesionesPorJugador,
   exportarLesionesExcel,
   exportarLesionesPDF 
 } from '../controllers/lesionController.js';
@@ -50,13 +49,7 @@ router.get('/mias',
 );
 
 // Lesiones de un jugador específico (para entrenadores)
-router.get('/jugador/:id',
-  authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
-  validarParams(idParamSchema),
-  validarQuery(paginacionLesionesSchema), // ✅ Usa schema con filtros
-  getLesionesPorJugador
-);
+
 
 // CRUD básico
 router.post('/', 

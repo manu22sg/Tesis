@@ -1,6 +1,7 @@
 import api from './root.services';
 
 // Obtener estadísticas de reservas
+
 export const obtenerEstadisticas = async () => {
   try {
     const response = await api.post('/aprobacion/estadisticas');

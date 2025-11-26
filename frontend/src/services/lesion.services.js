@@ -31,14 +31,7 @@ export const obtenerMisLesiones = async (params = {}) => {
 };
 
 
-export const obtenerLesionesPorJugador = async (jugadorId, params = {}) => {
-  try {
-    const response = await api.get(`/lesiones/jugador/${jugadorId}`, { params });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+
 
 export const obtenerLesionPorId = async (id) => {
   try {

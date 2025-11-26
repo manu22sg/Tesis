@@ -43,7 +43,10 @@ export const crearCampeonato = async (payload) => {
 
   //  Verificar disponibilidad mínima de canchas
   const minJugadores =
-    formato === "11v11" ? 11 : formato === "7v7" ? 7 : 5;
+  formato === "11v11" ? 11 :
+  formato === "8v8"  ? 8  :
+  formato === "7v7"  ? 7  :
+  5;
   const canchaValida = await canchaRepo.findOne({
     where: {
       estado: "disponible",

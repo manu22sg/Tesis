@@ -10,6 +10,8 @@ export const crearCancha = async (datosCancha) => {
     throw error.response?.data?.message || 'Error al crear la cancha';
   }
 };
+
+
 export const obtenerCanchaPorId = async (id) => {
   try {
     const response = await api.post('/canchas/detalle', { id });
@@ -18,6 +20,7 @@ export const obtenerCanchaPorId = async (id) => {
     throw error.response?.data?.message || 'Error al obtener la cancha';
   }
 };
+
 
 export const actualizarCancha = async (id, datosActualizacion) => {
   try {

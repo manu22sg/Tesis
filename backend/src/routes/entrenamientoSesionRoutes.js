@@ -110,6 +110,7 @@ router.get(
   obtenerEntrenamientoPorIdController
 );
 
+
 router.patch(
   '/:sesionId/asignar',
   authenticateToken,

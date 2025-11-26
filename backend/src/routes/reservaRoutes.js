@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
   postCrearReserva,
-  getReservasUsuario,
   getTodasLasReservas,
   getReservaPorId,
   putCancelarReserva,
@@ -10,7 +9,6 @@ import {
 
 import {
   crearReservaBody,
-  obtenerReservasUsuarioQuery,   
   obtenerTodasReservasQuery,    
   obtenerReservaPorIdBody,
   validate,
@@ -28,12 +26,7 @@ router.post('/',
   postCrearReserva
 );
 
-// GET /api/reservas
-router.get('/',
-  authenticateToken,
-  validateQuery(obtenerReservasUsuarioQuery),
-  getReservasUsuario
-);
+
 
 // GET /api/reservas/
 router.get('/todas',

@@ -52,28 +52,7 @@ export async function deleteLesion(req, res) {
   return success(res, { eliminado: !!ok }, 'Lesión eliminada');
 }
 
-export async function getLesionesPorJugador(req, res) {
-  const jugadorId = parseInt(req.params.id, 10);
-  const { page = 1, limit = 10, desde, hasta, q } = req.query; // ✅ Cambio aquí
 
-  if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {
-    return error(res, 'No tienes permiso para ver lesiones de otro jugador', 403);
-  }
-
-  const filtros = {
-    page: parseInt(page),     // ✅ Mapeo
-    limit: parseInt(limit),   // ✅ Mapeo
-    jugadorId
-  };
-  
-  if (desde) filtros.desde = desde;
-  if (hasta) filtros.hasta = hasta;
-  if (q) filtros.q = q;
-
-  const [data, err] = await obtenerLesiones(filtros);
-  if (err) return error(res, err);
-  return success(res, data, 'Lesiones del jugador obtenidas');
-}
 
 export async function exportarLesionesExcel(req, res) {
   try {

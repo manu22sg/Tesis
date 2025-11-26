@@ -56,6 +56,7 @@ export const obtenerEstadisticaPorId = async (id) => {
   }
 };
 
+
 // Eliminar estadística
 export const eliminarEstadistica = async (id) => {
   try {

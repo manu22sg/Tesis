@@ -202,7 +202,6 @@ export const registrarAsistenciaManualSchema = Joi.object({
     .optional()
     .allow(null, ""),
 
-  // 🔥 Nuevo campo
   entregoMaterial: Joi.boolean()
     .optional()
     .allow(null)

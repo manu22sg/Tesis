@@ -45,7 +45,6 @@ router.get("/",
   obtenerTodosJugadoresController
 );
 
-// ✅ Rutas con parámetros dinámicos AL FINAL
 router.get("/:id", 
   validarParams(idParamSchema), 
   obtenerJugadorPorIdController

@@ -1,4 +1,3 @@
-// services/estadisticaCampeonato.services.js
 
 import api from './root.services.js';
 
@@ -51,7 +50,7 @@ export const eliminarEstadistica = async (id) => {
     throw error.response?.data?.message || 'Error al eliminar estadística';
   }
 };
-
+/*
 //  Obtener estadística por ID
 export const obtenerEstadisticaPorId = async (id) => {
   try {
@@ -61,7 +60,7 @@ export const obtenerEstadisticaPorId = async (id) => {
     throw error.response?.data?.message || 'Error al obtener estadística';
   }
 };
-
+*/
 //  Obtener estadísticas por jugador en campeonato
 export const obtenerEstadisticasPorJugadorCampeonato = async (jugadorCampId, campeonatoId) => {
   try {
@@ -71,7 +70,7 @@ export const obtenerEstadisticasPorJugadorCampeonato = async (jugadorCampId, cam
     throw error.response?.data?.message || 'Error al obtener estadísticas del jugador';
   }
 };
-
+/*
 //  Obtener estadísticas por usuario en campeonato
 export const obtenerEstadisticasPorUsuarioCampeonato = async (usuarioId, campeonatoId) => {
   try {
@@ -81,6 +80,7 @@ export const obtenerEstadisticasPorUsuarioCampeonato = async (usuarioId, campeon
     throw error.response?.data?.message || 'Error al obtener estadísticas del usuario';
   }
 };
+*/
 
 export const listarJugadoresPorEquipoYCampeonato = async (equipoId, campeonatoId) => {
   try {
@@ -90,6 +90,7 @@ export const listarJugadoresPorEquipoYCampeonato = async (equipoId, campeonatoId
     throw error.response?.data?.message || 'Error al obtener jugadores';
   }
 };
+
 
 
 export const exportarExcel = async (campeonatoId, equipoId = null, busqueda = null) => {

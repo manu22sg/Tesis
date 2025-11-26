@@ -1,6 +1,5 @@
 import Joi from 'joi';
 
-// ✅ Crear evaluación
 export const crearEvaluacionBody = Joi.object({
   jugadorId: Joi.number()
     .integer()
