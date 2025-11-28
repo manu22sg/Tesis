@@ -51,9 +51,9 @@ export async function getDisponibilidadPorRango(req, res) {
 
 export async function verificarDisponibilidad(req, res) {
   try {
-    const { canchaId, fecha, horaInicio, horaFin, sesionIdExcluir } = req.query;
+    const { canchaId, fecha, inicio, fin, sesionIdExcluir } = req.query;
 
-    if (!canchaId || !fecha || !horaInicio || !horaFin) {
+    if (!canchaId || !fecha || !inicio || !fin) {
       return res.status(400).json({ 
         message: 'Faltan parámetros requeridos' 
       });
@@ -62,8 +62,8 @@ export async function verificarDisponibilidad(req, res) {
     const [disponible, mensaje] = await verificarDisponibilidadEspecifica(
       parseInt(canchaId), 
       fecha, 
-      horaInicio, 
-      horaFin,
+      inicio, 
+      fin,
       sesionIdExcluir ? parseInt(sesionIdExcluir) : null 
     );
 

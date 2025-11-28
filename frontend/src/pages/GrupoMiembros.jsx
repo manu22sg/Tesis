@@ -217,7 +217,7 @@ const [busquedaJugadorDebounced, setBusquedaJugadorDebounced] = useState('');
     }
   };
 
-  buscarJugadores(); // 👈 Ejecuta inmediatamente cuando cambia el debounced
+  buscarJugadores(); 
 }, [busquedaJugadorDebounced, miembros]);
 
 
@@ -711,7 +711,7 @@ useEffect(() => {
                     icon={<PlusOutlined />}
                     onClick={() => navigate(`/sesiones/crear?grupoId=${grupoId}`)}
                   >
-                    Nuevo Entrenamiento
+                    Nueva Sesión
                   </Button>
                 )}
               </Space>
@@ -818,7 +818,7 @@ useEffect(() => {
                   label: (
                     <span>
                       <CalendarOutlined />
-                      {' '}Entrenamientos ({paginationEntrenamientos.total})
+                      {' '}Sesiones ({paginationEntrenamientos.total})
                     </span>
                   ),
                   children: (
@@ -889,13 +889,13 @@ useEffect(() => {
                           pagination={false}
                           locale={{
                             emptyText: (
-                              <Empty description="No hay entrenamientos programados">
+                              <Empty description="No hay Sesiones programadas">
                                 <Button
                                   type="primary"
                                   icon={<PlusOutlined />}
                                   onClick={() => navigate(`/sesiones/crear?grupoId=${grupoId}`)}
                                 >
-                                  Crear Primer Entrenamiento
+                                  Crear Primera Sesión
                                 </Button>
                               </Empty>
                             ),
@@ -911,7 +911,7 @@ useEffect(() => {
                               onChange={handlePageChangeEntrenamientos}
                               onShowSizeChange={handlePageChangeEntrenamientos}
                               showSizeChanger
-                              showTotal={(total) => `Total: ${total} entrenamientos`}
+                              showTotal={(total) => `Total: ${total} sesiones`}
                               pageSizeOptions={['5', '10', '20', '50']}
                             />
                           </div>

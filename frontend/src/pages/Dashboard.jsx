@@ -56,7 +56,7 @@ export default function Dashboard() {
         <Card 
           style={{ 
             marginBottom: 24, 
-            background: 'linear-gradient(135deg, #014898 0%, #0066cc 100%)',
+            background: 'linear-gradient(135deg, #014898 0%, #014898 100%)',
             color: 'white',
             border: 'none'
           }}

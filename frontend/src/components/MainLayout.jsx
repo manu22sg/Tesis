@@ -241,23 +241,24 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     if (keyToPath[key]) navigate(keyToPath[key]);
   };
 
-  const userMenuItems = [
+ const userMenuItems = [
+    
+    { type: 'divider' },
     {
-      key: 'profile',
+      key: 'dashboard',
       icon: <UserOutlined />,
-    label: `${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Usuario',
-      disabled: true,
+      label: 'Mi Perfil',
+      onClick: () => navigate('/dashboard'),
     },
     { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Cerrar Sesión',
+      label: 'Salir',
       onClick: logout,
       danger: true,
     },
   ];
-
   // ======================================
   // 🚨 RENDER DINÁMICO (*SIN cortar hooks*)
   // ======================================

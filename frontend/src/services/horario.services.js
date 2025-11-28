@@ -21,7 +21,7 @@ export async function verificarDisponibilidad(
   sesionIdExcluir = null
 ) {
   try {
-    const params = { canchaId, fecha, horaInicio, horaFin };
+    const params = { canchaId, fecha, inicio: horaInicio, fin: horaFin };
 
     if (sesionIdExcluir !== null) {
       params.sesionIdExcluir = sesionIdExcluir;

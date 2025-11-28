@@ -2,8 +2,35 @@ import api from './root.services.js';
 
 
 export async function crearSesion(data) {
-  const res = await api.post('/sesion', data);
-  return res.data.data;
+  try {
+    console.log('📤 Enviando datos al backend:', data);
+    
+    const res = await api.post('/sesion', data);
+    
+    console.log('✅ Respuesta del backend:', res.data);
+    
+    return res.data.data;
+  } catch (error) {
+    console.error('❌ Error en crearSesion:', error);
+    
+    // Logging detallado del error
+    if (error.response) {
+      // El servidor respondió con un código de error
+      console.error('📋 Status:', error.response.status);
+      console.error('📋 Data:', error.response.data);
+      console.error('📋 Headers:', error.response.headers);
+    } else if (error.request) {
+      // La petición se hizo pero no hubo respuesta
+      console.error('📋 No se recibió respuesta del servidor');
+      console.error('📋 Request:', error.request);
+    } else {
+      // Algo pasó al configurar la petición
+      console.error('📋 Error al configurar la petición:', error.message);
+    }
+    
+    // Re-lanzar el error para que lo maneje el componente
+    throw error;
+  }
 }
 
 export async function obtenerSesiones(filtros = {}) {

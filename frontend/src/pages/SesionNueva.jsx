@@ -156,6 +156,11 @@ export default function SesionNueva() {
           setCheckingDisp(false);
           return;
         }
+console.log('🔍 Verificando disponibilidad:');
+      console.log('  canchaId:', canchaId, typeof canchaId);
+      console.log('  fecha:', fecha?.format('YYYY-MM-DD'));
+      console.log('  h1:', h1?.format('HH:mm'));
+      console.log('  h2:', h2?.format('HH:mm'));
 
         const res = await verificarDisponibilidad(
           Number(canchaId),
@@ -228,6 +233,8 @@ export default function SesionNueva() {
             payload.horaInicio,
             payload.horaFin
           );
+          console.log('✅ Respuesta verificarDisponibilidad:', disponibilidad );
+
 
           if (!disponibilidad.disponible) {
             message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');

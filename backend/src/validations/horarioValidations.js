@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
 
-export const HORARIO_FUNCIONAMIENTO = { inicio: '08:00', fin: '20:00', duracionBloque: 90 };
+export const HORARIO_FUNCIONAMIENTO = { horainicio: '08:00', horafin: '20:00', duracionBloque: 60 };
 export const ANTICIPACION_MAXIMA_DIAS = 14;
 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -69,7 +69,6 @@ const fechaConsultaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     }
     
     // Debug: mostrar fechas para debugging
-    console.log('Debug consulta:', { hoyStr, value, fechaComparacion: fecha >= hoy });
     
     // Para consultas, permitir desde hoy
     if (fecha < hoy) {
@@ -127,14 +126,14 @@ export const verificarDisponibilidadQuery = Joi.object({
   fin: horaSchema.required(),
   sesionIdExcluir: Joi.number().integer().positive().optional()
 }).custom((value, helpers) => {
-  const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
-  const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);
+  const minInicio = toMin(HORARIO_FUNCIONAMIENTO.horainicio);
+  const minFin = toMin(HORARIO_FUNCIONAMIENTO.horafin);
   const i = toMin(value.inicio);
   const f = toMin(value.fin);
 
   if (i < minInicio || f > minFin) {
     return helpers.error('any.invalid', {
-      message: `Horario fuera del funcionamiento (${HORARIO_FUNCIONAMIENTO.inicio} - ${HORARIO_FUNCIONAMIENTO.fin})`
+      message: `Horario fuera del funcionamiento (${HORARIO_FUNCIONAMIENTO.horainicio} - ${HORARIO_FUNCIONAMIENTO.horafin})`
     });
   }
 
@@ -187,6 +186,8 @@ export const validateQuery = (schema) => (req, res, next) => {
     return validationError(res, errores);
   }
 
-  req.query = value;
+  // 🔥 CORRECCIÓN AQUÍ
+  Object.assign(req.query, value);
+
   next();
 };

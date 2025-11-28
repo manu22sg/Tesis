@@ -41,7 +41,7 @@ router.post("/",
 );
 
 router.get("/", 
-  validarQuery(paginacionJugadoresSchema), // ✅ Usa el schema con todos los filtros
+  validarQuery(paginacionJugadoresSchema), 
   obtenerTodosJugadoresController
 );
 
