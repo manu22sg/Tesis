@@ -1,20 +1,25 @@
-import { Card, Row, Col, Avatar, Descriptions, Tag, Space, Statistic } from 'antd';
+import { Card, Row, Col, Avatar, Descriptions, Tag, Space, Statistic, Spin } from 'antd';
 import { 
   UserOutlined, 
   IdcardOutlined, 
   MailOutlined, 
-  CalendarOutlined,
   TrophyOutlined,
-  BookOutlined,
   TeamOutlined,
   ClockCircleOutlined,
+  UsergroupAddOutlined,
+  CalendarOutlined,
+  BookOutlined,
   RiseOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext.jsx';
 import MainLayout from '../components/MainLayout.jsx';
+import { useEffect, useState } from 'react';
+import { obtenerEstadisticasEntrenador } from '../services/grupo.services.js';
 
 export default function Dashboard() {
   const { usuario } = useAuth();
+  const [estadisticas, setEstadisticas] = useState(null);
+  const [loadingEstadisticas, setLoadingEstadisticas] = useState(false);
 
   const getInitials = (nombre, apellido) => {
     return `${nombre?.charAt(0) || ''}${apellido?.charAt(0) || ''}`.toUpperCase();
@@ -22,7 +27,27 @@ export default function Dashboard() {
 
   const esEstudiante = usuario?.rol === 'estudiante';
   const esAcademico = usuario?.rol === 'academico';
+  const esEntrenador = usuario?.rol === 'entrenador';
   const tienePerfilJugador = usuario?.jugador !== null && usuario?.jugador !== undefined;
+
+  // Cargar estadísticas si es entrenador
+  useEffect(() => {
+    if (esEntrenador) {
+      cargarEstadisticas();
+    }
+  }, [esEntrenador]);
+
+  const cargarEstadisticas = async () => {
+    try {
+      setLoadingEstadisticas(true);
+      const response = await obtenerEstadisticasEntrenador();
+      setEstadisticas(response.data);
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    } finally {
+      setLoadingEstadisticas(false);
+    }
+  };
 
   return (
     <MainLayout>
@@ -88,7 +113,9 @@ export default function Dashboard() {
         </Card>
 
         <Row gutter={[16, 16]}>
-          {/* Información Personal */}
+          {/* ========================================
+              INFORMACIÓN PERSONAL - TODOS LOS ROLES
+          ======================================== */}
           <Col xs={24} lg={12}>
             <Card 
               title={
@@ -119,7 +146,7 @@ export default function Dashboard() {
                   label={
                     <Space>
                       <UserOutlined style={{ color: '#014898' }} />
-                      <span>Nombre Completo</span>
+                      <span>Nombre </span>
                     </Space>
                   }
                 >
@@ -149,8 +176,10 @@ export default function Dashboard() {
             </Card>
           </Col>
 
-          {/* Información Académica */}
-          {(esEstudiante || esAcademico) && (
+          {/* ========================================
+              INFORMACIÓN ACADÉMICA - SOLO ESTUDIANTES
+          ======================================== */}
+          {esEstudiante && (
             <Col xs={24} lg={12}>
               <Card 
                 title={
@@ -167,73 +196,135 @@ export default function Dashboard() {
                 }}
               >
                 <Descriptions column={1} bordered size="middle">
-                  {esEstudiante && (
-                    <>
-                      <Descriptions.Item 
-                        label={
-                          <Space>
-                            <BookOutlined style={{ color: '#014898' }} />
-                            <span>Carrera</span>
-                          </Space>
-                        }
-                      >
-                        <strong>{usuario?.carrera?.nombre || 'No especificada'}</strong>
-                      </Descriptions.Item>
-                      <Descriptions.Item 
-                        label={
-                          <Space>
-                            <CalendarOutlined style={{ color: '#014898' }} />
-                            <span>Año de Ingreso</span>
-                          </Space>
-                        }
-                      >
-                        {usuario?.anioIngresoUniversidad || 'No especificado'}
-                      </Descriptions.Item>
-                      {usuario?.anioIngresoUniversidad && (
-                        <Descriptions.Item 
-                          label={
-                            <Space>
-                              <RiseOutlined style={{ color: '#014898' }} />
-                              <span>Años en la Universidad</span>
-                            </Space>
-                          }
-                        >
-                          {new Date().getFullYear() - usuario.anioIngresoUniversidad} años
-                        </Descriptions.Item>
-                      )}
-                    </>
-                  )}
-                  {esAcademico && (
-                    <>
-                      <Descriptions.Item 
-                        label={
-                          <Space>
-                            <BookOutlined style={{ color: '#014898' }} />
-                            <span>Departamento</span>
-                          </Space>
-                        }
-                      >
-                        <strong>{usuario?.carrera?.nombre || 'No especificado'}</strong>
-                      </Descriptions.Item>
-                      <Descriptions.Item 
-                        label={
-                          <Space>
-                            <UserOutlined style={{ color: '#014898' }} />
-                            <span>Cargo</span>
-                          </Space>
-                        }
-                      >
-                        Académico
-                      </Descriptions.Item>
-                    </>
+                  <Descriptions.Item 
+                    label={
+                      <Space>
+                        <BookOutlined style={{ color: '#014898' }} />
+                        <span>Carrera</span>
+                      </Space>
+                    }
+                  >
+                    <strong>{usuario?.carrera?.nombre || 'No especificada'}</strong>
+                  </Descriptions.Item>
+                  <Descriptions.Item 
+                    label={
+                      <Space>
+                        <CalendarOutlined style={{ color: '#014898' }} />
+                        <span>Año de Ingreso</span>
+                      </Space>
+                    }
+                  >
+                    {usuario?.anioIngresoUniversidad || 'No especificado'}
+                  </Descriptions.Item>
+                  {usuario?.anioIngresoUniversidad && (
+                    <Descriptions.Item 
+                      label={
+                        <Space>
+                          <RiseOutlined style={{ color: '#014898' }} />
+                          <span>Años en la Universidad</span>
+                        </Space>
+                      }
+                    >
+                      {new Date().getFullYear() - usuario.anioIngresoUniversidad} años
+                    </Descriptions.Item>
                   )}
                 </Descriptions>
               </Card>
             </Col>
           )}
 
-          {/* Información Deportiva */}
-          {tienePerfilJugador && (
+          {/* ========================================
+              GESTIÓN DE GRUPOS - SOLO ENTRENADORES
+          ======================================== */}
+          {esEntrenador && (
+            <Col xs={24} lg={12}>
+              <Card 
+                title={
+                  <Space>
+                    <UsergroupAddOutlined style={{ color: '#014898', fontSize: 18 }} />
+                    <span style={{ fontSize: 16, fontWeight: 600 }}>Gestión de Grupos</span>
+                  </Space>
+                }
+                hoverable
+                style={{ height: '100%' }}
+                headStyle={{ 
+                  backgroundColor: '#f5f8fc', 
+                  borderBottom: '2px solid #014898' 
+                }}
+              >
+                {loadingEstadisticas ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Statistic
+                        title="Grupos Creados"
+                        value={estadisticas?.totalGrupos || 0}
+                        prefix={<TeamOutlined />}
+                        valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Statistic
+                        title="Jugadores Inscritos"
+                        value={estadisticas?.totalJugadoresInscritos || 0}
+                        prefix={<UsergroupAddOutlined />}
+                        valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
+                      />
+                    </Col>
+                  </Row>
+                )}
+              </Card>
+            </Col>
+          )}
+
+          {/* ========================================
+              RESERVAS - ESTUDIANTES Y ACADÉMICOS
+          ======================================== */}
+          {(esEstudiante || esAcademico) && (
+            <Col xs={24} lg={12}>
+              <Card 
+                title={
+                  <Space>
+                    <CalendarOutlined style={{ color: '#014898', fontSize: 18 }} />
+                    <span style={{ fontSize: 16, fontWeight: 600 }}>Reservas</span>
+                  </Space>
+                }
+                hoverable
+                style={{ height: '100%' }}
+                headStyle={{ 
+                  backgroundColor: '#f5f8fc', 
+                  borderBottom: '2px solid #014898' 
+                }}
+              >
+                <Row gutter={16}>
+                  <Col xs={24} sm={12}>
+                    <Statistic
+                      title="Reservas Activas"
+                      value={0}
+                      prefix={<CalendarOutlined />}
+                      valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Statistic
+                      title="Total Reservadas"
+                      value={0}
+                      prefix={<ClockCircleOutlined />}
+                      valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          )}
+
+          {/* ========================================
+              PERFIL DEPORTIVO - ESTUDIANTES QUE SON JUGADORES
+          ======================================== */}
+          {esEstudiante && tienePerfilJugador && (
             <Col xs={24} lg={12}>
               <Card 
                 title={
@@ -287,51 +378,46 @@ export default function Dashboard() {
             </Col>
           )}
 
-          {/* Estadísticas de Actividad */}
-          <Col xs={24} lg={tienePerfilJugador ? 12 : 24}>
-            <Card 
-              title={
-                <Space>
-                  <ClockCircleOutlined style={{ color: '#014898', fontSize: 18 }} />
-                  <span style={{ fontSize: 16, fontWeight: 600 }}>Estadísticas de Actividad</span>
-                </Space>
-              }
-              hoverable
-              style={{ height: '100%' }}
-              headStyle={{ 
-                backgroundColor: '#f5f8fc', 
-                borderBottom: '2px solid #014898' 
-              }}
-            >
-              <Row gutter={16}>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="Reservas Realizadas"
-                    value={0}
-                    prefix={<CalendarOutlined />}
-                    valueStyle={{ color: '#014898', fontSize: 28, fontWeight: 600 }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="Partidos Jugados"
-                    value={0}
-                    prefix={<TrophyOutlined />}
-                    valueStyle={{ color: '#014898', fontSize: 28, fontWeight: 600 }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title="Horas en Cancha"
-                    value={0}
-                    suffix="hrs"
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: '#014898', fontSize: 28, fontWeight: 600 }}
-                  />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
+          {/* ========================================
+              GRUPOS DEL JUGADOR - ESTUDIANTES QUE SON JUGADORES
+          ======================================== */}
+          {esEstudiante && tienePerfilJugador && (
+            <Col xs={24} lg={12}>
+              <Card 
+                title={
+                  <Space>
+                    <UsergroupAddOutlined style={{ color: '#014898', fontSize: 18 }} />
+                    <span style={{ fontSize: 16, fontWeight: 600 }}>Mis Grupos</span>
+                  </Space>
+                }
+                hoverable
+                style={{ height: '100%' }}
+                headStyle={{ 
+                  backgroundColor: '#f5f8fc', 
+                  borderBottom: '2px solid #014898' 
+                }}
+              >
+                <Row gutter={16}>
+                  <Col xs={24} sm={12}>
+                    <Statistic
+                      title="Grupos Activos"
+                      value={0}
+                      prefix={<TeamOutlined />}
+                      valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Statistic
+                      title="Compañeros"
+                      value={0}
+                      prefix={<UsergroupAddOutlined />}
+                      valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          )}
         </Row>
       </div>
     </MainLayout>

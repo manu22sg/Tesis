@@ -12,11 +12,19 @@ export const AppDataSource = new DataSource({
   entities: ["src/entity/**/*.js"],
   synchronize: true,
   logging: false,
+  extra: {
+    charset: "utf8"   // ESTA ES LA CORRECTA
+  }
+
+
 });
 
 export async function connectDB() {
   try {
     await AppDataSource.initialize();
+await AppDataSource.query(`SET client_encoding = 'UTF8';`);
+
+
     console.log("=> Conexión exitosa a la base de datos!");
   } catch (error) {
     console.error("Error al conectar con la base de datos:", error);

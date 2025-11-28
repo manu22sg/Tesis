@@ -101,3 +101,8 @@ export async function exportarGruposPDF(filtros = {}) {
   }
 }
 
+export const obtenerEstadisticasEntrenador = async () => {
+     const response = await axios.get('/api/grupos/estadisticas');
+     return response.data;
+   };
+

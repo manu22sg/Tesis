@@ -72,7 +72,6 @@ router.post('/buscar-usuarios-rut',
 );
 
 router.get('/buscar-usuarios', 
-  authenticateToken, 
   buscarUsuarios
 );
 

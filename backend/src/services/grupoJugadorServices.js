@@ -156,3 +156,50 @@ export async function obtenerGruposParaExportar(filtros = {}) {
     return [null, "Error al obtener grupos para exportar"];
   }
 }
+
+export async function obtenerEstadisticasEntrenador() {
+  try {
+    const grupoRepo = AppDataSource.getRepository(GrupoJugadorSchema);
+    
+    // Obtener todos los grupos con sus relaciones
+    const grupos = await grupoRepo.find({
+      relations: [
+        "jugadorGrupos",
+        "jugadorGrupos.jugador"
+      ]
+    });
+
+    // Calcular estadísticas
+    const totalGrupos = grupos.length;
+    
+    // Contar jugadores únicos (un jugador puede estar en varios grupos)
+    const jugadoresUnicos = new Set();
+    grupos.forEach(grupo => {
+      grupo.jugadorGrupos?.forEach(jg => {
+        if (jg.jugador?.id) {
+          jugadoresUnicos.add(jg.jugador.id);
+        }
+      });
+    });
+    
+    const totalJugadoresInscritos = jugadoresUnicos.size;
+
+    // Obtener detalles de cada grupo
+    const detallesGrupos = grupos.map(grupo => ({
+      id: grupo.id,
+      nombre: grupo.nombre,
+      cantidadJugadores: grupo.jugadorGrupos?.length || 0,
+      fechaCreacion: grupo.fechaCreacion
+    }));
+
+    return [{
+      totalGrupos,
+      totalJugadoresInscritos,
+      grupos: detallesGrupos
+    }, null];
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    return [null, 'Error al obtener estadísticas'];
+  }
+}

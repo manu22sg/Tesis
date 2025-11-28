@@ -6,7 +6,8 @@ import {
   actualizarGrupoController,
   eliminarGrupoController,
    exportarGruposExcel,
-   exportarGruposPDF
+   exportarGruposPDF,
+   getEstadisticasEntrenador
 } from "../controllers/grupoJugadorController.js";
 import {
   crearGrupoSchema,
@@ -36,4 +37,8 @@ router.get("/:id", authenticateToken, requireRole(['entrenador']), validarParams
 router.patch("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), validarBody(actualizarGrupoSchema), actualizarGrupoController);
 router.delete("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), eliminarGrupoController);
 
+
+
+
+router.get('/estadisticas', authenticateToken, requireRole(['entrenador']), getEstadisticasEntrenador);
 export default router;

@@ -8,31 +8,43 @@ import { createUsers } from './config/initialSetup.js';
 import {createCarreras} from "./config/carrerasSetup.js"
 import { iniciarCronJobs } from './utils/jobCron.js';
 
-
-
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
-
+app.use((req, res, next) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.charset = "utf-8";
+  next();
+});
 await connectDB();
 await createUsers();
 await createCarreras();
-  console.log("Configuración inicial completada");
+console.log("Configuración inicial completada");
 
-  
+// 🔥 Forzar JSON a UTF-8 siempre
+app.set('json escape', false);
+app.set('json replacer', (key, value) => value);
+
+// 🔥 Forzar charset UTF-8 en todas las respuestas HTTP
+app.use((req, res, next) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.charset = "utf-8";
+  next();
+});
+
 app.use(cors({
-  origin: true, 
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
-app.use(cookieParser()); 
+
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 iniciarCronJobs();
-
 
 app.get('/', (req, res) => {
   console.log('¡Alguien visitó la página!');
@@ -40,7 +52,6 @@ app.get('/', (req, res) => {
 });
 
 app.use("/api", indexRoutes);
-
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

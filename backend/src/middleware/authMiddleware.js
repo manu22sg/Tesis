@@ -3,6 +3,8 @@ import { unauthorized, forbidden, error as sendError } from '../utils/responseHa
 import { AppDataSource } from '../config/config.db.js';
 import JugadorSchema from '../entity/Jugador.js';
 
+
+
 export async function authenticateToken(req, res, next) {
   try {
     // 1. Obtener token desde Authorization o cookie
@@ -14,9 +16,6 @@ export async function authenticateToken(req, res, next) {
 
     const token = bearerToken || cookieToken;
 
-   
-    
-
     if (!token) {
       return unauthorized(res, 'Token de acceso requerido');
     }
@@ -26,7 +25,6 @@ export async function authenticateToken(req, res, next) {
     try {
       decoded = verifyToken(token);
     } catch (err) {
-      
       // 🔥 IMPORTANTE: Limpiar cookie si el token es inválido
       res.clearCookie('token', {
         httpOnly: true,
@@ -51,7 +49,6 @@ export async function authenticateToken(req, res, next) {
     }
     
     if (!user) {
-      
       // Limpiar cookie si el usuario no existe
       res.clearCookie('token', {
         httpOnly: true,
@@ -62,7 +59,6 @@ export async function authenticateToken(req, res, next) {
       
       return unauthorized(res, 'Usuario no encontrado');
     }
-
 
     // 5. Verificar estado y verificación
     if (!user.verificado) {
@@ -83,11 +79,24 @@ export async function authenticateToken(req, res, next) {
       rol: user.rol ? user.rol.toLowerCase() : 'estudiante',
       carreraId: user.carreraId,
       estado: user.estado,
+      sexo: user.sexo,
+      anioIngresoUniversidad: user.anioIngresoUniversidad, // ← AGREGADO
       verificado: user.verificado,
-      jugador: user.jugador || null,
+      // 🔥 CAMBIO IMPORTANTE: Guardar objeto completo, no solo el nombre
+      carrera: user.carrera ? {
+        id: user.carrera.id,
+        nombre: user.carrera.nombre
+      } : null,
+      // 🔥 CAMBIO IMPORTANTE: Guardar objeto completo del jugador
+      jugador: user.jugador ? {
+        id: user.jugador.id,
+        posicion: user.jugador.posicion,
+        altura: user.jugador.altura,
+        peso: user.jugador.peso,
+        estado: user.jugador.estado,
+        anioIngreso: user.jugador.anioIngreso
+      } : null,
     };
-    
-
 
     next();
   } catch (e) {
@@ -95,6 +104,7 @@ export async function authenticateToken(req, res, next) {
     return sendError(res, 'Error en la autenticación', 500);
   }
 }
+
 
 // 🔥 Middleware de roles
 export function requireRole(roles) {

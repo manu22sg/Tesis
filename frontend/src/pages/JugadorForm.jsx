@@ -111,7 +111,8 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
       try {
         const resultados = await buscarUsuarios(valorDebounced, {
           roles: ['estudiante'],
-          excluirJugadores: true
+          excluirJugadores: true,
+          sexo: 'Masculino'
         });
           
         const opcionesFormateadas = resultados.map((usuario) => {
@@ -267,34 +268,45 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
                     </div>
                   )}
 
-                  {!usuarioSeleccionado && (
-                    <Form.Item
-                      name="usuarioId"
-                      label="Usuario"
-                      rules={[{ required: true, message: 'Selecciona un usuario' }]}
-                      validateTrigger="onSubmit"
-                    >
-                      <AutoComplete
-                        value={valorBusqueda}
-                        options={opcionesAutoComplete}
-                        onSearch={setValorBusqueda}
-                        onSelect={(value, option) => seleccionarUsuario(value, option)}
-                        style={{ width: '100%' }}
-                        placeholder="Buscar por nombre, RUT o carrera"
-                        allowClear
-                        onClear={() => {
-                          setValorBusqueda('');
-                          setUsuarioSeleccionado(null);
-                          form.setFieldsValue({ usuarioId: undefined });
-                        }}
-                        notFoundContent={
-                          buscandoSugerencias
-                            ? 'Buscando...'
-                            : 'No se encontraron usuarios disponibles'
-                        }
-                      />
-                    </Form.Item>
-                  )}
+                {!usuarioSeleccionado && (
+  <Form.Item
+    name="usuarioId"
+    label="Usuario"
+    rules={[{ required: true, message: 'Selecciona un usuario' }]}
+    validateTrigger="onSubmit"
+  >
+    <AutoComplete
+      value={valorBusqueda}
+      options={opcionesAutoComplete}
+      onSearch={setValorBusqueda}
+      onSelect={(value, option) => seleccionarUsuario(value, option)}
+      style={{ width: '100%' }}
+      placeholder="Buscar por nombre, RUT o carrera"
+      allowClear
+      onClear={() => {
+        setValorBusqueda('');
+        setUsuarioSeleccionado(null);
+        form.setFieldsValue({ usuarioId: undefined });
+      }}
+      notFoundContent={
+        buscandoSugerencias || (valorBusqueda.length >= 2 && valorBusqueda !== valorDebounced) ? (
+          <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+            <Spin size="small" />
+            <span style={{ marginLeft: 8 }}>Buscando...</span>
+          </div>
+        ) : valorBusqueda.length < 2 ? (
+          <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
+            Escribe al menos 2 caracteres para buscar
+          </div>
+        ) : (
+          <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
+            No se encontraron usuarios disponibles
+          </div>
+        )
+      }
+    />
+  </Form.Item>
+)}
                 </>
               ) : (
                 usuarioSeleccionado && (
@@ -329,8 +341,12 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
               )}
 
               {/* Campos actualizados */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                 <Form.Item name="posicion" label="Posición Principal" >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+  <Form.Item 
+    name="posicion" 
+    label="Posición Principal"
+    rules={[{ required: true, message: 'Selecciona una posición principal' }]}
+  >
     <Select placeholder="Selecciona una posición" allowClear>
       <Option value="Portero">Portero</Option>
       <Option value="Defensa Central">Defensa Central</Option>
@@ -346,8 +362,10 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
       <Option value="Delantero Centro">Delantero Centro</Option>
     </Select>
   </Form.Item>
-                 <Form.Item name="posicionSecundaria" label="Posición Secundaria">
-    <Select placeholder="Selecciona una posición" allowClear>
+
+  {/* OPCIONAL */}
+  <Form.Item name="posicionSecundaria" label="Posición Secundaria">
+    <Select placeholder="Selecciona una posición (opcional)" allowClear>
       <Option value="Portero">Portero</Option>
       <Option value="Defensa Central">Defensa Central</Option>
       <Option value="Defensa Central Derecho">Defensa Central Derecho</Option>
@@ -363,98 +381,113 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
     </Select>
   </Form.Item>
 
-                <Form.Item name="piernaHabil" label="Pierna Hábil">
-                  <Select placeholder="Selecciona pierna hábil" allowClear>
-                    <Option value="Derecha">Derecha</Option>
-                    <Option value="Izquierda">Izquierda</Option>
-                    <Option value="Ambas">Ambas</Option>
-                  </Select>
-                </Form.Item>
-              </div>
+  <Form.Item 
+    name="piernaHabil" 
+    label="Pierna Hábil"
+    rules={[{ required: true, message: 'Selecciona la pierna hábil' }]}
+  >
+    <Select placeholder="Selecciona pierna hábil" allowClear>
+      <Option value="Derecha">Derecha</Option>
+      <Option value="Izquierda">Izquierda</Option>
+      <Option value="Ambas">Ambas</Option>
+    </Select>
+  </Form.Item>
+</div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-               <Form.Item
-  name="altura"
-  label="Altura (cm)"
-  rules={[
-    {
-      type: 'number',
-      min: 100,
-      max: 250,
-      message: 'Altura debe estar entre 100-250 cm'
-    }
-  ]}
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+  {/* OPCIONAL */}
+  <Form.Item
+    name="altura"
+    label="Altura (cm) - Opcional"
+    rules={[
+      {
+        type: 'number',
+        min: 100,
+        max: 250,
+        message: 'Altura debe estar entre 100-250 cm'
+      }
+    ]}
+  >
+    <InputNumber
+      style={{ width: '100%' }}
+      placeholder="Ej: 175.5"
+      addonAfter="cm"
+      step={0.1}
+      parser={(value) =>
+        value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+      }
+      formatter={(value) => value}
+    />
+  </Form.Item>
+
+  {/* OPCIONAL */}
+  <Form.Item
+    name="peso"
+    label="Peso (kg) - Opcional"
+    rules={[
+      {
+        type: 'number',
+        min: 30,
+        max: 200,
+        message: 'Peso debe estar entre 30-200 kg'
+      }
+    ]}
+  >
+    <InputNumber
+      style={{ width: '100%' }}
+      placeholder="Ej: 70.5"
+      addonAfter="kg"
+      step={0.1}
+      parser={(value) =>
+        value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
+      }
+      formatter={(value) => value}
+    />
+  </Form.Item>
+</div>
+
+<Form.Item
+  name="estado"
+  label="Estado"
+  rules={[{ required: true, message: 'Selecciona el estado' }]}
 >
-  <InputNumber
-    style={{ width: '100%' }}
-    placeholder="Ej: 175.5"
-    addonAfter="cm"
-    step={0.1}
-    parser={(value) =>
-      value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
-    }
-    formatter={(value) => value}
-  />
+  <Select placeholder="Selecciona el estado">
+    <Option value="activo">Activo</Option>
+    <Option value="inactivo">Inactivo</Option>
+    <Option value="lesionado">Lesionado</Option>
+    <Option value="suspendido">Suspendido</Option>
+  </Select>
 </Form.Item>
 
-               <Form.Item
-  name="peso"
-  label="Peso (kg)"
-  rules={[
-    {
-      type: 'number',
-      min: 30,
-      max: 200,
-      message: 'Peso debe estar entre 30-200 kg'
-    }
-  ]}
->
-  <InputNumber
-    style={{ width: '100%' }}
-    placeholder="Ej: 70.5"
-    addonAfter="kg"
-    step={0.1}
-    parser={(value) =>
-      value.replace(/,/g, '.').replace(/[^0-9.]/g, '')
-    }
-    formatter={(value) => value}
-  />
-</Form.Item>
-              </div>
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+  <Form.Item 
+    name="fechaNacimiento" 
+    label="Fecha de Nacimiento"
+    rules={[{ required: true, message: 'Selecciona la fecha de nacimiento' }]}
+  >
+    <DatePicker
+      format="DD/MM/YYYY"
+      placeholder="Selecciona una fecha"
+      style={{ width: '100%' }}
+    />
+  </Form.Item>
 
-              <Form.Item
-                name="estado"
-                label="Estado"
-                rules={[{ required: true, message: 'Selecciona el estado' }]}
-              >
-                <Select placeholder="Selecciona el estado">
-                  <Option value="activo">Activo</Option>
-                  <Option value="inactivo">Inactivo</Option>
-                  <Option value="lesionado">Lesionado</Option>
-                  <Option value="suspendido">Suspendido</Option>
-                </Select>
-              </Form.Item>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Form.Item name="fechaNacimiento" label="Fecha de Nacimiento">
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    placeholder="Selecciona una fecha"
-                    style={{ width: '100%' }}
-                  />
-                </Form.Item>
-                <Form.Item name="anioIngreso" label="Año de Ingreso">
-                  <Select placeholder="Selecciona el año" showSearch>
-                    {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i).map(
-                      (year) => (
-                        <Option key={year} value={year}>
-                          {year}
-                        </Option>
-                      )
-                    )}
-                  </Select>
-                </Form.Item>
-              </div>
+  <Form.Item 
+    name="anioIngreso" 
+    label="Año de Ingreso"
+    rules={[{ required: true, message: 'Selecciona el año de ingreso al sistema' }]}
+  >
+    <Select placeholder="Selecciona el año" showSearch>
+      {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i).map(
+        (year) => (
+          <Option key={year} value={year}>
+            {year}
+          </Option>
+        )
+      )}
+    </Select>
+  </Form.Item>
+</div>
 
               <Form.Item style={{ marginTop: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

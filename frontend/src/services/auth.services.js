@@ -112,6 +112,10 @@ export async function buscarUsuarios(termino, opciones = {}) {
     if (opciones.roles?.length > 0) {
       params.roles = JSON.stringify(opciones.roles);
     }
+    if (opciones.sexo) {
+      params.sexo = opciones.sexo;
+    }
+
 
     if (opciones.excluirJugadores === true) {
       params.excluirJugadores = "true";

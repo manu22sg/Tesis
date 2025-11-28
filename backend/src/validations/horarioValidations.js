@@ -95,8 +95,8 @@ const horaSchema = Joi.string().pattern(TIME_HH_MM).messages({
 // === Schemas ===
 
 // POST /api/horario/disponibilidad/fecha
-export const disponibilidadPorFechaBody = Joi.object({
-  fecha: fechaConsultaSchema // Usar el schema más flexible para consultas
+export const disponibilidadPorFechaQuery = Joi.object({
+  fecha: fechaConsultaSchema.required()
 });
 
 // POST /api/horario/disponibilidad/rango
@@ -120,21 +120,12 @@ export const disponibilidadPorRangoBody = Joi.object({
   return value;
 });
 
-export const verificarEspecificaBody = Joi.object({
-  canchaId: Joi.number().integer().positive().required()
-    .messages({ 
-      'number.base': 'canchaId debe ser numérico', 
-      'number.positive': 'canchaId debe ser mayor a 0',
-      'any.required': 'canchaId es requerido'
-    }),
-  fecha: fechaReservaSchema, // Para verificar usar el restrictivo (desde mañana)
+export const verificarDisponibilidadQuery = Joi.object({
+  canchaId: Joi.number().integer().positive().required(),
+  fecha: fechaReservaSchema.required(),
   inicio: horaSchema.required(),
   fin: horaSchema.required(),
   sesionIdExcluir: Joi.number().integer().positive().optional()
-    .messages({
-      'number.base': 'sesionIdExcluir debe ser numérico',
-      'number.positive': 'sesionIdExcluir debe ser mayor a 0'
-    })
 }).custom((value, helpers) => {
   const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
   const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);
@@ -146,20 +137,14 @@ export const verificarEspecificaBody = Joi.object({
       message: `Horario fuera del funcionamiento (${HORARIO_FUNCIONAMIENTO.inicio} - ${HORARIO_FUNCIONAMIENTO.fin})`
     });
   }
-  
+
   const dur = f - i;
   if (dur !== HORARIO_FUNCIONAMIENTO.duracionBloque) {
     return helpers.error('any.invalid', {
       message: `La duración debe ser exactamente ${HORARIO_FUNCIONAMIENTO.duracionBloque} minutos`
     });
   }
-  
-  if (dur <= 0) {
-    return helpers.error('any.invalid', {
-      message: 'La hora fin debe ser mayor a la hora inicio'
-    });
-  }
-  
+
   return value;
 });
 
@@ -183,5 +168,25 @@ export const validate = (schema) => (req, res, next) => {
   }
   
   req.body = value;
+  next();
+};
+
+export const validateQuery = (schema) => (req, res, next) => {
+  const { error, value } = schema.validate(req.query, {
+    abortEarly: false,
+    stripUnknown: true
+  });
+
+  if (error) {
+    const errores = error.details.reduce((acc, detail) => {
+      const field = detail.path.join('.');
+      const message = detail.context?.message || detail.message;
+      acc[field] = message;
+      return acc;
+    }, {});
+    return validationError(res, errores);
+  }
+
+  req.query = value;
   next();
 };

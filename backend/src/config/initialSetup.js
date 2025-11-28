@@ -21,12 +21,12 @@ async function createUsers() {
 
     // Generar contraseñas para usuarios especiales
     const entrenadorPassword = generateRandomPassword();
-    const superadminPassword = generateRandomPassword();
+    const admin = generateRandomPassword();
 
     // Mostrar contraseñas en consola
     console.log(" CONTRASEÑAS GENERADAS1:");
     console.log(`   Entrenador (alex@ubiobio.cl): ${entrenadorPassword}`);
-    console.log(`   Superadmin (superadmin@ubiobio.cl): ${superadminPassword}`);
+    console.log(`   admin (admin@ubiobio.cl): ${admin}`);
     console.log("     GUARDA ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
     console.log("");
 
@@ -34,22 +34,24 @@ async function createUsers() {
       // Entrenador con contraseña random
       userRepository.save(
         userRepository.create({
-          rut: "12.345.678-9",
-          nombre: "Alex Entrenador",
+          rut: "9273206-1",
+          nombre: "Alex",
+          apellido: "Barrales",
           email: "alex@ubiobio.cl",
           password: await hashPassword(entrenadorPassword),
           rol: "entrenador",
           estado: "activo",
+          sexo: "Masculino",
+          verificado: true
         }),
       ),
-      // Superadmin con contraseña random
       userRepository.save(
         userRepository.create({
           rut: "98.765.432-1",
-          nombre: "Super Administrador",
-          email: "superadmin@ubiobio.cl",
-          password: await hashPassword(superadminPassword),
-          rol: "superadmin",
+          nombre: "Administrador",
+          email: "admin@ubiobio.cl",
+          password: await hashPassword(admin),
+          rol: "administrador",
           estado: "activo",
         }),
       ),

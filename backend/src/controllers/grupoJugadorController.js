@@ -4,7 +4,8 @@ import {
   obtenerGrupoPorId,
   actualizarGrupo,
   eliminarGrupo,
-  obtenerGruposParaExportar
+  obtenerGruposParaExportar,
+  obtenerEstadisticasEntrenador
 } from "../services/grupoJugadorServices.js";
 import { success, error } from "../utils/responseHandler.js";
 import ExcelJS from "exceljs";
@@ -380,5 +381,21 @@ export async function exportarGruposPDF(req, res) {
         .status(500)
         .json({ success: false, message: "Error al exportar grupos a PDF" });
     }
+  }
+}
+
+
+export async function getEstadisticasEntrenador(req, res) {
+  try {
+    const [estadisticas, errorMsg] = await obtenerEstadisticasEntrenador();
+
+    if (errorMsg) {
+      return error(res, errorMsg, 500);
+    }
+
+    return success(res, estadisticas, 'Estadísticas obtenidas exitosamente');
+  } catch (err) {
+    console.error('Error en getEstadisticasEntrenador:', err);
+    return error(res, 'Error al obtener estadísticas', 500);
   }
 }

@@ -12,6 +12,8 @@ const createErrorMessage = (dataInfo, message) => ({
   message
 });
 
+
+
 export async function hashPassword(password) {
   const saltRounds = 12;
   return await bcrypt.hash(password, saltRounds);
@@ -96,6 +98,8 @@ export async function findUserById(id) {
         'usuario.estado',
         'usuario.verificado',
         'usuario.carreraId',
+        'usuario.sexo',
+        'usuario.anioIngresoUniversidad', // ← ASEGÚRATE DE INCLUIR ESTE CAMPO
         'usuario.fechaCreacion',
         'usuario.fechaActualizacion',
         'carrera.id',
@@ -104,14 +108,13 @@ export async function findUserById(id) {
         'jugador.posicion',
         'jugador.altura',
         'jugador.peso',
-        // Agrega los campos que necesites del jugador
+        'jugador.estado',
+        'jugador.anioIngreso'
       ])
       .leftJoin('usuario.carrera', 'carrera')
       .leftJoin('usuario.jugador', 'jugador')  
       .where('usuario.id = :id', { id })
       .getOne();
-
-  
 
     return [user, null];
 
@@ -175,18 +178,19 @@ export async function registerService(userData) {
     // 5. Crear usuario pendiente y no verificado
     // -----------------------------
     const newUser = userRepository.create({
-      rut,
-      nombre,
-      apellido,
-      email,
+      rut: (rut),
+      nombre: (nombre),
+      apellido: (apellido),
+      email: (email),
       password: hashedPassword,
       rol: userRole,
-      sexo,
+      sexo: (sexo),
       carreraId: carreraId || null,
       estado: 'pendiente',
       verificado: false,
       anioIngresoUniversidad: anioIngresoUniversidad || null
     });
+
 
     const savedUser = await userRepository.save(newUser);
 
@@ -679,12 +683,14 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
       estado = 'activo',
       limite = 20,
       excluirJugadores = false,
-      carreraId = null 
+      carreraId = null,
+      sexo= null
     } = opciones;
      
     const userRepository = AppDataSource.getRepository(UsuarioSchema);
     const terminoLimpio = termino.trim();
-     
+    
+
     const queryBuilder = userRepository
       .createQueryBuilder('usuario')
       .select([
@@ -726,6 +732,10 @@ export async function buscarUsuariosPorTermino(termino, opciones = {}) {
     if (carreraId) {
       queryBuilder.andWhere('usuario.carreraId = :carreraId', { carreraId });
     }
+    if (sexo) {
+      queryBuilder.andWhere('usuario.sexo = :sexo', { sexo });
+    }
+
  
     // Excluir usuarios que ya son jugadores
     if (excluirJugadores) {

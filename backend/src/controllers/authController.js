@@ -156,11 +156,50 @@ export async function getProfile(req, res) {
 
 export async function verifyTokenController(req, res) {
   try {
-    // Si llegamos hasta aquí, el token es válido (gracias al middleware)
+    // Obtener los datos completos del usuario desde la BD
+    const [user, errorMsg] = await findUserById(req.user.id);
+
+    if (errorMsg) {
+      return error(res, errorMsg, 500);
+    }
+
+    if (!user) {
+      return notFound(res, 'Usuario no encontrado');
+    }
+
+    // Formatear el usuario con toda la información necesaria
+    const userFormatted = {
+      id: user.id,
+      rut: user.rut,
+      nombre: user.nombre,
+      apellido: user.apellido,
+      email: user.email,
+      rol: user.rol,
+      estado: user.estado,
+      verificado: user.verificado,
+      sexo: user.sexo,
+      carreraId: user.carreraId,
+      anioIngresoUniversidad: user.anioIngresoUniversidad,
+      carrera: user.carrera ? {
+        id: user.carrera.id,
+        nombre: user.carrera.nombre
+      } : null,
+      jugador: user.jugador ? {
+        id: user.jugador.id,
+        posicion: user.jugador.posicion,
+        altura: user.jugador.altura,
+        peso: user.jugador.peso,
+        estado: user.jugador.estado,
+        anioIngreso: user.jugador.anioIngreso
+      } : null,
+      fechaCreacion: user.fechaCreacion,
+      fechaActualizacion: user.fechaActualizacion
+    };
+
     return success(
       res,
       {
-        user: req.user,
+        user: userFormatted,
         isValid: true
       },
       'Token válido'
@@ -170,6 +209,7 @@ export async function verifyTokenController(req, res) {
     return error(res, 'Error verificando token', 500);
   }
 }
+
 
 // VERIFICAR EMAIL
 export async function verificarEmail(req, res) {
@@ -375,7 +415,8 @@ export async function buscarUsuarios(req, res) {
       termino, 
       roles, 
       excluirJugadores,
-      carreraId  
+      carreraId,
+      sexo  
     } = req.query;
     
     // Validación básica
@@ -401,6 +442,10 @@ export async function buscarUsuarios(req, res) {
     // Agregar opción para excluir jugadores
     if (excluirJugadores === 'true') {
       opciones.excluirJugadores = true;
+    }
+    
+    if (sexo) {
+      opciones.sexo = sexo;
     }
 
     // Agregar filtro por carrera

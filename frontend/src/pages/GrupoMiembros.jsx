@@ -65,6 +65,7 @@ export default function GrupoMiembros() {
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [canchasOpts, setCanchasOpts] = useState([]);
 
+
   const [modalJugadorVisible, setModalJugadorVisible] = useState(false);
   const [jugadorDetalle, setJugadorDetalle] = useState(null);
   const [loadingJugadorDetalle, setLoadingJugadorDetalle] = useState(false);
@@ -74,6 +75,7 @@ export default function GrupoMiembros() {
   const [qDebounced, setQDebounced] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroCarrera, setFiltroCarrera] = useState('todos');
+const [busquedaJugadorDebounced, setBusquedaJugadorDebounced] = useState('');
 
   // Paginación miembros
   const [paginationMiembros, setPaginationMiembros] = useState({
@@ -185,41 +187,47 @@ export default function GrupoMiembros() {
 
   // ✅ Búsqueda de jugadores con debounce (backend)
   useEffect(() => {
-    const buscarJugadores = async () => {
-      const termino = busquedaJugador.trim();
+  const buscarJugadores = async () => {
+    const termino = busquedaJugadorDebounced.trim();
+    
+    if (!termino || termino.length < 2) {
+      setJugadoresDisponibles([]);
+      return;
+    }
+
+    try {
+      setBuscandoJugadores(true);
       
-      if (!termino || termino.length < 2) {
-        setJugadoresDisponibles([]);
-        return;
-      }
+      const resultado = await obtenerJugadores({
+        q: termino,
+        limit: 50,
+        page: 1
+      });
+      
+      const lista = resultado.jugadores || resultado?.data?.jugadores || [];
+      const idsGrupo = new Set(miembros.map(m => m.id));
+      const disponibles = lista.filter(j => !idsGrupo.has(j.id));
+      
+      setJugadoresDisponibles(disponibles);
+    } catch (error) {
+      console.error('Error buscando jugadores:', error);
+      message.error('Error al buscar jugadores');
+    } finally {
+      setBuscandoJugadores(false);
+    }
+  };
 
-      try {
-        setBuscandoJugadores(true);
-        
-        const resultado = await obtenerJugadores({
-          q: termino,
-          limit: 50,
-          page: 1
-        });
-        
-        const lista = resultado.jugadores || resultado?.data?.jugadores || [];
-        
-        // Filtrar jugadores que ya están en el grupo
-        const idsGrupo = new Set(miembros.map(m => m.id));
-        const disponibles = lista.filter(j => !idsGrupo.has(j.id));
-        
-        setJugadoresDisponibles(disponibles);
-      } catch (error) {
-        console.error('Error buscando jugadores:', error);
-        message.error('Error al buscar jugadores');
-      } finally {
-        setBuscandoJugadores(false);
-      }
-    };
+  buscarJugadores(); // 👈 Ejecuta inmediatamente cuando cambia el debounced
+}, [busquedaJugadorDebounced, miembros]);
 
-    const timeout = setTimeout(buscarJugadores, 500);
-    return () => clearTimeout(timeout);
-  }, [busquedaJugador, miembros]);
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    setBusquedaJugadorDebounced(busquedaJugador);
+  }, 500);
+  return () => clearTimeout(timeout);
+}, [busquedaJugador]);
+
 
   // Filtros y paginado de miembros (todo con useMemo)
   const miembrosFiltrados = useMemo(() => {
@@ -915,88 +923,86 @@ export default function GrupoMiembros() {
               ]}
             />
           </Card>
+<Modal
+  title={
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <UserOutlined />
+      <span>Agregar Jugador al Grupo</span>
+    </div>
+  }
+  open={modalAgregar}
+  onCancel={() => {
+    setModalAgregar(false);
+    setJugadorSeleccionado(null);
+    setBusquedaJugador('');
+    setBusquedaJugadorDebounced(''); // 🆕 Limpia también el debounced
+    setJugadoresDisponibles([]);
+  }}
+  footer={[
+    <Button 
+      key="cancel" 
+      onClick={() => { 
+        setModalAgregar(false); 
+        setJugadorSeleccionado(null);
+        setBusquedaJugador('');
+        setBusquedaJugadorDebounced(''); // 🆕 Limpia también el debounced
+        setJugadoresDisponibles([]);
+      }}
+    >
+      Cancelar
+    </Button>,
+    <Button
+      key="submit"
+      type="primary"
+      loading={agregando}
+      onClick={handleConfirmarAgregar}
+      disabled={!jugadorSeleccionado}
+    >
+      Agregar
+    </Button>,
+  ]}
+>
+  <div style={{ marginBottom: 16 }}>
+    <Text strong>Grupo: </Text>
+    <Text>{grupo?.nombre}</Text>
+  </div>
 
-          {/* ✅ Modal Agregar Miembros CON BÚSQUEDA BACKEND */}
-          <Modal
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <UserOutlined />
-                <span>Agregar Jugador al Grupo</span>
-              </div>
-            }
-            open={modalAgregar}
-            onCancel={() => {
-              setModalAgregar(false);
-              setJugadorSeleccionado(null);
-              setBusquedaJugador('');
-              setJugadoresDisponibles([]);
-            }}
-            footer={[
-              <Button 
-                key="cancel" 
-                onClick={() => { 
-                  setModalAgregar(false); 
-                  setJugadorSeleccionado(null);
-                  setBusquedaJugador('');
-                  setJugadoresDisponibles([]);
-                }}
-              >
-                Cancelar
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                loading={agregando}
-                onClick={handleConfirmarAgregar}
-                disabled={!jugadorSeleccionado}
-              >
-                Agregar
-              </Button>,
-            ]}
-          >
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>Grupo: </Text>
-              <Text>{grupo?.nombre}</Text>
-            </div>
-
-            <div>
-              <Text strong>Selecciona un jugador:</Text>
-              <Select
-                value={jugadorSeleccionado}
-                onChange={setJugadorSeleccionado}
-                placeholder="Escribe para buscar por nombre, RUT o carrera..."
-                style={{ width: '100%', marginTop: 8 }}
-                showSearch
-                searchValue={busquedaJugador}
-                onSearch={setBusquedaJugador}
-                loading={buscandoJugadores}
-                filterOption={false}
-                notFoundContent={
-                  buscandoJugadores ? (
-                    <div style={{ textAlign: 'center', padding: 16 }}>
-                      <Spin size="small" />
-                      <div style={{ marginTop: 8 }}>Buscando...</div>
-                    </div>
-                  ) : busquedaJugador.length < 2 ? (
-                    <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
-                      Escribe al menos 2 caracteres para buscar
-                    </div>
-                  ) : jugadoresDisponibles.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
-                      No se encontraron jugadores disponibles
-                    </div>
-                  ) : null
-                }
-                options={(jugadoresDisponibles || []).map(j => ({
-                  value: j.id,
-                  label: `${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`.trim(),
-                }))}
-              />
-
-             
-            </div>
-          </Modal>
-
+  <div>
+    <Text strong>Selecciona un jugador:</Text>
+    <Select
+      value={jugadorSeleccionado}
+      onChange={setJugadorSeleccionado}
+      placeholder="Escribe para buscar por nombre, RUT o carrera..."
+      style={{ width: '100%', marginTop: 8 }}
+      showSearch
+      searchValue={busquedaJugador}
+      onSearch={setBusquedaJugador}
+      loading={buscandoJugadores}
+      filterOption={false}
+      notFoundContent={
+        // 🆕 Condición mejorada: detecta cuando está escribiendo
+        buscandoJugadores || (busquedaJugador.length >= 2 && busquedaJugador !== busquedaJugadorDebounced) ? (
+          <div style={{ textAlign: 'center', padding: 16 }}>
+            <Spin size="small" />
+            <div style={{ marginTop: 8 }}>Buscando...</div>
+          </div>
+        ) : busquedaJugador.length < 2 ? (
+          <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
+            Escribe al menos 2 caracteres para buscar
+          </div>
+        ) : jugadoresDisponibles.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
+            No se encontraron jugadores disponibles
+          </div>
+        ) : null
+      }
+      options={(jugadoresDisponibles || []).map(j => ({
+        value: j.id,
+        label: `${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || 'Sin RUT'} - ${j.usuario?.carrera?.nombre || 'Sin carrera'}`.trim(),
+      }))}
+    />
+  </div>
+</Modal>
           <DetalleSesionModal
             open={detalleModal}
             loading={loadingDetalle}
