@@ -48,7 +48,15 @@ export async function obtenerTodosJugadoresController(req, res) {
     const filtros = {};
     
     if (estado) filtros.estado = estado;
-    if (q) filtros.q = q;
+   if (q !== undefined && q.trim().length > 0 && q.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parámetro de búsqueda "q" debe tener al menos 2 caracteres'
+      });
+    }
+    if (q && q.trim().length >= 2) filtros.q = q.trim();
+
+
     if (anioIngreso) filtros.anioIngreso = parseInt(anioIngreso);
     if (grupoId) filtros.grupoId = parseInt(grupoId);
     

@@ -36,7 +36,7 @@ const EvaluacionSchema = new EntitySchema({
       nullable: true,
     },
     fechaRegistro: {
-      type: "timestamp",
+      type: "timestamptz",
       default: () => "CURRENT_TIMESTAMP",
     },
   },

@@ -1,16 +1,21 @@
-// validations/reservaValidations.js
 import Joi from 'joi';
 import { validationError } from '../utils/responseHandler.js';
 import { parseDateLocal } from '../utils/dateLocal.js';
+import validaHorario from '../utils/validaHorario.js';
 
-const HORARIO_FUNCIONAMIENTO = { inicio: '08:00', fin: '16:00', duracionBloque: 90 };
+// 🔧 CONFIGURACIÓN ACTUALIZADA PARA RESERVAS
+const HORARIO_RESERVAS = { 
+  inicio: '08:00', 
+  fin: '17:00', 
+  duracionBloque: 60    // 1 hora exacta
+};
+
 const ANTICIPACION_MAXIMA_DIAS = 14;
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const RUT_PATTERN = /^\d{7,8}-[\dK]$/;
 
 const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
 const getLocalDate = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -54,6 +59,7 @@ const horaSchema = Joi.string().pattern(TIME_HH_MM)
   .required()
   .messages({ 'string.pattern.base': 'La hora debe tener formato HH:mm (ej: 09:00)' });
 
+// 🔥 VALIDACIÓN ACTUALIZADA CON validaHorario
 export const crearReservaBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
   fecha: fechaReservaSchema,
@@ -62,27 +68,15 @@ export const crearReservaBody = Joi.object({
   motivo: Joi.string().trim().max(500).optional().allow(''),
   participantes: Joi.array().items(rutSchema).max(22).unique().required()
 }).custom((value, helpers) => {
-  const minInicio = toMin(HORARIO_FUNCIONAMIENTO.inicio);
-  const minFin = toMin(HORARIO_FUNCIONAMIENTO.fin);
-  const i = toMin(value.horaInicio);
-  const f = toMin(value.horaFin);
-
-  if (i < minInicio || f > minFin) {
-    return helpers.error('any.invalid', {
-      message: `Horario fuera del funcionamiento (${HORARIO_FUNCIONAMIENTO.inicio} - ${HORARIO_FUNCIONAMIENTO.fin})`
-    });
-  }
-
-  const dur = f - i;
-  if (dur !== HORARIO_FUNCIONAMIENTO.duracionBloque) {
-    return helpers.error('any.invalid', {
-      message: `La duración debe ser exactamente ${HORARIO_FUNCIONAMIENTO.duracionBloque} minutos`
-    });
-  }
-  if (dur <= 0) {
-    return helpers.error('any.invalid', { message: 'La hora fin debe ser mayor a la hora inicio' });
-  }
-  return value;
+  // Usar validaHorario con configuración de RESERVAS
+  const resultado = validaHorario(value, helpers, {
+    inicio: HORARIO_RESERVAS.inicio,
+    fin: HORARIO_RESERVAS.fin,
+    duracionBloque: HORARIO_RESERVAS.duracionBloque,
+    validarBloques: true  // ✅ Valida que sean horarios válidos (08:00, 09:10, etc.)
+  });
+  
+  return resultado === true ? value : resultado;
 });
 
 // GET /api/reservas (usuario)
@@ -105,6 +99,24 @@ export const obtenerTodasReservasQuery = Joi.object({
 export const obtenerReservaPorIdBody = Joi.object({
   id: Joi.number().integer().positive().required()
 });
+
+
+export const editarParticipantesBody = Joi.object({
+  participantes: Joi.array()
+    .items(rutSchema)
+    .min(1)
+    .max(22)
+    .unique()
+    .required()
+    .messages({
+      'array.base': 'participantes debe ser un array',
+      'array.min': 'Debe haber al menos 1 participante',
+      'array.max': 'No se pueden agregar más de 22 participantes',
+      'array.unique': 'No se pueden repetir RUTs',
+      'any.required': 'participantes es requerido'
+    })
+});
+
 
 // middlewares
 export const validate = (schema) => (req, res, next) => {

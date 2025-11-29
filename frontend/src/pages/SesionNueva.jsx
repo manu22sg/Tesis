@@ -24,7 +24,7 @@ import MainLayout from '../components/MainLayout.jsx';
 import { crearSesion, crearSesionesRecurrentes } from '../services/sesion.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import { obtenerGrupos } from '../services/grupo.services.js';
-import { verificarDisponibilidad } from '../services/horario.services.js';
+import { verificarDisponibilidadSesion } from '../services/horario.services.js';
 
 dayjs.locale('es');
 
@@ -162,12 +162,14 @@ console.log('🔍 Verificando disponibilidad:');
       console.log('  h1:', h1?.format('HH:mm'));
       console.log('  h2:', h2?.format('HH:mm'));
 
-        const res = await verificarDisponibilidad(
+        const res = await verificarDisponibilidadSesion(
           Number(canchaId),
           fecha.format('YYYY-MM-DD'),
           h1.format('HH:mm'),
           h2.format('HH:mm')
         );
+        console.log('✅ Respuesta backend:', res);
+
         setDispOk(!!res?.disponible);
       } catch (e) {
         console.error('Error verificando disponibilidad en vivo:', e);
@@ -227,7 +229,7 @@ console.log('🔍 Verificando disponibilidad:');
         payload.fecha = values.fecha.format('YYYY-MM-DD');
 
         if (tipoUbicacion === 'cancha') {
-          const disponibilidad = await verificarDisponibilidad(
+          const disponibilidad = await verificarDisponibilidadSesion(
             payload.canchaId,
             payload.fecha,
             payload.horaInicio,
@@ -453,19 +455,19 @@ console.log('🔍 Verificando disponibilidad:');
                   )
                 }
               >
-                <TimePicker.RangePicker
-                  format="HH:mm"
-                  style={{ width: '100%' }}
-                  minuteStep={30}
-                  disabledTime={() => ({
-                    disabledHours: () => [0,1,2,3,4,5,6,7,17,18,19,20,21,22,23],
-                    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-                  })}
-                  hideDisabledOptions
-                  showNow={false}
-                  placeholder={['Hora inicio', 'Hora fin']}
-                  classNames={{ popup: { root: 'timepicker-academico' } }}
-                />
+               <TimePicker.RangePicker
+  format="HH:mm"
+  style={{ width: '100%' }}
+  minuteStep={30}
+  disabledTime={() => ({
+    disabledHours: () => [0,1,2,3,4,5,6,7], 
+    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
+  })}
+  hideDisabledOptions
+  showNow={false}
+  placeholder={['Hora inicio', 'Hora fin']}
+  classNames={{ popup: { root: 'timepicker-academico' } }}
+/>
               </Form.Item>
 
               {/* Tipo de sesión */}

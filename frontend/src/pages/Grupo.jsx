@@ -363,7 +363,7 @@ export default function Grupos() {
                       Limpiar Filtro
                     </Button>
                   )}
-                  <Dropdown menu={menuExportar} trigger={['click']}>
+                  <Dropdown menu={menuExportar} trigger={['hover']}>
                     <Button
                       icon={<DownloadOutlined />}
                       loading={exportando}

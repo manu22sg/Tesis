@@ -18,13 +18,15 @@ import {
   Empty,
   ConfigProvider,
   Pagination,
-  Dropdown 
+  Dropdown,
+  Tag
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
   FileExcelOutlined,    
   FilePdfOutlined,      
-  DownloadOutlined,    
+  DownloadOutlined,
+  ClearOutlined,    
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
@@ -44,12 +46,12 @@ import MainLayout, { useCampeonatoActivo } from '../components/MainLayout.jsx';
 
 const { Option } = Select;
 
-//  Componente interno que usa el hook
+// Componente interno que usa el hook
 function CampeonatosContent() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   
-  //  Ahora el hook está dentro del Provider
+  // Ahora el hook está dentro del Provider
   const { setCampeonatoActivo } = useCampeonatoActivo();
   
   const [campeonatos, setCampeonatos] = useState([]);
@@ -309,6 +311,8 @@ function CampeonatosContent() {
     return map[estado] || estado;
   };
 
+  const hayFiltrosActivos = Object.values(filtros).some(v => v !== null);
+
   const columns = useMemo(() => [
     {
       title: 'Nombre',
@@ -321,8 +325,8 @@ function CampeonatosContent() {
       dataIndex: 'tipoCampeonato',
       render: (tipo) => (
         <span>
-  {tipo === 'mechon' ? 'Mechón' : 'Intercarrera'}
-</span>
+          {tipo === 'mechon' ? 'Mechón' : 'Intercarrera'}
+        </span>
       )
     },
     {   
@@ -335,8 +339,8 @@ function CampeonatosContent() {
       dataIndex: 'genero',
       render: (genero) => (
         <span>
-  {genero.charAt(0).toUpperCase() + genero.slice(1)}
-</span>
+          {genero.charAt(0).toUpperCase() + genero.slice(1)}
+        </span>
       )
     },
     {
@@ -347,9 +351,9 @@ function CampeonatosContent() {
       title: 'Estado',
       dataIndex: 'estado',
       render: (estado) => (
-       <span>
-  {formatEstadoTexto(estado)}
-</span>
+        <Tag color={getEstadoColor(estado)}>
+          {formatEstadoTexto(estado)}
+        </Tag>
       )
     },
     {
@@ -398,49 +402,53 @@ function CampeonatosContent() {
 
   return (
     <ConfigProvider locale={locale}>
-      <Card title={<><TrophyOutlined /> Gestión de Campeonatos</>} variant="filled">
+      <Card 
+        title={<><TrophyOutlined /> Gestión de Campeonatos</>} 
+        variant="filled"
+        extra={
+          <Space>
+            {hayFiltrosActivos && (
+              <Button 
+                onClick={limpiarFiltros}
+              >
+                Limpiar Filtros
+              </Button>
+            )}
+
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'excel',
+                    icon: <FileExcelOutlined />,
+                    label: 'Exportar a Excel',
+                    onClick: handleExportarExcel,
+                  },
+                  {
+                    key: 'pdf',
+                    icon: <FilePdfOutlined />,
+                    label: 'Exportar a PDF',
+                    onClick: handleExportarPDF,
+                  },
+                ],
+              }}
+              placement="bottomRight"
+            >
+              <Button icon={<DownloadOutlined />}>
+                Exportar
+              </Button>
+            </Dropdown>
+            
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
+              Nuevo Campeonato
+            </Button>
+          </Space>
+        }
+      >
         {/* Filtros */}
         <Card
           title={<span><FilterOutlined /> Filtros</span>}
           style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
-          extra={
-            <Space>
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: 'excel',
-                      icon: <FileExcelOutlined />,
-                      label: 'Exportar a Excel',
-                      onClick: handleExportarExcel,
-                    },
-                    {
-                      key: 'pdf',
-                      icon: <FilePdfOutlined />,
-                      label: 'Exportar a PDF',
-                      onClick: handleExportarPDF,
-                    },
-                  ],
-                }}
-                placement="bottomRight"
-              >
-                <Button icon={<DownloadOutlined />}>
-                  Exportar
-                </Button>
-              </Dropdown>
-
-              <Button 
-                onClick={limpiarFiltros}
-                disabled={!Object.values(filtros).some(v => v !== null)}
-              >
-                Limpiar Filtros
-              </Button>
-              
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => abrirModal()}>
-                Nuevo Campeonato
-              </Button>
-            </Space>
-          }
         >
           <Space wrap>
             <Select
@@ -463,6 +471,7 @@ function CampeonatosContent() {
             >
               <Option value="5v5">5v5</Option>
               <Option value="7v7">7v7</Option>
+              <Option value="8v8">8v8</Option>
               <Option value="11v11">11v11</Option>
             </Select>
 
@@ -580,6 +589,7 @@ function CampeonatosContent() {
                   <Select placeholder="Seleccionar formato">
                     <Option value="5v5">5v5</Option>
                     <Option value="7v7">7v7</Option>
+                    <Option value="8v8">8v8</Option>
                     <Option value="11v11">11v11</Option>
                   </Select>
                 </Form.Item>

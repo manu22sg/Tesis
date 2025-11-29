@@ -212,18 +212,6 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
 /**
  * Endpoint para generar la siguiente ronda (con detección automática)
  */
-export const postGenerarSiguienteRonda = async (req, res) => {
-  try {
-    const { rondaAnterior } = req.body; // Ahora es opcional
-    const resultado = await generarSiguienteRonda({ 
-      campeonatoId: req.params.id, 
-      rondaAnterior // Puede ser undefined
-    });
-    res.json(resultado);
-  } catch (e) { 
-    res.status(400).json({ error: e.message }); 
-  }
-};
 
 /**
  * Genera la siguiente ronda a partir de los ganadores

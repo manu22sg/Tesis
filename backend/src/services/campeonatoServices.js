@@ -22,6 +22,11 @@ export const crearCampeonato = async (payload) => {
     throw new Error("El tipo de campeonato debe ser 'mechon' o 'intercarrera'");
   }
 
+  // Validar formato
+  if (!['5v5', '7v7', '8v8', '11v11'].includes(formato)) {
+    throw new Error("Formato inválido. Debe ser: 5v5, 7v7, 8v8 o 11v11");
+  }
+
   // Evitar duplicados por año/semestre
   const existe = await repo.findOne({
     where: { nombre, anio, semestre },
@@ -31,7 +36,7 @@ export const crearCampeonato = async (payload) => {
       `Ya existe un campeonato llamado "${nombre}" en ${anio}-${semestre}`
     );
 
-  //  Evitar múltiples campeonatos activos del mismo tipo/género
+  // Evitar múltiples campeonatos activos del mismo tipo/género
   const activo = await repo.findOne({
     where: { formato, genero, tipoCampeonato, estado: "creado" },
   });
@@ -41,25 +46,27 @@ export const crearCampeonato = async (payload) => {
       `Ya hay un campeonato activo de formato ${formato} (${genero}) tipo ${tipoCampeonato}. Finaliza el actual antes de crear uno nuevo.`
     );
 
-  //  Verificar disponibilidad mínima de canchas
+  // Verificar disponibilidad mínima de canchas
   const minJugadores =
-  formato === "11v11" ? 11 :
-  formato === "8v8"  ? 8  :
-  formato === "7v7"  ? 7  :
-  5;
+    formato === "11v11" ? 11 :
+    formato === "8v8"  ? 8  :
+    formato === "7v7"  ? 7  :
+    5;
+  
   const canchaValida = await canchaRepo.findOne({
     where: {
       estado: "disponible",
       capacidadMaxima: MoreThanOrEqual(minJugadores),
     },
   });
+  
   if (!canchaValida) {
     throw new Error(
       `No hay canchas disponibles con capacidad para ${minJugadores} jugadores (${formato})`
     );
   }
 
-  //  Crear campeonato
+  // Crear campeonato
   const campeonato = repo.create({
     nombre,
     formato,
@@ -81,10 +88,10 @@ export const listarCampeonatos = async () => {
   const repo = CampeonatoRepo();
   return await repo.find({
     relations: [
-  "equipos",
-  "equipos.carrera",
-  "partidos"
-],
+      "equipos",
+      "equipos.carrera",
+      "partidos"
+    ],
     order: { fechaCreacion: "DESC" },
   });
 };
@@ -96,11 +103,11 @@ export const obtenerCampeonato = async (id) => {
   const repo = CampeonatoRepo();
   return await repo.findOne({
     where: { id: Number(id) },
-    relations:[
-  "equipos",
-  "equipos.carrera",
-  "partidos"
-],
+    relations: [
+      "equipos",
+      "equipos.carrera",
+      "partidos"
+    ],
   });
 };
 
@@ -116,8 +123,14 @@ export const actualizarCampeonato = async (id, cambios) => {
   if (camp.estado === "finalizado") {
     throw new Error("No se puede modificar un campeonato finalizado");
   }
+  
   if (cambios.tipoCampeonato && cambios.tipoCampeonato !== camp.tipoCampeonato) {
     throw new Error("No se puede cambiar el tipo de campeonato una vez creado");
+  }
+
+  // Validar formato si se está actualizando
+  if (cambios.formato && !['5v5', '7v7', '8v8', '11v11'].includes(cambios.formato)) {
+    throw new Error("Formato inválido. Debe ser: 5v5, 7v7, 8v8 o 11v11");
   }
 
   await repo.update({ id: Number(id) }, cambios);

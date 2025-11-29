@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   Form,
@@ -6,7 +6,6 @@ import {
   Button,
   message,
   Space,
-  Alert,
   Spin
 } from 'antd';
 import {
@@ -36,13 +35,17 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
   const [jugadores, setJugadores] = useState([]);
   const [sesiones, setSesiones] = useState([]);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
+  const [busquedaJugador, setBusquedaJugador] = useState('');
+  
+  const searchTimeout = useRef(null);
 
   useEffect(() => {
     if (visible) {
-      cargarJugadores();
       form.resetFields();
       setJugadorSeleccionado(null);
       setSesiones([]);
+      setBusquedaJugador('');
+      setJugadores([]); // ✅ Limpiar jugadores al abrir
     }
   }, [visible, form]);
 
@@ -55,14 +58,47 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
     }
   }, [jugadorSeleccionado]);
 
-  const cargarJugadores = async (q = '') => {
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
+  }, []);
+
+  // 🔥 Handler de búsqueda con debounce
+  const handleBuscarJugadores = (value) => {
+    setBusquedaJugador(value);
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, limpiar
+    if (!value || value.trim().length < 2) {
+      setJugadores([]);
+      setLoadingJugadores(false);
+      return;
+    }
+
+    // ✅ Solo activar loading, NO limpiar jugadores
+    setLoadingJugadores(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeout.current = setTimeout(() => {
+      buscarJugadores(value.trim());
+    }, 500);
+  };
+
+  const buscarJugadores = async (q) => {
     setLoadingJugadores(true);
     try {
       const data = await obtenerJugadores({ q, limit: 100 });
       setJugadores(Array.isArray(data.jugadores) ? data.jugadores : []);
     } catch (error) {
-      console.error('Error cargando jugadores:', error);
-      message.error('Error al cargar los jugadores');
+      console.error('Error buscando jugadores:', error);
+      message.error('Error al buscar los jugadores');
       setJugadores([]);
     } finally {
       setLoadingJugadores(false);
@@ -112,6 +148,8 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
       form.resetFields();
       setJugadorSeleccionado(null);
       setSesiones([]);
+      setBusquedaJugador('');
+      setJugadores([]);
       
       if (onSuccess) onSuccess();
       onClose();
@@ -144,10 +182,29 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
             showSearch
             placeholder="Buscar jugador por nombre o RUT..."
             filterOption={false}
-            onSearch={cargarJugadores}
+            searchValue={busquedaJugador}
+            onSearch={handleBuscarJugadores}
             onChange={handleJugadorChange}
-            notFoundContent={loadingJugadores ? <Spin size="small" /> : 'No encontrado'}
-            optionFilterProp="children"
+            loading={loadingJugadores}
+            notFoundContent={
+              loadingJugadores ? (
+                <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                  <Spin size="small" />
+                </div>
+              ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
+                <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                  Escribe al menos 2 caracteres
+                </div>
+              ) : busquedaJugador.trim().length >= 2 && jugadores.length === 0 ? (
+                <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                  No se encontraron jugadores
+                </div>
+              ) : jugadores.length === 0 ? (
+                <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                  Escribe para buscar...
+                </div>
+              ) : null
+            }
           >
             {jugadores.map((j) => (
               <Select.Option key={j.id} value={j.id}>
@@ -156,7 +213,6 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
             ))}
           </Select>
         </Form.Item>
-
 
         {/* Selector de Sesión */}
         <Form.Item
@@ -172,7 +228,17 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
                 : 'Primero selecciona un jugador'
             }
             disabled={!jugadorSeleccionado}
-            notFoundContent={loadingSesiones ? <Spin size="small" /> : 'No encontrada'}
+            notFoundContent={
+              loadingSesiones ? (
+                <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                  <Spin size="small" />
+                </div>
+              ) : jugadorSeleccionado && sesiones.length === 0 ? (
+                'No hay sesiones disponibles para este jugador'
+              ) : (
+                'Selecciona un jugador primero'
+              )
+            }
             filterOption={(input, option) => {
               const text = String(option?.children ?? '').toLowerCase();
               return text.includes(input.toLowerCase());

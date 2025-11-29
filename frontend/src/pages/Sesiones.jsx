@@ -251,7 +251,7 @@ const menuExportar = {
       
       {/* Botones de la izquierda */}
       <Space>
-        <Dropdown menu={menuExportar} trigger={['click']}>
+        <Dropdown menu={menuExportar} trigger={['hover']}>
         <Button
           icon={<DownloadOutlined />}
           loading={exportando}

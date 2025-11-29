@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
-  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography, Dropdown 
+  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography, Dropdown, Spin 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { PlusOutlined, ReloadOutlined, SlidersOutlined, FileExcelOutlined, FilePdfOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -19,9 +19,11 @@ const { Text } = Typography;
 const PRELOAD_LIMIT = 50;
 
 export default function Estadisticas() {
-const [busquedaJugador, setBusquedaJugador] = useState('');
-const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
-const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
+  const [busquedaJugador, setBusquedaJugador] = useState('');
+  const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
+  const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
+  const searchTimeout = useRef(null);
+  
   const [modo, setModo] = useState('sesion');
   const [sesiones, setSesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -37,8 +39,6 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
   const [editando, setEditando] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-
-    
   // ✅ CARGAR DATOS INICIALES - Solo una vez al montar
   useEffect(() => {
     const cargarBase = async () => {
@@ -63,7 +63,7 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
     };
 
     cargarBase();
-  }, []); // Solo se ejecuta una vez
+  }, []);
 
   // Cuando cambia el modo, limpiamos filtros
   useEffect(() => {
@@ -73,7 +73,21 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
     setSesionesDelJugador([]);
     setFiltroJugadorEnSesion(null);
     setFiltroSesionDelJugador(null);
+    setBusquedaJugador('');
+    setJugadoresBusqueda([]);
+    
+    // Limpiar timeout
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
   }, [modo]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
+  }, []);
 
   // Al elegir una sesión: cargar jugadores del grupo
   const onSeleccionarSesion = useCallback(async (id) => {
@@ -126,6 +140,48 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
     setSesionesDelJugador(sesiones);
   }, [sesiones]);
 
+  // 🔥 Handler de búsqueda con debounce
+  const handleBuscarJugadores = (value) => {
+    setBusquedaJugador(value);
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, limpiar
+    if (!value || value.trim().length < 2) {
+      setJugadoresBusqueda([]);
+      setLoadingBusquedaJugador(false);
+      return;
+    }
+
+    // ✅ Solo activar loading, NO limpiar jugadores
+    setLoadingBusquedaJugador(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeout.current = setTimeout(() => {
+      buscarJugadoresConQ(value.trim());
+    }, 500);
+  };
+
+  const buscarJugadoresConQ = async (q) => {
+    setLoadingBusquedaJugador(true);
+    try {
+      const resJug = await obtenerJugadores({ 
+        q: q.trim(), 
+        limit: 100
+      });
+
+      const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
+      setJugadoresBusqueda(listaJug);
+    } catch (e) {
+      console.error('Error buscando jugadores:', e);
+      setJugadoresBusqueda([]);
+    } finally {
+      setLoadingBusquedaJugador(false);
+    }
+  };
+
   const limpiarFiltros = useCallback(() => {
     setSesionId(null);
     setJugadorId(null);
@@ -133,6 +189,8 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
     setSesionesDelJugador([]);
     setFiltroJugadorEnSesion(null);
     setFiltroSesionDelJugador(null);
+    setBusquedaJugador('');
+    setJugadoresBusqueda([]);
   }, []);
 
   const manejarCrear = () => {
@@ -146,41 +204,6 @@ const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
     message.success('Estadística guardada');
     setReloadKey(k => k + 1);
   };
-const buscarJugadoresConQ = useCallback(async (q) => {
-  if (!q || q.trim().length < 2) {
-    setJugadoresBusqueda([]);
-    return;
-  }
-
-  setLoadingBusquedaJugador(true);
-  try {
-    // ✅ Petición al backend con parámetro de búsqueda
-    const resJug = await obtenerJugadores({ 
-      q: q.trim(), 
-      limit: 100 // límite razonable para búsqueda
-    });
-
-    const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
-    console.log('Jugadores encontrados con búsqueda:', listaJug.length);
-    setJugadoresBusqueda(listaJug);
-  } catch (e) {
-    console.error('Error buscando jugadores:', e);
-    setJugadoresBusqueda([]);
-  } finally {
-    setLoadingBusquedaJugador(false);
-  }
-}, []);
-useEffect(() => {
-  const timer = setTimeout(() => {
-    if (busquedaJugador.trim().length >= 2) {
-      buscarJugadoresConQ(busquedaJugador);
-    } else {
-      setJugadoresBusqueda([]);
-    }
-  }, 500);
-
-  return () => clearTimeout(timer);
-}, [busquedaJugador, buscarJugadoresConQ]);
 
   const handleExportarExcel = async () => {
     try {
@@ -233,6 +256,18 @@ useEffect(() => {
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);
   }, [modo, sesionId, jugadorId]);
+
+  // Determinar qué jugadores mostrar
+  const jugadoresAMostrar = useMemo(() => {
+    // ✅ Si está escribiendo pero tiene menos de 2 caracteres, no mostrar nada
+    if (busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2) {
+      return [];
+    }
+    // Si tiene 2+ caracteres, mostrar resultados de búsqueda
+    // Si NO hay búsqueda, NO mostrar nada (array vacío)
+    return busquedaJugador.trim().length >= 2 ? jugadoresBusqueda : [];
+  }, [busquedaJugador, jugadoresBusqueda]);
+
 
   return (
     <MainLayout>
@@ -312,7 +347,7 @@ useEffect(() => {
                           const fecha = formatearFecha(s.fecha);
                           const hi = formatearHora(s.horaInicio);
                           const hf = s.horaFin ? formatearHora(s.horaFin) : '';
-                          const nombre = s.nombre ? `${s.nombre} — ` : '';
+                          const nombre = s.tipoSesion ? `${s.tipoSesion} — ` : '';
                           return {
                             value: s.id,
                             label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
@@ -345,63 +380,73 @@ useEffect(() => {
                 )}
 
                 {modo === 'jugador' && (
-  <>
-    <Col xs={24} md={10}>
-      <Text type="secondary">Jugador</Text>
-      <Select
-        value={jugadorId}
-        onChange={onSeleccionarJugador}
-        style={{ width: '100%', marginTop: 6 }}
-        placeholder="Busca por nombre o RUT..."
-        loading={loadingBase || loadingBusquedaJugador}
-        allowClear
-        showSearch
-        searchValue={busquedaJugador}
-        onSearch={setBusquedaJugador}
-        filterOption={false} // ✅ Desactivar filtro local, usamos backend
-        notFoundContent={
-          loadingBusquedaJugador 
-            ? 'Buscando...' 
-            : busquedaJugador.length >= 2 && jugadoresBusqueda.length === 0
-            ? 'No se encontraron jugadores'
-            : busquedaJugador.length > 0 && busquedaJugador.length < 2
-            ? 'Escribe al menos 2 caracteres para buscar'
-            : 'Escribe para buscar jugadores'
-        }
-        options={(busquedaJugador.length >= 2 ? jugadoresBusqueda : jugadores).map(j => ({
-          value: j.id,
-          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
-        }))}
-      />
-    </Col>
+                  <>
+                    <Col xs={24} md={10}>
+                      <Text type="secondary">Jugador</Text>
+                      <Select
+                        value={jugadorId}
+                        onChange={onSeleccionarJugador}
+                        style={{ width: '100%', marginTop: 6 }}
+                        placeholder="Busca por nombre o RUT..."
+                        loading={loadingBase || loadingBusquedaJugador}
+                        allowClear
+                        showSearch
+                        searchValue={busquedaJugador}
+                        onSearch={handleBuscarJugadores}
+                        filterOption={false}
+                        notFoundContent={
+                          loadingBusquedaJugador ? (
+                            <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <Spin size="small" />
+                            </div>
+                          ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe al menos 2 caracteres
+                            </div>
+                          ) : busquedaJugador.trim().length >= 2 && jugadoresAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              No se encontraron jugadores
+                            </div>
+                          ) : jugadoresAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe para buscar...
+                            </div>
+                          ) : null
+                        }
+                        options={jugadoresAMostrar.map(j => ({
+                          value: j.id,
+                          label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
+                        }))}
+                      />
+                    </Col>
 
-    <Col xs={24} md={8}>
-      <Text type="secondary">Sesión (opcional)</Text>
-      <Select
-        value={filtroSesionDelJugador}
-        onChange={setFiltroSesionDelJugador}
-        style={{ width: '100%', marginTop: 6 }}
-        placeholder="Todas las sesiones"
-        allowClear
-        showSearch
-        filterOption={(input, option) =>
-          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-        }
-        options={(sesionesDelJugador.length ? sesionesDelJugador : sesiones).map(s => {
-          const fecha = formatearFecha(s.fecha);
-          const hi = formatearHora(s.horaInicio);
-          const hf = s.horaFin ? formatearHora(s.horaFin) : '';
-          const nombre = s.nombre ? `${s.nombre} — ` : '';
-          return {
-            value: s.id,
-            label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
-          };
-        })}
-        disabled={!jugadorId}
-      />
-    </Col>
-  </>
-)}
+                    <Col xs={24} md={8}>
+                      <Text type="secondary">Sesión (opcional)</Text>
+                      <Select
+                        value={filtroSesionDelJugador}
+                        onChange={setFiltroSesionDelJugador}
+                        style={{ width: '100%', marginTop: 6 }}
+                        placeholder="Todas las sesiones"
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) =>
+                          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                        }
+                        options={(sesionesDelJugador.length ? sesionesDelJugador : sesiones).map(s => {
+                          const fecha = formatearFecha(s.fecha);
+                          const hi = formatearHora(s.horaInicio);
+                          const hf = s.horaFin ? formatearHora(s.horaFin) : '';
+                          const nombre = s.nombre ? `${s.nombre} — ` : '';
+                          return {
+                            value: s.id,
+                            label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
+                          };
+                        })}
+                        disabled={!jugadorId}
+                      />
+                    </Col>
+                  </>
+                )}
 
                 <Col xs={24} md={24} style={{ textAlign: 'right' }}>
                   {(sesionId || jugadorId || filtroJugadorEnSesion || filtroSesionDelJugador) && (

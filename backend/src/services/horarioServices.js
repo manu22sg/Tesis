@@ -1,12 +1,13 @@
+
 import { AppDataSource } from '../config/config.db.js';
-import CanchaSchema from '../entity/Cancha.js';
-import ReservaCanchaSchema from '../entity/ReservaCancha.js';
-import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
-import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; 
+import  CanchaSchema  from '../entity/Cancha.js';
+import  SesionEntrenamientoSchema  from '../entity/sesionEntrenamiento.js';
+import  PartidoCampeonatoSchema  from '../entity/partidoCampeonato.js';
+import  ReservaCanchaSchema  from '../entity/reservaCancha.js';
+import { LessThanOrEqual, Between, MoreThan,In } from 'typeorm';
+import { HORARIO_RESERVAS, HORARIO_SESIONES } from '../validations/validationsSchemas.js';
 
-import { In,LessThanOrEqual,Between,MoreThan } from 'typeorm';
 
-const HORARIO_FUNCIONAMIENTO = { inicio: '09:00', fin: '16:00', duracionBloque: 90 };
 
 const DATE_YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -20,13 +21,6 @@ function toISODateSafe(input) {
   return `${y}-${m}-${day}`;
 }
 
-function addDaysLocal(yyyyMmDd, days) {
-  const [y, m, d] = yyyyMmDd.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  date.setDate(date.getDate() + days);
-  return toISODateSafe(date);
-}
-
 function timeToMinutes(time) {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
@@ -38,20 +32,6 @@ function minutesToTime(minutes) {
   return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
 }
 
-function generarBloquesHorarios() {
-  const bloques = [];
-  const ini = timeToMinutes(HORARIO_FUNCIONAMIENTO.inicio);
-  const fin = timeToMinutes(HORARIO_FUNCIONAMIENTO.fin);
-  for (let t = ini; t + HORARIO_FUNCIONAMIENTO.duracionBloque <= fin; t += HORARIO_FUNCIONAMIENTO.duracionBloque) {
-    bloques.push({
-      horaInicio: minutesToTime(t),
-      horaFin: minutesToTime(t + HORARIO_FUNCIONAMIENTO.duracionBloque),
-      disponible: true
-    });
-  }
-  return bloques;
-}
-
 function hayConflictoHorario(b1, b2) {
   const i1 = timeToMinutes(b1.horaInicio);
   const f1 = timeToMinutes(b1.horaFin);
@@ -60,10 +40,51 @@ function hayConflictoHorario(b1, b2) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
+// ============================================
+// 🔧 GENERADORES DE BLOQUES
+// ============================================
+
+function generarBloquesReservas() {
+  const bloques = [];
+  const ini = timeToMinutes(HORARIO_RESERVAS.horainicio);
+  const fin = timeToMinutes(HORARIO_RESERVAS.horafin);
+  const bloque = HORARIO_RESERVAS.duracionBloque;
+  const limpieza = HORARIO_RESERVAS.tiempoLimpieza;
+
+  for (let t = ini; t + bloque <= fin; t += (bloque + limpieza)) {
+    bloques.push({
+      horaInicio: minutesToTime(t),
+      horaFin: minutesToTime(t + bloque),
+      disponible: true
+    });
+  }
+  return bloques;
+}
+
+function generarBloquesSesiones() {
+  const bloques = [];
+  const ini = timeToMinutes(HORARIO_SESIONES.horainicio);
+  const fin = timeToMinutes(HORARIO_SESIONES.horafin);
+  const bloqueDuracion = 120; // 2 horas por bloque visual
+
+  for (let t = ini; t + bloqueDuracion <= fin; t += bloqueDuracion) {
+    bloques.push({
+      horaInicio: minutesToTime(t),
+      horaFin: minutesToTime(t + bloqueDuracion),
+      disponible: true
+    });
+  }
+  return bloques;
+}
+
+// ============================================
+// 📋 TUS FUNCIONES EXISTENTES (no tocar)
+// ============================================
+
 export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 10, filtros = {}) {
   try {
     const fecha = toISODateSafe(fechaISO);
-    const { canchaId, capacidad } = filtros;
+    const { canchaId, capacidad, tipoUso = 'reserva' } = filtros; // 🆕 Agregado tipoUso
 
     const canchaRepo  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepo = AppDataSource.getRepository(ReservaCanchaSchema);
@@ -98,7 +119,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
       [reservas, sesiones, partidos] = await Promise.all([
         reservaRepo.find({
           where: { canchaId: In(canchaIds), fechaReserva: fecha, estado: In(['pendiente','aprobada']) },
-          select: ['canchaId','horaInicio','horaFin'] // solo lo que usas
+          select: ['canchaId','horaInicio','horaFin']
         }),
         sesionRepo.find({
           where: { canchaId: In(canchaIds), fecha },
@@ -124,8 +145,11 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     const sesionesBy = groupBy(sesiones);
     const partidosBy = groupBy(partidos);
 
-    // Plantilla de bloques (una vez) y clon por cancha
-    const plantilla = generarBloquesHorarios();
+    // 🔥 CAMBIO CLAVE: Plantilla según tipo de uso
+    const plantilla = tipoUso === 'sesion' 
+      ? generarBloquesSesiones() 
+      : generarBloquesReservas();
+    
     const clonarBloques = () => plantilla.map(b => ({ ...b }));
 
     const disponibilidadPorCancha = [];
@@ -185,67 +209,20 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     return [null, 'Error interno del servidor'];
   }
 }
-
-
-export async function obtenerDisponibilidadPorRango(fechaInicioISO, fechaFinISO, page = 1, limit = 10) {
-  try {
-    const inicio = toISODateSafe(fechaInicioISO);
-    const fin    = toISODateSafe(fechaFinISO);
-
-    // Calcular total de días en el rango
-    let totalDias = 0;
-    for (let f = inicio; f <= fin; f = addDaysLocal(f, 1)) {
-      totalDias++;
-      if (f === fin) break;
-    }
-
-    const skip = (page - 1) * limit;
-    const disponibilidadCompleta = [];
-    let currentIndex = 0;
-
-    // Itera de inicio a fin usando sólo strings YYYY-MM-DD (sin TZ)
-    for (let f = inicio; f <= fin; f = addDaysLocal(f, 1)) {
-      // Aplicar paginación por días
-      if (currentIndex >= skip && currentIndex < skip + limit) {
-        const [dispDia, err] = await obtenerDisponibilidadPorFecha(f);
-        if (!err && dispDia.data && dispDia.data.length) {
-          disponibilidadCompleta.push({ fecha: f, canchas: dispDia.data });
-        }
-      }
-      currentIndex++;
-      if (f === fin) break;
-    }
-
-    const totalPages = Math.ceil(totalDias / limit);
-
-    return [{
-      data: disponibilidadCompleta,
-      total: totalDias,
-      page,
-      limit,
-      totalPages
-    }, null];
-  } catch (err) {
-    console.error('Error obteniendo disponibilidad por rango:', err);
-    return [null, 'Error interno del servidor'];
-  }
-}
-
-// ACTUALIZADO: Ahora verifica partidos de campeonato también
-export async function verificarDisponibilidadEspecifica(
+export async function verificarDisponibilidadSesion(
   canchaId, 
   fechaISO, 
   horaInicio, 
   horaFin, 
-  sesionIdExcluir = null // Parámetro opcional
+  sesionIdExcluir = null
 ) {
   try {
     const fecha = toISODateSafe(fechaISO);
 
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
-    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema); 
+    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema);
+    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema); // ✅ Agregado
 
     const cancha = await canchaRepository.findOne({ 
       where: { id: canchaId, estado: 'disponible' } 
@@ -255,38 +232,20 @@ export async function verificarDisponibilidadEspecifica(
       return [false, 'Cancha inexistente o no disponible'];
     }
 
-    // 🔥 Obtener sesiones, excluyendo la que se está editando
+    // ✅ 1. Verificar otras sesiones de entrenamiento
     const sesiones = await sesionRepository.find({ 
       where: { canchaId, fecha } 
     });
     
     for (const s of sesiones) {
-      // ✅ Si estamos editando, ignorar la sesión actual
-      if (sesionIdExcluir && s.id === sesionIdExcluir) {
-        continue;
-      }
+      if (sesionIdExcluir && s.id === sesionIdExcluir) continue;
       
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión de entrenamiento (ID: ${s.id})`];
+        return [false, `Conflicto con otra sesión de entrenamiento (ID: ${s.id})`];
       }
     }
 
-    // Verificar reservas
-    const reservas = await reservaRepository.find({
-      where: { 
-        canchaId, 
-        fechaReserva: fecha, 
-        estado: In(['pendiente', 'aprobada']) 
-      }
-    });
-    
-    for (const r of reservas) {
-      if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-        return [false, `Ya existe una reserva (${r.estado}) en ese horario`];
-      }
-    }
-
-    // Verificar partidos
+    // ✅ 2. Verificar partidos de campeonato
     const partidos = await partidoRepository.find({
       where: { 
         canchaId, 
@@ -301,9 +260,94 @@ export async function verificarDisponibilidadEspecifica(
       }
     }
 
+    // ✅ 3. Verificar reservas de cancha (NUEVO)
+    const reservas = await reservaRepository.find({
+      where: { 
+        canchaId, 
+        fechaReserva: fecha, 
+        estado: In(['pendiente', 'aprobada']) 
+      }
+    });
+    
+    for (const r of reservas) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
+        return [false, `Conflicto con una reserva de cancha (${r.estado}) en ese horario`];
+      }
+    }
+
     return [true, null];
   } catch (err) {
-    console.error('Error verificando disponibilidad específica:', err);
+    console.error('Error verificando disponibilidad de sesión:', err);
+    return [false, 'Error interno del servidor'];
+  }
+}
+
+export async function verificarDisponibilidadReserva(
+  canchaId, 
+  fechaISO, 
+  horaInicio, 
+  horaFin
+) {
+  try {
+    const fecha = toISODateSafe(fechaISO);
+
+    const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
+    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
+    const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
+    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema);
+
+    const cancha = await canchaRepository.findOne({ 
+      where: { id: canchaId, estado: 'disponible' } 
+    });
+    
+    if (!cancha) {
+      return [false, 'Cancha inexistente o no disponible'];
+    }
+
+    // ✅ 1. Verificar conflictos con otras reservas
+    const reservas = await reservaRepository.find({
+      where: { 
+        canchaId, 
+        fechaReserva: fecha, 
+        estado: In(['pendiente', 'aprobada']) 
+      }
+    });
+    
+    for (const r of reservas) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
+        return [false, `Ya existe una reserva (${r.estado}) en ese horario`];
+      }
+    }
+
+    // ✅ 2. Verificar conflictos con sesiones de entrenamiento
+    const sesiones = await sesionRepository.find({ 
+      where: { canchaId, fecha } 
+    });
+    
+    for (const s of sesiones) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
+        return [false, `Conflicto con sesión de entrenamiento en ese horario`];
+      }
+    }
+
+    // ✅ 3. Verificar conflictos con partidos de campeonato
+    const partidos = await partidoRepository.find({
+      where: { 
+        canchaId, 
+        fecha, 
+        estado: In(['programado', 'en_juego']) 
+      }
+    });
+    
+    for (const p of partidos) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+        return [false, `Ya existe un partido de campeonato en ese horario`];
+      }
+    }
+
+    return [true, null];
+  } catch (err) {
+    console.error('Error verificando disponibilidad de reserva:', err);
     return [false, 'Error interno del servidor'];
   }
 }

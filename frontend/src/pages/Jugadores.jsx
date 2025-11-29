@@ -107,9 +107,15 @@ export default function Jugadores() {
     cargarCarreras();
   }, []);
 
-  // Debounce para la búsqueda
+  // Debounce para la búsqueda (solo si tiene 2+ caracteres o está vacío)
   useEffect(() => {
-    const t = setTimeout(() => setQDebounced(busqueda.trim()), 500);
+    const t = setTimeout(() => {
+      const trimmed = busqueda.trim();
+      // Solo actualizar si está vacío O tiene 2+ caracteres
+      if (trimmed.length === 0 || trimmed.length >= 2) {
+        setQDebounced(trimmed);
+      }
+    }, 500);
     return () => clearTimeout(t);
   }, [busqueda]);
 
@@ -472,18 +478,21 @@ export default function Jugadores() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.5fr 2fr 0.8fr 0.8fr 0.8fr',
+gridTemplateColumns: '1.3fr 1.2fr 1.2fr 0.6fr 0.5fr',
                   gap: 12,
                   alignItems: 'center'
                 }}
               >
-                <Input
-                  allowClear
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  prefix={<SearchOutlined />}
-                  placeholder="Buscar por nombre o RUT…"
-                />
+                <div>
+                  <Input
+                    allowClear
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    prefix={<SearchOutlined />}
+                    placeholder="Buscar por nombre o RUT..."
+                  />
+                  
+                </div>
 
                 <Select
                   allowClear

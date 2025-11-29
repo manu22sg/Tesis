@@ -1,7 +1,7 @@
 import Joi from "joi";
 import { validationError } from "../utils/responseHandler.js";
 import { parseDateLocal } from "../utils/dateLocal.js";
-
+import { HORARIO_SESIONES } from './validationsSchemas.js';
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const ESTADOS_VALIDOS = ["pendiente", "programado", "en_juego", "finalizado", "cancelado"];
@@ -77,14 +77,32 @@ export const programarPartidoBody = Joi.object({
   const f = toMin(value.horaFin);
   const dur = f - i;
 
+  // ✅ VALIDACIÓN: Horario de sesiones (08:00-24:00)
+  const minInicio = toMin(HORARIO_SESIONES.horainicio); // 08:00 = 480 min
+  const maxFin = toMin(HORARIO_SESIONES.horafin); // 24:00 = 1440 min
+
+  if (i < minInicio || f > maxFin) {
+    return helpers.error("any.invalid", {
+      message: `Los partidos deben programarse entre ${HORARIO_SESIONES.horainicio} y 00:00 (medianoche)`
+    });
+  }
+
   if (f <= i)
     return helpers.error("any.invalid", { message: "horaFin debe ser posterior a horaInicio" });
 
-  if (dur < 30)
-    return helpers.error("any.invalid", { message: "La duración mínima de un partido es de 30 minutos" });
+  // ✅ VALIDACIÓN: Duración mínima
+  if (dur < HORARIO_SESIONES.duracionMinima) {
+    return helpers.error("any.invalid", {
+      message: `La duración mínima de un partido es ${HORARIO_SESIONES.duracionMinima} minutos`
+    });
+  }
 
-  if (dur > 180)
-    return helpers.error("any.invalid", { message: "La duración máxima permitida es de 180 minutos" });
+  // Duración máxima (opcional, puedes ajustar)
+  if (dur > 180) {
+    return helpers.error("any.invalid", {
+      message: "La duración máxima permitida es de 180 minutos (3 horas)"
+    });
+  }
 
   return value;
 });

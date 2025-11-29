@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { 
   Card, 
   Button, 
@@ -10,7 +10,8 @@ import {
   message, 
   ConfigProvider,
   Typography,
-  Dropdown 
+  Dropdown,
+  Spin
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { 
@@ -19,11 +20,10 @@ import {
   ReloadOutlined,
   StarOutlined,
   FileExcelOutlined,    
-  FilePdfOutlined,
-  SlidersOutlined
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
-import { obtenerEvaluaciones, exportarEvaluacionesExcel, exportarEvaluacionesPDF } from '../services/evaluacion.services.js';
+import { exportarEvaluacionesExcel, exportarEvaluacionesPDF } from '../services/evaluacion.services.js';
 import { obtenerSesiones, obtenerSesionPorId } from '../services/sesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerGrupoPorId } from '../services/grupo.services.js';
@@ -51,10 +51,17 @@ export default function Evaluaciones() {
   const [filtroJugadorEnSesion, setFiltroJugadorEnSesion] = useState(null);
   const [filtroSesionDelJugador, setFiltroSesionDelJugador] = useState(null);
   
-  // Estados de búsqueda dinámica
-  const [busquedaJugador, setBusquedaJugador] = useState('');
-  const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
-  const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
+  // ✅ Estados de búsqueda dinámica para MODO JUGADOR
+  const [busquedaJugadorModo, setBusquedaJugadorModo] = useState('');
+  const [jugadoresBusquedaModo, setJugadoresBusquedaModo] = useState([]);
+  const [loadingBusquedaJugadorModo, setLoadingBusquedaJugadorModo] = useState(false);
+  const searchTimeoutModo = useRef(null);
+
+  // ✅ Estados de búsqueda dinámica para FILTRO EN SESIÓN
+  const [busquedaJugadorFiltro, setBusquedaJugadorFiltro] = useState('');
+  const [jugadoresBusquedaFiltro, setJugadoresBusquedaFiltro] = useState([]);
+  const [loadingBusquedaJugadorFiltro, setLoadingBusquedaJugadorFiltro] = useState(false);
+  const searchTimeoutFiltro = useRef(null);
   
   // Estados de UI
   const [loadingBase, setLoadingBase] = useState(false);
@@ -100,15 +107,24 @@ export default function Evaluaciones() {
     setSesionesDelJugador([]);
     setFiltroJugadorEnSesion(null);
     setFiltroSesionDelJugador(null);
-    setBusquedaJugador('');
-    setJugadoresBusqueda([]);
+    setBusquedaJugadorModo('');
+    setBusquedaJugadorFiltro('');
+    setJugadoresBusquedaModo([]);
+    setJugadoresBusquedaFiltro([]);
+    
+    // Limpiar timeouts
+    if (searchTimeoutModo.current) clearTimeout(searchTimeoutModo.current);
+    if (searchTimeoutFiltro.current) clearTimeout(searchTimeoutFiltro.current);
   }, [modo]);
 
-  // Al elegir una sesión
+  // ✅ Al elegir una sesión
   const onSeleccionarSesion = useCallback(async (id) => {
     setSesionId(id);
     setFiltroJugadorEnSesion(null);
     setJugadoresDelGrupo([]);
+    setBusquedaJugadorFiltro('');
+    setJugadoresBusquedaFiltro([]);
+    
     if (!id) return;
 
     setLoadingDependiente(true);
@@ -145,7 +161,7 @@ export default function Evaluaciones() {
     }
   }, [jugadores, sesiones]);
 
-  // Al elegir un jugador
+  // ✅ Al elegir un jugador (modo jugador)
   const onSeleccionarJugador = useCallback(async (id) => {
     setJugadorId(id);
     setFiltroSesionDelJugador(null);
@@ -155,14 +171,57 @@ export default function Evaluaciones() {
     setSesionesDelJugador(sesiones);
   }, [sesiones]);
 
-  // Búsqueda dinámica de jugadores
-  const buscarJugadoresConQ = useCallback(async (q) => {
-    if (!q || q.trim().length < 2) {
-      setJugadoresBusqueda([]);
+  // ✅ HANDLER de búsqueda para MODO JUGADOR (estilo EvaluacionForm)
+  const handleBuscarJugadoresModo = (value) => {
+    setBusquedaJugadorModo(value);
+    
+    if (searchTimeoutModo.current) {
+      clearTimeout(searchTimeoutModo.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, limpiar todo
+    if (!value || value.trim().length < 2) {
+      setJugadoresBusquedaModo([]);
+      setLoadingBusquedaJugadorModo(false);
       return;
     }
 
-    setLoadingBusquedaJugador(true);
+    // ✅ Solo activar loading, NO limpiar jugadores
+    setLoadingBusquedaJugadorModo(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeoutModo.current = setTimeout(() => {
+      buscarJugadoresModo(value.trim());
+    }, 500);
+  };
+
+  // ✅ HANDLER de búsqueda para FILTRO EN SESIÓN (estilo EvaluacionForm)
+  const handleBuscarJugadoresFiltro = (value) => {
+    setBusquedaJugadorFiltro(value);
+    
+    if (searchTimeoutFiltro.current) {
+      clearTimeout(searchTimeoutFiltro.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, limpiar todo
+    if (!value || value.trim().length < 2) {
+      setJugadoresBusquedaFiltro([]);
+      setLoadingBusquedaJugadorFiltro(false);
+      return;
+    }
+
+    // ✅ Solo activar loading, NO limpiar jugadores
+    setLoadingBusquedaJugadorFiltro(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeoutFiltro.current = setTimeout(() => {
+      buscarJugadoresFiltro(value.trim());
+    }, 500);
+  };
+
+  // ✅ Búsqueda dinámica para MODO JUGADOR
+  const buscarJugadoresModo = async (q) => {
+    setLoadingBusquedaJugadorModo(true);
     try {
       const resJug = await obtenerJugadores({ 
         q: q.trim(), 
@@ -170,27 +229,39 @@ export default function Evaluaciones() {
       });
 
       const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
-      setJugadoresBusqueda(listaJug);
+      setJugadoresBusquedaModo(listaJug);
     } catch (e) {
       console.error('Error buscando jugadores:', e);
-      setJugadoresBusqueda([]);
+      setJugadoresBusquedaModo([]);
     } finally {
-      setLoadingBusquedaJugador(false);
+      setLoadingBusquedaJugadorModo(false);
     }
-  }, []);
+  };
 
-  // Debounce para búsqueda
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (busquedaJugador.trim().length >= 2) {
-        buscarJugadoresConQ(busquedaJugador);
-      } else {
-        setJugadoresBusqueda([]);
-      }
-    }, 500);
+  // ✅ Búsqueda dinámica para FILTRO EN SESIÓN
+  const buscarJugadoresFiltro = async (q) => {
+    setLoadingBusquedaJugadorFiltro(true);
+    try {
+      const resJug = await obtenerJugadores({ 
+        q: q.trim(), 
+        limit: 100
+      });
 
-    return () => clearTimeout(timer);
-  }, [busquedaJugador, buscarJugadoresConQ]);
+      const listaJug = resJug?.jugadores || resJug?.data?.jugadores || [];
+      setJugadoresBusquedaFiltro(listaJug);
+    } catch (e) {
+      console.error('Error buscando jugadores:', e);
+      setJugadoresBusquedaFiltro([]);
+    } finally {
+      setLoadingBusquedaJugadorFiltro(false);
+    }
+  };
+
+  // ✅ Debounce para búsqueda MODO JUGADOR - YA NO SE USA, MOVIDO A handleBuscarJugadoresModo
+  // useEffect eliminado - ahora usa useRef con timeout manual
+
+  // ✅ Debounce para búsqueda FILTRO EN SESIÓN - YA NO SE USA, MOVIDO A handleBuscarJugadoresFiltro
+  // useEffect eliminado - ahora usa useRef con timeout manual
 
   const limpiarFiltros = useCallback(() => {
     setSesionId(null);
@@ -199,8 +270,10 @@ export default function Evaluaciones() {
     setSesionesDelJugador([]);
     setFiltroJugadorEnSesion(null);
     setFiltroSesionDelJugador(null);
-    setBusquedaJugador('');
-    setJugadoresBusqueda([]);
+    setBusquedaJugadorModo('');
+    setBusquedaJugadorFiltro('');
+    setJugadoresBusquedaModo([]);
+    setJugadoresBusquedaFiltro([]);
   }, []);
 
   const manejarCrear = () => {
@@ -221,7 +294,6 @@ export default function Evaluaciones() {
     try {
       const params = {};
       
-      // ✅ Enviar parámetros correctos según el modo
       if (modo === 'sesion' && sesionId) {
         params.sesionId = sesionId;
         if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
@@ -255,7 +327,6 @@ export default function Evaluaciones() {
     try {
       const params = {};
       
-      // ✅ Enviar parámetros correctos según el modo
       if (modo === 'sesion' && sesionId) {
         params.sesionId = sesionId;
         if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
@@ -287,6 +358,32 @@ export default function Evaluaciones() {
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);
   }, [modo, sesionId, jugadorId]);
+
+  // ✅ Determinar qué jugadores mostrar según búsqueda
+    // ✅ Determinar qué jugadores mostrar según búsqueda
+  const jugadoresModoAMostrar = useMemo(() => {
+    // Si está escribiendo pero tiene menos de 2 caracteres, no mostrar nada
+    if (busquedaJugadorModo.trim().length > 0 && busquedaJugadorModo.trim().length < 2) {
+      return [];
+    }
+    // Si tiene 2+ caracteres, mostrar resultados de búsqueda
+    // Si NO hay búsqueda, NO mostrar nada (array vacío)
+    return busquedaJugadorModo.trim().length >= 2 
+      ? jugadoresBusquedaModo 
+      : [];
+  }, [busquedaJugadorModo, jugadoresBusquedaModo]);
+
+  const jugadoresFiltroAMostrar = useMemo(() => {
+    // Si está escribiendo pero tiene menos de 2 caracteres, no mostrar nada
+    if (busquedaJugadorFiltro.trim().length > 0 && busquedaJugadorFiltro.trim().length < 2) {
+      return [];
+    }
+    // Si tiene 2+ caracteres, mostrar resultados de búsqueda
+    // Si NO hay búsqueda, NO mostrar nada (array vacío)
+    return busquedaJugadorFiltro.trim().length >= 2
+      ? jugadoresBusquedaFiltro
+      : [];
+  }, [busquedaJugadorFiltro, jugadoresBusquedaFiltro]);
 
   return (
     <MainLayout>
@@ -369,7 +466,7 @@ export default function Evaluaciones() {
                           const fecha = formatearFecha(s.fecha);
                           const hi = formatearHora(s.horaInicio);
                           const hf = s.horaFin ? formatearHora(s.horaFin) : '';
-                          const nombre = s.nombre ? `${s.nombre} — ` : '';
+                          const nombre = s.tipoSesion ? `${s.tipoSesion} — ` : '';
                           return {
                             value: s.id,
                             label: `${nombre}${fecha} — ${hi}${hf ? ` - ${hf}` : ''}`
@@ -384,18 +481,37 @@ export default function Evaluaciones() {
                         value={filtroJugadorEnSesion}
                         onChange={setFiltroJugadorEnSesion}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder={loadingDependiente ? 'Cargando jugadores…' : 'Todos los jugadores'}
+                        placeholder="Busca por nombre o RUT..."
                         allowClear
-                        loading={loadingDependiente}
                         showSearch
-                        filterOption={(input, option) =>
-                          String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                        searchValue={busquedaJugadorFiltro}
+                        onSearch={handleBuscarJugadoresFiltro}
+                        filterOption={false}
+                        loading={loadingDependiente || loadingBusquedaJugadorFiltro}
+                        disabled={!sesionId}
+                        notFoundContent={
+                          loadingDependiente || loadingBusquedaJugadorFiltro ? (
+                            <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <Spin size="small" />
+                            </div>
+                          ) : busquedaJugadorFiltro.trim().length > 0 && busquedaJugadorFiltro.trim().length < 2 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe al menos 2 caracteres
+                            </div>
+                          ) : busquedaJugadorFiltro.trim().length >= 2 && jugadoresFiltroAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              No se encontraron jugadores
+                            </div>
+                          ) : jugadoresFiltroAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe para buscar...
+                            </div>
+                          ) : null
                         }
-                        options={(jugadoresDelGrupo.length ? jugadoresDelGrupo : jugadores).map(j => ({
+                        options={jugadoresFiltroAMostrar.map(j => ({
                           value: j.id,
                           label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
                         }))}
-                        disabled={!sesionId}
                       />
                     </Col>
                   </>
@@ -410,22 +526,32 @@ export default function Evaluaciones() {
                         onChange={onSeleccionarJugador}
                         style={{ width: '100%', marginTop: 6 }}
                         placeholder="Busca por nombre o RUT..."
-                        loading={loadingBase || loadingBusquedaJugador}
+                        loading={loadingBase || loadingBusquedaJugadorModo}
                         allowClear
                         showSearch
-                        searchValue={busquedaJugador}
-                        onSearch={setBusquedaJugador}
+                        searchValue={busquedaJugadorModo}
+                        onSearch={handleBuscarJugadoresModo}
                         filterOption={false}
                         notFoundContent={
-                          loadingBusquedaJugador 
-                            ? 'Buscando...' 
-                            : busquedaJugador.length >= 2 && jugadoresBusqueda.length === 0
-                            ? 'No se encontraron jugadores'
-                            : busquedaJugador.length > 0 && busquedaJugador.length < 2
-                            ? 'Escribe al menos 2 caracteres para buscar'
-                            : 'Escribe para buscar jugadores'
+                          loadingBusquedaJugadorModo ? (
+                            <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <Spin size="small" />
+                            </div>
+                          ) : busquedaJugadorModo.trim().length > 0 && busquedaJugadorModo.trim().length < 2 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe al menos 2 caracteres
+                            </div>
+                          ) : busquedaJugadorModo.trim().length >= 2 && jugadoresModoAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              No se encontraron jugadores
+                            </div>
+                          ) : jugadoresModoAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe para buscar...
+                            </div>
+                          ) : null
                         }
-                        options={(busquedaJugador.length >= 2 ? jugadoresBusqueda : jugadores).map(j => ({
+                        options={jugadoresModoAMostrar.map(j => ({
                           value: j.id,
                           label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
                         }))}

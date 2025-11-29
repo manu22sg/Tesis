@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, message, Tag, Button
+  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, message, Button
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -29,13 +29,14 @@ const ListaEstadisticas = ({
 }) => {
   const [estadisticas, setEstadisticas] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [mostrarTodo, setMostrarTodo] = useState(false);
   const [paginacion, setPaginacion] = useState({
     actual: 1,
     tamanioPagina: 10,
     total: 0,
   });
 
-  // ✅ Control de requests (igual que Grupos.jsx)
+  // ✅ Control de requests
   const requestIdRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -44,7 +45,7 @@ const ListaEstadisticas = ({
     return () => { mountedRef.current = false; };
   }, []);
 
-  // ✅ Función de carga (no useCallback, función normal)
+  // ✅ Función de carga
   const cargarDatos = async (page = 1, limit = 10) => {
     if (!id && tipo !== 'mias') {
       setEstadisticas([]);
@@ -65,14 +66,12 @@ const ListaEstadisticas = ({
         respuesta = await obtenerEstadisticasPorJugador(id, page, limit);
       }
 
-      // Ignorar respuestas viejas
       if (reqId !== requestIdRef.current) return;
 
       const datos = respuesta?.data || respuesta || {};
       const lista = datos.estadisticas || [];
       const total = datos.total ?? lista.length;
 
-      // Filtros secundarios cliente
       const listFiltrada = lista.filter((e) => {
         const okJugador = filtroJugadorId ? Number(e?.jugador?.id) === Number(filtroJugadorId) : true;
         const okSesion  = filtroSesionId ? Number(e?.sesion?.id)  === Number(filtroSesionId)  : true;
@@ -94,8 +93,6 @@ const ListaEstadisticas = ({
     }
   };
 
-  // ✅ Effect único: solo carga cuando cambian filtros o reloadKey
-  // La página siempre es 1 cuando cambian filtros
   useEffect(() => {
     cargarDatos(1, paginacion.tamanioPagina);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,14 +116,36 @@ const ListaEstadisticas = ({
 
   // Totales
   const totales = useMemo(() => {
-    const t = { goles: 0, asistencias: 0, minutosJugados: 0, tarjetasAmarillas: 0, tarjetasRojas: 0, arcosInvictos: 0 };
+    const t = {
+      goles: 0, asistencias: 0, minutosJugados: 0,
+      tarjetasAmarillas: 0, tarjetasRojas: 0, arcosInvictos: 0,
+      tirosAlArco: 0, tirosTotales: 0,
+      regatesExitosos: 0, regatesIntentados: 0,
+      pasesCompletados: 0, pasesIntentados: 0,
+      intercepciones: 0, recuperaciones: 0, despejes: 0,
+      duelosGanados: 0, duelosTotales: 0,
+      atajadas: 0, golesRecibidos: 0
+    };
     for (const e of estadisticas) {
-      t.goles            += Number(e.goles) || 0;
-      t.asistencias      += Number(e.asistencias) || 0;
-      t.minutosJugados   += Number(e.minutosJugados) || 0;
-      t.tarjetasAmarillas+= Number(e.tarjetasAmarillas) || 0;
-      t.tarjetasRojas    += Number(e.tarjetasRojas) || 0;
-      t.arcosInvictos    += Number(e.arcosInvictos) || 0;
+      t.goles += Number(e.goles) || 0;
+      t.asistencias += Number(e.asistencias) || 0;
+      t.minutosJugados += Number(e.minutosJugados) || 0;
+      t.tarjetasAmarillas += Number(e.tarjetasAmarillas) || 0;
+      t.tarjetasRojas += Number(e.tarjetasRojas) || 0;
+      t.arcosInvictos += Number(e.arcosInvictos) || 0;
+      t.tirosAlArco += Number(e.tirosAlArco) || 0;
+      t.tirosTotales += Number(e.tirosTotales) || 0;
+      t.regatesExitosos += Number(e.regatesExitosos) || 0;
+      t.regatesIntentados += Number(e.regatesIntentados) || 0;
+      t.pasesCompletados += Number(e.pasesCompletados) || 0;
+      t.pasesIntentados += Number(e.pasesIntentados) || 0;
+      t.intercepciones += Number(e.intercepciones) || 0;
+      t.recuperaciones += Number(e.recuperaciones) || 0;
+      t.despejes += Number(e.despejes) || 0;
+      t.duelosGanados += Number(e.duelosGanados) || 0;
+      t.duelosTotales += Number(e.duelosTotales) || 0;
+      t.atajadas += Number(e.atajadas) || 0;
+      t.golesRecibidos += Number(e.golesRecibidos) || 0;
     }
     return t;
   }, [estadisticas]);
@@ -140,13 +159,16 @@ const ListaEstadisticas = ({
         title: 'Jugador',
         key: 'jugador',
         width: 240,
+        fixed: 'left',
         render: (_, record) => {
           const u = record?.jugador?.usuario;
           return (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+              <Avatar size={40} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
               <div>
-                <div style={{ fontWeight: 500 }}>{u?.nombre || 'Sin nombre'}</div>
+              <div style={{ fontWeight: 500 }}>
+  {`${u?.nombre || 'Sin nombre'} ${u?.apellido || ''}`.trim()}
+</div>
                 <Text type="secondary" style={{ fontSize: 12 }}>{u?.rut || 'Sin RUT'}</Text>
               </div>
             </div>
@@ -160,14 +182,16 @@ const ListaEstadisticas = ({
         title: 'Sesión',
         key: 'sesion',
         width: 260,
+        fixed: 'left',
         render: (_, record) => {
           const s = record?.sesion;
-          const f = formatearFecha(s?.fecha);
-          const hi = formatearHora(s?.horaInicio);
-          const hf = s?.horaFin ? formatearHora(s?.horaFin) : '';
+          if (!s) return '—';
+          const f = formatearFecha(s.fecha);
+          const hi = formatearHora(s.horaInicio);
+          const hf = s.horaFin ? formatearHora(s.horaFin) : '';
           return (
             <div>
-              <strong>{s?.tipoSesion || 'Sin nombre'}</strong><br />
+              <strong>{s.nombre || s.tipoSesion || 'Sin nombre'}</strong><br />
               <small style={{ color: '#888' }}>{f} — {hi}{hf ? ` - ${hf}` : ''}</small>
             </div>
           );
@@ -175,55 +199,50 @@ const ListaEstadisticas = ({
       });
     }
 
+    // Estadísticas básicas (siempre visibles)
+    const cellStyle = (v) => (
+      <span style={{
+        padding: '4px 12px',
+        borderRadius: 4,
+        fontSize: '14px',
+        fontWeight: 600,
+        border: '1px solid #B9BBBB',
+        backgroundColor: '#f5f5f5'
+      }}>{v ?? 0}</span>
+    );
+
     base.push(
-  { title: 'Goles', dataIndex: 'goles', key: 'goles', align: 'center', width: 90,
-    render: (v) => <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>{v ?? 0}</span> },
-  { title: 'Asistencias', dataIndex: 'asistencias', key: 'asistencias', align: 'center', width: 110,
-    render: (v) => <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>{v ?? 0}</span> },
-  { title: 'Minutos', dataIndex: 'minutosJugados', key: 'minutosJugados', align: 'center', width: 100,
-    render: (v) => v ?? 0 },
-  { title: 'T. Amarillas', dataIndex: 'tarjetasAmarillas', key: 'tarjetasAmarillas', align: 'center', width: 120,
-    render: (v) => <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>{v ?? 0}</span> },
-  { title: 'T. Rojas', dataIndex: 'tarjetasRojas', key: 'tarjetasRojas', align: 'center', width: 100,
-    render: (v) => <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>{v ?? 0}</span> },
-  { title: 'Arcos Invictos', dataIndex: 'arcosInvictos', key: 'arcosInvictos', align: 'center', width: 130,
-    render: (v) => <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>{v ?? 0}</span> },
-);
+      { title: 'Goles', dataIndex: 'goles', key: 'goles', align: 'center', width: 90, render: cellStyle },
+      { title: 'Asistencias', dataIndex: 'asistencias', key: 'asistencias', align: 'center', width: 110, render: cellStyle },
+      { title: 'Minutos', dataIndex: 'minutosJugados', key: 'minutosJugados', align: 'center', width: 100, render: cellStyle },
+      { title: 'T. Amarillas', dataIndex: 'tarjetasAmarillas', key: 'tarjetasAmarillas', align: 'center', width: 120, render: cellStyle },
+      { title: 'T. Rojas', dataIndex: 'tarjetasRojas', key: 'tarjetasRojas', align: 'center', width: 100, render: cellStyle }
+    );
+
+    // Estadísticas extendidas (solo si mostrarTodo = true)
+    if (mostrarTodo) {
+      base.push(
+        // Ofensivas
+        { title: 'Tiros al Arco', dataIndex: 'tirosAlArco', key: 'tirosAlArco', align: 'center', width: 120, render: cellStyle },
+        { title: 'Tiros Totales', dataIndex: 'tirosTotales', key: 'tirosTotales', align: 'center', width: 120, render: cellStyle },
+        { title: 'Regates Exitosos', dataIndex: 'regatesExitosos', key: 'regatesExitosos', align: 'center', width: 140, render: cellStyle },
+        { title: 'Regates Intentados', dataIndex: 'regatesIntentados', key: 'regatesIntentados', align: 'center', width: 160, render: cellStyle },
+        { title: 'Pases Completados', dataIndex: 'pasesCompletados', key: 'pasesCompletados', align: 'center', width: 160, render: cellStyle },
+        { title: 'Pases Intentados', dataIndex: 'pasesIntentados', key: 'pasesIntentados', align: 'center', width: 150, render: cellStyle },
+        
+        // Defensivas
+        { title: 'Intercepciones', dataIndex: 'intercepciones', key: 'intercepciones', align: 'center', width: 130, render: cellStyle },
+        { title: 'Recuperaciones', dataIndex: 'recuperaciones', key: 'recuperaciones', align: 'center', width: 140, render: cellStyle },
+        { title: 'Despejes', dataIndex: 'despejes', key: 'despejes', align: 'center', width: 100, render: cellStyle },
+        { title: 'Duelos Ganados', dataIndex: 'duelosGanados', key: 'duelosGanados', align: 'center', width: 140, render: cellStyle },
+        { title: 'Duelos Totales', dataIndex: 'duelosTotales', key: 'duelosTotales', align: 'center', width: 130, render: cellStyle },
+        
+        // Portero
+        { title: 'Atajadas', dataIndex: 'atajadas', key: 'atajadas', align: 'center', width: 100, render: cellStyle },
+        { title: 'Goles Recibidos', dataIndex: 'golesRecibidos', key: 'golesRecibidos', align: 'center', width: 140, render: cellStyle },
+        { title: 'Arcos Invictos', dataIndex: 'arcosInvictos', key: 'arcosInvictos', align: 'center', width: 130, render: cellStyle }
+      );
+    }
 
     if (userRole !== 'estudiante') {
       base.push({
@@ -231,6 +250,7 @@ const ListaEstadisticas = ({
         key: 'acciones',
         align: 'center',
         width: 120,
+        fixed: 'right',
         render: (_, record) => (
           <Space size="small">
             {onEdit && (
@@ -255,20 +275,61 @@ const ListaEstadisticas = ({
     }
 
     return base;
-  }, [tipo, onEdit, userRole]);
+  }, [tipo, onEdit, userRole, mostrarTodo]);
 
   const mostrarResumen = estadisticas.length > 0;
+
+  // Calcular índices para el summary según columnas visibles
+  const getSummaryCells = () => {
+    const cells = [
+      totales.goles,
+      totales.asistencias,
+      totales.minutosJugados,
+      totales.tarjetasAmarillas,
+      totales.tarjetasRojas,
+    ];
+
+    if (mostrarTodo) {
+      cells.push(
+        totales.tirosAlArco,
+        totales.tirosTotales,
+        totales.regatesExitosos,
+        totales.regatesIntentados,
+        totales.pasesCompletados,
+        totales.pasesIntentados,
+        totales.intercepciones,
+        totales.recuperaciones,
+        totales.despejes,
+        totales.duelosGanados,
+        totales.duelosTotales,
+        totales.atajadas,
+        totales.golesRecibidos,
+        totales.arcosInvictos
+      );
+    }
+
+    return cells;
+  };
 
   return (
     <Card bodyStyle={{ paddingBottom: 0 }}>
       <ConfigProvider locale={locale}>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            icon={mostrarTodo ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+            onClick={() => setMostrarTodo(!mostrarTodo)}
+          >
+            {mostrarTodo ? 'Ocultar estadísticas detalladas' : 'Ver todas las estadísticas'}
+          </Button>
+        </div>
+
         <Table
           columns={columnas}
           dataSource={estadisticas}
           rowKey="id"
           loading={loading}
           pagination={false}
-          scroll={false}
+          scroll={{ x: mostrarTodo ? 2500 : 1000 }}
           summary={
             mostrarResumen
               ? () => (
@@ -278,26 +339,16 @@ const ListaEstadisticas = ({
                         Totales
                       </Table.Summary.Cell>
 
-                      {(() => {
-                        const cells = [
-                          totales.goles,
-                          totales.asistencias,
-                          totales.minutosJugados,
-                          totales.tarjetasAmarillas,
-                          totales.tarjetasRojas,
-                          totales.arcosInvictos,
-                        ];
-                        return cells.map((val, i) => (
-                          <Table.Summary.Cell
-                            key={`sum-${i}`}
-                            index={1 + i}
-                            align="center"
-                            style={{ background: '#eee', fontWeight: 700 }}
-                          >
-                            {val}
-                          </Table.Summary.Cell>
-                        ));
-                      })()}
+                      {getSummaryCells().map((val, i) => (
+                        <Table.Summary.Cell
+                          key={`sum-${i}`}
+                          index={1 + i}
+                          align="center"
+                          style={{ background: '#eee', fontWeight: 700 }}
+                        >
+                          {val}
+                        </Table.Summary.Cell>
+                      ))}
 
                       {userRole !== 'estudiante' && (
                         <Table.Summary.Cell index={99} style={{ background: '#eee' }} />
@@ -310,7 +361,7 @@ const ListaEstadisticas = ({
         />
 
         {estadisticas.length > 0 && (
-          <div style={{ textAlign: 'center', marginTop: 16, padding: '12px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16, padding: '12px 0' }}>
             <Pagination
               current={paginacion.actual}
               pageSize={paginacion.tamanioPagina}
@@ -318,7 +369,7 @@ const ListaEstadisticas = ({
               onChange={onPage}
               onShowSizeChange={onPage}
               showSizeChanger
-              showTotal={(t) => `Total: ${t} registros`}
+              showTotal={(t) => `Total: ${t} estadísticas`}
               pageSizeOptions={['5', '10', '20', '50']}
             />
           </div>

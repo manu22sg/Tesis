@@ -447,7 +447,7 @@ export default function MisReservas() {
                       >
                         <span>
                           <UserOutlined style={{ marginRight: 8, color: '#006B5B' }} />
-                          {p.usuario?.nombre || p.nombreOpcional || 'N/A'}
+                          {p.usuario?.nombre || p.nombreOpcional || 'N/A'} {p.usuario.apellido}
                         </span>
                         <span style={{ color: '#666', fontSize: 12 }}>{p.rut}</span>
                       </div>
@@ -481,7 +481,7 @@ export default function MisReservas() {
                           )}
                           {h.usuario && (
                             <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
-                              Por: {h.usuario.nombre}
+                              Por: {h.usuario.nombre} {h.usuario.apellido}
                             </div>
                           )}
                         </div>

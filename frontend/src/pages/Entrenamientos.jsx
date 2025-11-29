@@ -821,7 +821,7 @@ const { message } = App.useApp();
         }
         options={sesionesDisponibles.map((s) => ({
           value: s.id,
-          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)}`,
+          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre}`,
         }))}
       />
 

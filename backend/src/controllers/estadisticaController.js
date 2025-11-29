@@ -17,7 +17,7 @@ export async function postUpsertEstadistica(req,res){
 
 export async function getEstadisticasPorJugador(req,res){
   const jugadorId = parseInt(req.params.jugadorId,10);
-  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
+  const { page = 1, limit = 10 } = req.query;
   
   // regla estudiante: solo sus propias "mías"
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {

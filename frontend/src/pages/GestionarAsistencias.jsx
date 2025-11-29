@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
   Table,
@@ -17,7 +17,8 @@ import {
   Modal,
   Select,
   Form,
-  Input
+  Input,
+  Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
@@ -33,7 +34,10 @@ import {
   UserOutlined,
   UserAddOutlined,
   SearchOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -66,7 +70,7 @@ export default function GestionarAsistencias() {
   const navigate = useNavigate();
 
   const [asistencias, setAsistencias] = useState([]);
-  const [sesion, setSesion] = useState(null);
+  const [sesion, setSesion] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingSesion, setLoadingSesion] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
@@ -81,6 +85,10 @@ export default function GestionarAsistencias() {
   const [formManual] = Form.useForm();
   const [loadingManual, setLoadingManual] = useState(false);
   const [jugadores, setJugadores] = useState([]);
+  const [busquedaJugador, setBusquedaJugador] = useState('');
+  const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
+  
+  const searchTimeout = useRef(null);
 
   // Cargar información de la sesión
   useEffect(() => {
@@ -131,23 +139,83 @@ export default function GestionarAsistencias() {
     }
   }, [sesionId]);
 
-  // Cargar jugadores cuando se carga la sesión
+  // Cargar jugadores iniciales cuando se carga la sesión
   useEffect(() => {
     if (sesion?.grupo?.id) {
-      cargarJugadoresDelGrupo();
+      cargarJugadoresIniciales();
     }
   }, [sesion]);
 
-  const cargarJugadoresDelGrupo = async () => {
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
+  }, []);
+
+  const cargarJugadoresIniciales = async () => {
     try {
+      setLoadingBusquedaJugador(true);
       const data = await obtenerJugadores({
-        limit: 100,
+        limit: 50,
         grupoId: sesion.grupo.id
       });
       setJugadores(data.jugadores || []);
     } catch (error) {
       console.error('Error cargando jugadores:', error);
       message.error('Error al cargar jugadores del grupo');
+      setJugadores([]);
+    } finally {
+      setLoadingBusquedaJugador(false);
+    }
+  };
+
+  // 🔥 Handler de búsqueda con debounce
+  const handleBuscarJugadores = (value) => {
+    setBusquedaJugador(value);
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, cargar iniciales
+    if (!value || value.trim().length < 2) {
+      setJugadores([]);
+      setLoadingBusquedaJugador(false);
+      // Cargar jugadores iniciales cuando borra la búsqueda
+      if (!value || value.trim().length === 0) {
+        cargarJugadoresIniciales();
+      }
+      return;
+    }
+
+    // 🔥 Limpiar jugadores inmediatamente al empezar a buscar
+    setJugadores([]);
+    setLoadingBusquedaJugador(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeout.current = setTimeout(() => {
+      buscarJugadores(value.trim());
+    }, 500);
+  };
+
+  const buscarJugadores = async (q) => {
+    setLoadingBusquedaJugador(true);
+    try {
+      const data = await obtenerJugadores({
+        q,
+        limit: 100,
+        grupoId: sesion.grupo.id
+      });
+      setJugadores(data.jugadores || []);
+    } catch (error) {
+      console.error('Error buscando jugadores:', error);
+      message.error('Error al buscar jugadores');
+      setJugadores([]);
+    } finally {
+      setLoadingBusquedaJugador(false);
     }
   };
 
@@ -159,6 +227,8 @@ export default function GestionarAsistencias() {
 
   const abrirModalManual = () => {
     formManual.resetFields();
+    setBusquedaJugador('');
+    cargarJugadoresIniciales();
     setModalManual(true);
   };
 
@@ -220,6 +290,7 @@ export default function GestionarAsistencias() {
       });
       
       descargarArchivo(blob, `asistencias_sesion_${sesionId}.xlsx`);
+      message.success("Excel descargado correctamente");
     } catch (error) {
       console.error("Error completo:", error);
       message.error(error.message || "Error al exportar Excel");
@@ -233,6 +304,7 @@ export default function GestionarAsistencias() {
       });
 
       descargarArchivo(blob, `asistencias_sesion_${sesionId}.pdf`);
+      message.success("PDF descargado correctamente");
     } catch (error) {
       console.error("Error al exportar PDF:", error);
       message.error(error.message || "Error al exportar PDF");
@@ -247,6 +319,23 @@ export default function GestionarAsistencias() {
     a.click();
     window.URL.revokeObjectURL(url);
   }
+
+  const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportPDF,
+      },
+    ],
+  };
 
   const handlePageChange = (page, pageSize) => {
     cargarAsistencias(page, pageSize);
@@ -265,8 +354,7 @@ export default function GestionarAsistencias() {
           />
           <div>
             <div style={{ fontWeight: 500 }}>
-  {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim()}
-
+              {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim()}
             </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.jugador?.usuario?.rut || 'Sin RUT'}
@@ -281,21 +369,26 @@ export default function GestionarAsistencias() {
       key: 'estado',
       render: (estado) => {
         const config = ESTADOS[estado] || ESTADOS.presente;
+        const colorMap = {
+          presente: '#00ADD6',
+          ausente: '#E41B1A',
+          justificado: '#F9B214',
+          tarde: '#014898'
+        };
+        const color = colorMap[estado] || '#014898';
+        
         return (
           <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  {config.icon}
-  {config.label}
-</span>
+            padding: '4px 12px',
+            borderRadius: 6,
+            fontSize: '13px',
+            fontWeight: 500,
+            border: `1px solid ${color}`,
+            color: color,
+            backgroundColor: `${color}10`
+          }}>
+            {config.icon} {config.label}
+          </span>
         );
       },
       align: 'center',
@@ -307,15 +400,15 @@ export default function GestionarAsistencias() {
       key: 'origen',
       render: (origen) => (
         <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
-</span>
+          padding: '4px 12px',
+          borderRadius: 6,
+          fontSize: '13px',
+          fontWeight: 500,
+          border: '1px solid #B9BBBB',
+          backgroundColor: '#f5f5f5'
+        }}>
+          {origen === 'jugador' ? 'Jugador' : 'Entrenador'}
+        </span>
       ),
       align: 'center',
       width: 120,
@@ -326,7 +419,7 @@ export default function GestionarAsistencias() {
       render: (_, record) => (
         record.latitud && record.longitud ? (
           <Tooltip title={`Lat: ${record.latitud}, Lng: ${record.longitud}`}>
-            <EnvironmentOutlined style={{ color: '#006B5B', fontSize: 18 }} />
+            <EnvironmentOutlined style={{ color: '#00ADD6', fontSize: 18 }} />
           </Tooltip>
         ) : (
           <Text type="secondary">—</Text>
@@ -376,12 +469,6 @@ export default function GestionarAsistencias() {
     },
   ];
 
-  const estadisticas = {
-    presente: asistencias.filter(a => a.estado === 'presente').length,
-    ausente: asistencias.filter(a => a.estado === 'ausente').length,
-    justificado: asistencias.filter(a => a.estado === 'justificado').length,
-  };
-
   if (loadingSesion) {
     return (
       <MainLayout>
@@ -415,30 +502,31 @@ export default function GestionarAsistencias() {
                     </Text>
                     {sesion.latitudToken && sesion.longitudToken ? (
                       <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <EnvironmentOutlined />
-  Token con ubicación activa
-</span>
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        border: '1px solid #00ADD6',
+                        color: '#00ADD6',
+                        backgroundColor: '#00ADD610',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <EnvironmentOutlined />
+                        Token con ubicación
+                      </span>
                     ) : (
-                     <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  Token sin ubicación
-</span>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        border: '1px solid #B9BBBB',
+                        backgroundColor: '#f5f5f5'
+                      }}>
+                        Token sin ubicación
+                      </span>
                     )}
                     {sesion.grupo && (
                       <Text type="secondary">
@@ -449,53 +537,14 @@ export default function GestionarAsistencias() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <Dropdown menu={menuExportar} trigger={['hover']}>
+                    <Button icon={<DownloadOutlined />}>
+                      Exportar
+                    </Button>
+                  </Dropdown>
                   <Button onClick={() => navigate('/sesiones')}>
                     Volver a Sesiones
                   </Button>
-                  
-                  <Space size="small">
-                    <Button type="primary" onClick={handleExportExcel}>
-                      Exportar Excel
-                    </Button>
-                    <Button type="primary" onClick={handleExportPDF}>
-                      Exportar PDF
-                    </Button>
-                  </Space>
-                </div>
-              </div>
-
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                gap: 16, 
-                marginTop: 24,
-                padding: 16,
-                background: '#f5f5f5',
-                borderRadius: 8
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-                    {estadisticas.presente}
-                  </div>
-                  <Text type="secondary">Presentes</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-                    {estadisticas.ausente}
-                  </div>
-                  <Text type="secondary">Ausentes</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-                    {estadisticas.justificado}
-                  </div>
-                  <Text type="secondary">Justificados</Text>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>
-                    {pagination.total}
-                  </div>
-                  <Text type="secondary">Total</Text>
                 </div>
               </div>
             </Card>
@@ -568,15 +617,32 @@ export default function GestionarAsistencias() {
           {/* Modal de Registro Manual */}
           <Modal
             title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <UserAddOutlined />
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                fontSize: 18,
+                fontWeight: 600,
+                color: '#262626'
+              }}>
+                <UserAddOutlined style={{ color: '#014898' }} />
                 <span>Registrar Asistencia Manualmente</span>
               </div>
             }
             open={modalManual}
             onCancel={() => setModalManual(false)}
             footer={[
-              <Button key="cancel" onClick={() => setModalManual(false)}>
+              <Button 
+                key="cancel" 
+                onClick={() => setModalManual(false)}
+                size="large"
+                style={{ 
+                  borderRadius: 8,
+                  height: 40,
+                  paddingLeft: 24,
+                  paddingRight: 24
+                }}
+              >
                 Cancelar
               </Button>,
               <Button
@@ -584,6 +650,15 @@ export default function GestionarAsistencias() {
                 type="primary"
                 loading={loadingManual}
                 onClick={() => formManual.submit()}
+                size="large"
+                style={{ 
+                  backgroundColor: '#014898',
+                  borderColor: '#014898',
+                  borderRadius: 8,
+                  height: 40,
+                  paddingLeft: 24,
+                  paddingRight: 24
+                }}
               >
                 Registrar
               </Button>,
@@ -594,19 +669,35 @@ export default function GestionarAsistencias() {
               form={formManual}
               layout="vertical"
               onFinish={handleRegistroManual}
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 24 }}
             >
               <Form.Item
-                label="Jugador"
+                label={<span style={{ fontSize: 14, fontWeight: 500 }}>Jugador</span>}
                 name="jugadorId"
                 rules={[{ required: true, message: 'Selecciona un jugador' }]}
               >
                 <Select
                   showSearch
-                  placeholder="Selecciona un jugador del grupo..."
-                  optionFilterProp="label"
+                  placeholder="Buscar jugador por nombre o RUT..."
+                  filterOption={false}
+                  searchValue={busquedaJugador}
+                  onSearch={handleBuscarJugadores}
+                  size="large"
+                  style={{ borderRadius: 8 }}
                   notFoundContent={
-                    jugadores.length === 0 ? (
+                    loadingBusquedaJugador ? (
+                      <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                        <Spin size="small" />
+                      </div>
+                    ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
+                      <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                        Escribe al menos 2 caracteres
+                      </div>
+                    ) : busquedaJugador.trim().length >= 2 && jugadores.length === 0 ? (
+                      <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                        No se encontraron jugadores
+                      </div>
+                    ) : jugadores.length === 0 ? (
                       <Empty 
                         description="No hay jugadores en este grupo" 
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -614,59 +705,56 @@ export default function GestionarAsistencias() {
                     ) : null
                   }
                 >
-                  {jugadores.map((jugador) => (
-                    <Select.Option 
-                      key={jugador.id} 
-                      value={jugador.id}
-                      label={`${jugador.usuario?.nombre || 'Sin nombre'} ${jugador.usuario?.apellido || ''} - ${jugador.usuario?.rut || ''}`}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Avatar size="small" icon={<UserOutlined />} />
-                        <div>
-                          <div style={{ fontWeight: 500 }}>
-                            {jugador.usuario?.nombre || 'Sin nombre'} {jugador.usuario?.apellido || ''}
-                          </div>
-                          <div style={{ fontSize: 12, color: '#999' }}>
-                            {jugador.usuario?.rut || 'Sin RUT'} • {jugador.usuario?.email || ''}
-                          </div>
-                        </div>
+                  {jugadores.map((jugador) => {
+                    const nombreCompleto = `${jugador.usuario?.nombre || 'Sin nombre'} ${jugador.usuario?.apellido || ''}`.trim();
+                    const rut = jugador.usuario?.rut || 'Sin RUT';
+                    
+                    return (
+                      <Select.Option 
+                        key={jugador.id} 
+                        value={jugador.id}
+                      >
+                        {`${nombreCompleto} - ${rut}`}
+                      </Select.Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label={<span style={{ fontSize: 14, fontWeight: 500 }}>Estado</span>}
+                name="estado"
+                initialValue="presente"
+                rules={[{ required: true, message: 'Selecciona un estado' }]}
+              >
+                <Select size="large" style={{ borderRadius: 8 }}>
+                  {Object.entries(ESTADOS).map(([key, config]) => (
+                    <Select.Option key={key} value={key}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8,
+                        padding: '4px 0'
+                      }}>
+                        <span style={{ 
+                          fontSize: 16,
+                          color: key === 'presente' ? '#00ADD6' :
+                                 key === 'ausente' ? '#E41B1A' :
+                                 key === 'justificado' ? '#F9B214' :
+                                 key === 'tarde' ? '#014898' :
+                                 '#014898'
+                        }}>
+                          {config.icon}
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>
+                          {config.label}
+                        </span>
                       </div>
                     </Select.Option>
                   ))}
                 </Select>
               </Form.Item>
-
-              <Form.Item
-                label="Estado"
-                name="estado"
-                initialValue="presente"
-                rules={[{ required: true, message: 'Selecciona un estado' }]}
-              >
-                <Select>
-                  {Object.entries(ESTADOS).map(([key, config]) => (
-                    <Select.Option key={key} value={key}>
-                      <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  {config.icon}
-  {config.label}
-</span>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
             </Form>
-
-            
           </Modal>
         </div>
       </ConfigProvider>

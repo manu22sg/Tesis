@@ -15,39 +15,62 @@ import {
 export const postCampeonato = async (req, res) => {
   try {
     const data = await crearCampeonato(req.body);
-    res.status(201).json(data);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    return success(res, data, "Campeonato creado exitosamente", 201);
+  } catch (e) { 
+    return error(res, e.message, 400);
+  }
 };
 
 export const getCampeonatos = async (_req, res) => {
-  try { res.json(await listarCampeonatos()); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  try { 
+    const data = await listarCampeonatos();
+    return success(res, data);
+  }
+  catch (e) { 
+    return error(res, e.message, 400);
+  }
 };
 
 export const getCampeonato = async (req, res) => {
   try {
     const data = await obtenerCampeonato(req.params.id);
-    if (!data) return res.status(404).json({ error: "No encontrado" });
-    res.json(data);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    if (!data) return error(res, "Campeonato no encontrado", 404);
+    return success(res, data);
+  } catch (e) { 
+    return error(res, e.message, 400);
+  }
 };
 
 export const putCampeonato = async (req, res) => {
-  try { res.json(await actualizarCampeonato(req.params.id, req.body)); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  try { 
+    const data = await actualizarCampeonato(req.params.id, req.body);
+    return success(res, data, "Campeonato actualizado exitosamente");
+  }
+  catch (e) { 
+    return error(res, e.message, 400);
+  }
 };
 
 export const deleteCampeonato = async (req, res) => {
-  try { res.json(await eliminarCampeonato(req.params.id)); }
+  try { 
+    const data = await eliminarCampeonato(req.params.id);
+    return success(res, data, "Campeonato eliminado exitosamente");
+  }
   catch (e) {
     console.log("Error al eliminar campeonato ID:", req.params.id, e); 
-    res.status(400).json({ error: e.message }); }
+    return error(res, e.message, 400);
+  }
 };
 
 // Fixture
 export const postSortearPrimeraRonda = async (req, res) => {
-  try { res.json(await sortearPrimeraRonda({ campeonatoId: req.params.id })); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  try { 
+    const data = await sortearPrimeraRonda({ campeonatoId: req.params.id });
+    return success(res, data, "Primera ronda sorteada exitosamente");
+  }
+  catch (e) { 
+    return error(res, e.message, 400);
+  }
 };
 
 export const postGenerarSiguienteRonda = async (req, res) => {
@@ -57,9 +80,9 @@ export const postGenerarSiguienteRonda = async (req, res) => {
       campeonatoId: req.params.id, 
       rondaAnterior 
     });
-    res.json(resultado);
+    return success(res, resultado, "Siguiente ronda generada exitosamente");
   } catch (e) { 
-    res.status(400).json({ error: e.message }); 
+    return error(res, e.message, 400);
   }
 };
 
@@ -78,10 +101,7 @@ export async function exportarCampeonatosExcel(req, res) {
     const campeonatos = await listarCampeonatos();
 
     if (!campeonatos || campeonatos.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay campeonatos para exportar"
-      });
+      return error(res, "No hay campeonatos para exportar", 404);
     }
 
     // Aplicar filtros
@@ -104,10 +124,7 @@ export async function exportarCampeonatosExcel(req, res) {
     }
 
     if (campeonatosFiltrados.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay campeonatos que coincidan con los filtros"
-      });
+      return error(res, "No hay campeonatos que coincidan con los filtros", 404);
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -116,6 +133,7 @@ export async function exportarCampeonatosExcel(req, res) {
 
     sheet.columns = [
       { header: "Nombre", key: "nombre", width: 35 },
+      { header: "Tipo", key: "tipo", width: 15 },
       { header: "Formato", key: "formato", width: 12 },
       { header: "Género", key: "genero", width: 12 },
       { header: "Año", key: "anio", width: 10 },
@@ -143,8 +161,13 @@ export async function exportarCampeonatosExcel(req, res) {
         return genero ? genero.charAt(0).toUpperCase() + genero.slice(1) : "—";
       };
 
+      const formatearTipo = (tipo) => {
+        return tipo === 'mechon' ? 'Mechón' : 'Intercarrera';
+      };
+
       sheet.addRow({
         nombre: c.nombre || "—",
+        tipo: formatearTipo(c.tipoCampeonato || 'intercarrera'),
         formato: c.formato || "—",
         genero: formatearGenero(c.genero),
         anio: c.anio || "—",
@@ -167,13 +190,9 @@ export async function exportarCampeonatosExcel(req, res) {
 
     return res.send(buffer);
 
-  } catch (error) {
-    console.error("Error exportando campeonatos a Excel:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al exportar campeonatos",
-      error: error.message
-    });
+  } catch (err) {
+    console.error("Error exportando campeonatos a Excel:", err);
+    return error(res, "Error al exportar campeonatos", 500);
   }
 }
 
@@ -192,10 +211,7 @@ export async function exportarCampeonatosPDF(req, res) {
     const campeonatos = await listarCampeonatos();
 
     if (!campeonatos || campeonatos.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay campeonatos para exportar"
-      });
+      return error(res, "No hay campeonatos para exportar", 404);
     }
 
     // Aplicar filtros
@@ -218,10 +234,7 @@ export async function exportarCampeonatosPDF(req, res) {
     }
 
     if (campeonatosFiltrados.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay campeonatos que coincidan con los filtros"
-      });
+      return error(res, "No hay campeonatos que coincidan con los filtros", 404);
     }
 
     const doc = new PDFDocument({ margin: 40 });
@@ -254,9 +267,14 @@ export async function exportarCampeonatosPDF(req, res) {
         return genero ? genero.charAt(0).toUpperCase() + genero.slice(1) : "—";
       };
 
+      const formatearTipo = (tipo) => {
+        return tipo === 'mechon' ? 'Mechón' : 'Intercarrera';
+      };
+
       doc.fontSize(12).font("Helvetica-Bold").text(c.nombre || "Campeonato sin nombre");
 
       doc.font("Helvetica").fontSize(10).text(`
+Tipo: ${formatearTipo(c.tipoCampeonato || 'intercarrera')}
 Formato: ${c.formato || "—"}
 Género: ${formatearGenero(c.genero)}
 Año/Semestre: ${c.anio || "—"} - Semestre ${c.semestre || "—"}
@@ -274,13 +292,10 @@ Fecha de Creación: ${c.fechaCreacion ? new Date(c.fechaCreacion).toLocaleDateSt
 
     doc.end();
 
-  } catch (error) {
-    console.error("Error exportando campeonatos a PDF:", error);
+  } catch (err) {
+    console.error("Error exportando campeonatos a PDF:", err);
     if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: "Error al exportar campeonatos"
-      });
+      return error(res, "Error al exportar campeonatos", 500);
     }
   }
 }
@@ -292,29 +307,20 @@ export async function exportarFixtureExcel(req, res) {
     const { id: campeonatoId } = req.params;
 
     if (!campeonatoId) {
-      return res.status(400).json({
-        success: false,
-        message: "campeonatoId es requerido"
-      });
+      return error(res, "campeonatoId es requerido", 400);
     }
 
     const campeonato = await obtenerCampeonato(campeonatoId);
 
     if (!campeonato) {
-      return res.status(404).json({
-        success: false,
-        message: "Campeonato no encontrado"
-      });
+      return error(res, "Campeonato no encontrado", 404);
     }
 
     // Obtener partidos con todas sus relaciones (equipos y cancha)
     const partidos = await obtenerPartidosConRelaciones(campeonatoId);
 
     if (partidos.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay partidos para exportar en este campeonato"
-      });
+      return error(res, "No hay partidos para exportar en este campeonato", 404);
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -404,7 +410,7 @@ export async function exportarFixtureExcel(req, res) {
         const penalesTexto = p.definidoPorPenales 
           ? `${p.penalesA ?? 0} - ${p.penalesB ?? 0}`
           : "—";
-          const hora = p.horaInicio && p.horaFin ? `${formatearHora(p.horaInicio)} - ${formatearHora(p.horaFin)}` : "—";
+        const hora = p.horaInicio && p.horaFin ? `${formatearHora(p.horaInicio)} - ${formatearHora(p.horaFin)}` : "—";
 
         const rowData = {
           ronda: index === 0 ? formatearRonda(ronda) : "",
@@ -471,13 +477,9 @@ export async function exportarFixtureExcel(req, res) {
 
     return res.send(buffer);
 
-  } catch (error) {
-    console.error("Error exportando fixture a Excel:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al exportar fixture",
-      error: error.message
-    });
+  } catch (err) {
+    console.error("Error exportando fixture a Excel:", err);
+    return error(res, "Error al exportar fixture", 500);
   }
 }
 
@@ -487,29 +489,20 @@ export async function exportarFixturePDF(req, res) {
     const { id: campeonatoId } = req.params;
 
     if (!campeonatoId) {
-      return res.status(400).json({
-        success: false,
-        message: "campeonatoId es requerido"
-      });
+      return error(res, "campeonatoId es requerido", 400);
     }
 
     const campeonato = await obtenerCampeonato(campeonatoId);
 
     if (!campeonato) {
-      return res.status(404).json({
-        success: false,
-        message: "Campeonato no encontrado"
-      });
+      return error(res, "Campeonato no encontrado", 404);
     }
 
     // Obtener partidos con todas sus relaciones (equipos y cancha)
     const partidos = await obtenerPartidosConRelaciones(campeonatoId);
 
     if (partidos.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No hay partidos para exportar en este campeonato"
-      });
+      return error(res, "No hay partidos para exportar en este campeonato", 404);
     }
 
     const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -615,10 +608,11 @@ export async function exportarFixturePDF(req, res) {
         // Info adicional
         const detalles = [];
         if (p.fecha) detalles.push(`Fecha: ${new Date(p.fecha).toLocaleDateString('es-CL')}`);
-        if (p.horaInicio) {const horaInicioFormateada = formatearHora(p.horaInicio);
-        const horaFinFormateada = p.horaFin ? ` - ${formatearHora(p.horaFin)}` : '';
-        detalles.push(`Hora: ${horaInicioFormateada}${horaFinFormateada}`);
-}
+        if (p.horaInicio) {
+          const horaInicioFormateada = formatearHora(p.horaInicio);
+          const horaFinFormateada = p.horaFin ? ` - ${formatearHora(p.horaFin)}` : '';
+          detalles.push(`Hora: ${horaInicioFormateada}${horaFinFormateada}`);
+        }
         if (p.cancha?.nombre) detalles.push(`Cancha: ${p.cancha.nombre}`);
         detalles.push(`Estado: ${formatearEstado(p.estado)}`);
 
@@ -645,18 +639,13 @@ export async function exportarFixturePDF(req, res) {
 
     doc.end();
 
-  } catch (error) {
-    console.error("Error exportando fixture a PDF:", error);
+  } catch (err) {
+    console.error("Error exportando fixture a PDF:", err);
     if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: "Error al exportar fixture"
-      });
+      return error(res, "Error al exportar fixture", 500);
     }
   }
 }
-
-
 
 function formatearHora(horaStr) {
   if (!horaStr) return "—";
@@ -668,4 +657,3 @@ function formatearHora(horaStr) {
 
   return `${hh}:${mm}`;
 }
-

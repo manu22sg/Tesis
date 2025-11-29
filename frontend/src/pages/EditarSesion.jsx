@@ -23,7 +23,7 @@ import MainLayout from '../components/MainLayout.jsx';
 import { obtenerSesionPorId, actualizarSesion } from '../services/sesion.services.js';
 import { obtenerCanchas } from '../services/cancha.services.js';
 import { obtenerGrupos } from '../services/grupo.services.js';
-import { verificarDisponibilidad } from '../services/horario.services.js';
+import { verificarDisponibilidadSesion } from '../services/horario.services.js';
 
 dayjs.locale('es');
 
@@ -147,7 +147,7 @@ export default function EditarSesion() {
         }
 
         // 🔥 Llamada con el parámetro sesionIdExcluir
-        const res = await verificarDisponibilidad(
+        const res = await verificarDisponibilidadSesion(
           Number(canchaId),
           fecha.format('YYYY-MM-DD'),
           h1.format('HH:mm'),
@@ -194,7 +194,7 @@ export default function EditarSesion() {
         payload.ubicacionExterna = null;
 
         // ✅ Verificar disponibilidad antes de guardar
-        const disponibilidad = await verificarDisponibilidad(
+        const disponibilidad = await verificarDisponibilidadSesion(
           payload.canchaId,
           payload.fecha,
           payload.horaInicio,

@@ -10,7 +10,7 @@ import {
   ConfigProvider,
   Typography,
   Dropdown,
-  Statistic
+  Spin
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -19,10 +19,7 @@ import {
   TeamOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
-  DownloadOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  QuestionCircleOutlined
+  DownloadOutlined
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout';
 import ListaAsistencias from '../components/ListaAsistencias.jsx';
@@ -58,6 +55,7 @@ export default function Asistencias() {
   const [busquedaJugador, setBusquedaJugador] = useState('');
   const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
   const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
+  const searchTimeout = useRef(null);
 
   const [loadingBase, setLoadingBase] = useState(false);
   const [loadingDependiente, setLoadingDependiente] = useState(false);
@@ -103,6 +101,9 @@ export default function Asistencias() {
     setBusquedaJugador('');
     setJugadoresBusqueda([]);
     setEstadisticasJugador(null);
+    
+    // Limpiar timeout
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
   }, [modo]);
 
   const onSeleccionarSesion = useCallback(async (id) => {
@@ -167,12 +168,31 @@ export default function Asistencias() {
     }
   }, [sesiones]);
 
-  const buscarJugadoresConQ = useCallback(async (q) => {
-    if (!q || q.trim().length < 2) {
+  // 🔥 Handler de búsqueda (estilo EvaluacionForm)
+  const handleBuscarJugadores = (value) => {
+    setBusquedaJugador(value);
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Si está vacío O tiene menos de 2 caracteres, limpiar todo
+    if (!value || value.trim().length < 2) {
       setJugadoresBusqueda([]);
+      setLoadingBusquedaJugador(false);
       return;
     }
 
+    // ✅ Solo activar loading, NO limpiar jugadores
+    setLoadingBusquedaJugador(true);
+
+    // Buscar con debounce (solo si tiene 2+ caracteres)
+    searchTimeout.current = setTimeout(() => {
+      buscarJugadoresConQ(value.trim());
+    }, 500);
+  };
+
+  const buscarJugadoresConQ = async (q) => {
     setLoadingBusquedaJugador(true);
     try {
       const resJug = await obtenerJugadores({
@@ -188,24 +208,11 @@ export default function Asistencias() {
     } finally {
       setLoadingBusquedaJugador(false);
     }
-  }, []);
-  const handleModalSuccess = () => {
-    // Recargar la lista de asistencias
-    setReloadKey(prev => prev + 1);
   };
 
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (busquedaJugador.trim().length >= 2) {
-        buscarJugadoresConQ(busquedaJugador);
-      } else {
-        setJugadoresBusqueda([]);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [busquedaJugador, buscarJugadoresConQ]);
+  const handleModalSuccess = () => {
+    setReloadKey(prev => prev + 1);
+  };
 
   const limpiarFiltros = useCallback(() => {
     setSesionId(null);
@@ -219,77 +226,86 @@ export default function Asistencias() {
     setEstadisticasJugador(null);
   }, []);
 
-const handleExportarExcel = async () => {
-  setExportando(true);
-  try {
-    const params = {};
-    if (modo === 'sesion' && sesionId) {
-      params.sesionId = sesionId;
-      if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
-    } else if (modo === 'jugador' && jugadorId) {
-      params.jugadorId = jugadorId;
-      if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+  const handleExportarExcel = async () => {
+    setExportando(true);
+    try {
+      const params = {};
+      if (modo === 'sesion' && sesionId) {
+        params.sesionId = sesionId;
+        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+      } else if (modo === 'jugador' && jugadorId) {
+        params.jugadorId = jugadorId;
+        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+      }
+
+      const blob = await exportarAsistenciasExcel(params);
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `asistencias_${modo}_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      message.success('Excel exportado correctamente');
+    } catch (error) {
+      console.error('Error exportando Excel:', error);
+      message.error(error.message || 'Error al exportar a Excel');
+    } finally {
+      setExportando(false);
     }
+  };
 
-    const blob = await exportarAsistenciasExcel(params);
+  const handleExportarPDF = async () => {
+    setExportando(true);
+    try {
+      const params = {};
+      if (modo === 'sesion' && sesionId) {
+        params.sesionId = sesionId;
+        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+      } else if (modo === 'jugador' && jugadorId) {
+        params.jugadorId = jugadorId;
+        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+      }
 
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `asistencias_${modo}_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+      const blob = await exportarAsistenciasPDF(params);
 
-    message.success('Excel exportado correctamente');
-  } catch (error) {
-    console.error(' Error exportando Excel:', error);
-    message.error(error.message || 'Error al exportar a Excel');
-  } finally {
-    setExportando(false);
-  }
-};
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `asistencias_${modo}_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
 
-
-const handleExportarPDF = async () => {
-  setExportando(true);
-  try {
-    const params = {};
-    if (modo === 'sesion' && sesionId) {
-      params.sesionId = sesionId;
-      if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
-    } else if (modo === 'jugador' && jugadorId) {
-      params.jugadorId = jugadorId;
-      if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+      message.success('PDF exportado correctamente');
+    } catch (error) {
+      console.error('Error exportando PDF:', error);
+      message.error(error.message || 'Error al exportar a PDF');
+    } finally {
+      setExportando(false);
     }
-
-    
-
-    const blob = await exportarAsistenciasPDF(params);
-
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `asistencias_${modo}_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-
-    message.success('PDF exportado correctamente');
-  } catch (error) {
-    console.error(' Error exportando PDF:', error);
-    message.error(error.message || 'Error al exportar a PDF');
-  } finally {
-    setExportando(false);
-  }
-};
-
+  };
 
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);
   }, [modo, sesionId, jugadorId]);
+
+  // 🔥 Determinar qué jugadores mostrar según búsqueda
+  const jugadoresAMostrar = useMemo(() => {
+    // ✅ Si está escribiendo pero tiene menos de 2 caracteres, no mostrar nada
+    if (busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2) {
+      return [];
+    }
+    // Si tiene 2+ caracteres, mostrar resultados de búsqueda
+    // Si NO hay búsqueda, NO mostrar nada (array vacío)
+    return busquedaJugador.trim().length >= 2 
+      ? jugadoresBusqueda 
+      : [];
+  }, [busquedaJugador, jugadoresBusqueda]);
 
   return (
     <MainLayout>
@@ -299,7 +315,6 @@ const handleExportarPDF = async () => {
             title={<><TeamOutlined /> <span style={{ marginLeft: 8 }}>Panel de Asistencias</span></>}
             extra={
               <Space>
-               
                 {canConsultar && (
                   <Dropdown
                     menu={{
@@ -329,13 +344,13 @@ const handleExportarPDF = async () => {
                 <Button icon={<ReloadOutlined />} onClick={() => setReloadKey(k => k + 1)}>
                   Actualizar
                 </Button>
-                 <Button 
-      type="primary" 
-      icon={<PlusOutlined />}
-      onClick={() => setModalVisible(true)}
-    >
-      Registrar Asistencia
-    </Button>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={() => setModalVisible(true)}
+                >
+                  Registrar Asistencia
+                </Button>
               </Space>
             }
           >
@@ -419,18 +434,28 @@ const handleExportarPDF = async () => {
                         allowClear
                         showSearch
                         searchValue={busquedaJugador}
-                        onSearch={setBusquedaJugador}
+                        onSearch={handleBuscarJugadores}
                         filterOption={false}
                         notFoundContent={
-                          loadingBusquedaJugador
-                            ? 'Buscando...'
-                            : busquedaJugador.length >= 2 && jugadoresBusqueda.length === 0
-                            ? 'No se encontraron jugadores'
-                            : busquedaJugador.length > 0 && busquedaJugador.length < 2
-                            ? 'Escribe al menos 2 caracteres para buscar'
-                            : 'Escribe para buscar jugadores'
+                          loadingBusquedaJugador ? (
+                            <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <Spin size="small" />
+                            </div>
+                          ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe al menos 2 caracteres
+                            </div>
+                          ) : busquedaJugador.trim().length >= 2 && jugadoresAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              No se encontraron jugadores
+                            </div>
+                          ) : jugadoresAMostrar.length === 0 ? (
+                            <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
+                              Escribe para buscar...
+                            </div>
+                          ) : null
                         }
-                        options={(busquedaJugador.length >= 2 ? jugadoresBusqueda : jugadores).map(j => ({
+                        options={jugadoresAMostrar.map(j => ({
                           value: j.id,
                           label: `${j?.usuario?.nombre || 'Sin nombre'} ${j?.usuario?.apellido || ''} — ${j?.usuario?.rut || 'Sin RUT'}`
                         }))}
@@ -472,8 +497,6 @@ const handleExportarPDF = async () => {
                 </Col>
               </Row>
             </Card>
-
-          
 
             {/* Resultado */}
             {canConsultar ? (
