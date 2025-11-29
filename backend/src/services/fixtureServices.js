@@ -25,6 +25,7 @@ const nombreRondaPorCantidad = (cantidadEquipos) => {
     case 4: return "semifinal";
     case 8: return "cuartos";
     case 16: return "octavos";
+    case 32: return "dieciseisavos";
     default:
       if (cantidadEquipos === 1) return "final";
       return `ronda_${cantidadEquipos}`;
@@ -48,7 +49,7 @@ const detectarUltimaRonda = async (partRepo, campId) => {
   }
 
   // Ordenar rondas por jerarquía (de más reciente a más antigua)
-  const orden = ["octavos", "cuartos", "semifinal", "final"];
+  const orden = ["dieciseisavos", "octavos", "cuartos", "semifinal", "final"];
   const rondasDisponibles = todasLasRondas.map(r => r.partido_ronda);
   
   const rondasOrdenadas = rondasDisponibles.sort((a, b) => {
@@ -115,6 +116,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     // 5) Calcular mínimo de jugadores por equipo según formato
     const minPorEquipo =
       camp.formato === "11v11" ? 11 :
+      camp.formato === "8v8" ? 8 :
       camp.formato === "7v7" ? 7 : 5;
 
     // 6) Validar cada equipo: mínimo de jugadores + carrera correcta
@@ -132,12 +134,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       });
 
       // 6.1) Mínimo de jugadores
-      if (jugadores.length < minPorEquipo) {
-        throw new Error(
-          `El equipo "${equipo.nombre}" tiene solo ${jugadores.length} jugadores. ` +
-          `Debe tener al menos ${minPorEquipo} para sortear la primera ronda.`
-        );
-      }
+    
 
       // 6.2) Todos los jugadores deben ser de la misma carrera
       for (const j of jugadores) {
@@ -209,9 +206,6 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
     };
   });
 };
-/**
- * Endpoint para generar la siguiente ronda (con detección automática)
- */
 
 /**
  * Genera la siguiente ronda a partir de los ganadores
@@ -225,7 +219,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     const equipoRepo = trx.getRepository("EquipoCampeonato");
     const campId = Number(campeonatoId);
 
-    //  Si no se especifica rondaAnterior, detectarla automáticamente
+    // Si no se especifica rondaAnterior, detectarla automáticamente
     let rondaAUsar = rondaAnterior;
     
     if (!rondaAUsar) {

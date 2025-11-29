@@ -361,7 +361,8 @@ export async function exportarFixtureExcel(req, res) {
         'final': 'Final',
         'semifinal': 'Semifinal',
         'cuartos': 'Cuartos de Final',
-        'octavos': 'Octavos de Final'
+        'octavos': 'Octavos de Final',
+        'dieciseisavos': 'Dieciseisavos de Final'
       };
       return map[ronda] || ronda.replace('_', ' ').toUpperCase();
     };
@@ -388,7 +389,7 @@ export async function exportarFixtureExcel(req, res) {
     });
 
     // Ordenar rondas
-    const ordenRondas = ['final', 'semifinal', 'cuartos', 'octavos'];
+    const ordenRondas = ['final', 'semifinal', 'cuartos', 'octavos', 'dieciseisavos'];
     const rondasOrdenadas = Object.keys(partidosPorRonda).sort((a, b) => {
       const idxA = ordenRondas.indexOf(a);
       const idxB = ordenRondas.indexOf(b);
@@ -529,7 +530,8 @@ export async function exportarFixturePDF(req, res) {
         'final': 'Final',
         'semifinal': 'Semifinal',
         'cuartos': 'Cuartos de Final',
-        'octavos': 'Octavos de Final'
+        'octavos': 'Octavos de Final',
+        'dieciseisavos': 'Dieciseisavos de Final'
       };
       return map[ronda] || ronda.replace('_', ' ').toUpperCase();
     };
@@ -556,7 +558,7 @@ export async function exportarFixturePDF(req, res) {
     });
 
     // Ordenar rondas
-    const ordenRondas = ['final', 'semifinal', 'cuartos', 'octavos'];
+    const ordenRondas = ['final', 'semifinal', 'cuartos', 'octavos', 'dieciseisavos'];
     const rondasOrdenadas = Object.keys(partidosPorRonda).sort((a, b) => {
       const idxA = ordenRondas.indexOf(a);
       const idxB = ordenRondas.indexOf(b);
