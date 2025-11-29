@@ -162,7 +162,6 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
 
     const data = response.data?.data || response.data || response;
 
-    console.log("DATA:", data); 
 
     setJugadoresEquipo(Array.isArray(data) ? data : data.jugadores || []);
 
@@ -201,15 +200,14 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
           roles: ['estudiante', 'academico'],
           carreraId: equipoSeleccionado?.carreraId
         });
-        console.log(equipoSeleccionado?.carreraId);
 
         const rutosEnEquipo = jugadoresEquipo.map(j => j.rut);
 
         const opciones = resultados
           .filter(r => !rutosEnEquipo.includes(r.rut))
           .map(usuario => ({
-            value: `${usuario.rut} - ${usuario.nombre}`,
-            label: `${usuario.rut} - ${usuario.nombre}`,
+            value: ` ${usuario.nombre} ${usuario.apellido} - ${usuario.rut}  `,
+            label: `${usuario.nombre} ${usuario.apellido} - ${usuario.rut} `,
             usuario
           }));
 
@@ -759,11 +757,11 @@ const handleExportarPDF = async () => {
               marginBottom: 16,
               border: '1px solid #91d5ff'
             }}>
-              <strong>{usuarioSeleccionado.nombre}</strong>
+              <strong>{usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}</strong>
               <br />
-              <span style={{ fontSize: 12 }}>RUT: {usuarioSeleccionado.rut}</span>
+              <span style={{ fontSize: 12 }}>{usuarioSeleccionado.rut}</span>
               <br />
-              <span style={{ fontSize: 12 }}>Email: {usuarioSeleccionado.email}</span>
+              <span style={{ fontSize: 12 }}> {usuarioSeleccionado.email}</span>
             </div>
           )}
 

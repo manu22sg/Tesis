@@ -257,7 +257,9 @@ function CampeonatoInfoContent() {
           
           <Descriptions.Item label="Género">
             <span style={{ fontSize: 14 }}>
-  {campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)}
+  {campeonato?.genero
+  ? campeonato.genero.charAt(0).toUpperCase() + campeonato.genero.slice(1)
+  : "—"}
 </span>
           </Descriptions.Item>
           

@@ -160,6 +160,9 @@ function CampeonatosContent() {
 
   // Obtener años únicos de los campeonatos
   const aniosDisponibles = useMemo(() => {
+    if (!Array.isArray(campeonatosOriginales) || campeonatosOriginales.length === 0) {
+      return [];
+    }
     const anios = [...new Set(campeonatosOriginales.map(c => c.anio))];
     return anios.sort((a, b) => b - a);
   }, [campeonatosOriginales]);
@@ -337,11 +340,14 @@ function CampeonatosContent() {
     {
       title: 'Género',
       dataIndex: 'genero',
-      render: (genero) => (
-        <span>
-          {genero.charAt(0).toUpperCase() + genero.slice(1)}
-        </span>
-      )
+      render: (genero) => {
+        if (!genero) return '—';
+        return (
+          <span>
+            {genero.charAt(0).toUpperCase() + genero.slice(1)}
+          </span>
+        );
+      }
     },
     {
       title: 'Año/Semestre',
@@ -409,6 +415,7 @@ function CampeonatosContent() {
           <Space>
             {hayFiltrosActivos && (
               <Button 
+                icon={<ClearOutlined />}
                 onClick={limpiarFiltros}
               >
                 Limpiar Filtros

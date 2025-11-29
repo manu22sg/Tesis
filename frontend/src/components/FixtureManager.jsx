@@ -22,7 +22,6 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/es';
 
-// 🔹 Importa tus helpers desde utils/formatters
 import {
   formatearFecha,
   formatearRangoHoras
@@ -124,7 +123,8 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
 
           cargarDatos();
         } catch (error) {
-          message.error(error?.response?.data?.error || 'Error al sortear primera ronda');
+          console.log(error.message)
+          message.error(error?.response?.data?.error ||error.message || 'Error al sortear la primera ronda');
         } finally {
           setLoading(false);
         }
