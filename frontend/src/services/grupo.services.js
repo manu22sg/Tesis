@@ -102,7 +102,12 @@ export async function exportarGruposPDF(filtros = {}) {
 }
 
 export const obtenerEstadisticasEntrenador = async () => {
-     const response = await axios.get('/api/grupos/estadisticas');
-     return response.data;
-   };
+  try {
+    const response = await api.get('/grupos/estadisticas');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener las estadísticas del entrenador:', error);
+    throw error; 
+  }
+};
 

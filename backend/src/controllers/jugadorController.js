@@ -32,8 +32,8 @@ export async function crearJugadorController(req, res) {
 export async function obtenerTodosJugadoresController(req, res) {
   try {
     const { 
-      page = 1,           // ✅ Cambio aquí
-      limit = 50,         // ✅ Cambio aquí
+      page = 1,           
+      limit = 50,         
       estado, 
       carreraId,
       carreraNombre,
@@ -41,7 +41,7 @@ export async function obtenerTodosJugadoresController(req, res) {
       q,
       grupoId,
       posicion,
-      posicionSecundaria, // ✅ Nuevo filtro
+      posicionSecundaria, 
       piernaHabil
     } = req.query;
 
@@ -191,20 +191,15 @@ export async function obtenerEstadisticasPorCarreraController(req, res) {
     return error(res, err.message);
   }
 }
-
 export async function exportarJugadoresExcel(req, res) {
   try {
     const { 
-      estado, 
-      carreraId,
-      carreraNombre,
-      anioIngreso, 
-      q,
-      grupoId,
-      posicion,
-      posicionSecundaria, // ✅ Nuevo
-      piernaHabil
-    } = req.query; // ✅ Ya validado por Joi
+      estado, carreraId, carreraNombre, anioIngreso, q,
+      grupoId, posicion, posicionSecundaria, piernaHabil,
+      mobile
+    } = req.query;
+
+    const isMobile = mobile === "true";
 
     const filtros = {};
     if (estado) filtros.estado = estado;
@@ -214,16 +209,13 @@ export async function exportarJugadoresExcel(req, res) {
     if (carreraId) filtros.carreraId = parseInt(carreraId);
     else if (carreraNombre) filtros.carreraNombre = carreraNombre;
     if (posicion) filtros.posicion = posicion;
-    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria; // ✅ Nuevo
+    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria;
     if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
     const [resultado, err] = await obtenerTodosJugadores(1, 5000, filtros);
 
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: err
-      });
+      return res.status(500).json({ success: false, message: err });
     }
 
     const jugadores = resultado.jugadores || [];
@@ -235,66 +227,77 @@ export async function exportarJugadoresExcel(req, res) {
       });
     }
 
+    // EXCEL
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
     const sheet = workbook.addWorksheet("Jugadores");
 
     sheet.columns = [
       { header: "Nombre", key: "nombre", width: 30 },
       { header: "RUT", key: "rut", width: 15 },
-      { header: "Correo", key: "email", width: 30 },
-      { header: "Posición", key: "posicion", width: 20 },
-      { header: "Posición Secundaria", key: "posicionSecundaria", width: 20 }, // ✅ Nueva columna
-      { header: "Carrera", key: "carrera", width: 35 },
+      { header: "Correo", key: "email", width: 25 },
+      { header: "Posición", key: "posicion", width: 15 },
+      { header: "Posición Secundaria", key: "posicionSecundaria", width: 20 },
+      { header: "Carrera", key: "carrera", width: 25 },
       { header: "Año Ingreso", key: "anioIngreso", width: 12 },
       { header: "Pierna Hábil", key: "piernaHabil", width: 12 },
-      { header: "Altura (cm)", key: "altura", width: 12 },
-      { header: "Peso (kg)", key: "peso", width: 12 },
+      { header: "Altura", key: "altura", width: 10 },
+      { header: "Peso", key: "peso", width: 10 },
       { header: "Estado", key: "estado", width: 12 },
-      { header: "Grupos", key: "grupos", width: 30 }
+      { header: "Grupos", key: "grupos", width: 35 }
     ];
 
     sheet.getRow(1).font = { bold: true };
 
     jugadores.forEach(j => {
       const grupos = (j.jugadorGrupos || [])
-        .map(jg => jg.grupo?.nombre)
+        .map(g => g.grupo?.nombre)
         .filter(Boolean)
-        .join(', ') || '—';
+        .join(", ");
 
       sheet.addRow({
-        nombre: `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim() || "—",
+        nombre: `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim(),
         rut: j.usuario?.rut || "—",
         email: j.usuario?.email || "—",
         posicion: j.posicion || "—",
-        posicionSecundaria: j.posicionSecundaria || "—", // ✅ Nueva
+        posicionSecundaria: j.posicionSecundaria || "—",
         carrera: j.usuario?.carrera?.nombre || "—",
         anioIngreso: j.anioIngreso || "—",
         piernaHabil: j.piernaHabil || "—",
         altura: j.altura || "—",
         peso: j.peso || "—",
         estado: formatearEstado(j.estado),
-        grupos: grupos
+        grupos: grupos || "—"
       });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE (React Native / Expo)
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `jugadores_${Date.now()}.xlsx`,
+        base64: Buffer.from(buffer).toString("base64")
+      });
+    }
+
+    // 💻 PC (descarga directa)
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="jugadores_${Date.now()}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
 
     return res.send(buffer);
 
   } catch (error) {
-    console.error("Error exportando jugadores a Excel:", error);
+    console.error("Error exportando jugadores Excel:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al exportar jugadores",
-      error: error.message
+      message: "Error interno al exportar jugadores"
     });
   }
 }
@@ -302,16 +305,12 @@ export async function exportarJugadoresExcel(req, res) {
 export async function exportarJugadoresPDF(req, res) {
   try {
     const { 
-      estado, 
-      carreraId,
-      carreraNombre,
-      anioIngreso, 
-      q,
-      grupoId,
-      posicion,
-      posicionSecundaria, // ✅ Nuevo
-      piernaHabil
-    } = req.query; // ✅ Ya validado por Joi
+      estado, carreraId, carreraNombre, anioIngreso, q,
+      grupoId, posicion, posicionSecundaria, piernaHabil,
+      mobile
+    } = req.query;
+
+    const isMobile = mobile === "true";
 
     const filtros = {};
     if (estado) filtros.estado = estado;
@@ -321,16 +320,13 @@ export async function exportarJugadoresPDF(req, res) {
     if (carreraId) filtros.carreraId = parseInt(carreraId);
     else if (carreraNombre) filtros.carreraNombre = carreraNombre;
     if (posicion) filtros.posicion = posicion;
-    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria; // ✅ Nuevo
+    if (posicionSecundaria) filtros.posicionSecundaria = posicionSecundaria;
     if (piernaHabil) filtros.piernaHabil = piernaHabil;
 
     const [resultado, err] = await obtenerTodosJugadores(1, 5000, filtros);
 
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: err
-      });
+      return res.status(500).json({ success: false, message: err });
     }
 
     const jugadores = resultado.jugadores || [];
@@ -342,52 +338,66 @@ export async function exportarJugadoresPDF(req, res) {
       });
     }
 
+    // PDF
     const doc = new PDFDocument({ margin: 40 });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="jugadores_${Date.now()}.pdf"`
-    );
+    // Si es mobile → guardamos en memoria
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `jugadores_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // PC → descarga directa
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="jugadores_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
-    doc.pipe(res);
+    // TITULO
+    doc.fontSize(18).font("Helvetica-Bold")
+       .text("Listado de Jugadores", { align: "center" });
+    doc.moveDown(2);
 
-    doc.fontSize(18).font("Helvetica-Bold").text("Listado de Jugadores", { align: "center" });
-    doc.moveDown(1);
-
+    // CONTENIDO POR JUGADOR
     jugadores.forEach((j, index) => {
+
       if (doc.y > 700) doc.addPage();
 
-      doc.fontSize(12)
-        .font("Helvetica-Bold")
-        .text(
-          `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim() || "Usuario Desconocido"
-        );
+      doc.fontSize(12).font("Helvetica-Bold")
+        .text(`${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim());
 
       const grupos = (j.jugadorGrupos || [])
-        .map(jg => jg.grupo?.nombre)
-        .filter(Boolean)
-        .join(', ') || 'Sin grupos';
-
-      // ✅ Agregar posición secundaria al PDF
-      const posicionInfo = j.posicion || "—";
-      const posicionSecundariaInfo = j.posicionSecundaria ? ` / ${j.posicionSecundaria}` : "";
+        .map(g => g.grupo?.nombre)
+        .join(", ") || "—";
 
       doc.font("Helvetica").fontSize(10).text(`
 RUT: ${j.usuario?.rut || "—"}
 Correo: ${j.usuario?.email || "—"}
-Posición: ${posicionInfo}${posicionSecundariaInfo}
+Posición: ${j.posicion || "—"} ${j.posicionSecundaria ? `/ ${j.posicionSecundaria}` : ""}
 Carrera: ${j.usuario?.carrera?.nombre || "—"}
-Año Ingreso: ${j.anioIngreso || "—"}
-Pierna Hábil: ${j.piernaHabil || "—"}
-Altura: ${j.altura ? j.altura + ' cm' : "—"}
-Peso: ${j.peso ? j.peso + ' kg' : "—"}
+Año ingreso: ${j.anioIngreso || "—"}
+Pierna hábil: ${j.piernaHabil || "—"}
+Altura: ${j.altura ? j.altura + " cm" : "—"}
+Peso: ${j.peso ? j.peso + " kg" : "—"}
 Estado: ${formatearEstado(j.estado)}
 Grupos: ${grupos}
       `);
 
       if (index < jugadores.length - 1) {
-        doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
+        doc.moveTo(40, doc.y)
+           .lineTo(550, doc.y)
+           .strokeColor("#CCCCCC")
+           .stroke();
         doc.moveDown(1);
       }
     });
@@ -395,15 +405,16 @@ Grupos: ${grupos}
     doc.end();
 
   } catch (error) {
-    console.error("Error exportando jugadores a PDF:", error);
+    console.error("Error exportando jugadores PDF:", error);
     if (!res.headersSent) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: "Error al exportar jugadores"
+        message: "Error interno al exportar PDF"
       });
     }
   }
 }
+
 
 function formatearEstado(estado) {
   const estados = {

@@ -131,22 +131,21 @@ export async function getEstadisticasReservas(req, res) {
 
 export async function exportarReservasExcel(req, res) {
   try {
+    const isMobile = req.query.mobile === "true";
+
     const filtros = {
       estado: req.query.estado || undefined,
       fecha: req.query.fecha || undefined,
       canchaId: req.query.canchaId ? parseInt(req.query.canchaId) : undefined,
       usuarioId: req.query.usuarioId ? parseInt(req.query.usuarioId) : undefined,
       page: 1,
-      limit: 5000 
+      limit: 5000
     };
 
     const [result, err] = await obtenerReservasPendientes(filtros);
 
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: err
-      });
+      return res.status(500).json({ success: false, message: err });
     }
 
     const { reservas } = result;
@@ -159,7 +158,6 @@ export async function exportarReservasExcel(req, res) {
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
     const sheet = workbook.addWorksheet("Reservas");
 
     sheet.columns = [
@@ -174,50 +172,55 @@ export async function exportarReservasExcel(req, res) {
       { header: "Lista Participantes", key: "listaParticipantes", width: 40 },
     ];
 
-    sheet.getRow(1).font = { bold: true };
-
     reservas.forEach(r => {
       sheet.addRow({
-        usuario: `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim() || "—",
+        usuario: `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim(),
         rut: r.usuario?.rut || "—",
         cancha: r.cancha?.nombre || "—",
         fecha: formatearFechaExcel(r.fechaReserva),
-        horaInicio: formatearHora(r.horaInicio) || "—",
-        horaFin: formatearHora(r.horaFin) || "—",
+        horaInicio: formatearHora(r.horaInicio),
+        horaFin: formatearHora(r.horaFin),
         estado: formatearEstado(r.estado),
         participantes: r.participantes?.length || 0,
-       listaParticipantes: r.participantes
-  ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ''}`.trim())
-  .join(", ") || "—",
-
-
+        listaParticipantes:
+          r.participantes
+            ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ""}`.trim())
+            .join(", ") || "—"
       });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 🔵 SI ES MÓVIL → DEVUELVE BASE64
+    if (isMobile) {
+      return res.json({
+        success: true,
+        base64: buffer.toString("base64"),
+        fileName: `reservas_${Date.now()}.xlsx`
+      });
+    }
+
+    // 🔵 SI ES PC → DESCARGA ARCHIVO
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="reservas_${Date.now()}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
-
     return res.send(buffer);
 
   } catch (error) {
     console.error("Error exportando reservas a Excel:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al exportar reservas",
-      error: error.message
+      message: "Error al exportar reservas"
     });
   }
 }
-
 // GET /api/aprobacion/pdf - Exportar reservas a PDF
 export async function exportarReservasPDF(req, res) {
   try {
+    const isMobile = req.query.mobile === "true";
+
     const filtros = {
       estado: req.query.estado || undefined,
       fecha: req.query.fecha || undefined,
@@ -246,14 +249,30 @@ export async function exportarReservasPDF(req, res) {
     }
 
     const doc = new PDFDocument({ margin: 40 });
+    const chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="reservas_${Date.now()}.pdf"`
-    );
+    // Recoger buffer en memoria (necesario para mobile)
+    doc.on("data", chunk => chunks.push(chunk));
+    doc.on("end", () => {
+      const buffer = Buffer.concat(chunks);
 
-    doc.pipe(res);
+      // 🔵 Mobile → retornar base64
+      if (isMobile) {
+        return res.json({
+          success: true,
+          base64: buffer.toString("base64"),
+          fileName: `reservas_${Date.now()}.pdf`
+        });
+      }
+
+      // 🔵 PC → descarga
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="reservas_${Date.now()}.pdf"`
+      );
+      res.send(buffer);
+    });
 
     doc.fontSize(18).font("Helvetica-Bold").text("Listado de Reservas", { align: "center" });
     doc.moveDown(1);
@@ -261,11 +280,9 @@ export async function exportarReservasPDF(req, res) {
     reservas.forEach((r, index) => {
       if (doc.y > 700) doc.addPage();
 
-doc.fontSize(12)
-   .font("Helvetica-Bold")
-   .text(
-     `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim() || "Usuario Desconocido"
-   );
+      doc.fontSize(12).font("Helvetica-Bold").text(
+        `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim()
+      );
 
       doc.font("Helvetica").fontSize(10).text(`
 RUT: ${r.usuario?.rut || "—"}
@@ -273,13 +290,12 @@ Cancha: ${r.cancha?.nombre || "—"}
 Fecha: ${formatearFechaExcel(r.fechaReserva)}
 Horario: ${formatearHora(r.horaInicio)} - ${formatearHora(r.horaFin)}
 Estado: ${formatearEstado(r.estado)}
-Participantes: ${r.participantes?.length || 0} personas
-Nombres: ${
+Participantes: ${r.participantes?.length || 0}
+Lista: ${
   r.participantes
-    ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ''}`.trim())
+    ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ""}`.trim())
     .join(", ") || "—"
 }
-
       `);
 
       if (index < reservas.length - 1) {

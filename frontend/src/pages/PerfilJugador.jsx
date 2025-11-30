@@ -16,7 +16,7 @@ import {
   ConfigProvider,
   Avatar,
   Divider,
-  Empty
+  Empty,Dropdown
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,7 +24,7 @@ import {
   UserOutlined,
   TeamOutlined,
   CalendarOutlined,
-  FieldTimeOutlined
+  FieldTimeOutlined,DownloadOutlined,FileExcelOutlined,FilePdfOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import locale from 'antd/locale/es_ES';
@@ -36,7 +36,7 @@ const { Title, Text } = Typography;
 export default function PerfilJugador() {
   const { usuarioId } = useParams();
   const navigate = useNavigate();
-
+const [exportando, setExportando] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [perfil, setPerfil] = useState(null);
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -57,6 +57,71 @@ export default function PerfilJugador() {
       setLoading(false);
     }
   };
+  const handleExportarExcel = async () => {
+  try {
+    setExportando(true); // 👈 Cambiar aquí
+    message.loading('Generando Excel...', 0);
+    const blob = await ojeadorService.exportarPerfilExcel(usuarioId, false);
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `perfil_${perfil.usuario.nombre}_${perfil.usuario.apellido}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    message.destroy();
+    message.success('Excel descargado correctamente');
+  } catch (error) {
+    message.destroy();
+    message.error(error || 'Error al exportar Excel');
+  } finally {
+    setExportando(false); // 👈 Cambiar aquí
+  }
+};
+
+const handleExportarPDF = async () => {
+  try {
+    setExportando(true); // 👈 Cambiar aquí
+    message.loading('Generando PDF...', 0);
+    const blob = await ojeadorService.exportarPerfilPDF(usuarioId, false);
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `perfil_${perfil.usuario.nombre}_${perfil.usuario.apellido}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    message.destroy();
+    message.success('PDF descargado correctamente');
+  } catch (error) {
+    message.destroy();
+    message.error(error || 'Error al exportar PDF');
+  } finally {
+    setExportando(false); // 👈 Cambiar aquí
+  }
+};
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportarExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportarPDF,
+    },
+  ],
+};
 
   const { usuario, totalesGenerales, promedios, historialCampeonatos } = perfil || {};
 
@@ -90,19 +155,31 @@ export default function PerfilJugador() {
       );
     }
 
+   
+
     return (
       <div style={{ minHeight: '100vh' }}>
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(-1)}
-          style={{ marginBottom: 16 }}
-        >
-          Volver al Ojeador
-        </Button>
+       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+  <Button
+    icon={<ArrowLeftOutlined />}
+    onClick={() => navigate(-1)}
+  >
+    Volver al Ojeador
+  </Button>
+
+  <Dropdown menu={menuExportar} trigger={['hover']}>
+    <Button
+      icon={<DownloadOutlined />}
+      loading={exportando}
+    >
+      Exportar
+    </Button>
+  </Dropdown>
+</Space>
 
         {/* Header con info básica */}
         <Card style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
             <Avatar 
               size={100} 
               icon={<UserOutlined />} 
@@ -110,17 +187,56 @@ export default function PerfilJugador() {
             />
             <div style={{ flex: 1 }}>
               <Title level={2} style={{ margin: 0 }}>
-                {usuario.nombre}
+                {usuario.nombre} {usuario.apellido}
               </Title>
-              <Space size="middle" style={{ marginTop: 8 }}>
-                <Text type="secondary">RUT: {usuario.rut}</Text>
+              <Space size="middle" style={{ marginTop: 8 }} wrap>
+                <Text type="secondary">
+                  <strong>RUT:</strong> {usuario.rut}
+                </Text>
                 <Divider type="vertical" />
-                <Text type="secondary">{usuario.carreraNombre || 'Sin carrera'}</Text>
-                <Divider type="vertical" />
-                <Text type="secondary">{usuario.email}</Text>
+                <Text type="secondary">
+                  <strong>Email:</strong> {usuario.email}
+                </Text>
               </Space>
             </div>
           </div>
+
+          {/* Información Adicional - Solo muestra si existen datos */}
+          <Descriptions 
+            bordered 
+            size="small" 
+            column={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+          >
+            {usuario.carreraNombre && (
+              <Descriptions.Item label="Carrera">
+                {usuario.carreraNombre}
+              </Descriptions.Item>
+            )}
+            {usuario.anioIngresoUniversidad && (
+              <Descriptions.Item label="Año de Ingreso">
+                {usuario.anioIngresoUniversidad}
+              </Descriptions.Item>
+            )}
+            {usuario.sexo && (
+              <Descriptions.Item label="Sexo">
+                {usuario.sexo.charAt(0).toUpperCase() + usuario.sexo.slice(1)}
+              </Descriptions.Item>
+            )}
+            {usuario.rol && (
+              <Descriptions.Item label="Rol">
+                <Tag color="blue">
+                  {usuario.rol.charAt(0).toUpperCase() + usuario.rol.slice(1)}
+                </Tag>
+              </Descriptions.Item>
+            )}
+            {usuario.estado && (
+              <Descriptions.Item label="Estado">
+                <Tag color={usuario.estado === 'activo' ? 'green' : 'orange'}>
+                  {usuario.estado.charAt(0).toUpperCase() + usuario.estado.slice(1)}
+                </Tag>
+              </Descriptions.Item>
+            )}
+          </Descriptions>
         </Card>
 
         {/* Estadísticas Generales */}

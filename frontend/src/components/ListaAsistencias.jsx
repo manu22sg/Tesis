@@ -8,7 +8,7 @@ import {
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   QuestionCircleOutlined,
-  EnvironmentOutlined 
+  EnvironmentOutlined,EditOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -176,6 +176,58 @@ const ListaAsistencias = ({
 
     base.push(
       {
+  title: 'Material',
+  dataIndex: 'entregoMaterial',
+  key: 'entregoMaterial',
+  align: 'center',
+  width: 100,
+  render: (value) => {
+    if (value === true) {
+      return (
+        <span style={{
+          padding: '4px 10px',
+          borderRadius: 4,
+          fontSize: '12px',
+          fontWeight: 500,
+          color: '#389e0d',
+          border: '1px solid #389e0d',
+          background: '#f6ffed'
+        }}>
+          Sí
+        </span>
+      );
+    }
+    if (value === false) {
+      return (
+        <span style={{
+          padding: '4px 10px',
+          borderRadius: 4,
+          fontSize: '12px',
+          fontWeight: 500,
+          color: '#cf1322',
+          border: '1px solid #cf1322',
+          background: '#fff1f0'
+        }}>
+          No
+        </span>
+      );
+    }
+    return (
+      <span style={{
+        padding: '4px 10px',
+        borderRadius: 4,
+        fontSize: '12px',
+        fontWeight: 500,
+        color: '#8c8c8c',
+        border: '1px solid #d9d9d9',
+        background: '#fafafa'
+      }}>
+        —
+      </span>
+    );
+  }
+},
+      {
         title: 'Estado',
         dataIndex: 'estado',
         key: 'estado',
@@ -258,7 +310,7 @@ const ListaAsistencias = ({
             {onEdit && (
               <Tooltip title="Editar">
                 <Button type="primary" size="middle" onClick={() => onEdit(record)}>
-                  Editar
+                {<EditOutlined />}
                 </Button>
               </Tooltip>
             )}

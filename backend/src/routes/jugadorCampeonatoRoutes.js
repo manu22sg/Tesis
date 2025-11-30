@@ -2,7 +2,9 @@ import { Router } from 'express';
 import {
   buscarJugadoresController,
   obtenerPerfilController,
-  obtenerEstadisticasDetalladasController
+  obtenerEstadisticasDetalladasController,
+  exportarPerfilExcelController,
+  exportarPerfilPDFController
 } from '../controllers/jugadorCampeonatoController.js';
 
 import {
@@ -50,5 +52,11 @@ router.get(
   validarParams(estadisticasParamsSchema),
   obtenerEstadisticasDetalladasController
 );
+
+
+router.get('/:usuarioId/exportar/excel', exportarPerfilExcelController);
+
+// 🆕 Exportar perfil a PDF
+router.get('/:usuarioId/exportar/pdf', exportarPerfilPDFController);
 
 export default router;

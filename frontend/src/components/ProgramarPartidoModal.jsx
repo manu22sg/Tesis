@@ -150,73 +150,84 @@ const ProgramarPartidoModal = ({
 
   // Verificar disponibilidad en tiempo real
   const verificarDisponibilidad = async (canchaId, fecha, horaInicio, horaFin) => {
-    if (!canchaId || !fecha || !horaInicio || !horaFin || !verificarDisponibilidadSesion) {
-      setDisponibilidadStatus(null);
-      return;
+  if (!canchaId || !fecha || !horaInicio || !horaFin || !verificarDisponibilidadSesion) {
+    setDisponibilidadStatus(null);
+    return;
+  }
+
+  setVerificandoDisponibilidad(true);
+  try {
+    const response = await verificarDisponibilidadSesion(
+      canchaId,
+      fecha.format('YYYY-MM-DD'),
+      horaInicio.format('HH:mm'),
+      horaFin.format('HH:mm'),
+      null,
+      partido?.id || null
+    );
+
+    if (response.disponible === true) {
+      setDisponibilidadStatus({
+        type: 'success',
+        message: '✅ Horario disponible para el partido'
+      });
+    } else if (response.disponible === false) {
+      const motivo = response.message || response.motivo || 'El horario no está disponible';
+      setDisponibilidadStatus({
+        type: 'error',
+        message: `❌ ${motivo}`
+      });
+    } else {
+      console.warn('Respuesta inesperada del servidor:', response);
+      setDisponibilidadStatus({
+        type: 'warning',
+        message: '⚠️ No se pudo verificar la disponibilidad'
+      });
     }
-
-    setVerificandoDisponibilidad(true);
-    try {
-      const response = await verificarDisponibilidadSesion(
-        canchaId,
-        fecha.format('YYYY-MM-DD'),
-        horaInicio.format('HH:mm'),
-        horaFin.format('HH:mm'),
-        null,
-        partido?.id || null
-      );
-
-      if (response.disponible === true) {
-        setDisponibilidadStatus({
-          type: 'success',
-          message: '✅ Horario disponible para el partido'
-        });
-      } else if (response.disponible === false) {
-        const motivo = response.message || response.motivo || 'El horario no está disponible';
+  } catch (error) {
+    console.log('Errores de validación:', error.response?.data?.errors);
+    console.error('Error verificando disponibilidad:', error);
+    
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+      
+      if (status === 409) {
         setDisponibilidadStatus({
           type: 'error',
-          message: `❌ ${motivo}`
+          message: `❌ ${data.message || 'El horario está ocupado'}`
         });
-      } else {
-        console.warn('Respuesta inesperada del servidor:', response);
-        setDisponibilidadStatus({
-          type: 'warning',
-          message: '⚠️ No se pudo verificar la disponibilidad'
-        });
-      }
-    } catch (error) {
-      console.error('Error verificando disponibilidad:', error);
-      
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
+      } else if (status === 400) {
+        // ✅ Extraer mensaje del objeto errors
+        let errorMsg = 'Horario inválido';
         
-        if (status === 409) {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${data.message || 'El horario está ocupado'}`
-          });
-        } else if (status === 400) {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${data.message || 'Horario inválido'}`
-          });
-        } else {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: '❌ Error al verificar disponibilidad'
-          });
+        if (data.errors && typeof data.errors === 'object') {
+          // Toma el primer error del objeto errors
+          errorMsg = Object.values(data.errors)[0];
+        } else if (data.message) {
+          errorMsg = data.message;
         }
+        
+        setDisponibilidadStatus({
+          type: 'error',
+          message: `❌ ${errorMsg}`
+        });
       } else {
         setDisponibilidadStatus({
-          type: 'warning',
-          message: '⚠️ No se pudo conectar con el servidor'
+          type: 'error',
+          message: '❌ Error al verificar disponibilidad'
         });
       }
-    } finally {
-      setVerificandoDisponibilidad(false);
+    } else {
+      setDisponibilidadStatus({
+        type: 'warning',
+        message: '⚠️ No se pudo conectar con el servidor'
+      });
     }
-  };
+  } finally {
+    setVerificandoDisponibilidad(false);
+  }
+};
 
   // Re-verificar cuando cambia fecha, cancha o horas
   const watchedValues = Form.useWatch([], form);

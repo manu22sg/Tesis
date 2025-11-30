@@ -12,6 +12,7 @@ import {
   Dropdown,
   Spin
 } from 'antd';
+import EditarAsistenciaModal from '../components/EditarAsistenciaModal.jsx'
 import locale from 'antd/locale/es_ES';
 import {
   PlusOutlined,
@@ -29,7 +30,7 @@ import { obtenerGrupoPorId } from '../services/grupo.services.js';
 import {
   exportarAsistenciasExcel,
   exportarAsistenciasPDF,
-  obtenerEstadisticasAsistenciaJugador
+  obtenerEstadisticasAsistenciaJugador,actualizarAsistencia
 } from '../services/asistencia.services.js';
 import ModalRegistrarAsistencia from '../components/ModalRegistrarAsistencia.jsx';
 
@@ -40,6 +41,11 @@ const PRELOAD_LIMIT = 50;
 
 export default function Asistencias() {
   const [modalVisible, setModalVisible] = useState(false);
+const [editModalVisible, setEditModalVisible] = useState(false);
+const [asistenciaSeleccionada, setAsistenciaSeleccionada] = useState(null);
+const [nuevoEstado, setNuevoEstado] = useState('');
+const [nuevoMaterial, setNuevoMaterial] = useState('null');
+const [loadingEdit, setLoadingEdit] = useState(false);
 
   const [modo, setModo] = useState('sesion');
   const [sesiones, setSesiones] = useState([]);
@@ -105,6 +111,18 @@ export default function Asistencias() {
     // Limpiar timeout
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
   }, [modo]);
+
+const handleEditarAsistencia = (asistencia) => {
+  setAsistenciaSeleccionada(asistencia);
+  setNuevoEstado(asistencia.estado);
+
+  if (asistencia.entregoMaterial === true) setNuevoMaterial("true");
+  else if (asistencia.entregoMaterial === false) setNuevoMaterial("false");
+  else setNuevoMaterial("null");
+
+  setEditModalVisible(true);
+};
+
 
   const onSeleccionarSesion = useCallback(async (id) => {
     setSesionId(id);
@@ -500,13 +518,14 @@ export default function Asistencias() {
 
             {/* Resultado */}
             {canConsultar ? (
-              <ListaAsistencias
-                tipo={modo === 'sesion' ? 'sesion' : 'jugador'}
-                id={modo === 'sesion' ? sesionId : jugadorId}
-                filtroJugadorId={modo === 'sesion' ? filtroJugadorEnSesion : undefined}
-                filtroSesionId={modo === 'jugador' ? filtroSesionDelJugador : undefined}
-                reloadKey={reloadKey}
-              />
+           <ListaAsistencias
+  tipo={modo === 'sesion' ? 'sesion' : 'jugador'}
+  id={modo === 'sesion' ? sesionId : jugadorId}
+  filtroJugadorId={modo === 'sesion' ? filtroJugadorEnSesion : undefined}
+  filtroSesionId={modo === 'jugador' ? filtroSesionDelJugador : undefined}
+  reloadKey={reloadKey}
+  onEdit={handleEditarAsistencia}      // ✅ correcto
+/>
             ) : (
               <Card style={{ textAlign: 'center', color: '#888' }}>
                 Selecciona {modo === 'sesion' ? 'una sesión' : 'un jugador'} para ver las asistencias.
@@ -518,7 +537,36 @@ export default function Asistencias() {
             onClose={() => setModalVisible(false)}
             onSuccess={handleModalSuccess}
           />
+          <EditarAsistenciaModal
+  open={editModalVisible}
+  asistencia={asistenciaSeleccionada}
+  nuevoEstado={nuevoEstado}
+  setNuevoEstado={setNuevoEstado}
+  nuevoMaterial={nuevoMaterial}
+  setNuevoMaterial={setNuevoMaterial}
+  loading={loadingEdit}
+  onClose={() => setEditModalVisible(false)}
+  onConfirm={async ({estado, entregoMaterial}) => {
+    try {
+      setLoadingEdit(true);
+      await actualizarAsistencia(asistenciaSeleccionada.id, {
+        estado,
+        entregoMaterial,
+        origen: 'entrenador'
+      });
+      message.success("Asistencia actualizada");
+      setEditModalVisible(false);
+      setReloadKey(k => k + 1);
+    } catch (err) {
+      console.log(err)
+      message.error("Error actualizando asistencia");
+    } finally {
+      setLoadingEdit(false);
+    }
+  }}
+/>
         </div>
+        
       </ConfigProvider>
     </MainLayout>
   );

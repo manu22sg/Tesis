@@ -5,24 +5,25 @@ import {
   obtenerGrupoPorIdController,
   actualizarGrupoController,
   eliminarGrupoController,
-   exportarGruposExcel,
-   exportarGruposPDF,
-   getEstadisticasEntrenador
+  exportarGruposExcel,
+  exportarGruposPDF,
+  getEstadisticasEntrenador
 } from "../controllers/grupoJugadorController.js";
 import {
   crearGrupoSchema,
   actualizarGrupoSchema
 } from "../validations/grupoJugadorValidations.js";
-import { idParamSchema,  validarBody, validarParams, paginacionSchema,validarQuery} from "../validations/commonValidations.js";
+import { idParamSchema, validarBody, validarParams, paginacionSchema, validarQuery } from "../validations/commonValidations.js";
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
-
 
 const router = Router();
 
+// ✅ RUTAS ESPECÍFICAS PRIMERO (sin parámetros dinámicos)
+router.get("/estadisticas", authenticateToken, requireRole(['entrenador']), getEstadisticasEntrenador);
 router.get("/export/excel", authenticateToken, requireRole(['entrenador']), exportarGruposExcel);
 router.get("/export/pdf", authenticateToken, requireRole(['entrenador']), exportarGruposPDF);
 
-// Luego las rutas CRUD normales
+// Rutas CRUD normales
 router.post("/", authenticateToken, requireRole(['entrenador']), validarBody(crearGrupoSchema), crearGrupoController);
 router.get(
   "/",
@@ -32,13 +33,8 @@ router.get(
   obtenerTodosGruposController
 );
 
-// ✅ Rutas con parámetros AL FINAL
 router.get("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), obtenerGrupoPorIdController);
 router.patch("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), validarBody(actualizarGrupoSchema), actualizarGrupoController);
 router.delete("/:id", authenticateToken, requireRole(['entrenador']), validarParams(idParamSchema), eliminarGrupoController);
 
-
-
-
-router.get('/estadisticas', authenticateToken, requireRole(['entrenador']), getEstadisticasEntrenador);
 export default router;

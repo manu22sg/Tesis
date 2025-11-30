@@ -85,104 +85,141 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
     }
   };
 
-  const handleSortearPrimeraRonda = async () => {
-    Modal.confirm({
-      title: '¿Sortear Primera Ronda?',
-      content: 'Esto generará automáticamente los partidos de la primera ronda basándose en los equipos inscritos.',
-      okText: 'Sí, sortear',
-      cancelText: 'Cancelar',
-      onOk: async () => {
-        setLoading(true);
-        try {
-          const resultado = await campeonatoService.sortearPrimeraRonda(campeonatoId);
+const handleSortearPrimeraRonda = async () => {
+  Modal.confirm({
+    title: '¿Sortear Primera Ronda?',
+    content: 'Esto generará automáticamente los partidos de la primera ronda basándose en los equipos inscritos.',
+    okText: 'Sí, sortear',
+    cancelText: 'Cancelar',
+    onOk: async () => {
+      setLoading(true);
+      try {
+        const resultado = await campeonatoService.sortearPrimeraRonda(campeonatoId);
 
+        
+        
+ 
+       
+
+        const cantidadPartidos = Array.isArray(resultado.partidosCreados) 
+          ? resultado.partidosCreados.length 
+          : (resultado.partidosCreados || 0);
+
+  
+
+        message.success(
+          <div>
+            <div><strong>¡Primera ronda generada!</strong></div>
+            {resultado.ronda && <div>Ronda: {getRondaNombre(resultado.ronda)}</div>}
+            <div>Partidos creados: {cantidadPartidos}</div>
+            {resultado.byes?.length > 0 && (
+              <div>Equipos con BYE: {resultado.byes.length}</div>
+            )}
+          </div>,
+          6
+        );
+
+        cargarDatos();
+      } catch (error) {
+        console.error('Error completo:', error);
+        message.error(error?.response?.data?.error || error.message || 'Error al sortear la primera ronda');
+      } finally {
+        setLoading(false);
+      }
+    }
+  });
+};
+
+
+const handleGenerarSiguienteRonda = async () => {
+  const partidosAgrupados = agruparPartidosPorRonda();
+  const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
+    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
+    return (orden[a] || 99) - (orden[b] || 99);
+  });
+  const ultimaRonda = rondasOrdenadas[0];
+  const partidosUltimaRonda = partidosAgrupados[ultimaRonda] || [];
+  const partidosPendientes = partidosUltimaRonda.filter(p => p.estado !== 'finalizado');
+
+  if (partidosPendientes.length > 0) {
+    Modal.warning({
+      title: 'Partidos pendientes',
+      content: (
+        <div>
+          <p>Hay {partidosPendientes.length} partido(s) pendiente(s) en la ronda "{getRondaNombre(ultimaRonda)}".</p>
+          <p>Debes finalizar todos los partidos y asignar ganadores antes de generar la siguiente ronda.</p>
+        </div>
+      ),
+    });
+    return;
+  }
+
+  Modal.confirm({
+    title: '¿Generar Siguiente Ronda?',
+    content: (
+      <div>
+        <p>Se generará automáticamente la siguiente ronda con los ganadores de "{getRondaNombre(ultimaRonda)}".</p>
+        <Alert
+          message="Importante"
+          description="Asegúrate de que todos los partidos estén finalizados y tengan un ganador asignado."
+          type="info"
+          showIcon
+          style={{ marginTop: 12 }}
+        />
+      </div>
+    ),
+    okText: 'Sí, generar',
+    cancelText: 'Cancelar',
+    icon: <PlayCircleOutlined />,
+    onOk: async () => {
+      setLoading(true);
+      try {
+        const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
+
+       
+
+        // ✅ Manejar partidosCreados como array o número
+        const cantidadPartidos = Array.isArray(resultado.partidosCreados) 
+          ? resultado.partidosCreados.length 
+          : (resultado.partidosCreados || 0);
+
+    
+
+        // Si el campeonato finalizó
+        if (resultado.fin && !resultado.ronda) {
           message.success(
             <div>
-              <div><strong>¡Primera ronda generada!</strong></div>
-              <div>Ronda: {resultado.ronda}</div>
-              <div>Partidos creados: {resultado.partidosCreados?.length || 0}</div>
-              {resultado.byes?.length > 0 && (
-                <div>Equipos con BYE: {resultado.byes.length}</div>
+              <div><strong>¡Campeonato Finalizado! 🏆</strong></div>
+              {resultado.nombreGanador && (
+                <div>Campeón: {resultado.nombreGanador}</div>
               )}
+              {resultado.mensaje && <div>{resultado.mensaje}</div>}
             </div>,
             6
           );
-
-          cargarDatos();
-        } catch (error) {
-          console.log(error.message);
-          message.error(error?.response?.data?.error || error.message || 'Error al sortear la primera ronda');
-        } finally {
-          setLoading(false);
-        }
-      }
-    });
-  };
-
-  const handleGenerarSiguienteRonda = async () => {
-    const partidosAgrupados = agruparPartidosPorRonda();
-    const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
-      const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
-      return (orden[a] || 99) - (orden[b] || 99);
-    });
-    const ultimaRonda = rondasOrdenadas[0];
-    const partidosUltimaRonda = partidosAgrupados[ultimaRonda] || [];
-    const partidosPendientes = partidosUltimaRonda.filter(p => p.estado !== 'finalizado');
-
-    if (partidosPendientes.length > 0) {
-      Modal.warning({
-        title: 'Partidos pendientes',
-        content: (
-          <div>
-            <p>Hay {partidosPendientes.length} partido(s) pendiente(s) en la ronda "{getRondaNombre(ultimaRonda)}".</p>
-            <p>Debes finalizar todos los partidos y asignar ganadores antes de generar la siguiente ronda.</p>
-          </div>
-        ),
-      });
-      return;
-    }
-
-    Modal.confirm({
-      title: '¿Generar Siguiente Ronda?',
-      content: (
-        <div>
-          <p>Se generará automáticamente la siguiente ronda con los ganadores de "{getRondaNombre(ultimaRonda)}".</p>
-          <Alert
-            message="Importante"
-            description="Asegúrate de que todos los partidos estén finalizados y tengan un ganador asignado."
-            type="info"
-            showIcon
-            style={{ marginTop: 12 }}
-          />
-        </div>
-      ),
-      okText: 'Sí, generar',
-      cancelText: 'Cancelar',
-      icon: <PlayCircleOutlined />,
-      onOk: async () => {
-        setLoading(true);
-        try {
-          const resultado = await campeonatoService.generarSiguienteRonda(campeonatoId);
-
+        } else {
+          // Siguiente ronda generada normalmente
           message.success(
             <div>
               <div><strong>¡Siguiente ronda generada!</strong></div>
               {resultado.rondaAnterior && <div>Ronda anterior: {getRondaNombre(resultado.rondaAnterior)}</div>}
               {resultado.ronda && <div>Nueva ronda: {getRondaNombre(resultado.ronda)}</div>}
-              <div>Partidos creados: {resultado.partidosCreados}</div>
+              <div>Partidos creados: {cantidadPartidos}</div>
             </div>,
             4
           );
-
-          cargarDatos();
-        } catch (error) {
-          message.error(error?.response?.data?.error || 'Error al generar siguiente ronda');
-        } finally {
-          setLoading(false);
         }
+
+        cargarDatos();
+      } catch (error) {
+        message.error(error?.response?.data?.error || 'Error al generar siguiente ronda');
+      } finally {
+        setLoading(false);
       }
-    });
-  };
+    }
+  });
+};
+
 
   const handleAbrirModalResultado = (partido) => {
     setPartidoSeleccionado(partido);

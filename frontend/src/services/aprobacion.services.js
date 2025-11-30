@@ -57,56 +57,72 @@ export const rechazarReserva = async (reservaId, motivoRechazo) => {
 
 export async function exportarReservasExcel(params = {}) {
   try {
+    // Detectar móvil
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    params.mobile = isMobile;
+
     const query = new URLSearchParams(params).toString();
+
     const res = await api.get(`/aprobacion/excel?${query}`, {
-      responseType: "blob"
+      responseType: isMobile ? "json" : "blob"
     });
-    
-    if (res.data.type === 'application/json') {
-      const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar Excel');
-    }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar Excel');
-      } catch {
-        throw new Error('Error al exportar Excel');
+
+    // Si es móvil → retorna base64
+    if (isMobile) {
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Error al exportar Excel");
       }
+
+      // Convertir base64 → Blob para poder descargar igual
+      const byteChars = atob(res.data.base64);
+      const byteNumbers = new Array(byteChars.length).fill(0).map((_, i) => byteChars.charCodeAt(i));
+      const byteArray = new Uint8Array(byteNumbers);
+
+      return new Blob([byteArray], { type: 
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
     }
-    throw error;
+
+    // En PC → viene blob directo
+    return res.data;
+
+  } catch (error) {
+    console.error(error);
+    throw new Error(error.message || "Error al exportar Excel");
   }
 }
 
+
 export async function exportarReservasPDF(params = {}) {
   try {
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    params.mobile = isMobile;
+
     const query = new URLSearchParams(params).toString();
+
     const res = await api.get(`/aprobacion/pdf?${query}`, {
-      responseType: "blob"
+      responseType: isMobile ? "json" : "blob"
     });
-    
-    if (res.data.type === 'application/json') {
-      const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar PDF');
-    }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar PDF');
-      } catch {
-        throw new Error('Error al exportar PDF');
+
+    // Móvil → base64
+    if (isMobile) {
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Error exportando PDF");
       }
+
+      const byteChars = atob(res.data.base64);
+      const byteNumbers = new Array(byteChars.length).fill(0).map((_, i) => byteChars.charCodeAt(i));
+      const byteArray = new Uint8Array(byteNumbers);
+
+      return new Blob([byteArray], { type: "application/pdf" });
     }
-    throw error;
+
+    // PC → Blob
+    return res.data;
+
+  } catch (error) {
+    console.error(error);
+    throw new Error(error.message || "Error al exportar PDF");
   }
 }
+

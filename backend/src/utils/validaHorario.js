@@ -27,10 +27,15 @@ export default function validaHorario(value, helpers, cfg) {
     validarBloques = false 
   } = cfg;
   
-  const i = toMin(value.horaInicio);
-  const f = toMin(value.horaFin);
+const horaInicio = value.horaInicio || value.inicio;
+  const horaFin = value.horaFin || value.fin;
+
+
+  const i = toMin(horaInicio);
+  const f = toMin(horaFin);
   const minInicio = toMin(inicio);
   const minFin = toMin(fin);
+
 
   // Validación: dentro del horario de funcionamiento
   if (i < minInicio || f > minFin) {

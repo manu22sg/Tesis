@@ -3,11 +3,9 @@ import api from './root.services.js';
 
 export async function crearSesion(data) {
   try {
-    console.log('📤 Enviando datos al backend:', data);
     
     const res = await api.post('/sesion', data);
     
-    console.log('✅ Respuesta del backend:', res.data);
     
     return res.data.data;
   } catch (error) {
@@ -15,14 +13,10 @@ export async function crearSesion(data) {
     
     // Logging detallado del error
     if (error.response) {
-      // El servidor respondió con un código de error
-      console.error('📋 Status:', error.response.status);
-      console.error('📋 Data:', error.response.data);
-      console.error('📋 Headers:', error.response.headers);
+     
     } else if (error.request) {
       // La petición se hizo pero no hubo respuesta
-      console.error('📋 No se recibió respuesta del servidor');
-      console.error('📋 Request:', error.request);
+      
     } else {
       // Algo pasó al configurar la petición
       console.error('📋 Error al configurar la petición:', error.message);
@@ -154,15 +148,66 @@ function limpiarPayload(data) {
 }
 
 
-export async function exportarSesionesExcel(filtros = {}) {
-  const params = new URLSearchParams(filtros).toString();
-  const res = await api.get(`/sesion/excel?${params}`, { responseType: 'blob' });
-  return res.data;
+export async function exportarSesionesExcel(filtros = {}, mobile = false) {
+  try {
+    // Agregar el parámetro mobile a los filtros
+    const params = { ...filtros };
+    if (mobile) {
+      params.mobile = 'true';
+    }
+    
+    const queryString = new URLSearchParams(params).toString();
+    const res = await api.get(`/sesion/excel?${queryString}`, {
+      responseType: mobile ? 'json' : 'blob'
+    });
+    
+    // Si es mobile y viene base64, decodificar
+    if (mobile && res.data.base64) {
+      const base64 = res.data.base64;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+    }
+    
+    return res.data;
+  } catch (error) {
+    console.error('Error exportando Excel:', error);
+    throw error.response?.data?.message || 'Error al exportar Excel';
+  }
 }
 
-export async function exportarSesionesPDF(filtros = {}) {
-  const params = new URLSearchParams(filtros).toString();
-  const res = await api.get(`/sesion/pdf?${params}`, { responseType: 'blob' });
-  return res.data;
+export async function exportarSesionesPDF(filtros = {}, mobile = false) {
+  try {
+    // Agregar el parámetro mobile a los filtros
+    const params = { ...filtros };
+    if (mobile) {
+      params.mobile = 'true';
+    }
+    
+    const queryString = new URLSearchParams(params).toString();
+    const res = await api.get(`/sesion/pdf?${queryString}`, {
+      responseType: mobile ? 'json' : 'blob'
+    });
+    
+    // Si es mobile y viene base64, decodificar
+    if (mobile && res.data.base64) {
+      const base64 = res.data.base64;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new Blob([bytes], { type: 'application/pdf' });
+    }
+    
+    return res.data;
+  } catch (error) {
+    console.error('Error exportando PDF:', error);
+    throw error.response?.data?.message || 'Error al exportar PDF';
+  }
 }
-

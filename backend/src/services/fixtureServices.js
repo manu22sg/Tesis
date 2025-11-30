@@ -134,12 +134,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       });
 
       // 6.1) Mínimo de jugadores
-      if (jugadores.length < minPorEquipo) {
-        throw new Error(
-          `El equipo "${equipo.nombre}" tiene solo ${jugadores.length} jugadores. ` +
-          `Debe tener al menos ${minPorEquipo} para sortear la primera ronda.`
-        );
-      }
+     
 
       // 6.2) Todos los jugadores deben ser de la misma carrera
       for (const j of jugadores) {
@@ -212,10 +207,7 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
   });
 };
 
-/**
- * Genera la siguiente ronda a partir de los ganadores
- * Si no se especifica rondaAnterior, la detecta automáticamente
- */
+
 export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => {
   const ds = AppDataSource;
   return await ds.transaction(async (trx) => {

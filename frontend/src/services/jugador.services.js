@@ -77,59 +77,123 @@ export async function removerJugadorDeGrupo(jugadorId, grupoId) {
   }
 }
 
-
 export async function exportarJugadoresExcel(params = {}) {
   try {
     const query = new URLSearchParams(params).toString();
+    
+    // Primero intentamos obtener la respuesta
     const res = await api.get(`/jugadores/excel?${query}`, {
-      responseType: "blob"
+      responseType: 'blob', // Importante: decirle a axios que espere un blob
+      // Pero axios aún puede recibir JSON si el servidor devuelve error
+      validateStatus: (status) => status < 500 // Aceptar 404, 400, etc.
     });
-    
-    if (res.data.type === 'application/json') {
+
+    // Si recibimos un error JSON dentro de un blob, convertirlo
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar Excel');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay jugadores para exportar");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar Excel');
-      } catch {
-        throw new Error('Error al exportar Excel');
+
+    // 📱 Mobile → el servidor devuelve JSON con base64
+    // Pero con responseType: 'blob', axios lo convierte en Blob
+    // Entonces necesitamos leerlo como texto primero
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `jugadores_${Date.now()}.xlsx`
+        };
       }
     }
-    throw error;
+
+    // 🖥️ Web → viene como blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `jugadores_${Date.now()}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error("Error exportando jugadores Excel:", error);
+    
+    // Manejar errores de red o del servidor
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar Excel");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar Excel");
   }
 }
 
 export async function exportarJugadoresPDF(params = {}) {
   try {
     const query = new URLSearchParams(params).toString();
+    
     const res = await api.get(`/jugadores/pdf?${query}`, {
-      responseType: "blob"
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    
-    if (res.data.type === 'application/json') {
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar PDF');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay jugadores para exportar");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar PDF');
-      } catch {
-        throw new Error('Error al exportar PDF');
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `jugadores_${Date.now()}.pdf`
+        };
       }
     }
-    throw error;
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `jugadores_${Date.now()}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error("Error exportando jugadores PDF:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar PDF");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar PDF");
   }
 }

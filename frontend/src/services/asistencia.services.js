@@ -63,77 +63,80 @@ export async function exportarAsistenciasExcel(params = {}) {
   if (!params.sesionId && !params.jugadorId) {
     throw new Error("Debe proporcionar sesionId o jugadorId");
   }
-  
+
   try {
+    // Detectar si es móvil
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    params.mobile = isMobile;
+
     const query = new URLSearchParams(params).toString();
+
     const res = await api.get(`/asistencia/excel?${query}`, {
-      responseType: "blob"
+      responseType: isMobile ? "json" : "blob"
     });
-    
-    if (res.data.type === 'application/json') {
-      const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'No hay asistencias para exportar');
-    }
-    
-    return res.data;
-  } catch (error) {
-    // Si el error tiene un blob como respuesta, parsearlo
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'No hay asistencias para exportar');
-      } catch (parseError) {
-        throw new Error('No hay asistencias para exportar');
+
+    // Si es móvil → backend manda { base64, fileName }
+    if (isMobile) {
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "No hay asistencias para exportar");
       }
+
+      // Convertir base64 → Blob
+      const byteChars = atob(res.data.base64);
+      const byteNumbers = new Array(byteChars.length).fill(0).map((_, i) => byteChars.charCodeAt(i));
+      const byteArray = new Uint8Array(byteNumbers);
+
+      return new Blob([byteArray], { 
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+      });
     }
-    
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    
-    throw new Error(error.message || 'Error al exportar Excel');
+
+    // Si es PC → se devuelve blob directo
+    return res.data;
+
+  } catch (error) {
+    console.error(error);
+    throw new Error(error.message || "Error al exportar Excel");
   }
 }
+
 
 export async function exportarAsistenciasPDF(params = {}) {
   if (!params.sesionId && !params.jugadorId) {
     throw new Error("Debe proporcionar sesionId o jugadorId");
   }
-  
+
   try {
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    params.mobile = isMobile;
+
     const query = new URLSearchParams(params).toString();
+
     const res = await api.get(`/asistencia/pdf?${query}`, {
-      responseType: "blob"
+      responseType: isMobile ? "json" : "blob"
     });
-    
-    // 🔥 Verificar si es un error JSON disfrazado de blob
-    if (res.data.type === 'application/json') {
-      const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'No hay asistencias para exportar');
-    }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'No hay asistencias para exportar');
-      } catch (parseError) {
-        throw new Error('No hay asistencias para exportar');
+
+    if (isMobile) {
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "No hay asistencias para exportar");
       }
+
+      const byteChars = atob(res.data.base64);
+      const byteNumbers = new Array(byteChars.length).fill(0).map((_, i) => byteChars.charCodeAt(i));
+      const byteArray = new Uint8Array(byteNumbers);
+
+      return new Blob([byteArray], { type: "application/pdf" });
     }
-    
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    
-    throw new Error(error.message || 'Error al exportar PDF');
+
+    return res.data;
+
+  } catch (error) {
+    console.error(error);
+
+    throw new Error(error.message || "Error al exportar PDF");
   }
 }
+
 
 
 export async function registrarAsistenciaManual(data) {

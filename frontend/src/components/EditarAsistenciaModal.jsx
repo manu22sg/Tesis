@@ -1,4 +1,4 @@
-import { Modal, Button, Select, Tag, Typography } from 'antd';
+import { Modal, Button, Select, Radio, Space, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -17,11 +17,20 @@ export default function EditarAsistenciaModal({
   open,
   asistencia,
   nuevoEstado,
-  onEstadoChange,
+  setNuevoEstado,
+  nuevoMaterial,
+  setNuevoMaterial,
   loading,
   onClose,
   onConfirm
 }) {
+
+  // Preparar valores iniciales al abrir
+  const entregoInicial = asistencia?.entregoMaterial;
+  const valorMaterial = 
+      entregoInicial === true ? "true" :
+      entregoInicial === false ? "false" : "null";
+
   return (
     <Modal
       title="Editar Estado de Asistencia"
@@ -35,7 +44,15 @@ export default function EditarAsistenciaModal({
           key="submit"
           type="primary"
           loading={loading}
-          onClick={onConfirm}
+          onClick={() =>
+            onConfirm({
+              estado: nuevoEstado,
+              entregoMaterial: 
+                nuevoMaterial === "null"
+                  ? null
+                  : nuevoMaterial === "true"
+            })
+          }
         >
           Actualizar
         </Button>,
@@ -43,38 +60,49 @@ export default function EditarAsistenciaModal({
     >
       {asistencia && (
         <div>
+          {/* Jugador */}
           <div style={{ marginBottom: 16 }}>
             <Text strong>Jugador: </Text>
-            <Text>{asistencia.jugador?.usuario?.nombre || 'Sin nombre'}</Text>
+            <Text>
+              {asistencia.jugador?.usuario?.nombre || 'Sin nombre'}{" "}
+              {asistencia.jugador?.usuario?.apellido || ""}
+            </Text>
           </div>
-          
-          <div>
+
+          {/* Estado */}
+          <div style={{ marginBottom: 24 }}>
             <Text strong>Nuevo Estado:</Text>
             <Select
-              value={nuevoEstado}
-              onChange={onEstadoChange}
-              style={{ width: '100%', marginTop: 8 }}
-              size="large"
+  value={nuevoEstado}
+  onChange={setNuevoEstado}
+  style={{ width: '100%', marginTop: 8 }}
+  size="medium"
+>
+  {Object.entries(ESTADOS).map(([key, config]) => (
+    <Select.Option key={key} value={key}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 14 }}>{config.icon}</span>
+        <span>{config.label}</span>
+      </span>
+    </Select.Option>
+  ))}
+</Select>
+          </div>
+
+          {/* NUEVO → Entrego Material */}
+          <div style={{ marginBottom: 24 }}>
+            <Text strong>¿Entregó Material? </Text>
+            <Radio.Group
+              defaultValue={valorMaterial}
+              style={{ marginTop: 8 }}
+              onChange={(e) => setNuevoMaterial(e.target.value)}
             >
-              {Object.entries(ESTADOS).map(([key, config]) => (
-                <Select.Option key={key} value={key}>
-                  <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  {config.icon}
-  {config.label}
-</span>
-                </Select.Option>
-              ))}
-            </Select>
+              <Space direction="vertical">
+                <Radio value="true">Sí</Radio>
+                <Radio value="false">No</Radio>
+                <Radio value="null">No aplica</Radio>
+              </Space>
+            </Radio.Group>
           </div>
         </div>
       )}

@@ -36,7 +36,35 @@ export const ojeadorService = {
       console.error('Error obteniendo estadísticas detalladas:', error);
       throw error.response?.data || error;
     }
+  },
+  exportarPerfilExcel: async (usuarioId, mobile = false) => {
+    try {
+      const params = mobile ? { mobile: 'true' } : {};
+      const res = await api.get(`${OJEADOR_BASE}/${usuarioId}/exportar/excel`, {
+        params,
+        responseType: mobile ? 'json' : 'blob'
+      });
+      return res.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Error al exportar Excel';
+    }
+  },
+
+  exportarPerfilPDF: async (usuarioId, mobile = false) => {
+    try {
+      const params = mobile ? { mobile: 'true' } : {};
+      const res = await api.get(`${OJEADOR_BASE}/${usuarioId}/exportar/pdf`, {
+        params,
+        responseType: mobile ? 'json' : 'blob'
+      });
+      return res.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Error al exportar PDF';
+    }
   }
 };
+
+
+
 
 export default ojeadorService;

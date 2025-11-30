@@ -12,7 +12,7 @@ export const HORARIO_RESERVAS = {
 export const HORARIO_SESIONES = { 
   horainicio: '08:00', 
   horafin: '24:00',    // Medianoche (00:00 del día siguiente)
-  duracionMinima: 60   // Mínimo 1 hora por flexibilidad
+  duracionMinima: 30   // Mínimo 1 hora por flexibilidad
 };
 
 export const ANTICIPACION_MAXIMA_DIAS = 14;
@@ -181,7 +181,7 @@ export const verificarDisponibilidadSesionQuery = Joi.object({
   const dur = f - i;
   if (dur < HORARIO_SESIONES.duracionMinima) {
     return helpers.error('any.invalid', {
-      message: `Las sesiones deben durar al menos ${HORARIO_SESIONES.duracionMinima} minutos`
+      message: `Debe durar al menos ${HORARIO_SESIONES.duracionMinima} minutos`
     });
   }
 

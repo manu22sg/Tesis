@@ -183,81 +183,108 @@ console.log('🔍 Verificando disponibilidad:');
   }, [esRecurrente, tipoUbicacion, canchaId, fecha, horario]);
 
   const onFinish = async (values) => {
-    try {
-      setSaving(true);
+  try {
+    setSaving(true);
 
-      const [horaInicio, horaFin] = values.horario;
+    const [horaInicio, horaFin] = values.horario;
 
-      if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
-        message.error('La hora de inicio debe ser anterior a la hora de fin');
-        setSaving(false);
-        return;
+    if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
+      message.error('La hora de inicio debe ser anterior a la hora de fin');
+      setSaving(false);
+      return;
+    }
+
+    let payload = {
+      tipoSesion: values.tipoSesion,
+      objetivos: values.objetivos,
+      horaInicio: horaInicio.format('HH:mm'),
+      horaFin: horaFin.format('HH:mm'),
+    };
+
+    if (values.grupoId !== undefined && values.grupoId !== null && values.grupoId !== '') {
+      payload.grupoId = Number(values.grupoId);
+    }
+
+    if (tipoUbicacion === 'cancha') {
+      payload.canchaId = Number(values.canchaId);
+    } else {
+      payload.ubicacionExterna = values.ubicacionExterna;
+    }
+
+    if (esRecurrente) {
+      payload.fechaInicio = values.fechaInicio.format('YYYY-MM-DD');
+      payload.fechaFin = values.fechaFin.format('YYYY-MM-DD');
+      payload.diasSemana = values.diasSemana;
+
+      const result = await crearSesionesRecurrentes(payload);
+
+      if (result.errores && result.errores.length > 0) {
+        message.warning(
+          `${result.sesionesCreadas} sesiones creadas. ${result.errores.length} conflictos encontrados.`
+        );
+      } else {
+        message.success(`${result.sesionesCreadas} sesiones creadas correctamente`);
       }
-
-      let payload = {
-        tipoSesion: values.tipoSesion,
-        objetivos: values.objetivos,
-        horaInicio: horaInicio.format('HH:mm'),
-        horaFin: horaFin.format('HH:mm'),
-      };
-
-      if (values.grupoId !== undefined && values.grupoId !== null && values.grupoId !== '') {
-        payload.grupoId = Number(values.grupoId);
-      }
+    } else {
+      payload.fecha = values.fecha.format('YYYY-MM-DD');
 
       if (tipoUbicacion === 'cancha') {
-        payload.canchaId = Number(values.canchaId);
-      } else {
-        payload.ubicacionExterna = values.ubicacionExterna;
+        const disponibilidad = await verificarDisponibilidadSesion(
+          payload.canchaId,
+          payload.fecha,
+          payload.horaInicio,
+          payload.horaFin
+        );
+
+        if (!disponibilidad.disponible) {
+          message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');
+          setSaving(false);
+          return;
+        }
       }
 
-      if (esRecurrente) {
-        payload.fechaInicio = values.fechaInicio.format('YYYY-MM-DD');
-        payload.fechaFin = values.fechaFin.format('YYYY-MM-DD');
-        payload.diasSemana = values.diasSemana;
-
-        const result = await crearSesionesRecurrentes(payload);
-
-        if (result.errores && result.errores.length > 0) {
-          message.warning(
-            `${result.sesionesCreadas} sesiones creadas. ${result.errores.length} conflictos encontrados.`
-          );
-        } else {
-          message.success(`${result.sesionesCreadas} sesiones creadas correctamente`);
-        }
-      } else {
-        payload.fecha = values.fecha.format('YYYY-MM-DD');
-
-        if (tipoUbicacion === 'cancha') {
-          const disponibilidad = await verificarDisponibilidadSesion(
-            payload.canchaId,
-            payload.fecha,
-            payload.horaInicio,
-            payload.horaFin
-          );
-          console.log('✅ Respuesta verificarDisponibilidad:', disponibilidad );
-
-
-          if (!disponibilidad.disponible) {
-            message.error(disponibilidad.message || 'La cancha no está disponible en ese horario');
-            setSaving(false);
-            return;
-          }
-        }
-
-        await crearSesion(payload);
-        message.success('Sesión creada correctamente');
-      }
-
-      navigate('/sesiones');
-    } catch (error) {
-      console.error('Error creando sesión:', error);
-      const msg = error.response?.data?.message || 'Error al crear la sesión';
-      message.error(msg);
-    } finally {
-      setSaving(false);
+      await crearSesion(payload);
+      message.success('Sesión creada correctamente');
     }
-  };
+
+    navigate('/sesiones');
+  } catch (error) {
+    console.error('Error creando sesión:', error);
+    
+    // 🔥 EXTRAER EL MENSAJE DE error.response.data.errors
+    let errorMessage = 'Error al crear la sesión';
+    
+    if (error.response?.data?.errors) {
+      const errors = error.response.data.errors;
+      
+      // Si es un objeto con campos
+      if (typeof errors === 'object' && !Array.isArray(errors)) {
+        const mensajes = Object.values(errors).filter(Boolean);
+        if (mensajes.length > 0) {
+          errorMessage = mensajes[0]; // Primer error
+          // O todos: errorMessage = mensajes.join(' • ');
+        }
+      }
+      // Si es un array
+      else if (Array.isArray(errors) && errors.length > 0) {
+        errorMessage = errors[0];
+      }
+      // Si es un string directo
+      else if (typeof errors === 'string') {
+        errorMessage = errors;
+      }
+    }
+    // Fallback al mensaje general
+    else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    
+    message.error(errorMessage);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const diasSemanaOpciones = [
     { label: 'Lunes', value: 1 },

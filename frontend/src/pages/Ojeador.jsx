@@ -114,6 +114,22 @@ export default function Ojeador() {
     }
   };
 
+  const generarAniosDisponibles = () => {
+    const anioActual = new Date().getFullYear();
+    const anioInicio = 2025; // Año desde que empezó el sistema
+    const anios = [];
+    
+    // Desde el año actual hacia atrás hasta anioInicio
+    for (let year = anioActual; year >= anioInicio; year--) {
+      anios.push(year);
+    }
+    
+    return anios;
+  };
+
+  const aniosDisponibles = generarAniosDisponibles();
+
+
   // Cargar al montar y cuando cambien filtros
   useEffect(() => {
     cargarJugadores(1, pagination.pageSize);
@@ -329,18 +345,18 @@ export default function Ojeador() {
     </Select>
 
     <Select
-      size="middle"
-      allowClear
-      placeholder="Filtrar por año"
-      value={filtroAnio}
-      onChange={setFiltroAnio}
-    >
-      {[2025, 2024, 2023, 2022, 2021].map(year => (
-        <Option key={year} value={year}>
-          {year}
-        </Option>
-      ))}
-    </Select>
+          size="middle"
+          allowClear
+          placeholder="Filtrar por año"
+          value={filtroAnio}
+          onChange={setFiltroAnio}
+        >
+          {aniosDisponibles.map(year => (
+            <Option key={year} value={year}>
+              {year}
+            </Option>
+          ))}
+        </Select>
   </div>
 </Card>
 

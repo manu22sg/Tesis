@@ -6,7 +6,8 @@ import {
   Button,
   message,
   Space,
-  Spin
+  Spin,
+  Radio
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -45,11 +46,10 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
       setJugadorSeleccionado(null);
       setSesiones([]);
       setBusquedaJugador('');
-      setJugadores([]); // ✅ Limpiar jugadores al abrir
+      setJugadores([]);
     }
   }, [visible, form]);
 
-  // Cuando cambia el jugador, cargar sus sesiones
   useEffect(() => {
     if (jugadorSeleccionado) {
       cargarSesionesPorJugador(jugadorSeleccionado);
@@ -58,7 +58,6 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
     }
   }, [jugadorSeleccionado]);
 
-  // Limpiar timeout al desmontar
   useEffect(() => {
     return () => {
       if (searchTimeout.current) {
@@ -67,7 +66,6 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
     };
   }, []);
 
-  // 🔥 Handler de búsqueda con debounce
   const handleBuscarJugadores = (value) => {
     setBusquedaJugador(value);
     
@@ -75,17 +73,14 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
       clearTimeout(searchTimeout.current);
     }
 
-    // Si está vacío O tiene menos de 2 caracteres, limpiar
     if (!value || value.trim().length < 2) {
       setJugadores([]);
       setLoadingJugadores(false);
       return;
     }
 
-    // ✅ Solo activar loading, NO limpiar jugadores
     setLoadingJugadores(true);
 
-    // Buscar con debounce (solo si tiene 2+ caracteres)
     searchTimeout.current = setTimeout(() => {
       buscarJugadores(value.trim());
     }, 500);
@@ -111,7 +106,6 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
       const resultado = await obtenerSesiones({ jugadorId, limit: 50, page: 1 });
       const listaSesiones = Array.isArray(resultado.sesiones) ? resultado.sesiones : [];
       
-      // Ordenar por fecha más reciente
       const sesionesOrdenadas = listaSesiones.sort((a, b) => {
         return new Date(b.fecha) - new Date(a.fecha);
       });
@@ -141,7 +135,8 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
       await registrarAsistenciaManual({
         sesionId: values.sesionId,
         jugadorId: values.jugadorId,
-        estado: values.estado
+        estado: values.estado,
+        entregoMaterial: values.entregoMaterial === 'null' ? null : values.entregoMaterial === 'true'
       });
 
       message.success('Asistencia registrada correctamente');
@@ -278,6 +273,21 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
               </Select.Option>
             ))}
           </Select>
+        </Form.Item>
+
+        {/* 🆕 Entregó Material */}
+        <Form.Item
+          name="entregoMaterial"
+          label="¿Entregó Material?"
+          initialValue="null"
+        >
+          <Radio.Group>
+            <Space direction="vertical">
+              <Radio value="true">Sí</Radio>
+              <Radio value="false">No</Radio>
+              <Radio value="null">No aplica</Radio>
+            </Space>
+          </Radio.Group>
         </Form.Item>
 
         {/* Botones */}

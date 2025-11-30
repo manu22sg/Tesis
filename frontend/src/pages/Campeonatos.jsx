@@ -198,27 +198,41 @@ function CampeonatosContent() {
   };
 
   const handleSubmit = async (values) => {
-    setLoading(true);
-    try {
-      if (editingId) {
-        await campeonatoService.actualizar(editingId, values);
-        message.success('Campeonato actualizado exitosamente');
-      } else {
-        const payload = {
-          ...values,
-          entrenadorId: usuario?.id || usuario?.usuarioId
-        };
-        await campeonatoService.crear(payload);
-        message.success('Campeonato creado exitosamente');
-      }
-      cerrarModal();
-      cargarCampeonatos();
-    } catch {
-      message.error('Error al guardar campeonato');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    if (editingId) {
+      await campeonatoService.actualizar(editingId, values);
+      message.success('Campeonato actualizado exitosamente');
+    } else {
+      const payload = {
+        ...values,
+        entrenadorId: usuario?.id || usuario?.usuarioId
+      };
+      await campeonatoService.crear(payload);
+      message.success('Campeonato creado exitosamente');
     }
-  };
+    cerrarModal();
+    cargarCampeonatos();
+  } catch (error) {
+    console.error('Error al guardar:', error);
+    
+    // Si hay errores de validación específicos
+    if (error.errors) {
+      const errores = Object.values(error.errors).join(', ');
+      message.error(errores);
+    } 
+    // Si hay un mensaje general
+    else if (error.message) {
+      message.error(error.message);
+    } 
+    // Mensaje por defecto
+    else {
+      message.error('Error al guardar campeonato');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleExportarExcel = async () => {
     try {
@@ -415,7 +429,6 @@ function CampeonatosContent() {
           <Space>
             {hayFiltrosActivos && (
               <Button 
-                icon={<ClearOutlined />}
                 onClick={limpiarFiltros}
               >
                 Limpiar Filtros

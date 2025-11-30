@@ -1,642 +1,619 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Form, InputNumber, Button, Select, message, Row, Col, Spin, Divider, Typography } from 'antd';
-import { upsertEstadistica } from '../services/estadistica.services.js';
-import { obtenerSesiones } from '../services/sesion.services.js';
-import { obtenerJugadores } from '../services/jugador.services.js';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
+  message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
+  Pagination, ConfigProvider, Input as AntInput, Dropdown
+} from 'antd';
+import locale from 'antd/locale/es_ES';
+import {
+  FileExcelOutlined,
+  PlusOutlined, EditOutlined, DeleteOutlined,
+  MedicineBoxOutlined, CheckCircleOutlined, ClockCircleOutlined,
+  SearchOutlined, UserOutlined, DownloadOutlined,FilePdfOutlined
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
-import { formatearFecha, formatearHora } from '../utils/formatters.js';
+import {
+  crearLesion, obtenerLesiones, actualizarLesion,
+  eliminarLesion,exportarLesionesExcel, 
+  exportarLesionesPDF      
+} from '../services/lesion.services.js';
+import { obtenerJugadores } from '../services/jugador.services.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import MainLayout from '../components/MainLayout.jsx';
+
 dayjs.locale('es');
 
-const { Option } = Select;
-const { Title } = Typography;
+const { TextArea } = Input;
+const { RangePicker } = DatePicker;
 
-const FormularioEstadistica = ({
-  estadistica = null,
-  jugadores = [],
-  onSuccess,
-  onCancel,
-}) => {
+export default function GestionLesiones() {
+  const { usuario } = useAuth();
+  const rolUsuario = usuario?.rol;
+  const jugadorId = usuario?.jugadorId;
+   const [exportando, setExportando] = useState(false);
+
+  const [lesiones, setLesiones] = useState([]);
+  const [jugadores, setJugadores] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalEditando, setModalEditando] = useState(false);
+  const [lesionActual, setLesionActual] = useState(null);
+
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
+  // Filtros (server-side)
+  const [busqueda, setBusqueda] = useState('');
+  const [qDebounced, setQDebounced] = useState('');
+  const [filtroJugadorId, setFiltroJugadorId] = useState(null);
+  const [rangoFechas, setRangoFechas] = useState(null);
+
   const [form] = Form.useForm();
-  const [cargando, setCargando] = useState(false);
-  const [cargandoSesiones, setCargandoSesiones] = useState(false);
-  const [sesiones, setSesiones] = useState([]);
-  const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
-  const [esPortero, setEsPortero] = useState(false);
-  
-  // Estados de búsqueda de jugadores
-  const [busquedaJugador, setBusquedaJugador] = useState('');
-  const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
-  const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
-  const searchTimeout = useRef(null);
 
-  // Verificar si el jugador es portero
-  const verificarEsPortero = (jugadorId) => {
-    const jugador = [...jugadoresBusqueda, ...jugadores].find(j => j.id === jugadorId);
-    if (!jugador) return false;
-    
-    const posicion = jugador.posicion?.toLowerCase() || '';
-    const posicionSec = jugador.posicionSecundaria?.toLowerCase() || '';
-    
-    return posicion.includes('portero') || 
-           posicion.includes('arquero') ||
-           posicionSec.includes('portero') || 
-           posicionSec.includes('arquero');
-  };
+  const esEstudiante = rolUsuario === 'estudiante';
+  const puedeEditar = ['entrenador', 'superadmin'].includes(rolUsuario);
 
-  // Cargar datos si estamos editando
+  // control de carreras de requests
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
   useEffect(() => {
-    if (estadistica) {
-      form.setFieldsValue({
-        jugadorId: estadistica.jugadorId,
-        sesionId: estadistica.sesionId,
-        goles: estadistica.goles || 0,
-        asistencias: estadistica.asistencias || 0,
-        tirosAlArco: estadistica.tirosAlArco || 0,
-        tirosTotales: estadistica.tirosTotales || 0,
-        regatesExitosos: estadistica.regatesExitosos || 0,
-        regatesIntentados: estadistica.regatesIntentados || 0,
-        pasesCompletados: estadistica.pasesCompletados || 0,
-        pasesIntentados: estadistica.pasesIntentados || 0,
-        intercepciones: estadistica.intercepciones || 0,
-        recuperaciones: estadistica.recuperaciones || 0,
-        duelosGanados: estadistica.duelosGanados || 0,
-        duelosTotales: estadistica.duelosTotales || 0,
-        despejes: estadistica.despejes || 0,
-        atajadas: estadistica.atajadas || 0,
-        golesRecibidos: estadistica.golesRecibidos || 0,
-        arcosInvictos: estadistica.arcosInvictos || 0,
-        tarjetasAmarillas: estadistica.tarjetasAmarillas || 0,
-        tarjetasRojas: estadistica.tarjetasRojas || 0,
-        minutosJugados: estadistica.minutosJugados || 0,
-      });
-      setJugadorSeleccionado(estadistica.jugadorId);
-      setEsPortero(verificarEsPortero(estadistica.jugadorId));
-      cargarSesionesPorJugador(estadistica.jugadorId);
-    }
-  }, [estadistica, form]);
-
-  // Cuando cambia el jugador, cargar solo sus sesiones
-  useEffect(() => {
-    if (jugadorSeleccionado) {
-      cargarSesionesPorJugador(jugadorSeleccionado);
-      setEsPortero(verificarEsPortero(jugadorSeleccionado));
-    } else if (!jugadorSeleccionado && !estadistica) {
-      setSesiones([]);
-      setEsPortero(false);
-      form.setFieldsValue({ sesionId: undefined });
-    }
-  }, [jugadorSeleccionado, estadistica, form]);
-
-  // Limpiar timeout al desmontar
-  useEffect(() => {
-    return () => {
-      if (searchTimeout.current) {
-        clearTimeout(searchTimeout.current);
-      }
-    };
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
   }, []);
 
-  // 🔥 Handler de búsqueda con debounce
-  const handleBuscarJugadores = (value) => {
-    setBusquedaJugador(value);
-    
-    if (searchTimeout.current) {
-      clearTimeout(searchTimeout.current);
-    }
+  // Debounce de búsqueda (500 ms)
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(busqueda.trim()), 500);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
-    if (!value || value.trim().length < 2) {
-      setJugadoresBusqueda([]);
-      setLoadingBusquedaJugador(false);
-      return;
-    }
+  useEffect(() => {
+    if (puedeEditar) cargarJugadores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puedeEditar]);
 
-    setLoadingBusquedaJugador(true);
-
-    searchTimeout.current = setTimeout(() => {
-      buscarJugadores(value.trim());
-    }, 500);
-  };
-
-  const buscarJugadores = async (q) => {
-    setLoadingBusquedaJugador(true);
+  const cargarJugadores = async () => {
     try {
-      const data = await obtenerJugadores({ q, limit: 100 });
-      setJugadoresBusqueda(Array.isArray(data.jugadores) ? data.jugadores : []);
+      const data = await obtenerJugadores({ limite: 100 });
+      setJugadores(data.data?.jugadores || data.jugadores || []);
     } catch (error) {
-      console.error('Error buscando jugadores:', error);
-      setJugadoresBusqueda([]);
-    } finally {
-      setLoadingBusquedaJugador(false);
+      console.error('Error cargando jugadores:', error);
+      message.error('Error al cargar jugadores');
     }
   };
 
-  // Cargar sesiones filtradas por jugador
-  const cargarSesionesPorJugador = async (jugadorId) => {
-    setCargandoSesiones(true);
+  const cargarLesiones = async (
+    page = 1,
+    pageSize = pagination.pageSize,
+    q = qDebounced,
+    jugador = filtroJugadorId,
+    rango = rangoFechas
+  ) => {
+    const reqId = ++requestIdRef.current;
+    setLoading(true);
     try {
-      const resultado = await obtenerSesiones({ jugadorId, limit: 50, page: 1 });
-      setSesiones(Array.isArray(resultado.sesiones) ? resultado.sesiones : []);
-    } catch (error) {
-      console.error('Error cargando sesiones por jugador:', error);
-      message.error('Error al cargar las sesiones del jugador');
-      setSesiones([]);
-    } finally {
-      setCargandoSesiones(false);
-    }
-  };
-
-  // 🔹 Manejar cambio de jugador
-  const manejarCambioJugador = (value) => {
-    setJugadorSeleccionado(value || null);
-    setBusquedaJugador('');
-    if (value) {
-      form.setFieldsValue({ sesionId: undefined });
-      // Limpiar estadísticas de portero si no es portero
-      if (!verificarEsPortero(value)) {
-        form.setFieldsValue({ 
-          atajadas: 0, 
-          golesRecibidos: 0, 
-          arcosInvictos: 0 
-        });
+      const params = {
+        pagina: page,
+        limite: pageSize,
+      };
+      if (q) params.q = q; // 🔹 búsqueda server-side
+      if (jugador) params.jugadorId = jugador;
+      if (rango) {
+        params.desde = rango[0].format('YYYY-MM-DD');
+        params.hasta = rango[1].format('YYYY-MM-DD');
       }
-    }
-  };
 
-  // 🔹 Validación personalizada de reglas de negocio
-  const validarReglas = (_, value) => {
-    const valores = form.getFieldsValue();
-    
-    // Validar tiros al arco <= tiros totales
-    if (valores.tirosAlArco > valores.tirosTotales) {
-      return Promise.reject('Los tiros al arco no pueden superar los tiros totales');
-    }
-    
-    // Validar regates exitosos <= regates intentados
-    if (valores.regatesExitosos > valores.regatesIntentados) {
-      return Promise.reject('Los regates exitosos no pueden superar los regates intentados');
-    }
-    
-    // Validar duelos ganados <= duelos totales
-    if (valores.duelosGanados > valores.duelosTotales) {
-      return Promise.reject('Los duelos ganados no pueden superar los duelos totales');
-    }
-    
-    // Validar pases completados <= pases intentados
-    if (valores.pasesCompletados > valores.pasesIntentados) {
-      return Promise.reject('Los pases completados no pueden superar los pases intentados');
-    }
-    
-    return Promise.resolve();
-  };
+      const response = await obtenerLesiones(params);
+      if (reqId !== requestIdRef.current) return; // ignora respuestas viejas
 
-  // 🔹 Envío del formulario
-  const manejarEnvio = async (values) => {
-    // Validaciones adicionales antes de enviar
-    if (values.tirosAlArco > values.tirosTotales) {
-      message.error('Los tiros al arco no pueden superar los tiros totales');
-      return;
-    }
-    
-    if (values.regatesExitosos > values.regatesIntentados) {
-      message.error('Los regates exitosos no pueden superar los regates intentados');
-      return;
-    }
-    
-    if (values.duelosGanados > values.duelosTotales) {
-      message.error('Los duelos ganados no pueden superar los duelos totales');
-      return;
-    }
-    
-    if (values.pasesCompletados > values.pasesIntentados) {
-      message.error('Los pases completados no pueden superar los pases intentados');
-      return;
-    }
-
-    setCargando(true);
-    try {
-      await upsertEstadistica(values);
-      message.success(
-        estadistica
-          ? 'Estadística actualizada correctamente'
-          : 'Estadística creada correctamente'
-      );
-      form.resetFields();
-      setBusquedaJugador('');
-      setJugadoresBusqueda([]);
-      if (onSuccess) onSuccess();
+      const lista = response.data?.lesiones || [];
+      setLesiones(lista);
+      setPagination(prev => ({
+        ...prev,
+        current: response.data?.pagina ?? page,
+        pageSize,
+        total: response.data?.total ?? 0,
+        totalPages: response.data?.totalPaginas,
+      }));
     } catch (error) {
-      message.error(error.message || 'Error al guardar la estadística');
+      if (!mountedRef.current) return;
+      console.error('Error al cargar lesiones:', error);
+      message.error(error.message || 'Error al cargar lesiones');
     } finally {
-      setCargando(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
-  // Determinar qué jugadores mostrar
-  const jugadoresAMostrar = (() => {
-    if (busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2) {
-      return [];
+  // Efecto único: carga inicial + cambios de filtros/búsqueda/tamaño -> vuelve a página 1
+  useEffect(() => {
+    cargarLesiones(1, pagination.pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qDebounced, filtroJugadorId, rangoFechas, pagination.pageSize]);
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination(prev => ({ ...prev, current: page, pageSize }));
+    cargarLesiones(page, pageSize, qDebounced, filtroJugadorId, rangoFechas);
+  };
+
+  const handleCrear = async (values) => {
+    try {
+      const payload = {
+        ...values,
+        fechaInicio: values.fechaInicio.format('YYYY-MM-DD'),
+        fechaAltaEstimada: values.fechaAltaEstimada?.format('YYYY-MM-DD') || null,
+        fechaAltaReal: values.fechaAltaReal?.format('YYYY-MM-DD') || null,
+      };
+      if (esEstudiante) payload.jugadorId = jugadorId;
+
+      await crearLesion(payload);
+      message.success('Lesión registrada');
+      setModalVisible(false);
+      form.resetFields();
+      cargarLesiones(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || 'Error al crear lesión');
     }
-    return busquedaJugador.trim().length >= 2 ? jugadoresBusqueda : [];
-  })();
+  };
 
-  return (
-    <Form
-      form={form}
-      layout="vertical"
-      onFinish={manejarEnvio}
-      initialValues={{
-        goles: 0,
-        asistencias: 0,
-        tirosAlArco: 0,
-        tirosTotales: 0,
-        regatesExitosos: 0,
-        regatesIntentados: 0,
-        pasesCompletados: 0,
-        pasesIntentados: 0,
-        intercepciones: 0,
-        recuperaciones: 0,
-        duelosGanados: 0,
-        duelosTotales: 0,
-        despejes: 0,
-        atajadas: 0,
-        golesRecibidos: 0,
-        arcosInvictos: 0,
-        tarjetasAmarillas: 0,
-        tarjetasRojas: 0,
-        minutosJugados: 0,
-      }}
-    >
-      {/* Selección de Jugador y Sesión */}
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="jugadorId"
-            label="Jugador"
-            rules={[{ required: true, message: 'Selecciona un jugador' }]}
-          >
-            <Select
-              showSearch
-              allowClear={!estadistica}
-              placeholder="Buscar jugador por nombre o RUT..."
-              filterOption={false}
-              searchValue={busquedaJugador}
-              onSearch={handleBuscarJugadores}
-              onChange={manejarCambioJugador}
-              disabled={!!estadistica}
-              loading={loadingBusquedaJugador}
-              notFoundContent={
-                loadingBusquedaJugador ? (
-                  <div style={{ padding: '8px 12px', textAlign: 'center' }}>
-                    <Spin size="small" />
-                  </div>
-                ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
-                  <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    Escribe al menos 2 caracteres
-                  </div>
-                ) : busquedaJugador.trim().length >= 2 && jugadoresAMostrar.length === 0 ? (
-                  <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    No se encontraron jugadores
-                  </div>
-                ) : jugadoresAMostrar.length === 0 ? (
-                  <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    Escribe para buscar...
-                  </div>
-                ) : null
-              }
-              options={[...jugadoresAMostrar]
-                .sort((a, b) =>
-                  a.usuario?.nombre?.localeCompare(b.usuario?.nombre || '') || 0
-                )
-                .map((jugador) => ({
-                  value: jugador.id,
-                  label: `${jugador.usuario?.nombre || ''} ${jugador.usuario?.apellido || ''} — ${jugador.usuario?.rut || 'Sin RUT'}`
-                }))}
-            />
-          </Form.Item>
-        </Col>
+  const handleEditar = async (values) => {
+    try {
+      const payload = {
+        ...values,
+        fechaInicio: values.fechaInicio.format('YYYY-MM-DD'),
+        fechaAltaEstimada: values.fechaAltaEstimada?.format('YYYY-MM-DD') || null,
+        fechaAltaReal: values.fechaAltaReal?.format('YYYY-MM-DD') || null,
+      };
 
-        <Col span={12}>
-          <Form.Item
-            name="sesionId"
-            label="Sesión"
-            rules={[{ required: true, message: 'Selecciona una sesión' }]}
-          >
-            <Select
-              placeholder={
-                jugadorSeleccionado
-                  ? 'Selecciona una sesión'
-                  : 'Primero selecciona un jugador'
-              }
-              showSearch
-              allowClear={!estadistica}
-              disabled={!jugadorSeleccionado || !!estadistica}
-              loading={cargandoSesiones}
-              notFoundContent={
-                cargandoSesiones ? (
-                  <div style={{ padding: '8px 12px', textAlign: 'center' }}>
-                    <Spin size="small" />
-                  </div>
-                ) : (
-                  'No hay sesiones disponibles'
-                )
-              }
-              filterOption={(input, option) =>
-                String(option?.children ?? '')
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
-            >
-              {sesiones.map((sesion) => {
-                const fecha = formatearFecha(sesion.fecha);
-                const horainicio = formatearHora(sesion.horaInicio);
-                const horafin = formatearHora(sesion.horaFin);
-                return (
-                  <Option key={sesion.id} value={sesion.id}>
-                    {sesion.tipoSesion} {fecha} — {horainicio} - {horafin}
-                  </Option>
-                );
-              })}
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
+      await actualizarLesion(lesionActual.id, payload);
+      message.success('Lesión actualizada exitosamente');
+      setModalEditando(false);
+      setLesionActual(null);
+      form.resetFields();
+      cargarLesiones(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || 'Error al actualizar lesión');
+    }
+  };
 
-      <Divider>Estadísticas Ofensivas</Divider>
-      
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="goles" label="Goles" tooltip="Máximo 15">
-            <InputNumber min={0} max={15} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
+  const handleEliminar = async (id) => {
+    try {
+      await eliminarLesion(id);
+      message.success('Lesión eliminada exitosamente');
+      cargarLesiones(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || 'Error al eliminar lesión');
+    }
+  };
+  const handleExportarExcel = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+    if (rangoFechas) {
+      params.desde = rangoFechas[0].format('YYYY-MM-DD');
+      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+    }
 
-        <Col span={8}>
-          <Form.Item name="asistencias" label="Asistencias" tooltip="Máximo 15">
-            <InputNumber min={0} max={15} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
+    const blob = await exportarLesionesExcel(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `lesiones_${Date.now()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
 
-        <Col span={8}>
-          <Form.Item name="tirosAlArco" label="Tiros al Arco" tooltip="Máximo 50">
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="tirosTotales" label="Tiros Totales" tooltip="Máximo 100">
-            <InputNumber min={0} max={100} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item name="regatesExitosos" label="Regates Exitosos" tooltip="Máximo 50">
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item name="regatesIntentados" label="Regates Intentados" tooltip="Máximo 100">
-            <InputNumber min={0} max={100} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="pasesCompletados" label="Pases Completados" tooltip="Máximo 200">
-            <InputNumber min={0} max={200} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={12}>
-          <Form.Item name="pasesIntentados" label="Pases Intentados" tooltip="Máximo 250">
-            <InputNumber min={0} max={250} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item 
-            name="pasesCompletados" 
-            label="Pases Completados" 
-            tooltip="Máximo 200"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 200, message: 'Máximo 200 pases completados' },
-              { validator: validarReglas }
-            ]}
-          >
-            <InputNumber min={0} max={200} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={12}>
-          <Form.Item 
-            name="pasesIntentados" 
-            label="Pases Intentados" 
-            tooltip="Máximo 250"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 250, message: 'Máximo 250 pases intentados' },
-              { validator: validarReglas }
-            ]}
-          >
-            <InputNumber min={0} max={250} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Divider>Estadísticas Defensivas</Divider>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item 
-            name="intercepciones" 
-            label="Intercepciones" 
-            tooltip="Máximo 50"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 50, message: 'Máximo 50 intercepciones' }
-            ]}
-          >
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item 
-            name="recuperaciones" 
-            label="Recuperaciones" 
-            tooltip="Máximo 50"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 50, message: 'Máximo 50 recuperaciones' }
-            ]}
-          >
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item 
-            name="despejes" 
-            label="Despejes" 
-            tooltip="Máximo 50"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 50, message: 'Máximo 50 despejes' }
-            ]}
-          >
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item 
-            name="duelosGanados" 
-            label="Duelos Ganados" 
-            tooltip="Máximo 50"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 50, message: 'Máximo 50 duelos ganados' },
-              { validator: validarReglas }
-            ]}
-          >
-            <InputNumber min={0} max={50} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={12}>
-          <Form.Item 
-            name="duelosTotales" 
-            label="Duelos Totales" 
-            tooltip="Máximo 100"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 100, message: 'Máximo 100 duelos totales' },
-              { validator: validarReglas }
-            ]}
-          >
-            <InputNumber min={0} max={100} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      {/* Estadísticas de Portero - Solo si es portero */}
-      {esPortero && (
-        <>
-          <Divider>Estadísticas de Portero</Divider>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item 
-                name="atajadas" 
-                label="Atajadas" 
-                tooltip="Máximo 30"
-                rules={[
-                  { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-                  { type: 'number', max: 30, message: 'Máximo 30 atajadas' }
-                ]}
-              >
-                <InputNumber min={0} max={30} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item 
-                name="golesRecibidos" 
-                label="Goles Recibidos" 
-                tooltip="Máximo 20"
-                rules={[
-                  { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-                  { type: 'number', max: 20, message: 'Máximo 20 goles recibidos' }
-                ]}
-              >
-                <InputNumber min={0} max={20} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-
-            <Col span={8}>
-              <Form.Item 
-                name="arcosInvictos" 
-                label="Arcos Invictos" 
-                tooltip="0 o 1"
-                rules={[
-                  { type: 'number', min: 0, message: 'Debe ser 0 o 1' },
-                  { type: 'number', max: 1, message: 'Debe ser 0 o 1' }
-                ]}
-              >
-                <InputNumber min={0} max={1} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      )}
-
-      <Divider>Disciplina y Tiempo</Divider>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item 
-            name="tarjetasAmarillas" 
-            label="Tarjetas Amarillas" 
-            tooltip="Máximo 2"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 2, message: 'Máximo 2 tarjetas amarillas' }
-            ]}
-          >
-            <InputNumber min={0} max={2} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item 
-            name="tarjetasRojas" 
-            label="Tarjetas Rojas" 
-            tooltip="Máximo 1"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser 0 o 1' },
-              { type: 'number', max: 1, message: 'Máximo 1 tarjeta roja' }
-            ]}
-          >
-            <InputNumber min={0} max={1} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-
-        <Col span={8}>
-          <Form.Item 
-            name="minutosJugados" 
-            label="Minutos Jugados" 
-            tooltip="Máximo 120"
-            rules={[
-              { type: 'number', min: 0, message: 'Debe ser mayor o igual a 0' },
-              { type: 'number', max: 120, message: 'Máximo 120 minutos' }
-            ]}
-          >
-            <InputNumber min={0} max={120} style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item>
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={cargando}
-          style={{ marginRight: 8 }}
-        >
-          {estadistica ? 'Actualizar' : 'Crear'} Estadística
-        </Button>
-        {onCancel && <Button onClick={onCancel}>Cancelar</Button>}
-      </Form.Item>
-    </Form>
-  );
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
 };
 
-export default FormularioEstadistica;
+const handleExportarPDF = async () => {
+  try {
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+    if (rangoFechas) {
+      params.desde = rangoFechas[0].format('YYYY-MM-DD');
+      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+    }
+
+    const blob = await exportarLesionesPDF(params);
+    
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `lesiones_${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportarExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportarPDF,
+    },
+  ],
+};
+
+
+  const abrirModalEditar = (record) => {
+    setLesionActual(record);
+    form.setFieldsValue({
+      diagnostico: record.diagnostico,
+      fechaInicio: dayjs(record.fechaInicio),
+      fechaAltaEstimada: record.fechaAltaEstimada ? dayjs(record.fechaAltaEstimada) : null,
+      fechaAltaReal: record.fechaAltaReal ? dayjs(record.fechaAltaReal) : null,
+      jugadorId: record.jugador?.id,
+    });
+    setModalEditando(true);
+  };
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroJugadorId(null);
+    setRangoFechas(null);
+    // qDebounced se vacía tras 500ms y dispara la recarga
+  };
+
+  // Opciones memoizadas para Select (evita ReactNode -> toLowerCase error)
+  const opcionesJugadores = useMemo(() => {
+  return (jugadores || []).map((j) => {
+    const nombre = j.usuario?.nombre || `Jugador #${j.id}`;
+    const apellido = j.usuario?.apellido || '';
+    const rut = j.usuario?.rut || '';
+    
+    return {
+      value: j.id,
+      label: `${nombre} ${apellido} - ${rut}`.trim(),
+    };
+  });
+}, [jugadores]);
+
+  const columns = [
+    {
+      title: 'Jugador',
+      key: 'jugador',
+      render: (_, record) => {
+const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim();
+        const rut = record.jugador?.usuario?.rut || '';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar size={36} icon={<UserOutlined />} style={{ backgroundColor: '#014898' }} />
+            <div>
+              <div style={{ fontWeight: 500 }}>{nombre}</div>
+              {rut && <div style={{ fontSize: 12, color: '#8c8c8c' }}>{rut}</div>}
+            </div>
+          </div>
+        );
+      },
+      width: 220,
+    },
+    {
+      title: 'Diagnóstico',
+      dataIndex: 'diagnostico',
+      key: 'diagnostico',
+      ellipsis: { showTitle: false },
+      render: (texto) => (
+        <Tooltip title={texto}>
+          <span>{texto || '—'}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Fecha Inicio',
+      dataIndex: 'fechaInicio',
+      key: 'fechaInicio',
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
+      align: 'center',
+      width: 120,
+    },
+    {
+      title: 'Alta Estimada',
+      dataIndex: 'fechaAltaEstimada',
+      key: 'fechaAltaEstimada',
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Alta Real',
+      dataIndex: 'fechaAltaReal',
+      key: 'fechaAltaReal',
+      render: (fecha) => (fecha ? dayjs(fecha).format('DD/MM/YYYY') : '—'),
+      align: 'center',
+      width: 130,
+    },
+    {
+      title: 'Estado',
+      key: 'estado',
+      render: (_, record) =>
+        record.fechaAltaReal ? (
+          <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <CheckCircleOutlined />
+  Recuperado
+</span>
+        ) : (
+         <span style={{
+  padding: '2px 8px',
+  borderRadius: 4,
+  fontSize: '12px',
+  fontWeight: 500,
+  border: '1px solid #B9BBBB',
+  backgroundColor: '#f5f5f5',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <ClockCircleOutlined />
+  Activa
+</span>
+        ),
+      align: 'center',
+      width: 120,
+    },
+    ...(puedeEditar
+      ? [
+          {
+            title: 'Acciones',
+            key: 'acciones',
+            align: 'center',
+            width: 150,
+            render: (_, record) => (
+              <Space size="small">
+                <Tooltip title="Editar">
+                  <Button
+                    size="middle"
+                    icon={<EditOutlined />}
+                    onClick={() => abrirModalEditar(record)}
+                  />
+                </Tooltip>
+
+                <Popconfirm
+                  title="¿Eliminar lesión?"
+                  description="Esta acción no se puede deshacer"
+                  onConfirm={() => handleEliminar(record.id)}
+                  okText="Sí, eliminar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Tooltip title="Eliminar">
+                    <Button danger size="middle" icon={<DeleteOutlined />} />
+                  </Tooltip>
+                </Popconfirm>
+              </Space>
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  const hayFiltrosActivos = !!(qDebounced || filtroJugadorId || rangoFechas);
+
+  return (
+    <MainLayout>
+      <ConfigProvider locale={locale}>
+        <div style={{ padding: 24, minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <Card
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <MedicineBoxOutlined style={{ fontSize: 24 }} />
+                <span>Gestión de Lesiones</span>
+              </div>
+            }
+            extra={
+  puedeEditar && (
+    
+    <Space>
+      {hayFiltrosActivos && <Button onClick={limpiarFiltros}>Limpiar filtros</Button>}
+      <Dropdown menu={menuExportar} trigger={['hover']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
+        </Button>
+      </Dropdown>
+
+      {/* ➕ Botón Nueva Lesión */}
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => setModalVisible(true)}
+      >
+        Nueva Lesión
+      </Button>
+    </Space>
+  )
+}
+
+          >
+            {/* Filtros */}
+            <div
+              style={{
+                marginBottom: 16,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 12,
+              }}
+            >
+              <AntInput
+                allowClear
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                prefix={<SearchOutlined />}
+                placeholder="Buscar por nombre, RUT o diagnóstico..."
+              />
+
+             
+
+              <RangePicker
+                value={rangoFechas}
+                onChange={setRangoFechas}
+                format="DD/MM/YYYY"
+                placeholder={['Fecha inicio', 'Fecha fin']}
+                style={{ width: '100%' }}
+              />
+
+              
+            </div>
+
+            {/* Tabla */}
+            <Table
+              columns={columns}
+              dataSource={lesiones}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              size="middle"
+              locale={{
+                emptyText: (
+                  <Empty
+                    description={
+                      hayFiltrosActivos
+                        ? 'No se encontraron lesiones con los filtros aplicados'
+                        : 'No hay lesiones registradas'
+                    }
+                  >
+                    {!hayFiltrosActivos && puedeEditar && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setModalVisible(true)}
+                      >
+                        Registrar primera lesión
+                      </Button>
+                    )}
+                  </Empty>
+                ),
+              }}
+            />
+
+            {lesiones.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
+                <Pagination
+                  current={pagination.current}
+                  pageSize={pagination.pageSize}
+                  total={pagination.total}
+                  onChange={handlePageChange}
+                  onShowSizeChange={handlePageChange}
+                  showSizeChanger
+                  showTotal={(total) => `Total: ${total} lesiones`}
+                  pageSizeOptions={['5', '10', '20', '50']}
+                />
+              </div>
+            )}
+          </Card>
+
+          {/* Modal Crear/Editar */}
+          <Modal
+            title={modalEditando ? 'Editar Lesión' : 'Nueva Lesión'}
+            open={modalVisible || modalEditando}
+            onCancel={() => {
+              setModalVisible(false);
+              setModalEditando(false);
+              setLesionActual(null);
+              form.resetFields();
+            }}
+            footer={null}
+            width={600}
+          >
+            <Form form={form} layout="vertical" onFinish={modalEditando ? handleEditar : handleCrear}>
+              {!modalEditando && !esEstudiante && (
+                <Form.Item
+                  label="Jugador"
+                  name="jugadorId"
+                  rules={[{ required: true, message: 'Seleccione un jugador' }]}
+                >
+                  <Select
+                    showSearch
+                    placeholder="Seleccione un jugador"
+                    options={opcionesJugadores}
+                    optionFilterProp="label"
+                  />
+                </Form.Item>
+              )}
+
+              <Form.Item
+                label="Diagnóstico"
+                name="diagnostico"
+                rules={[
+                  { required: true, message: 'Ingrese el diagnóstico' },
+                  { max: 2000, message: 'Máximo 2000 caracteres' },
+                ]}
+              >
+                <TextArea rows={4} placeholder="Descripción de la lesión" />
+              </Form.Item>
+
+              <Form.Item
+                label="Fecha de Inicio"
+                name="fechaInicio"
+                rules={[{ required: true, message: 'Seleccione la fecha de inicio' }]}
+              >
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              </Form.Item>
+
+              <Form.Item label="Fecha de Alta Estimada" name="fechaAltaEstimada">
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              </Form.Item>
+
+              <Form.Item label="Fecha de Alta Real" name="fechaAltaReal">
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              </Form.Item>
+
+              <Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit">
+                    {modalEditando ? 'Actualizar' : 'Registrar'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setModalVisible(false);
+                      setModalEditando(false);
+                      setLesionActual(null);
+                      form.resetFields();
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Modal>
+        </div>
+      </ConfigProvider>
+    </MainLayout>
+  );
+}

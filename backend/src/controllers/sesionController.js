@@ -11,6 +11,8 @@ import {
 import { success, error, notFound, conflict } from '../utils/responseHandler.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
+import { parseDateLocal } from '../utils/dateLocal.js';
+
 
 export async function postCrearSesion(req, res) {
   try {
@@ -168,6 +170,9 @@ export async function getSesionesPorEstudiante(req, res) {
 
 export async function exportarSesionesExcel(req, res) {
   try {
+    const { mobile } = req.query;
+    const isMobile = mobile === 'true';
+
     const [result, err] = await obtenerSesiones({ ...req.query, page: 1, limit: 5000 });
     if (err) return res.status(400).json({ success: false, message: err });
 
@@ -194,46 +199,53 @@ export async function exportarSesionesExcel(req, res) {
 
     sesiones.forEach(s => {
       sheet.addRow({
-   fecha: new Date(s.fecha).toLocaleDateString('es-CL'),
-  horaInicio: s.horaInicio?.slice(0, 5),
-    horaFin: s.horaFin?.slice(0, 5),
-
-  tipoSesion: s.tipoSesion,
-  grupo: s.grupo?.nombre || s.grupo || "—",
-  lugar: s.cancha?.nombre || s.ubicacionExterna || "—",
-  tokenActivo: s.tokenActivo ? "Sí" : "No",
-  tokenVigente: s.tokenVigente ? "Sí" : "No",
-});
+        fecha: parseDateLocal(s.fecha).toLocaleDateString('es-CL'),
+        horaInicio: s.horaInicio?.slice(0, 5),
+        horaFin: s.horaFin?.slice(0, 5),
+        tipoSesion: s.tipoSesion,
+        grupo: s.grupo?.nombre || s.grupo || "—",
+        lugar: s.cancha?.nombre || s.ubicacionExterna || "—",
+        tokenActivo: s.tokenActivo ? "Sí" : "No",
+        tokenVigente: s.tokenVigente ? "Sí" : "No",
+      });
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
 
+    if (isMobile) {
+      const base64 = buffer.toString('base64');
+      return res.json({
+        success: true,
+        base64,
+        fileName: `sesiones_${Date.now()}.xlsx`
+      });
+    }
+
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="sesiones_${Date.now()}.xlsx"`);
-
     return res.send(buffer);
 
   } catch (error) {
     console.error("Export Excel error:", error);
-    res.status(500).json({ success: false, message: "Error al exportar sesiones" });
+    return res.status(500).json({ success: false, message: "Error al exportar sesiones" });
   }
 }
 
 export async function exportarSesionesPDF(req, res) {
   try {
+    const { mobile } = req.query;
+    const isMobile = mobile === 'true';
+
     const [result, err] = await obtenerSesiones({ ...req.query, page: 1, limit: 5000 });
     if (err) return res.status(400).json({ success: false, message: err });
 
     const sesiones = result.sesiones;
 
     const doc = new PDFDocument({ margin: 40 });
+    const chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="sesiones_${Date.now()}.pdf"`);
+    doc.on('data', (chunk) => chunks.push(chunk));
 
-    doc.pipe(res);
-
-    // Título
     doc.fontSize(20)
       .font("Helvetica-Bold")
       .text("Listado de Sesiones", { align: "center" });
@@ -242,21 +254,17 @@ export async function exportarSesionesPDF(req, res) {
     sesiones.forEach((s, index) => {
       if (doc.y > 700) doc.addPage();
 
-      // --------- FORMATEO DE DATOS ---------
-const fecha = new Date(s.fecha).toLocaleDateString("es-CL");
-      const horaInicio = s.horaInicio?.slice(0, 5); //  HH:mm
+      const fecha = parseDateLocal(s.fecha).toLocaleDateString("es-CL");
+      const horaInicio = s.horaInicio?.slice(0, 5);
       const horaFin = s.horaFin?.slice(0, 5);
-
       const nombreGrupo = s.grupo?.nombre || s.grupo || "Sin grupo";
       const nombreLugar = s.cancha?.nombre || s.ubicacionExterna || "—";
 
-      // --------- HEADER DE SESIÓN ---------
       doc.fontSize(12)
-  .font("Helvetica-Bold")
-  .fillColor("#1890FF")
-  .text(`Sesión del ${fecha} — ${nombreGrupo}`);
+        .font("Helvetica-Bold")
+        .fillColor("#1890FF")
+        .text(`Sesión del ${fecha} — ${nombreGrupo}`);
 
-      // --------- CONTENIDO ---------
       doc.fontSize(10)
         .font("Helvetica")
         .fillColor("#000")
@@ -270,7 +278,6 @@ const fecha = new Date(s.fecha).toLocaleDateString("es-CL");
 
       doc.moveDown(1);
 
-      // Separador
       if (index < sesiones.length - 1) {
         doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
         doc.moveDown(1);
@@ -279,10 +286,28 @@ const fecha = new Date(s.fecha).toLocaleDateString("es-CL");
 
     doc.end();
 
+    if (isMobile) {
+      return new Promise((resolve, reject) => {
+        doc.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          const base64 = buffer.toString('base64');
+          res.json({
+            success: true,
+            base64,
+            fileName: `sesiones_${Date.now()}.pdf`
+          });
+          resolve();
+        });
+        doc.on('error', reject);
+      });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="sesiones_${Date.now()}.pdf"`);
+    doc.pipe(res);
+
   } catch (error) {
     console.error("Export PDF error:", error);
-    res.status(500).json({ success: false, message: "Error al exportar sesiones" });
+    return res.status(500).json({ success: false, message: "Error al exportar sesiones" });
   }
 }
-
-

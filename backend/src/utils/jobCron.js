@@ -5,7 +5,7 @@ import { enviarRecordatoriosSesiones } from './recordatorioSesiones.js';
 
 export function iniciarCronJobs() {
 
-  cron.schedule('0 9* * * *', async () => {
+  cron.schedule('0 9 * * *', async () => {
     console.log('Ejecutando: actualizar estados');
     await actualizarEstadosReservas();
   }, {

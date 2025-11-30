@@ -62,9 +62,9 @@ export const crearSesionBody = Joi.object({
   const res = validaHorario(v, h, {
     inicio: HORARIO_SESIONES.inicio,
     fin: HORARIO_SESIONES.fin,
-    duracionMinima: 30,   // Mínimo 30 minutos
-    duracionMaxima: 180,  // Máximo 3 horas
-    validarBloques: false // ✅ No validar bloques específicos (flexible)
+    duracionMinima: 30,   
+    duracionMaxima: 180, 
+    validarBloques: false 
   });
   
   return res === true ? v : res;   

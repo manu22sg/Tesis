@@ -220,56 +220,79 @@ export default function Jugadores() {
     }
   };
 
-  const handleExportExcel = async () => {
-    try {
-      setExportando(true);
-      const params = {};
-      if (qDebounced) params.q = qDebounced;
-      if (filtroEstado) params.estado = filtroEstado;
-      if (filtroCarreraId) params.carreraId = filtroCarreraId;
-      if (filtroAnio) params.anioIngreso = filtroAnio;
-      if (filtroPosicion) params.posicion = filtroPosicion;
+const handleExportExcel = async () => {
+  try {
+    setExportando(true);
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroEstado) params.estado = filtroEstado;
+    if (filtroCarreraId) params.carreraId = filtroCarreraId;
+    if (filtroAnio) params.anioIngreso = filtroAnio;
+    if (filtroPosicion) params.posicion = filtroPosicion;
 
-      const blob = await exportarJugadoresExcel(params);
-      descargarArchivo(blob, `jugadores_${Date.now()}.xlsx`);
+    const result = await exportarJugadoresExcel(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
       message.success("Excel descargado correctamente");
-    } catch (error) {
-      console.error("Error al exportar Excel:", error);
-      message.error(error.message || "Error al exportar Excel");
-    } finally {
-      setExportando(false);
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
+  } catch (error) {
+    console.error("Error al exportar Excel:", error);
+    message.error(error.message || "Error al exportar Excel");
+  } finally {
+    setExportando(false);
+  }
+};
 
-  const handleExportPDF = async () => {
-    try {
-      setExportando(true);
-      const params = {};
-      if (qDebounced) params.q = qDebounced;
-      if (filtroEstado) params.estado = filtroEstado;
-      if (filtroCarreraId) params.carreraId = filtroCarreraId;
-      if (filtroAnio) params.anioIngreso = filtroAnio;
-      if (filtroPosicion) params.posicion = filtroPosicion;
+const handleExportPDF = async () => {
+  try {
+    setExportando(true);
+    const params = {};
+    if (qDebounced) params.q = qDebounced;
+    if (filtroEstado) params.estado = filtroEstado;
+    if (filtroCarreraId) params.carreraId = filtroCarreraId;
+    if (filtroAnio) params.anioIngreso = filtroAnio;
+    if (filtroPosicion) params.posicion = filtroPosicion;
 
-      const blob = await exportarJugadoresPDF(params);
-      descargarArchivo(blob, `jugadores_${Date.now()}.pdf`);
+    const result = await exportarJugadoresPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
       message.success("PDF descargado correctamente");
-    } catch (error) {
-      console.error("Error al exportar PDF:", error);
-      message.error(error.message || "Error al exportar PDF");
-    } finally {
-      setExportando(false);
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  } finally {
+    setExportando(false);
+  }
+};
 
-  function descargarArchivo(blob, nombre) {
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = nombre;
     a.click();
     window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
   }
+}
 
   const menuExportar = {
     items: [

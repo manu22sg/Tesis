@@ -22,8 +22,6 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
 
     const skip = (page - 1) * limit;
 
-
-    // Query corregido con alias que respetan mayúsculas/minúsculas
     const qb = AppDataSource
       .getRepository(UsuarioSchema)
       .createQueryBuilder('u')
@@ -32,7 +30,9 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
       .leftJoin(CampeonatoSchema, 'camp', 'camp.id = jc.campeonatoId')
       .select('u.id', 'usuarioId')
       .addSelect('u.nombre', 'nombre')
+      .addSelect('u.apellido', 'apellido')
       .addSelect('u.rut', 'rut')
+      .addSelect('u.rol', 'rol')
       .addSelect('carrera.id', 'carreraId')
       .addSelect('carrera.nombre', 'carreraNombre')
       .addSelect('COUNT(DISTINCT jc.campeonatoId)', 'totalCampeonatos')
@@ -40,13 +40,15 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
       .addSelect('COALESCE(SUM(jc.asistenciasCampeonato), 0)', 'totalAsistencias')
       .addSelect('COALESCE(SUM(jc.atajadasCampeonato), 0)', 'totalAtajadas')
       .where('jc.id IS NOT NULL')
+      .andWhere('u.rol = :rolEstudiante', { rolEstudiante: 'estudiante' })
       .groupBy('u.id')
       .addGroupBy('u.nombre')
+      .addGroupBy('u.apellido')
       .addGroupBy('u.rut')
+      .addGroupBy('u.rol')
       .addGroupBy('carrera.id')
       .addGroupBy('carrera.nombre');
 
-    // Filtros
     if (q.trim()) {
       qb.andWhere(
         '(LOWER(u.nombre) LIKE :q OR LOWER(u.rut) LIKE :q)',
@@ -61,18 +63,15 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
     if (anio) {
       qb.andWhere('camp.anio = :anio', { anio: Number(anio) });
     }
+
     qb.andWhere('camp.estado IN (:...estados)', { 
       estados: ['en_juego', 'finalizado'] 
     });
 
-
-    // Contar total
     const totalQuery = qb.clone();
     const totalResults = await totalQuery.getRawMany();
     const total = totalResults.length;
 
-
-    // Ejecutar query con paginación
     const jugadores = await qb
       .orderBy('"totalGoles"', 'DESC')  
       .addOrderBy('u.nombre', 'ASC')
@@ -80,13 +79,14 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
       .limit(limit)
       .getRawMany();
 
-
     return [{
       jugadores: jugadores.map(j => {
         return {
           usuarioId: Number(j.usuarioId || j.usuarioid),
           nombre: j.nombre,
+          apellido: j.apellido,
           rut: j.rut,
+          rol: j.rol,
           carreraId: j.carreraId || j.carreraid ? Number(j.carreraId || j.carreraid) : null,
           carreraNombre: j.carreraNombre || j.carreranombre || null,
           totalCampeonatos: Number(j.totalCampeonatos || j.totalcampeonatos) || 0,
@@ -110,6 +110,7 @@ export async function buscarJugadoresCampeonato(filtros = {}) {
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 /**
  * Obtener perfil completo de un jugador con todo su historial
@@ -263,18 +264,23 @@ export async function obtenerPerfilJugadorCampeonato(usuarioId) {
     };
 
     return [{
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        rut: usuario.rut,
-        email: usuario.email,
-        carreraId: usuario.carrera?.id || null,
-        carreraNombre: usuario.carrera?.nombre || null
-      },
-      totalesGenerales,
-      promedios,
-      historialCampeonatos
-    }, null];
+  usuario: {
+    id: usuario.id,
+    nombre: usuario.nombre,
+    apellido: usuario.apellido,              // 🆕
+    rut: usuario.rut,
+    email: usuario.email,
+    sexo: usuario.sexo,                      // 🆕
+    rol: usuario.rol,                        // 🆕
+    estado: usuario.estado,                  // 🆕
+    anioIngresoUniversidad: usuario.anioIngresoUniversidad,  // 🆕
+    carreraId: usuario.carrera?.id || null,
+    carreraNombre: usuario.carrera?.nombre || null
+  },
+  totalesGenerales,
+  promedios,
+  historialCampeonatos
+}, null];
 
   } catch (error) {
     console.error('Error obteniendo perfil de jugador:', error);

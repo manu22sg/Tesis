@@ -223,7 +223,7 @@ export async function verificarDisponibilidadSesion(
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
     const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema);
-    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema); // ✅ Agregado
+    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema); 
 
     const cancha = await canchaRepository.findOne({ 
       where: { id: canchaId, estado: 'disponible' } 
@@ -242,7 +242,7 @@ export async function verificarDisponibilidadSesion(
       if (sesionIdExcluir && s.id === sesionIdExcluir) continue;
       
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${horaFin})`];
+        return [false, `Conflicto con otra sesión (${s.horaInicio} - ${s.horaFin})`];
       }
     }
 
@@ -328,7 +328,7 @@ export async function verificarDisponibilidadReserva(
     
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${horaFin}) `];
+        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${s.horaFin}) `];
       }
     }
 

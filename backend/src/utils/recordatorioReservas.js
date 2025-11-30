@@ -12,7 +12,6 @@ export async function enviarRecordatoriosReservas() {
   const manana = dayjs().add(1, 'day').format('YYYY-MM-DD');
 
   try {
-    // Query optimizada: traer todo de una vez
     const reservas = await manager
       .createQueryBuilder(ReservaCanchaSchema, 'reserva')
       .leftJoinAndSelect('reserva.usuario', 'usuario')
@@ -34,69 +33,77 @@ export async function enviarRecordatoriosReservas() {
 
     if (!reservas.length) {
       console.log('✓ No hay reservas para enviar recordatorios');
-      return;
+      return { enviados: 0, procesadas: 0 }; // 👈 Retornar info útil
     }
 
-    console.log(` Procesando ${reservas.length} reserva(s)...`);
+    console.log(`📧 Procesando ${reservas.length} reserva(s) para ${manana}...`);
     let totalEnviados = 0;
+    let reservasProcesadas = 0;
 
     for (const r of reservas) {
-      // Recolectar destinatarios únicos
-      const destinatarios = new Set();
+      try { // 👈 Try-catch individual por reserva
+        const destinatarios = new Set();
 
-      if (r?.usuario?.email && r.usuario.estado === 'activo') {
-        destinatarios.add(r.usuario.email);
-      }
-
-      r.participantes?.forEach(p => {
-        const u = p.usuario;
-        if (u?.email && u.estado === 'activo') {
-          destinatarios.add(u.email);
+        if (r?.usuario?.email && r.usuario.estado === 'activo') {
+          destinatarios.add(r.usuario.email);
         }
-      });
 
-      if (!destinatarios.size) continue;
+        r.participantes?.forEach(p => {
+          const u = p.usuario;
+          if (u?.email && u.estado === 'activo') {
+            destinatarios.add(u.email);
+          }
+        });
 
-      // Preparar mensaje
-      const fechaFmt = dayjs(r.fechaReserva).format('DD/MM/YYYY');
-      const horario = formatearHorario(r.horaInicio, r.horaFin);
-      const asunto = `Recordatorio: reserva mañana ${horario} (${r.cancha?.nombre || 'Cancha'})`;
-      const texto = `
+        if (!destinatarios.size) {
+          console.log(`⚠️ Reserva ${r.id}: sin destinatarios válidos`);
+          continue;
+        }
+
+        const fechaFmt = dayjs(r.fechaReserva).format('DD/MM/YYYY');
+        const horario = formatearHorario(r.horaInicio, r.horaFin);
+        const asunto = `Recordatorio: reserva mañana ${horario} (${r.cancha?.nombre || 'Cancha'})`;
+        const texto = `
 Hola,
 
 Te recordamos que mañana tienes una reserva:
- Fecha: ${fechaFmt}
- Hora: ${horario}
- Cancha: ${r.cancha?.nombre || 'Sin asignar'}
+📅 Fecha: ${fechaFmt}
+🕒 Hora: ${horario}
+🏟️ Cancha: ${r.cancha?.nombre || 'Sin asignar'}
 
 ¡Nos vemos allí!
 
 — SPORTUBB
 `.trim();
 
-      // Enviar en lotes
-      const resultado = await enviarEmailsEnLotes(
-        Array.from(destinatarios),
-        asunto,
-        texto
-      );
+        const resultado = await enviarEmailsEnLotes(
+          Array.from(destinatarios),
+          asunto,
+          texto
+        );
 
-      totalEnviados += resultado.exitosos;
+        totalEnviados += resultado.exitosos;
 
-      // Registrar en historial solo si hubo éxito
-      if (resultado.exitosos > 0) {
-        await manager.save(HistorialReservaSchema, {
-          reservaId: r.id,
-          accion: 'recordatorio_24h',
-          observacion: `Enviado a ${resultado.exitosos} destinatario(s)`,
-          usuarioId: null,
-        });
+        if (resultado.exitosos > 0) {
+          await manager.save(HistorialReservaSchema, {
+            reservaId: r.id,
+            accion: 'recordatorio_24h',
+            observacion: `Enviado a ${resultado.exitosos} destinatario(s)`,
+            usuarioId: null,
+          });
+          reservasProcesadas++;
+        }
+
+      } catch (errorReserva) { // 👈 Si una reserva falla, continúa con las demás
+        console.error(`❌ Error procesando reserva ${r.id}:`, errorReserva.message);
       }
     }
 
-    console.log(`Recordatorios de reservas: ${totalEnviados} emails enviados`);
+    console.log(`✅ Recordatorios: ${totalEnviados} emails enviados (${reservasProcesadas}/${reservas.length} reservas)`);
+    return { enviados: totalEnviados, procesadas: reservasProcesadas, total: reservas.length };
 
   } catch (error) {
-    console.error(' Error en enviarRecordatoriosReservas():', error);
+    console.error('❌ Error crítico en enviarRecordatoriosReservas():', error);
+    return { enviados: 0, procesadas: 0, error: error.message }; // 👈 Retornar error
   }
 }

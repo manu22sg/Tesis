@@ -9,12 +9,14 @@ export const buscarJugadoresQuerySchema = Joi.object({
       'number.positive': 'carreraId debe ser mayor a 0'
     }),
 
-  anio: Joi.number().integer().min(1).max(7).optional()
+  // 🔥 CORREGIDO: Año del campeonato, no año de carrera
+  anio: Joi.number().integer().min(2000).max(new Date().getFullYear() + 1).optional()
     .messages({
       'number.base': 'anio debe ser numérico',
-      'number.min': 'anio no puede ser menor a 1',
-      'number.max': 'anio no puede ser mayor a 7'
+      'number.min': 'anio no puede ser menor a 2000',
+      'number.max': `anio no puede ser mayor a ${new Date().getFullYear() + 1}`
     }),
+
 
   pagina: Joi.number().integer().min(1).optional().default(1)
     .messages({

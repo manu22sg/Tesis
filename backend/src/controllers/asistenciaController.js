@@ -178,7 +178,7 @@ export async function obtenerEstadisticasAsistenciaJugadorController(req, res) {
 
 export async function exportarAsistenciasExcel(req, res) {
   try {
-    const { sesionId, jugadorId, mobile } = req.query; // ✅ Ya validado
+    const { sesionId, jugadorId, mobile } = req.query;
 if (!sesionId && !jugadorId) {
   return res.status(400).json({
     success: false,
@@ -314,15 +314,17 @@ if (!sesionId && !jugadorId) {
 
 export async function exportarAsistenciasPDF(req, res) {
   try {
-    const { sesionId, jugadorId } = req.query; // ✅ Ya validado
-    if (!sesionId && !jugadorId) {
-  return res.status(400).json({
-    success: false,
-    message: "Debe enviar sesionId o jugadorId"
-  });
-}
-    let result, err, status;
+    const { sesionId, jugadorId, mobile } = req.query;
+    const isMobile = mobile === "true";
 
+    if (!sesionId && !jugadorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Debe enviar sesionId o jugadorId"
+      });
+    }
+
+    let result, err, status;
     if (sesionId && !jugadorId) {
       [result, err, status] = await listarAsistenciasDeSesion(parseInt(sesionId), {
         pagina: 1,
@@ -348,23 +350,39 @@ export async function exportarAsistenciasPDF(req, res) {
       });
     }
 
-    if (!result || !result.asistencias || result.asistencias.length === 0) {
+    const asistencias = result?.asistencias;
+    if (!asistencias?.length) {
       return res.status(404).json({
         success: false,
         message: "No hay asistencias registradas"
       });
     }
 
-    const asistencias = result.asistencias;
+    // ----------------
+    // CREACIÓN DEL PDF
+    // ----------------
     const doc = new PDFDocument({ margin: 40 });
+    const chunks = [];
+    
+    doc.on("data", (c) => chunks.push(c));
+    doc.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.pdf"`
-    );
+      if (isMobile) {
+        return res.json({
+          success: true,
+          base64: pdfBuffer.toString("base64"),
+          fileName: `asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}.pdf`
+        });
+      }
 
-    doc.pipe(res);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="asistencias_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}.pdf"`
+      );
+      res.send(pdfBuffer);
+    });
 
     doc.fontSize(18).font("Helvetica-Bold").text("Listado de Asistencias", { align: "center" });
     doc.moveDown(1);
@@ -372,37 +390,39 @@ export async function exportarAsistenciasPDF(req, res) {
     const esModoSesion = sesionId && !jugadorId;
     const esSesionConFiltro = sesionId && jugadorId;
 
-    asistencias.forEach((a, index) => {
-      if (doc.y > 700) doc.addPage();
+    asistencias.forEach((a, idx) => {
+      if (doc.y > 720) doc.addPage();
 
       if (esModoSesion || esSesionConFiltro) {
-        doc.fontSize(12).font("Helvetica-Bold").text(
-          `${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Jugador Desconocido"
-        );
-        doc.font("Helvetica").fontSize(10).text(`
-RUT: ${a.jugador?.usuario?.rut || "—"}
-Correo: ${a.jugador?.usuario?.email || "—"}
-Estado: ${a.estado}
-Origen: ${a.origen},
-Entregó Material: ${a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")}
-Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}
-Latitud: ${a.latitud || "—"}
-Longitud: ${a.longitud || "—"}
-        `);
+        doc.fontSize(12).font("Helvetica-Bold")
+          .text(`${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Jugador");
+
+        doc.fontSize(10).font("Helvetica")
+          .text(`RUT: ${a.jugador?.usuario?.rut || "—"}`)
+          .text(`Correo: ${a.jugador?.usuario?.email || "—"}`)
+          .text(`Estado: ${a.estado}`)
+          .text(`Origen: ${a.origen}`)
+          .text(`Entregó Material: ${a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")}`)
+          .text(`Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}`)
+          .text(`Latitud: ${a.latitud || "—"}`)
+          .text(`Longitud: ${a.longitud || "—"}`);
       } else {
-        doc.fontSize(12).font("Helvetica-Bold").text(a.sesion?.tipoSesion || "Sesión Desconocida");
-        doc.font("Helvetica").fontSize(10).text(`
-Fecha: ${a.sesion?.fecha || "—"}
-Cancha: ${a.sesion?.cancha?.nombre || "—"}
-Estado: ${a.estado}
-Origen: ${a.origen}
-Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}
-Latitud: ${a.latitud || "—"}
-Longitud: ${a.longitud || "—"}
-        `);
+        doc.fontSize(12).font("Helvetica-Bold")
+          .text(a.sesion?.tipoSesion || "Sesión");
+
+        doc.fontSize(10).font("Helvetica")
+          .text(`Fecha: ${a.sesion?.fecha || "—"}`)
+          .text(`Cancha: ${a.sesion?.cancha?.nombre || "—"}`)
+          .text(`Estado: ${a.estado}`)
+          .text(`Origen: ${a.origen}`)
+          .text(`Entregó Material: ${a.entregoMaterial === null ? "—" : (a.entregoMaterial ? "Sí" : "No")}`)
+          .text(`Fecha Registro: ${formatoFechaHoraCL(a.fechaRegistro)}`)
+          .text(`Latitud: ${a.latitud || "—"}`)
+          .text(`Longitud: ${a.longitud || "—"}`);
       }
 
-      if (index < asistencias.length - 1) {
+      if (idx < asistencias.length - 1) {
+        doc.moveDown(0.5);
         doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
         doc.moveDown(1);
       }
@@ -413,13 +433,14 @@ Longitud: ${a.longitud || "—"}
   } catch (err) {
     console.error("Error exportando PDF:", err);
     if (!res.headersSent) {
-      res.status(500).json({ 
-        success: false, 
-        message: "Error al exportar asistencias" 
+      return res.status(500).json({
+        success: false,
+        message: "Error al exportar PDF"
       });
     }
   }
 }
+
 
 function formatoFechaHoraCL(fecha) {
   if (!fecha) return "—";

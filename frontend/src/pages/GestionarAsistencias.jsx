@@ -18,7 +18,7 @@ import {
   Select,
   Form,
   Input,
-  Dropdown
+  Dropdown,Radio
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
@@ -74,6 +74,7 @@ export default function GestionarAsistencias() {
   const [loading, setLoading] = useState(true);
   const [loadingSesion, setLoadingSesion] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+const [nuevoMaterial, setNuevoMaterial] = useState('null');
 
   const [editModal, setEditModal] = useState(false);
   const [asistenciaEdit, setAsistenciaEdit] = useState(null);
@@ -219,11 +220,16 @@ export default function GestionarAsistencias() {
     }
   };
 
-  const abrirModalEditar = (asistencia) => {
-    setAsistenciaEdit(asistencia);
-    setNuevoEstado(asistencia.estado);
-    setEditModal(true);
-  };
+ const abrirModalEditar = (asistencia) => {
+  setAsistenciaEdit(asistencia);
+  setNuevoEstado(asistencia.estado);
+  
+  if (asistencia.entregoMaterial === true) setNuevoMaterial("true");
+  else if (asistencia.entregoMaterial === false) setNuevoMaterial("false");
+  else setNuevoMaterial("null");
+
+  setEditModal(true);
+};
 
   const abrirModalManual = () => {
     formManual.resetFields();
@@ -232,45 +238,53 @@ export default function GestionarAsistencias() {
     setModalManual(true);
   };
 
-  const handleActualizar = async () => {
-    try {
-      setLoadingEdit(true);
-      await actualizarAsistencia(asistenciaEdit.id, {
-        estado: nuevoEstado,
-        origen: 'entrenador'
-      });
+  const handleActualizar = async ({ estado, entregoMaterial }) => {
+  try {
+    setLoadingEdit(true);
 
-      message.success('Asistencia actualizada correctamente');
-      setEditModal(false);
-      cargarAsistencias(pagination.current, pagination.pageSize);
-    } catch (error) {
-      console.error('Error actualizando asistencia:', error);
-      message.error(error.response?.data?.message || 'Error al actualizar la asistencia');
-    } finally {
-      setLoadingEdit(false);
-    }
-  };
+    await actualizarAsistencia(asistenciaEdit.id, {
+      estado,
+      entregoMaterial,
+      origen: "entrenador"
+    });
+
+    message.success("Asistencia actualizada correctamente");
+    setEditModal(false);
+    cargarAsistencias(pagination.current, pagination.pageSize);
+  } catch (e) {
+    message.error("Error al actualizar asistencia");
+  } finally {
+    setLoadingEdit(false);
+  }
+};
+
 
   const handleRegistroManual = async (values) => {
-    try {
-      setLoadingManual(true);
-      await registrarAsistenciaManual({
-        sesionId: parseInt(sesionId),
-        jugadorId: values.jugadorId,
-        estado: values.estado || 'presente',
-        observacion: values.observacion
-      });
+  try {
+    setLoadingManual(true);
 
-      message.success('Asistencia registrada correctamente');
-      setModalManual(false);
-      cargarAsistencias(pagination.current, pagination.pageSize);
-    } catch (error) {
-      console.error('Error registrando asistencia:', error);
-      message.error(error.response?.data?.message || 'Error al registrar la asistencia');
-    } finally {
-      setLoadingManual(false);
-    }
-  };
+    await registrarAsistenciaManual({
+      sesionId: parseInt(sesionId),
+      jugadorId: values.jugadorId,
+      estado: values.estado || 'presente',
+      observacion: values.observacion || null,
+      entregoMaterial:
+        values.entregoMaterial === "null"
+          ? null
+          : values.entregoMaterial === "true"
+    });
+
+    message.success("Asistencia registrada correctamente");
+    setModalManual(false);
+    cargarAsistencias(pagination.current, pagination.pageSize);
+  } catch (error) {
+    console.error("Error registrando asistencia:", error);
+    message.error(error.response?.data?.message || "Error al registrar la asistencia");
+  } finally {
+    setLoadingManual(false);
+  }
+};
+
 
   const handleEliminar = async (asistenciaId) => {
     try {
@@ -284,41 +298,54 @@ export default function GestionarAsistencias() {
   };
 
   const handleExportExcel = async () => {
-    try {
-      const blob = await exportarAsistenciasExcel({
-        sesionId: parseInt(sesionId)
-      });
-      
-      descargarArchivo(blob, `asistencias_sesion_${sesionId}.xlsx`);
+  try {
+    const result = await exportarAsistenciasExcel({
+      sesionId: parseInt(sesionId)
+    });
+
+    if (result.modo === "web") {
+      descargarArchivo(result.blob, result.nombre || `asistencias_sesion_${sesionId}.xlsx`);
       message.success("Excel descargado correctamente");
-    } catch (error) {
-      console.error("Error completo:", error);
-      message.error(error.message || "Error al exportar Excel");
+    } else {
+      // MOBILE → BASE64
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // Aquí podrías abrirlo con Sharing.shareAsync de Expo, si quieres
     }
-  };
 
-  const handleExportPDF = async () => {
-    try {
-      const blob = await exportarAsistenciasPDF({
-        sesionId: parseInt(sesionId),
-      });
-
-      descargarArchivo(blob, `asistencias_sesion_${sesionId}.pdf`);
-      message.success("PDF descargado correctamente");
-    } catch (error) {
-      console.error("Error al exportar PDF:", error);
-      message.error(error.message || "Error al exportar PDF");
-    }
-  };
-
-  function descargarArchivo(blob, nombre) {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombre;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error completo:", error);
+    message.error(error.message || "Error al exportar Excel");
   }
+};
+const handleExportPDF = async () => {
+  try {
+    const result = await exportarAsistenciasPDF({
+      sesionId: parseInt(sesionId)
+    });
+
+    if (result.modo === "web") {
+      descargarArchivo(result.blob, result.nombre || `asistencias_sesion_${sesionId}.pdf`);
+      message.success("PDF descargado correctamente");
+    } else {
+      // MOBILE → BASE64
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+    }
+
+  } catch (error) {
+    console.error("Error al exportar PDF:", error);
+    message.error(error.message || "Error al exportar PDF");
+  }
+};
+function descargarArchivo(blob, nombre) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
 
   const menuExportar = {
     items: [
@@ -342,6 +369,7 @@ export default function GestionarAsistencias() {
   };
 
   const columns = [
+   
     {
       title: 'Jugador',
       key: 'jugador',
@@ -363,6 +391,34 @@ export default function GestionarAsistencias() {
         </div>
       ),
     },
+     {
+  title: 'Material',
+  dataIndex: 'entregoMaterial',
+  key: 'entregoMaterial',
+  align: 'center',
+  width: 120,
+  render: (value) => {
+    if (value === true) {
+      return (
+        <Tag color="green" style={{ fontSize: 13, padding: '4px 8px' }}>
+          Sí
+        </Tag>
+      );
+    }
+    if (value === false) {
+      return (
+        <Tag color="red" style={{ fontSize: 13, padding: '4px 8px' }}>
+          No
+        </Tag>
+      );
+    }
+    return (
+      <Tag color="default" style={{ fontSize: 13, padding: '4px 8px' }}>
+        —
+      </Tag>
+    );
+  }
+},
     {
       title: 'Estado',
       dataIndex: 'estado',
@@ -605,14 +661,16 @@ export default function GestionarAsistencias() {
 
           {/* Modal de Editar Asistencia */}
           <EditarAsistenciaModal
-            open={editModal}
-            asistencia={asistenciaEdit}
-            nuevoEstado={nuevoEstado}
-            onEstadoChange={setNuevoEstado}
-            loading={loadingEdit}
-            onClose={() => setEditModal(false)}
-            onConfirm={handleActualizar}
-          />
+  open={editModal}
+  asistencia={asistenciaEdit}
+  nuevoEstado={nuevoEstado}
+  setNuevoEstado={setNuevoEstado}
+  nuevoMaterial={nuevoMaterial}
+  setNuevoMaterial={setNuevoMaterial}
+  loading={loadingEdit}
+  onClose={() => setEditModal(false)}
+  onConfirm={handleActualizar}
+/>
 
           {/* Modal de Registro Manual */}
           <Modal
@@ -621,7 +679,7 @@ export default function GestionarAsistencias() {
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 8,
-                fontSize: 18,
+                fontSize: 14,
                 fontWeight: 600,
                 color: '#262626'
               }}>
@@ -672,6 +730,17 @@ export default function GestionarAsistencias() {
               style={{ marginTop: 24 }}
             >
               <Form.Item
+  label={<span style={{ fontSize: 14, fontWeight: 500 }}>¿Entregó Material?</span>}
+  name="entregoMaterial"
+  initialValue="null"
+>
+  <Radio.Group style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <Radio value="true">Sí</Radio>
+    <Radio value="false">No</Radio>
+    <Radio value="null">No aplica</Radio>
+  </Radio.Group>
+</Form.Item>
+              <Form.Item
                 label={<span style={{ fontSize: 14, fontWeight: 500 }}>Jugador</span>}
                 name="jugadorId"
                 rules={[{ required: true, message: 'Selecciona un jugador' }]}
@@ -682,7 +751,7 @@ export default function GestionarAsistencias() {
                   filterOption={false}
                   searchValue={busquedaJugador}
                   onSearch={handleBuscarJugadores}
-                  size="large"
+                  size="medium"
                   style={{ borderRadius: 8 }}
                   notFoundContent={
                     loadingBusquedaJugador ? (

@@ -197,13 +197,13 @@ export const verificarDisponibilidadSesionQuery = Joi.object({
   const dur = f - i;
   if (dur < 30) {
     return helpers.error('any.invalid', {
-      message: 'Las sesiones deben durar al menos 30 minutos'
+      message: 'Deben durar al menos 30 minutos'
     });
   }
 
   if (dur > 180) {
     return helpers.error('any.invalid', {
-      message: 'Las sesiones no pueden durar más de 3 horas'
+      message: 'No pueden durar más de 3 horas'
     });
   }
 

@@ -190,7 +190,7 @@ const handleExportExcel = async () => {
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
     if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
 
-    const blob = await exportarSesionesExcel(query);
+    const blob = await exportarSesionesExcel(query,false);
     descargarArchivo(blob, `sesiones_${Date.now()}.xlsx`);
 
   } catch (err) {
@@ -213,7 +213,7 @@ const handleExportPDF = async () => {
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
     if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
 
-    const blob = await exportarSesionesPDF(query);
+    const blob = await exportarSesionesPDF(query,false);
     descargarArchivo(blob, `sesiones_${Date.now()}.pdf`);
 
   } catch {

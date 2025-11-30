@@ -7,7 +7,7 @@ import {connectDB} from "./config/config.db.js"
 import { createUsers } from './config/initialSetup.js';
 import {createCarreras} from "./config/carrerasSetup.js"
 import { iniciarCronJobs } from './utils/jobCron.js';
-
+import { enviarRecordatoriosReservas } from './utils/recordatorioReservas.js';
 dotenv.config();
 
 const app = express();
@@ -45,6 +45,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 iniciarCronJobs();
+
+
 
 app.get('/', (req, res) => {
   console.log('¡Alguien visitó la página!');

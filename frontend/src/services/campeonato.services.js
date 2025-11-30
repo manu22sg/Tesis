@@ -58,7 +58,7 @@ export const campeonatoService = {
   sortearPrimeraRonda: async (id) => {
     try {
       const response = await api.post(`${CAMPEONATOS_BASE}/${id}/sortear`);
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.log(error)
       throw error.response?.data || error;
@@ -69,9 +69,9 @@ export const campeonatoService = {
   generarSiguienteRonda: async (id) => {
     try {
       const response = await api.post(`${CAMPEONATOS_BASE}/${id}/siguiente-ronda`, {});
-      return response.data;
+      return response.data.data;
     } catch (error) {
-      throw error.response?.data || error;
+      throw error.response?.data|| error;
     }
   },
 

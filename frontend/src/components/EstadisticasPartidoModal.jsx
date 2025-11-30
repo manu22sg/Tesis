@@ -4,7 +4,6 @@ import {
   Table,
   Button,
   Space,
-  Tag,
   Card,
   Row,
   Col,
@@ -16,7 +15,8 @@ import {
   Tooltip,
   Popconfirm,
   message,
-  Typography
+  Typography,
+  Alert
 } from 'antd';
 import {
   BarChartOutlined,
@@ -47,7 +47,7 @@ const EstadisticasPartidoModal = ({
   const [todosLosJugadores, setTodosLosJugadores] = useState([]);
   const [form] = Form.useForm();
 
-  // ➕ Máximo de minutos según si hubo penales
+  // Máximo de minutos según si hubo penales
   const maxMinutos = useMemo(() => {
     if (!partido) return 90;
     return partido.definidoPorPenales ? 120 : 90;
@@ -55,6 +55,7 @@ const EstadisticasPartidoModal = ({
 
   useEffect(() => {
     if (visible && partido) {
+      
       cargarEstadisticas();
     }
   }, [visible, partido]);
@@ -63,10 +64,15 @@ const EstadisticasPartidoModal = ({
     if (!partido) return;
     setLoading(true);
     try {
+      
       const data = await estadisticaService.listarEstadisticas({ partidoId: partido.id });
+      
+  
+      
       setEstadisticas(data.items || []);
       await cargarJugadoresDisponibles(data.items || []);
     } catch (error) {
+      console.error('❌ Error al cargar estadísticas:', error);
       message.error('Error al cargar estadísticas');
       setEstadisticas([]);
     } finally {
@@ -75,13 +81,18 @@ const EstadisticasPartidoModal = ({
   };
 
   const cargarJugadoresDisponibles = async (estadisticasActuales) => {
-    if (!partido || !campeonatoId) return;
+    if (!partido || !campeonatoId) {
+      console.warn('⚠️ Falta partido o campeonatoId');
+      return;
+    }
 
     try {
+      
       const [jugadoresA, jugadoresB] = await Promise.all([
         estadisticaService.listarJugadoresPorEquipoYCampeonato(partido.equipoAId, campeonatoId),
         estadisticaService.listarJugadoresPorEquipoYCampeonato(partido.equipoBId, campeonatoId)
       ]);
+
 
       const todos = [...(jugadoresA || []), ...(jugadoresB || [])];
       setTodosLosJugadores(todos);
@@ -93,7 +104,8 @@ const EstadisticasPartidoModal = ({
 
       setJugadoresDisponibles(disponibles);
     } catch (error) {
-      console.error('Error al cargar jugadores:', error);
+      console.error('❌ Error al cargar jugadores:', error);
+      message.error('Error al cargar jugadores del partido');
       setJugadoresDisponibles([]);
       setTodosLosJugadores([]);
     }
@@ -114,7 +126,6 @@ const EstadisticasPartidoModal = ({
     } else {
       setEditingId(null);
       form.resetFields();
-      // setea valor inicial de minutos según si hubo penales
       form.setFieldsValue({ minutosJugados: maxMinutos });
     }
     setModalForm(true);
@@ -138,7 +149,8 @@ const EstadisticasPartidoModal = ({
       form.resetFields();
       await cargarEstadisticas();
     } catch (error) {
-      message.error(error || 'Error al guardar estadística');
+      console.error('❌ Error al guardar:', error);
+      message.error(error?.response?.data?.error || error.message || error|| 'Error al guardar estadística');
     } finally {
       setLoading(false);
     }
@@ -150,6 +162,7 @@ const EstadisticasPartidoModal = ({
       message.success('Estadística eliminada');
       await cargarEstadisticas();
     } catch (error) {
+      console.error('❌ Error al eliminar:', error);
       message.error('Error al eliminar estadística');
     }
   };
@@ -170,15 +183,15 @@ const EstadisticasPartidoModal = ({
                 #{jugador.numeroCamiseta} {jugador.usuario?.nombre} {jugador.usuario?.apellido ?? ''}
               </span>
               <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {jugador.posicion}
-</span>
+                padding: '2px 8px',
+                borderRadius: 4,
+                fontSize: '12px',
+                fontWeight: 500,
+                border: '1px solid #B9BBBB',
+                backgroundColor: '#f5f5f5'
+              }}>
+                {jugador.posicion}
+              </span>
             </Space>
             <Text type="secondary" style={{ fontSize: '12px', marginLeft: 20 }}>
               {jugador.equipo?.nombre}
@@ -230,6 +243,10 @@ const EstadisticasPartidoModal = ({
   const fueAPenales = !!partido.definidoPorPenales;
   const hayPenales = partido.penalesA != null && partido.penalesB != null;
 
+  // ✅ Verificar si hay jugadores en total (no solo disponibles)
+  const hayJugadores = todosLosJugadores.length > 0;
+  const todosConEstadisticas = jugadoresDisponibles.length === 0 && todosLosJugadores.length > 0;
+
   return (
     <>
       <Modal
@@ -274,67 +291,88 @@ const EstadisticasPartidoModal = ({
 
           <div style={{ textAlign: 'center' }}>
             <Space size="small" wrap>
-             <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
-</span>
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: 4,
+                fontSize: '12px',
+                fontWeight: 500,
+                border: '1px solid #B9BBBB',
+                backgroundColor: '#f5f5f5'
+              }}>
+                {getRondaNombre ? getRondaNombre(partido.ronda) : partido.ronda}
+              </span>
 
               {partido.fecha && (
                 <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {formatearFecha(partido.fecha)}
-</span>
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  border: '1px solid #B9BBBB',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  {formatearFecha(partido.fecha)}
+                </span>
               )}
 
               {partido.estado && (
-               <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {partido.estado}
-</span>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  border: '1px solid #B9BBBB',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  {partido.estado}
+                </span>
               )}
 
               {fueAPenales && (
-               <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {hayPenales
-    ? `Definido por penales: ${partido.penalesA} - ${partido.penalesB}`
-    : 'Definido por penales'}
-</span>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  border: '1px solid #B9BBBB',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  {hayPenales
+                    ? `Definido por penales: ${partido.penalesA} - ${partido.penalesB}`
+                    : 'Definido por penales'}
+                </span>
               )}
             </Space>
           </div>
         </Card>
+
+        {/* ✅ Mostrar alerta si no hay jugadores disponibles */}
+        {!hayJugadores && (
+          <Alert
+            message="No se encontraron jugadores"
+            description="No hay jugadores inscritos en este campeonato para los equipos de este partido."
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {todosConEstadisticas && (
+          <Alert
+            message="Todos los jugadores tienen estadísticas"
+            description={`Ya se han registrado estadísticas para los ${todosLosJugadores.length} jugadores de ambos equipos.`}
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => handleAbrirForm()}
-            disabled={jugadoresDisponibles.length === 0}
+            disabled={!hayJugadores || jugadoresDisponibles.length === 0}
           >
             Agregar Estadística
           </Button>
@@ -357,7 +395,7 @@ const EstadisticasPartidoModal = ({
                   type="dashed"
                   icon={<PlusOutlined />}
                   onClick={() => handleAbrirForm()}
-                  disabled={jugadoresDisponibles.length === 0}
+                  disabled={!hayJugadores || jugadoresDisponibles.length === 0}
                 >
                   Agregar primera estadística
                 </Button>

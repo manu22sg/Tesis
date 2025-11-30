@@ -28,6 +28,7 @@ export const partidoService = {
       return response.data;
 
     } catch (error) {
+      console.log(error)
       console.error("Error al programar partido:", error);
       throw error;
     }
