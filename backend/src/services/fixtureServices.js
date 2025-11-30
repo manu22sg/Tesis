@@ -134,7 +134,12 @@ export const sortearPrimeraRonda = async ({ campeonatoId }) => {
       });
 
       // 6.1) Mínimo de jugadores
-    
+      if (jugadores.length < minPorEquipo) {
+        throw new Error(
+          `El equipo "${equipo.nombre}" tiene solo ${jugadores.length} jugadores. ` +
+          `Debe tener al menos ${minPorEquipo} para sortear la primera ronda.`
+        );
+      }
 
       // 6.2) Todos los jugadores deben ser de la misma carrera
       for (const j of jugadores) {

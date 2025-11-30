@@ -18,7 +18,8 @@ export async function verificarDisponibilidadSesion(
   fecha,
   horaInicio,
   horaFin,
-  sesionIdExcluir = null
+  sesionIdExcluir = null,
+  partidoIdExcluir = null
 ) {
   try {
     const params = { 
@@ -30,6 +31,9 @@ export async function verificarDisponibilidadSesion(
 
     if (sesionIdExcluir !== null) {
       params.sesionIdExcluir = sesionIdExcluir;
+    }
+    if(partidoIdExcluir !==null){
+      params.partidoIdExcluir = partidoIdExcluir;
     }
 
     const response = await api.get('/horario/verificar-sesion', { params });
@@ -63,6 +67,7 @@ export async function verificarDisponibilidadReserva(
       data: response.data
     };
   } catch (error) {
+    console.log(error)
     // Si hay un error 409, significa que hay un conflicto (sesión u otra reserva)
     if (error.response?.status === 409) {
       return {

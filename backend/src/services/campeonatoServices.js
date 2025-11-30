@@ -90,7 +90,11 @@ export const listarCampeonatos = async () => {
     relations: [
       "equipos",
       "equipos.carrera",
-      "partidos"
+      "partidos",
+       "partidos.equipoA",      
+      "partidos.equipoB",      
+      "partidos.cancha",       
+      "partidos.arbitro"     
     ],
     order: { fechaCreacion: "DESC" },
   });
@@ -106,7 +110,11 @@ export const obtenerCampeonato = async (id) => {
     relations: [
       "equipos",
       "equipos.carrera",
-      "partidos"
+      "partidos",
+      "partidos.equipoA",
+      "partidos.equipoB",
+      "partidos.cancha",
+      "partidos.arbitro"  // ← CRÍTICO
     ],
   });
 };

@@ -214,7 +214,8 @@ export async function verificarDisponibilidadSesion(
   fechaISO, 
   horaInicio, 
   horaFin, 
-  sesionIdExcluir = null
+  sesionIdExcluir = null,
+  partidoIdExcluir = null
 ) {
   try {
     const fecha = toISODateSafe(fechaISO);
@@ -241,7 +242,7 @@ export async function verificarDisponibilidadSesion(
       if (sesionIdExcluir && s.id === sesionIdExcluir) continue;
       
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con otra sesión de entrenamiento (ID: ${s.id})`];
+        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${horaFin})`];
       }
     }
 
@@ -255,8 +256,9 @@ export async function verificarDisponibilidadSesion(
     });
     
     for (const p of partidos) {
+  if (partidoIdExcluir && p.id === partidoIdExcluir) continue;
       if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-        return [false, `Ya existe un partido de campeonato en ese horario (ID: ${p.id})`];
+        return [false, `Ya existe un partido de campeonato en ese horario`];
       }
     }
 
@@ -326,7 +328,7 @@ export async function verificarDisponibilidadReserva(
     
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión de entrenamiento en ese horario`];
+        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${horaFin}) `];
       }
     }
 

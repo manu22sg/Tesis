@@ -27,7 +27,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     const sesiones = await sesionRepo.find({ where: { canchaId, fecha: fechaLocal } });
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión de entrenamiento (ID: ${s.id})`];
+        return [false, `Conflicto con sesión programada (${s.horaInicio} - ${s.horaFin})`];
       }
     }
 
@@ -92,22 +92,21 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
       if (cancha.estado !== "disponible")
         return [null, "La cancha no está disponible"];
 
-      
-
       const minJugadores =
-  camp.formato === "11v11" ? 11 :
-  camp.formato === "8v8"  ? 8  :
-  camp.formato === "7v7"  ? 7  :
-  5;
+        camp.formato === "11v11" ? 22 :
+        camp.formato === "8v8"  ? 16  :
+        camp.formato === "7v7"  ? 14  :
+        5;
 
       if (cancha.capacidadMaxima < minJugadores)
         return [null, `La cancha ${cancha.nombre} no soporta formato ${camp.formato}`];
     }
+    
     if (arbitroId) {
-  const usuarioRepo = manager.getRepository(UsuarioSchema);
-  const arbitro = await usuarioRepo.findOne({ where: { id: arbitroId } });
-  if (!arbitro) return [null, "Árbitro no encontrado"];
-}
+      const usuarioRepo = manager.getRepository(UsuarioSchema);
+      const arbitro = await usuarioRepo.findOne({ where: { id: arbitroId } });
+      if (!arbitro) return [null, "Árbitro no encontrado"];
+    }
 
     //Usar valores actuales si no se proporcionan nuevos
     const nuevaCanchaId = canchaId ?? partido.canchaId;
@@ -138,7 +137,7 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
       nuevaFecha,
       nuevaHoraInicio,
       nuevaHoraFin,
-      id //Pasar el ID del partido para excluirlo en la verificación
+      id
     );
     if (!ok) return [null, err];
 
@@ -148,15 +147,23 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
     partido.horaInicio = nuevaHoraInicio; 
     partido.horaFin = nuevaHoraFin;
     
-    //  Mantener estado si ya está programado
+    // Mantener estado si ya está programado
     if (partido.estado === "pendiente") {
       partido.estado = "programado";
     }
 
-    const actualizado = await partidoRepo.save(partido);
+    await partidoRepo.save(partido);
+    
+    // ✅ CAMBIO IMPORTANTE: Recargar con relaciones ANTES de hacer commit
+    const partidoActualizado = await partidoRepo.findOne({
+      where: { id: Number(id) },
+      relations: ["equipoA", "equipoB", "cancha", "arbitro"]
+    });
+    
+    
     await queryRunner.commitTransaction();
 
-    return [actualizado, null];
+    return [partidoActualizado, null];
   } catch (error) {
     await queryRunner.rollbackTransaction();
     console.error("Error programando partido:", error);
@@ -165,6 +172,7 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
     await queryRunner.release();
   }
 }
+
 /** Helper horario */
 function hayConflictoHorario(a, b) {
   const toMin = (t) => {

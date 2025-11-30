@@ -88,7 +88,7 @@ export async function verificarDisponibilidadReserva(req, res) {
  */
 export async function verificarDisponibilidadSesion(req, res) {
   try {
-    const { canchaId, fecha, inicio, fin, sesionIdExcluir } = req.query;
+    const { canchaId, fecha, inicio, fin, sesionIdExcluir,partidoIdExcluir } = req.query;
 
     if (!canchaId || !fecha || !inicio || !fin) {
       return res.status(400).json({ 
@@ -101,7 +101,8 @@ export async function verificarDisponibilidadSesion(req, res) {
       fecha, 
       inicio, 
       fin,
-      sesionIdExcluir ? parseInt(sesionIdExcluir) : null 
+      sesionIdExcluir ? parseInt(sesionIdExcluir) : null,
+      partidoIdExcluir ? parseInt(partidoIdExcluir): null
     );
 
     if (!disponible) {

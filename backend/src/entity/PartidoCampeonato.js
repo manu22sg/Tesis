@@ -32,13 +32,13 @@ const PartidoCampeonatoSchema = new EntitySchema({
     fechaCreacion: { type: "timestamp", createDate: true },
     fechaActualizacion: { type: "timestamp", updateDate: true },
   },
-  arbitro: {
+  relations: {
+    arbitro: {
   type: "many-to-one",
   target: "Usuario",
   joinColumn: { name: "arbitroId" },
   onDelete: "RESTRICT",
 },
-  relations: {
     campeonato: {
       type: "many-to-one",
       target: "Campeonato",
