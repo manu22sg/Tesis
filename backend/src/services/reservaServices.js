@@ -155,7 +155,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
 
     //  Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaReserva: fecha, estado: In(['pendiente', 'aprobada']) }
+      where: { canchaId, fechaReserva: fecha, estado: In([ 'aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
@@ -218,7 +218,7 @@ export async function crearReserva(datosReserva, usuarioId) {
       .select('r.id')
       .where('r."canchaId" = :canchaId', { canchaId })
       .andWhere('r."fechaReserva" = :fecha', { fecha })
-      .andWhere('r."estado" IN (:...estados)', { estados: ['pendiente', 'aprobada'] })
+      .andWhere('r."estado" IN (:...estados)', { estados: [ 'aprobada'] })
       .andWhere('NOT (r."horaFin" <= :inicio OR r."horaInicio" >= :fin)', {
         inicio: horaInicio, fin: horaFin
       })

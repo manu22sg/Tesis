@@ -7,10 +7,12 @@ import {
   DatePicker,
   TimePicker,
   Button,
-App,  Spin,
+  App,
+  Spin,
   ConfigProvider,
   Radio,
-  Space
+  Space,
+  Alert
 } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -30,17 +32,18 @@ export default function EditarSesion() {
   const { id } = useParams();
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { message } = App.useApp(); 
+  const { message } = App.useApp();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [tipoUbicacion, setTipoUbicacion] = useState('cancha'); // 'cancha' o 'externa'
-  
+
   // 🔎 Estado para verificación en vivo (debounced)
   const [checkingDisp, setCheckingDisp] = useState(false);
   const [dispOk, setDispOk] = useState(null); // true | false | null
+  const [duracionExcedida, setDuracionExcedida] = useState(false); // ✅ Nuevo estado separado
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -112,6 +115,7 @@ export default function EditarSesion() {
     }
     // al cambiar el modo de ubicación, reseteamos el indicador de disponibilidad
     setDispOk(null);
+    setDuracionExcedida(false);
   }, [tipoUbicacion, form]);
 
   // ====== Debounce de verificación en vivo ======
@@ -123,6 +127,7 @@ export default function EditarSesion() {
     // Solo aplica para sesión en cancha
     if (tipoUbicacion !== 'cancha') {
       setDispOk(null);
+      setDuracionExcedida(false);
       return;
     }
 
@@ -131,6 +136,7 @@ export default function EditarSesion() {
 
     if (!canCheck) {
       setDispOk(null);
+      setDuracionExcedida(false);
       return;
     }
 
@@ -138,15 +144,27 @@ export default function EditarSesion() {
       try {
         setCheckingDisp(true);
         const [h1, h2] = horario;
-        
+
         // Validación local simple por si eligen horas iguales o invertidas
         if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
           setDispOk(null);
+          setDuracionExcedida(false);
           setCheckingDisp(false);
           return;
         }
 
-        // 🔥 Llamada con el parámetro sesionIdExcluir
+        // ✅ Validación de duración máxima (3 horas) - NO afecta dispOk
+        const duracionMinutos = h2.diff(h1, 'minutes');
+        if (duracionMinutos > 180) {
+          setDuracionExcedida(true);
+          setDispOk(null); // No verificamos disponibilidad si la duración es inválida
+          setCheckingDisp(false);
+          return;
+        } else {
+          setDuracionExcedida(false);
+        }
+
+        // 🔥 Llamada al API solo si la duración es válida
         const res = await verificarDisponibilidadSesion(
           Number(canchaId),
           fecha.format('YYYY-MM-DD'),
@@ -157,7 +175,7 @@ export default function EditarSesion() {
         setDispOk(!!res?.disponible);
       } catch (e) {
         console.error('Error verificando disponibilidad en vivo:', e);
-        setDispOk(null);
+        setDispOk(false);
       } finally {
         setCheckingDisp(false);
       }
@@ -173,8 +191,17 @@ export default function EditarSesion() {
 
       const [horaInicio, horaFin] = values.horario;
 
+      // Validación de orden de horas
       if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
         message.error('La hora de inicio debe ser anterior a la hora de fin');
+        setSaving(false);
+        return;
+      }
+
+      // ✅ Validación de duración máxima
+      const duracionMinutos = horaFin.diff(horaInicio, 'minutes');
+      if (duracionMinutos > 180) {
+        message.error('La duración máxima permitida es de 3 horas (180 minutos)');
         setSaving(false);
         return;
       }
@@ -217,8 +244,28 @@ export default function EditarSesion() {
       navigate('/sesiones');
     } catch (error) {
       console.error('Error actualizando sesión:', error);
-      const msg = error.response?.data?.message || 'Error al actualizar la sesión';
-      message.error(msg);
+
+      // ✅ Manejo mejorado de errores
+      let errorMsg = 'Error al actualizar la sesión';
+
+      if (error.response?.data) {
+        const data = error.response.data;
+
+        // Extraer mensaje de diferentes formatos de error
+        if (data.errors) {
+          if (Array.isArray(data.errors)) {
+            errorMsg = data.errors[0]?.msg || errorMsg;
+          } else if (typeof data.errors === 'object') {
+            errorMsg = Object.values(data.errors)[0] || errorMsg;
+          }
+        } else if (data.error) {
+          errorMsg = data.error;
+        } else if (data.message) {
+          errorMsg = data.message;
+        }
+      }
+
+      message.error(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -271,8 +318,8 @@ export default function EditarSesion() {
             <Form layout="vertical" form={form} onFinish={onFinish}>
               {/* Tipo de Ubicación */}
               <Form.Item label="Ubicación">
-                <Radio.Group 
-                  value={tipoUbicacion} 
+                <Radio.Group
+                  value={tipoUbicacion}
                   onChange={(e) => setTipoUbicacion(e.target.value)}
                 >
                   <Space direction="vertical">
@@ -336,9 +383,9 @@ export default function EditarSesion() {
                 label="Fecha"
                 rules={[{ required: true, message: 'Selecciona una fecha' }]}
               >
-                <DatePicker 
-                  format="DD/MM/YYYY" 
-                  style={{ width: '100%' }} 
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
                   disabledDate={(current) => {
                     if (!current) return false;
                     const day = current.day();
@@ -348,29 +395,18 @@ export default function EditarSesion() {
                 />
               </Form.Item>
 
-              {/* Horario con verificación en vivo */}
+              {/* Horario */}
               <Form.Item
                 name="horario"
                 label="Horario"
                 rules={[{ required: true, message: 'Selecciona el horario' }]}
-                extra={
-                  tipoUbicacion === 'cancha' && (
-                    checkingDisp
-                      ? 'Verificando disponibilidad…'
-                      : dispOk === true
-                        ? '✅ Cancha disponible'
-                        : dispOk === false
-                          ? '❌ Cancha NO disponible en este horario'
-                          : null
-                  )
-                }
               >
-                <TimePicker.RangePicker 
-                  format="HH:mm" 
-                  style={{ width: '100%' }} 
+                <TimePicker.RangePicker
+                  format="HH:mm"
+                  style={{ width: '100%' }}
                   minuteStep={30}
                   disabledTime={() => ({
-                    disabledHours: () => [0,1,2,3,4,5,6,7,17,18,19,20,21,22,23],
+                    disabledHours: () => [0, 1, 2, 3, 4, 5, 6, 7],
                     disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
                   })}
                   hideDisabledOptions
@@ -380,8 +416,55 @@ export default function EditarSesion() {
                 />
               </Form.Item>
 
+              {/* ✅ Alertas de validación separadas */}
+              {tipoUbicacion === 'cancha' && (
+                <>
+                  {/* Alerta de duración excedida */}
+                  {duracionExcedida && (
+                    <Alert
+                      message="La duración máxima permitida es de 3 horas (180 minutos)"
+                      type="warning"
+                      showIcon
+                      style={{ marginBottom: 16 }}
+                    />
+                  )}
+
+                  {/* Alerta de verificación de disponibilidad */}
+                  {!duracionExcedida && (
+                    <>
+                      {checkingDisp && (
+                        <Alert
+                          message="Verificando disponibilidad..."
+                          type="info"
+                          showIcon
+                          style={{ marginBottom: 16 }}
+                        />
+                      )}
+
+                      {!checkingDisp && dispOk === true && (
+                        <Alert
+                          message="Cancha disponible"
+                          type="success"
+                          showIcon
+                          style={{ marginBottom: 16 }}
+                        />
+                      )}
+
+                      {!checkingDisp && dispOk === false && (
+                        <Alert
+                          message="❌ Cancha NO disponible en este horario"
+                          type="error"
+                          showIcon
+                          style={{ marginBottom: 16 }}
+                        />
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
               {/* Tipo de sesión */}
-               <Form.Item
+              <Form.Item
                 name="tipoSesion"
                 label="Tipo de sesión"
                 rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
@@ -403,11 +486,13 @@ export default function EditarSesion() {
               <Form.Item>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                   <Button onClick={() => navigate(-1)}>Cancelar</Button>
-                  <Button 
-                    type="primary" 
-                    htmlType="submit" 
+                  <Button
+                    type="primary"
+                    htmlType="submit"
                     loading={saving}
-                    disabled={tipoUbicacion === 'cancha' && dispOk === false}
+                    disabled={
+                      (tipoUbicacion === 'cancha' && (dispOk === false || duracionExcedida))
+                    }
                   >
                     Guardar cambios
                   </Button>

@@ -267,7 +267,7 @@ export async function verificarDisponibilidadSesion(
       where: { 
         canchaId, 
         fechaReserva: fecha, 
-        estado: In(['pendiente', 'aprobada']) 
+        estado: In(['aprobada']) 
       }
     });
     
@@ -317,7 +317,7 @@ export async function verificarDisponibilidadReserva(
     
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-        return [false, `Ya existe una reserva (${r.estado}) en ese horario`];
+        return [false, `Ya existe una reserva en ese horario`]; //(${r.estado}) 
       }
     }
 

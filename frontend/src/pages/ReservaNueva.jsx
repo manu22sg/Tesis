@@ -222,7 +222,7 @@ export default function ReservaNueva() {
       if (response.disponible === true) {
         setDisponibilidadStatus({
           type: 'success',
-          message: '✅ Horario disponible para reserva'
+          message: ' Horario disponible para reserva'
         });
       } else if (response.disponible === false) {
         // Mostrar el motivo específico del rechazo

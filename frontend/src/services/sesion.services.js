@@ -3,10 +3,9 @@ import api from './root.services.js';
 
 export async function crearSesion(data) {
   try {
-    
+
     const res = await api.post('/sesion', data);
-    
-    
+  
     return res.data.data;
   } catch (error) {
     console.error('❌ Error en crearSesion:', error);

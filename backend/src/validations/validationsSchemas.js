@@ -12,10 +12,13 @@ export const HORARIO_RESERVAS = {
 export const HORARIO_SESIONES = { 
   horainicio: '08:00', 
   horafin: '24:00',    // Medianoche (00:00 del día siguiente)
-  duracionMinima: 30   // Mínimo 1 hora por flexibilidad
+  duracionMinima: 30,  // Mínimo 30 minutos
+  duracionMaxima: 180  // Máximo 3 horas
 };
 
-export const ANTICIPACION_MAXIMA_DIAS = 14;
+// ✅ LÍMITES DE ANTICIPACIÓN SEPARADOS
+export const ANTICIPACION_MAXIMA_RESERVAS_DIAS = 14;  // 2 semanas para reservas
+export const ANTICIPACION_MAXIMA_SESIONES_DIAS = 90;  // 3 meses para sesiones
 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -31,7 +34,7 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Valida fecha en formato YYYY-MM-DD, desde mañana hasta anticipación máxima
+// ✅ Valida fecha para RESERVAS (desde mañana, máximo 14 días)
 const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
   .custom((value, helpers) => {
@@ -42,7 +45,7 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     
     const fecha = startOfDay(new Date(value));
     const max = new Date(hoy);
-    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_DIAS);
+    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_RESERVAS_DIAS);
 
     if (Number.isNaN(fecha.getTime())) {
       return helpers.error('any.invalid', { message: 'Fecha inválida' });
@@ -56,7 +59,7 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     
     if (fecha > max) {
       return helpers.error('any.invalid', { 
-        message: `No se puede consultar con más de ${ANTICIPACION_MAXIMA_DIAS} días de anticipación` 
+        message: `No se puede reservar con más de ${ANTICIPACION_MAXIMA_RESERVAS_DIAS} días de anticipación` 
       });
     }
     
@@ -66,6 +69,39 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD (ej: 2025-09-24)',
   });
 
+// ✅ Valida fecha para SESIONES (desde hoy, máximo 90 días)
+const fechaSesionSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
+  .required()
+  .custom((value, helpers) => {
+    const hoyStr = getLocalDate();
+    const hoy = startOfDay(new Date(hoyStr));
+    const fecha = startOfDay(new Date(value));
+    const max = new Date(hoy);
+    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_SESIONES_DIAS);
+
+    if (Number.isNaN(fecha.getTime())) {
+      return helpers.error('any.invalid', { message: 'Fecha inválida' });
+    }
+    
+    if (fecha < hoy) {
+      return helpers.error('any.invalid', { 
+        message: `No se pueden programar sesiones en fechas pasadas. Hoy es ${hoyStr}` 
+      });
+    }
+    
+    if (fecha > max) {
+      return helpers.error('any.invalid', { 
+        message: `No se pueden programar sesiones con más de ${ANTICIPACION_MAXIMA_SESIONES_DIAS} días de anticipación` 
+      });
+    }
+    
+    return value;
+  })
+  .messages({
+    'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD (ej: 2025-09-24)',
+  });
+
+// ✅ Valida fecha FLEXIBLE para consultas generales (usa límite de sesiones por ser más amplio)
 const fechaConsultaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
   .custom((value, helpers) => {
@@ -73,7 +109,7 @@ const fechaConsultaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     const hoy = startOfDay(new Date(hoyStr));
     const fecha = startOfDay(new Date(value));
     const max = new Date(hoy);
-    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_DIAS);
+    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_SESIONES_DIAS);
 
     if (Number.isNaN(fecha.getTime())) {
       return helpers.error('any.invalid', { message: 'Fecha inválida' });
@@ -87,7 +123,7 @@ const fechaConsultaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     
     if (fecha > max) {
       return helpers.error('any.invalid', { 
-        message: `No se puede consultar con más de ${ANTICIPACION_MAXIMA_DIAS} días de anticipación` 
+        message: `No se puede consultar con más de ${ANTICIPACION_MAXIMA_SESIONES_DIAS} días de anticipación` 
       });
     }
     
@@ -133,7 +169,7 @@ export const disponibilidadPorRangoBody = Joi.object({
 // 🆕 VALIDACIÓN ESPECÍFICA PARA RESERVAS (bloques de 1h + 10min limpieza)
 export const verificarDisponibilidadReservaQuery = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
-  fecha: fechaReservaSchema.required(),
+  fecha: fechaReservaSchema.required(),  // ✅ Usa schema de RESERVAS (14 días)
   inicio: horaSchema.required(),
   fin: horaSchema.required()
 }).custom((value, helpers) => {
@@ -161,7 +197,7 @@ export const verificarDisponibilidadReservaQuery = Joi.object({
 // 🆕 VALIDACIÓN ESPECÍFICA PARA SESIONES (08:00 - 00:00)
 export const verificarDisponibilidadSesionQuery = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
-  fecha: fechaReservaSchema.required(),
+  fecha: fechaSesionSchema.required(),  // ✅ Usa schema de SESIONES (90 días)
   inicio: horaSchema.required(),
   fin: horaSchema.required(),
   sesionIdExcluir: Joi.number().integer().positive().optional()
@@ -182,6 +218,13 @@ export const verificarDisponibilidadSesionQuery = Joi.object({
   if (dur < HORARIO_SESIONES.duracionMinima) {
     return helpers.error('any.invalid', {
       message: `Debe durar al menos ${HORARIO_SESIONES.duracionMinima} minutos`
+    });
+  }
+
+  // ✅ Validación de duración máxima
+  if (dur > HORARIO_SESIONES.duracionMaxima) {
+    return helpers.error('any.invalid', {
+      message: `No pueden durar más de ${HORARIO_SESIONES.duracionMaxima} minutos (3 horas)`
     });
   }
 

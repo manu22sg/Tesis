@@ -144,7 +144,7 @@ export async function actualizarCancha(id, datosActualizacion) {
     ) {
       // reservas activas
       const reservasActivas = await reservaRepository.count({
-        where: { canchaId: id, estado: In(['pendiente', 'aprobada']) }
+        where: { canchaId: id, estado: In(['aprobada']) }
       });
       if (reservasActivas > 0) {
         return [null, 'No se puede cambiar el estado: la cancha tiene reservas activas'];
@@ -186,9 +186,9 @@ export async function eliminarCancha(id) {
     const cancha = await canchaRepository.findOne({ where: { id } });
     if (!cancha) return [null, 'Cancha no encontrada'];
 
-    // 2) Bloquear si tiene reservas activas (pendiente/aprobada)
+    // 2) Bloquear si tiene reservas activas (/aprobada)
     const reservasActivas = await reservaRepository.count({
-      where: { canchaId: id, estado: In(['pendiente', 'aprobada']) } // cambiar lo de pendiente si es necesario
+      where: { canchaId: id, estado: In([ 'aprobada']) } // cambiar lo de  si es necesario
     });
     if (reservasActivas > 0) {
       return [null, 'No se puede eliminar la cancha porque tiene reservas activas'];

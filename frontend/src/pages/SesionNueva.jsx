@@ -169,7 +169,7 @@ console.log('🔍 Verificando disponibilidad:');
           h1.format('HH:mm'),
           h2.format('HH:mm')
         );
-        console.log('✅ Respuesta backend:', res);
+       // console.log('✅ Respuesta backend:', res);
 
         setDispOk(!!res?.disponible);
       } catch (e) {
@@ -476,7 +476,7 @@ console.log('🔍 Verificando disponibilidad:');
                     checkingDisp
                       ? 'Verificando disponibilidad…'
                       : dispOk === true
-                        ? '✅ Cancha disponible'
+                        ? ' Cancha disponible'
                         : dispOk === false
                           ? '❌ Cancha NO disponible en este horario'
                           : null

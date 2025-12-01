@@ -33,7 +33,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
 
     //Conflictos con reservas pendientes/aprobadas
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaReserva: fechaLocal, estado: In(["pendiente", "aprobada"]) },
+      where: { canchaId, fechaReserva: fechaLocal, estado: In(["aprobada"]) },
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
@@ -96,7 +96,7 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
         camp.formato === "11v11" ? 22 :
         camp.formato === "8v8"  ? 16  :
         camp.formato === "7v7"  ? 14  :
-        5;
+        10;
 
       if (cancha.capacidadMaxima < minJugadores)
         return [null, `La cancha ${cancha.nombre} no soporta formato ${camp.formato}`];
