@@ -561,7 +561,7 @@ const menuExportar = {
               <>
                 <Descriptions bordered column={1} size="small">
                   <Descriptions.Item label="Usuario">
-                    {modalAprobar.reserva.usuario?.nombre} {modalAprobar.reserva.usuario?.apellido}
+                    {`${modalAprobar.reserva.usuario?.nombre ?? ''} ${modalAprobar.reserva.usuario?.apellido ?? ''} - ${modalAprobar.reserva.usuario?.rut ?? ''}`} 
                   </Descriptions.Item>
                   <Descriptions.Item label="Cancha">
                     {modalAprobar.reserva.cancha?.nombre}

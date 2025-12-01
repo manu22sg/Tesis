@@ -146,7 +146,7 @@ export async function exportarEstadisticasExcel(req, res) {
     estadisticas.forEach(e => {
       if (tipo === 'sesion') {
         const jugadorNombre = e.jugador?.usuario?.nombre 
-          ? `${e.jugador.usuario.nombre} ${e.jugador.usuario.apellido || ''}`.trim()
+          ? `${(e.jugador.usuario.nombre).trim()} ${(e.jugador.usuario.apellido || '').trim()}`.trim()
           : "—";
         const rut = e.jugador?.usuario?.rut || "—";
         
@@ -279,7 +279,7 @@ export async function exportarEstadisticasPDF(req, res) {
 
       if (tipo === 'sesion') {
         const jugadorNombre = e.jugador?.usuario?.nombre 
-          ? `${e.jugador.usuario.nombre} ${e.jugador.usuario.apellido || ''}`.trim()
+          ? `${(e.jugador.usuario.nombre).trim()} ${(e.jugador.usuario.apellido || '').trim()}`.trim()
           : "Usuario Desconocido";
 
         doc.fontSize(12).font("Helvetica-Bold").text(jugadorNombre);

@@ -15,11 +15,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 import MainLayout from '../components/MainLayout.jsx';
 import { useEffect, useState } from 'react';
 import { obtenerEstadisticasEntrenador } from '../services/grupo.services.js';
+import { obtenerMisReservas } from '../services/reserva.services.js';
 
 export default function Dashboard() {
   const { usuario } = useAuth();
   const [estadisticas, setEstadisticas] = useState(null);
   const [loadingEstadisticas, setLoadingEstadisticas] = useState(false);
+  const [reservasStats, setReservasStats] = useState({ activas: 0, total: 0 });
+  const [loadingReservas, setLoadingReservas] = useState(false);
 
   const getInitials = (nombre, apellido) => {
     return `${nombre?.charAt(0) || ''}${apellido?.charAt(0) || ''}`.toUpperCase();
@@ -37,6 +40,13 @@ export default function Dashboard() {
     }
   }, [esEntrenador]);
 
+  // Cargar reservas si es estudiante o académico
+  useEffect(() => {
+    if ((esEstudiante || esAcademico) && usuario?.id) {
+      cargarReservas();
+    }
+  }, [esEstudiante, esAcademico, usuario?.id]);
+
   const cargarEstadisticas = async () => {
     try {
       setLoadingEstadisticas(true);
@@ -46,6 +56,29 @@ export default function Dashboard() {
       console.error('Error cargando estadísticas:', error);
     } finally {
       setLoadingEstadisticas(false);
+    }
+  };
+
+  const cargarReservas = async () => {
+    try {
+      setLoadingReservas(true);
+      const response = await obtenerMisReservas(usuario.id);
+      console.log(response.reservas)
+      if (response?.reservas) {
+        const reservas = response?.reservas;
+        const activas = reservas.filter(r => 
+          r.estado === 'pendiente' || r.estado === 'aprobada'
+        ).length;
+        
+        setReservasStats({
+          activas,
+          total: reservas.length
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando reservas:', error);
+    } finally {
+      setLoadingReservas(false);
     }
   };
 
@@ -95,17 +128,6 @@ export default function Dashboard() {
                   }}
                 >
                   {usuario?.rol?.toUpperCase()}
-                </Tag>
-                <Tag 
-                  color="#52c41a"
-                  style={{ 
-                    fontSize: 14, 
-                    padding: '6px 16px',
-                    borderRadius: 6,
-                    fontWeight: 500
-                  }}
-                >
-                  {usuario?.estado?.toUpperCase()}
                 </Tag>
               </Space>
             </Col>
@@ -299,24 +321,30 @@ export default function Dashboard() {
                   borderBottom: '2px solid #014898' 
                 }}
               >
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Statistic
-                      title="Reservas Activas"
-                      value={0}
-                      prefix={<CalendarOutlined />}
-                      valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
-                    />
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Statistic
-                      title="Total Reservadas"
-                      value={0}
-                      prefix={<ClockCircleOutlined />}
-                      valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
-                    />
-                  </Col>
-                </Row>
+                {loadingReservas ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Statistic
+                        title="Reservas Activas"
+                        value={reservasStats.activas}
+                        prefix={<CalendarOutlined />}
+                        valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
+                      />
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Statistic
+                        title="Total Reservadas"
+                        value={reservasStats.total}
+                        prefix={<ClockCircleOutlined />}
+                        valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
+                      />
+                    </Col>
+                  </Row>
+                )}
               </Card>
             </Col>
           )}
@@ -361,60 +389,7 @@ export default function Dashboard() {
                   >
                     {usuario?.jugador?.anioIngreso || 'No especificado'}
                   </Descriptions.Item>
-                  <Descriptions.Item 
-                    label={
-                      <Space>
-                        <TrophyOutlined style={{ color: '#014898' }} />
-                        <span>Estado</span>
-                      </Space>
-                    }
-                  >
-                    <Tag color={usuario?.jugador?.estado === 'activo' ? '#52c41a' : '#999'}>
-                      {usuario?.jugador?.estado?.toUpperCase() || 'NO ESPECIFICADO'}
-                    </Tag>
-                  </Descriptions.Item>
                 </Descriptions>
-              </Card>
-            </Col>
-          )}
-
-          {/* ========================================
-              GRUPOS DEL JUGADOR - ESTUDIANTES QUE SON JUGADORES
-          ======================================== */}
-          {esEstudiante && tienePerfilJugador && (
-            <Col xs={24} lg={12}>
-              <Card 
-                title={
-                  <Space>
-                    <UsergroupAddOutlined style={{ color: '#014898', fontSize: 18 }} />
-                    <span style={{ fontSize: 16, fontWeight: 600 }}>Mis Grupos</span>
-                  </Space>
-                }
-                hoverable
-                style={{ height: '100%' }}
-                headStyle={{ 
-                  backgroundColor: '#f5f8fc', 
-                  borderBottom: '2px solid #014898' 
-                }}
-              >
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Statistic
-                      title="Grupos Activos"
-                      value={0}
-                      prefix={<TeamOutlined />}
-                      valueStyle={{ color: '#014898', fontSize: 32, fontWeight: 600 }}
-                    />
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Statistic
-                      title="Compañeros"
-                      value={0}
-                      prefix={<UsergroupAddOutlined />}
-                      valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 600 }}
-                    />
-                  </Col>
-                </Row>
               </Card>
             </Col>
           )}

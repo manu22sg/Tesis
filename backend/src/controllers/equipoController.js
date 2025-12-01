@@ -246,7 +246,7 @@ export async function exportarEquiposPDF(req, res) {
       size: "A4",
       info: {
         Title: `Equipos del Campeonato ${campeonatoId}`,
-        Author: 'Sistema de Gestión Deportiva'
+        Author: 'SPORTUBB'
       }
     });
 

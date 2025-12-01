@@ -180,7 +180,7 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
         if (e.jugadorCampeonato?.usuario) {
           const nombre = e.jugadorCampeonato.usuario.nombre || '';
           const apellido = e.jugadorCampeonato.usuario.apellido || '';
-          jugadorNombre = `${nombre} ${apellido}`.trim() || `Usuario ID: ${e.jugadorCampeonato.usuarioId}`;
+          jugadorNombre = `${(nombre).trim()} ${(apellido).trim()}`.trim() || `Usuario ID: ${e.jugadorCampeonato.usuarioId}`;
         }
 
         const equipoA = e.partido?.equipoA?.nombre || "Equipo A";
@@ -365,7 +365,7 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
         if (e.jugadorCampeonato?.usuario) {
           const nombre = e.jugadorCampeonato.usuario.nombre || '';
           const apellido = e.jugadorCampeonato.usuario.apellido || '';
-          jugadorNombre = `${nombre} ${apellido}`.trim() || `Usuario ID: ${e.jugadorCampeonato.usuarioId}`;
+          jugadorNombre = `${(nombre).trim()} ${(apellido).trim()}`.trim() || `Usuario ID: ${e.jugadorCampeonato.usuarioId}`;
         }
 
         const equipoA = e.partido?.equipoA?.nombre || "Equipo A";

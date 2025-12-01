@@ -174,7 +174,7 @@ export async function exportarReservasExcel(req, res) {
 
     reservas.forEach(r => {
       sheet.addRow({
-        usuario: `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim(),
+usuario: `${(r.usuario?.nombre || "").trim()} ${(r.usuario?.apellido || "").trim()}`.trim(),
         rut: r.usuario?.rut || "—",
         cancha: r.cancha?.nombre || "—",
         fecha: formatearFechaExcel(r.fechaReserva),
@@ -183,9 +183,10 @@ export async function exportarReservasExcel(req, res) {
         estado: formatearEstado(r.estado),
         participantes: r.participantes?.length || 0,
         listaParticipantes:
-          r.participantes
-            ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ""}`.trim())
-            .join(", ") || "—"
+  r.participantes
+    ?.map(p => `${(p.usuario?.nombre || "").trim()} ${(p.usuario?.apellido || "").trim()}`.trim())
+    .join(", ") || "—"
+
       });
     });
 
@@ -281,7 +282,7 @@ export async function exportarReservasPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       doc.fontSize(12).font("Helvetica-Bold").text(
-        `${r.usuario?.nombre || ""} ${r.usuario?.apellido || ""}`.trim()
+     `${(r.usuario?.nombre || "").trim()} ${(r.usuario?.apellido || "").trim()}`.trim()
       );
 
       doc.font("Helvetica").fontSize(10).text(`
@@ -293,9 +294,10 @@ Estado: ${formatearEstado(r.estado)}
 Participantes: ${r.participantes?.length || 0}
 Lista: ${
   r.participantes
-    ?.map(p => `${p.usuario?.nombre} ${p.usuario?.apellido || ""}`.trim())
+    ?.map(p => `${(p.usuario?.nombre || "").trim()} ${(p.usuario?.apellido || "").trim()}`.trim())
     .join(", ") || "—"
 }
+
       `);
 
       if (index < reservas.length - 1) {

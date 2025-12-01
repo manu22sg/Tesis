@@ -147,7 +147,7 @@ export async function exportarPerfilExcelController(req, res) {
     const { usuario, totalesGenerales, promedios, historialCampeonatos } = perfil;
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Sistema de Gestión Deportiva';
+    workbook.creator = 'SPORTUBB';
     workbook.created = new Date();
     workbook.modified = new Date();
 
@@ -170,7 +170,7 @@ export async function exportarPerfilExcelController(req, res) {
     sheetInfo.getRow(1).height = 25;
 
     sheetInfo.addRows([
-      { campo: 'Nombre Completo', valor: `${usuario.nombre} ${usuario.apellido}` },
+      { campo: 'Nombre Completo', valor: `${(usuario.nombre || '').trim()} ${(usuario.apellido ||'').trim()}` },
       { campo: 'RUT', valor: usuario.rut || '—' },
       { campo: 'Email', valor: usuario.email || '—' },
       { campo: 'Carrera', valor: usuario.carreraNombre || '—' },
@@ -397,7 +397,7 @@ export async function exportarPerfilPDFController(req, res) {
       size: 'LETTER',
       info: {
         Title: `Perfil de ${usuario.nombre} ${usuario.apellido}`,
-        Author: 'SportUBB'
+        Author: 'SPORTUBB'
       }
     });
 
@@ -434,7 +434,7 @@ export async function exportarPerfilPDFController(req, res) {
     doc.moveDown(0.5);
     
     doc.fontSize(11).font('Helvetica').fillColor('#000000');
-    doc.text(`Nombre: ${usuario.nombre} ${usuario.apellido}`);
+    doc.text(`Nombre: ${(usuario.nombre|| '').trim()} ${(usuario.apellido ||'' ).trim()}`);
     doc.text(`RUT: ${usuario.rut || '—'}`);
     doc.text(`Email: ${usuario.email || '—'}`);
     doc.text(`Carrera: ${usuario.carreraNombre || '—'}`);

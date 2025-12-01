@@ -146,7 +146,7 @@ export async function exportarEvaluacionesExcel(req, res) {
 
       evaluaciones.forEach(e => {
         const jugadorNombre = e.jugador?.usuario?.nombre 
-          ? `${e.jugador.usuario.nombre} ${e.jugador.usuario.apellido || ''}`.trim()
+          ? `${(e.jugador.usuario.nombre).trim()} ${(e.jugador.usuario.apellido || '').trim()}`.trim()
           : "—";
         
         const notas = [e.tecnica, e.tactica, e.actitudinal, e.fisica].filter(n => n !== null && n !== undefined);
@@ -299,7 +299,7 @@ export async function exportarEvaluacionesPDF(req, res) {
 
       if (sesionId && !jugadorId) {
         const jugadorNombre = e.jugador?.usuario?.nombre 
-          ? `${e.jugador.usuario.nombre} ${e.jugador.usuario.apellido || ''}`.trim()
+          ? `${(e.jugador.usuario.nombre).trim()} ${(e.jugador.usuario.apellido || '').trim()}`.trim()
           : "Usuario Desconocido";
 
         doc.fontSize(12).font("Helvetica-Bold").text(jugadorNombre);

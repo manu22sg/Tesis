@@ -9,7 +9,7 @@ export async function loginRequest(credentials) {
     return data.data || null;
 
   } catch (error) {
-    
+    //console.log(error)
     throw error.response?.data?.message || error;
   }
 }
@@ -44,6 +44,7 @@ export async function reenviarVerificacionRequest(email) {
     const { data } = await api.post("/auth/reenviar-verificacion", { email });
     return data;
   } catch (error) {
+    console.log(  "error proveninente de servicio front", error)
     console.error("Error reenviando verificación:", error.response?.data || error.message);
     throw error.response?.data || error;
   }

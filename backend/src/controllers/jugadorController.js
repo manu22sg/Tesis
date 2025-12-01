@@ -255,7 +255,7 @@ export async function exportarJugadoresExcel(req, res) {
         .join(", ");
 
       sheet.addRow({
-        nombre: `${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim(),
+nombre: `${(j.usuario?.nombre || "").trim()} ${(j.usuario?.apellido || "").trim()}`.trim(),
         rut: j.usuario?.rut || "—",
         email: j.usuario?.email || "—",
         posicion: j.posicion || "—",
@@ -374,7 +374,7 @@ export async function exportarJugadoresPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       doc.fontSize(12).font("Helvetica-Bold")
-        .text(`${j.usuario?.nombre || ""} ${j.usuario?.apellido || ""}`.trim());
+.text(`${(j.usuario?.nombre || "").trim()} ${(j.usuario?.apellido || "").trim()}`.trim());
 
       const grupos = (j.jugadorGrupos || [])
         .map(g => g.grupo?.nombre)

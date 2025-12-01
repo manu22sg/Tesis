@@ -110,7 +110,7 @@ export async function exportarLesionesExcel(req, res) {
 
     lesiones.forEach(l => {
       const jugadorNombre = l.jugador?.usuario?.nombre 
-        ? `${l.jugador.usuario.nombre} ${l.jugador.usuario.apellido || ''}`.trim()
+        ? `${(l.jugador.usuario.nombre).trim()} ${(l.jugador.usuario.apellido || '').trim()}`.trim()
         : "—";
       
       const rut = l.jugador?.usuario?.rut || "—";
@@ -239,7 +239,7 @@ export async function exportarLesionesPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       const jugadorNombre = l.jugador?.usuario?.nombre 
-        ? `${l.jugador.usuario.nombre} ${l.jugador.usuario.apellido || ''}`.trim()
+        ? `${(l.jugador.usuario.nombre).trim()} ${(l.jugador.usuario.apellido || '').trim()}`.trim()
         : "Usuario Desconocido";
 
       doc.fontSize(12).font("Helvetica-Bold").text(jugadorNombre);

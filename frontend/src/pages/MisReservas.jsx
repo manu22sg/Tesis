@@ -57,19 +57,49 @@ export default function MisReservas() {
     pageSize: 10,
     total: 0,
   });
-    const { message } = App.useApp(); 
+  const { message } = App.useApp(); 
 
   const [detalleModal, setDetalleModal] = useState(false);
   const [reservaDetalle, setReservaDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [loadingCancelar, setLoadingCancelar] = useState(false);
   
-  // ✅ Estado para modal de edición
   const [editarModal, setEditarModal] = useState(false);
   const [reservaEditar, setReservaEditar] = useState(null);
 
   const navigate = useNavigate();
 
+const faltanMenosDe24Horas = (fechaReserva, horaInicio) => {
+  const fechaReservaDate = dayjs(fechaReserva);
+  const [horas, minutos] = horaInicio.split(':').map(Number);
+  
+  const fechaHoraReserva = fechaReservaDate.hour(horas).minute(minutos).second(0).millisecond(0);
+  
+  const ahora = dayjs();
+  
+  const diferenciaHoras = fechaHoraReserva.diff(ahora, 'hour', true);
+  
+  return diferenciaHoras < 24;
+};
+
+// ✅ Función para calcular tiempo restante usando dayjs
+const calcularTiempoRestante = (fechaReserva, horaInicio) => {
+  const fechaReservaDate = dayjs(fechaReserva);
+  const [horas, minutos] = horaInicio.split(':').map(Number);
+  
+  const fechaHoraReserva = fechaReservaDate.hour(horas).minute(minutos).second(0).millisecond(0);
+  const ahora = dayjs();
+  
+  const diferenciaMinutos = fechaHoraReserva.diff(ahora, 'minute');
+  
+  const horasRestantes = Math.floor(diferenciaMinutos / 60);
+  const minutosRestantes = diferenciaMinutos % 60;
+  
+  return { horas: horasRestantes, minutos: minutosRestantes };
+};
+
+
+  
   const cargarReservas = async (page = 1, pageSize = 10, estado = filtroEstado) => {
     try {
       setLoading(true);
@@ -94,7 +124,6 @@ export default function MisReservas() {
 
   useEffect(() => {
     cargarReservas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFiltroEstado = (value) => {
@@ -123,7 +152,6 @@ export default function MisReservas() {
     }
   };
 
-  // ✅ Función para abrir modal de edición
   const handleEditarParticipantes = async (reservaId) => {
     try {
       const detalle = await obtenerReservaPorId(reservaId);
@@ -135,7 +163,6 @@ export default function MisReservas() {
     }
   };
 
-  // ✅ Callback cuando se edita exitosamente
   const handleEditarSuccess = () => {
     cargarReservas(pagination.current, pagination.pageSize, filtroEstado);
   };
@@ -154,7 +181,6 @@ export default function MisReservas() {
     }
   };
 
-  // ✅ Función para verificar si se puede editar
   const puedeEditar = (estado) => {
     return ['pendiente', 'aprobada'].includes(estado);
   };
@@ -220,17 +246,17 @@ export default function MisReservas() {
       render: (estado) => {
         const config = estadoConfig[estado] || { color: 'default', text: estado };
         return (
-  <span style={{
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 500,
-    border: '1px solid #B9BBBB',
-    backgroundColor: '#f5f5f5'
-  }}>
-    {config.text}
-  </span>
-);
+          <span style={{
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: '12px',
+            fontWeight: 500,
+            border: '1px solid #B9BBBB',
+            backgroundColor: '#f5f5f5'
+          }}>
+            {config.text}
+          </span>
+        );
       },
       width: 120,
       align: 'center',
@@ -240,49 +266,61 @@ export default function MisReservas() {
       key: 'acciones',
       align: 'left',
       width: 200,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Ver detalle">
-            <Button
-              size="middle"
-              icon={<EyeOutlined />}
-              onClick={() => verDetalle(record.id)}
-            />
-          </Tooltip>
-          
-          {/* ✅ Botón editar participantes */}
-          {puedeEditar(record.estado) && (
-            <Tooltip title="Editar participantes">
+      render: (_, record) => {
+        const menosDe24h = faltanMenosDe24Horas(record.fechaReserva, record.horaInicio);
+        const tiempoRestante = calcularTiempoRestante(record.fechaReserva, record.horaInicio);
+        const mensajeTooltip = menosDe24h 
+          ? `No se puede editar/cancelar (faltan ${tiempoRestante.horas}h ${tiempoRestante.minutos}m)`
+          : null;
+
+        return (
+          <Space size="small">
+            <Tooltip title="Ver detalle">
               <Button
-                type="default"
                 size="middle"
-                icon={<EditOutlined />}
-                onClick={() => handleEditarParticipantes(record.id)}
+                icon={<EyeOutlined />}
+                onClick={() => verDetalle(record.id)}
               />
             </Tooltip>
-          )}
-          
-          {puedeCancelar(record.estado) && (
-            <Popconfirm
-              title="¿Cancelar reserva?"
-              description="Esta acción no se puede deshacer"
-              onConfirm={() => handleCancelarReserva(record.id)}
-              okText="Sí, cancelar"
-              cancelText="No"
-              okButtonProps={{ danger: true }}
-            >
-              <Tooltip title="Cancelar reserva">
+            
+            {/* ✅ Botón editar con validación de 24h */}
+            {puedeEditar(record.estado) && (
+              <Tooltip title={mensajeTooltip || "Editar participantes"}>
                 <Button
-                  danger
+                  type="default"
                   size="middle"
-                  icon={<CloseCircleOutlined />}
-                  loading={loadingCancelar}
+                  icon={<EditOutlined />}
+                  onClick={() => handleEditarParticipantes(record.id)}
+                  disabled={menosDe24h}
                 />
               </Tooltip>
-            </Popconfirm>
-          )}
-        </Space>
-      ),
+            )}
+            
+            {/* ✅ Botón cancelar con validación de 24h */}
+            {puedeCancelar(record.estado) && (
+              <Popconfirm
+                title="¿Cancelar reserva?"
+                description="Esta acción no se puede deshacer"
+                onConfirm={() => handleCancelarReserva(record.id)}
+                okText="Sí, cancelar"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+                disabled={menosDe24h}
+              >
+                <Tooltip title={mensajeTooltip || "Cancelar reserva"}>
+                  <Button
+                    danger
+                    size="middle"
+                    icon={<CloseCircleOutlined />}
+                    loading={loadingCancelar}
+                    disabled={menosDe24h}
+                  />
+                </Tooltip>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -412,15 +450,15 @@ export default function MisReservas() {
                     <div>
                       <strong>Estado:</strong>{' '}
                       <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {estadoConfig[reservaDetalle.estado]?.text}
-</span>
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        border: '1px solid #B9BBBB',
+                        backgroundColor: '#f5f5f5'
+                      }}>
+                        {estadoConfig[reservaDetalle.estado]?.text}
+                      </span>
                     </div>
                   </div>
                   {reservaDetalle.motivo && (

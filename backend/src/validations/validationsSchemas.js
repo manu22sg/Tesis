@@ -4,7 +4,7 @@ import { validationError } from '../utils/responseHandler.js';
 // 🔧 CONFIGURACIÓN CORREGIDA
 export const HORARIO_RESERVAS = { 
   horainicio: '08:00', 
-  horafin: '17:00', 
+  horafin: '17:10', 
   duracionBloque: 60,  // 1 hora de uso
   tiempoLimpieza: 10   // 10 min entre reservas
 };

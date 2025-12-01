@@ -164,7 +164,7 @@ export async function exportarGruposExcel(req, res) {
             grupo: index === 0 ? grupo.nombre : "",
             descripcion: index === 0 ? (grupo.descripcion || "") : "",
             totalMiembros: index === 0 ? totalMiembros : "",
-            nombreJugador: `${usuario?.nombre || ""} ${usuario?.apellido || ""}`.trim() || "Sin nombre",
+            nombreJugador: `${(usuario?.nombre || "").trim()} ${(usuario?.apellido || "").trim()}`.trim() || "Sin nombre",
             rut: usuario?.rut || "—",
             email: usuario?.email || "—",
             carrera: carrera?.nombre || "—", 
@@ -271,7 +271,7 @@ export async function exportarGruposPDF(req, res) {
       size: "A4",
       info: {
         Title: 'Listado de Grupos',
-        Author: 'Sistema de Gestión Deportiva'
+        Author: 'SPORTUBB'
       }
     });
 
@@ -361,7 +361,8 @@ export async function exportarGruposPDF(req, res) {
              .font('Helvetica-Bold')
              .fillColor('#000000')
              .text(
-               `${idx + 1}. ${`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Sin nombre'}`, 
+              `${idx + 1}. ${`${(usuario?.nombre || '').trim()} ${(usuario?.apellido || '').trim()}`.trim() || 'Sin nombre'}`,
+
                { continued: false }
              );
 

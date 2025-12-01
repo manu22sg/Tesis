@@ -243,7 +243,7 @@ if (!sesionId && !jugadorId) {
 
       asistencias.forEach(a => {
         sheet.addRow({
-          jugador: `${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Desconocido",
+          jugador: `${(a.jugador?.usuario?.nombre || '').trim()} ${(a.jugador?.usuario?.apellido || '').trim()}`.trim() || "Desconocido",
           rut: a.jugador?.usuario?.rut || "—",
           email: a.jugador?.usuario?.email || "—",
           estado: a.estado,
@@ -395,7 +395,7 @@ export async function exportarAsistenciasPDF(req, res) {
 
       if (esModoSesion || esSesionConFiltro) {
         doc.fontSize(12).font("Helvetica-Bold")
-          .text(`${a.jugador?.usuario?.nombre || ''} ${a.jugador?.usuario?.apellido || ''}`.trim() || "Jugador");
+          .text(`${(a.jugador?.usuario?.nombre || '').trim()} ${(a.jugador?.usuario?.apellido || '').trim()}`.trim() || "Jugador");
 
         doc.fontSize(10).font("Helvetica")
           .text(`RUT: ${a.jugador?.usuario?.rut || "—"}`)

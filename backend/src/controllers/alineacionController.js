@@ -156,7 +156,7 @@ export async function exportarAlineacionExcel(req, res) {
     });
 
     jugadoresOrdenados.forEach(j => {
-      const nombreCompleto = `${j.jugador?.usuario?.nombre|| ''}${j.jugador?.usuario?.apellido || ''}`.trim() || "—"; // ✅ Apellido agregado
+      const nombreCompleto = `${(j.jugador?.usuario?.nombre|| '').trim()} ${(j.jugador?.usuario?.apellido || '').trim()}`.trim() || "—"; // ✅ Apellido agregado
       
       const row = sheet.getRow(currentRow);
       row.values = [
@@ -301,7 +301,7 @@ export async function exportarAlineacionPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       const dorsal = j.orden ? `#${j.orden}` : "—";
-      const nombreCompleto = `${j.jugador?.usuario?.nombre ||''}${j.jugador?.usuario?.apellido || ''}`.trim() || "Jugador"; // ✅ Apellido agregado
+      const nombreCompleto = `${(j.jugador?.usuario?.nombre ||'').trim()} ${(j.jugador?.usuario?.apellido || '').trim()}`.trim() || "Jugador"; // ✅ Apellido agregado
       
       doc.fontSize(12).font("Helvetica-Bold")
          .text(`${dorsal} - ${nombreCompleto}`, { continued: false });

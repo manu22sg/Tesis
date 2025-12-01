@@ -353,11 +353,29 @@ export async function cancelarReserva(reservaId, usuarioId) {
       return [null, `No se puede cancelar una reserva con estado "${reserva.estado}"`];
     }
 
-    // 4. Actualizar estado a cancelada
+    // 4. Validar que falten al menos 24 horas para la reserva
+    const fechaReservaActual = parseDateLocal(reserva.fechaReserva);
+    const [horaInicioActual, minInicioActual] = reserva.horaInicio.split(':').map(Number);
+    
+    const fechaHoraReserva = new Date(fechaReservaActual);
+    fechaHoraReserva.setHours(horaInicioActual, minInicioActual, 0, 0);
+    
+    const ahora = new Date();
+    const diferenciaMs = fechaHoraReserva - ahora;
+    const horas24EnMs = 24 * 60 * 60 * 1000;
+    
+    if (diferenciaMs < horas24EnMs) {
+      await queryRunner.rollbackTransaction();
+      const horasRestantes = Math.floor(diferenciaMs / (60 * 60 * 1000));
+      const minutosRestantes = Math.floor((diferenciaMs % (60 * 60 * 1000)) / (60 * 1000));
+      return [null, `No se puede cancelar la reserva porque faltan menos de 24 horas (quedan ${horasRestantes}h ${minutosRestantes}m)`];
+    }
+
+    // 5. Actualizar estado a cancelada
     reserva.estado = 'cancelada';
     await reservaRepo.save(reserva);
 
-    // 5. Registrar en historial
+    // 6. Registrar en historial
     await histRepo.save(histRepo.create({
       reservaId: reserva.id,
       accion: 'cancelada',
@@ -367,7 +385,7 @@ export async function cancelarReserva(reservaId, usuarioId) {
 
     await queryRunner.commitTransaction();
 
-    // 6. Retornar la reserva actualizada con relaciones
+    // 7. Retornar la reserva actualizada con relaciones
     const reservaActualizada = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
       where: { id: reserva.id },
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario']
@@ -383,6 +401,7 @@ export async function cancelarReserva(reservaId, usuarioId) {
     await queryRunner.release();
   }
 }
+
 
 
 export async function editarParticipantesReserva(reservaId, participantes, usuarioId) {
