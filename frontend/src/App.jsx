@@ -53,7 +53,7 @@ function RootRedirect() {
   const { usuario, loading } = useAuth();
 
   if (loading) {
-    return null; // o spinner si quieres
+    return null;
   }
 
   if (!usuario) {
@@ -63,22 +63,36 @@ function RootRedirect() {
   return <Navigate to="/dashboard" replace />;
 }
 
-
 function AppRoutes() {
   return (
     <Routes>
-      
-      {/* Redirección de raíz */}
+      {/* ========== RUTAS PÚBLICAS ========== */}
       <Route path="/" element={<RootRedirect />} />
-      
-      {/* Login - público */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/solicitar-restablecimiento" element={<SolicitarRestablecimiento />} />
       <Route path="/restablecer-password/:token" element={<RestablecerPassword />} />
       <Route path="/verificar/:token" element={<VerificarEmail />} />
 
-      {/* Dashboard - Todos los usuarios autenticados */}
+      {/* Campeonatos Públicos - Solo Estudiante y Académico */}
+      <Route 
+        path="/campeonatos/publico" 
+        element={
+          <ProtectedRoute roles={['estudiante', 'academico']}>
+            <CampeonatoPublico />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/campeonatos/:id/publico" 
+        element={
+          <ProtectedRoute roles={['estudiante', 'academico']}>
+            <DetalleCampeonatoPublico />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* ========== DASHBOARD ========== */}
       <Route
         path="/dashboard"
         element={
@@ -87,47 +101,86 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      {/* Asistencias - Solo Entrenador */}
       <Route
         path="/asistencias"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={['entrenador']}>
             <Asistencias />
           </ProtectedRoute>
         }
       />
 
-      {/* ========== CAMPEONATOS - Todos los usuarios autenticados ========== */}
+      {/* ========== CAMPEONATOS - Solo Entrenador ========== */}
       <Route
         path="/campeonatos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute roles={['entrenador']}>
             <Campeonatos />
           </ProtectedRoute>
         }
       />
-      <Route path="/campeonatos/:id/info" element={<CampeonatoInfo />} />
-  <Route path="/campeonatos/:id/equipos" element={<CampeonatoEquipos />} />
-  <Route path="/campeonatos/:id/fixture" element={<CampeonatoFixture />} />
-  <Route path="/campeonatos/:id/tabla" element={<CampeonatoTabla />} />
-  <Route path="/campeonatos/:id/estadisticas" element={<EstadisticaCampeonato />} />
-    <Route path="/ojeador" element={
-    <ProtectedRoute roles={['entrenador', 'admin']}>
-      <Ojeador />
-    </ProtectedRoute>
-  } />
-<Route path="/ojeador/:usuarioId?" element={
-  <ProtectedRoute>
-    <PerfilJugador />
-  </ProtectedRoute>
-} />
+      <Route 
+        path="/campeonatos/:id/info" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <CampeonatoInfo />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/campeonatos/:id/equipos" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <CampeonatoEquipos />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/campeonatos/:id/fixture" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <CampeonatoFixture />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/campeonatos/:id/tabla" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <CampeonatoTabla />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/campeonatos/:id/estadisticas" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <EstadisticaCampeonato />
+          </ProtectedRoute>
+        } 
+      />
 
-  
-  <Route path="/campeonatos/publico" element={<CampeonatoPublico />} />
-<Route path="/campeonatos/:id/publico" element={<DetalleCampeonatoPublico />} />
-      {/* Alineación Completa - Entrenador y SuperAdmin */}
-      
+      {/* ========== OJEADOR - Solo Entrenador ========== */}
+      <Route 
+        path="/ojeador" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <Ojeador />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/ojeador/:usuarioId?" 
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <PerfilJugador />
+          </ProtectedRoute>
+        } 
+      />
 
-      {/* Disponibilidad de Canchas - Todos los usuarios */}
+      {/* ========== CANCHAS ========== */}
       <Route
         path="/canchas"
         element={
@@ -139,16 +192,17 @@ function AppRoutes() {
       <Route
         path="/gestion-canchas"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <GestionCanchas />
           </ProtectedRoute>
         }
       />
-      {/* ========== ENTRENAMIENTOS - Entrenador y SuperAdmin ========== */}
+
+      {/* ========== ENTRENAMIENTOS - Solo Entrenador ========== */}
       <Route
         path="/entrenamientos"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <Entrenamientos />
           </ProtectedRoute>
         }
@@ -156,22 +210,31 @@ function AppRoutes() {
       <Route
         path="/sesiones/:sesionId/entrenamientos"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <Entrenamientos />
           </ProtectedRoute>
         }
       />
-      {/* ========== GESTIÓN DE LESIONES - Entrenador y SuperAdmin ========== */}
+
+      {/* ========== GESTIÓN DE LESIONES ========== */}
       <Route
         path="/lesiones"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <GestionLesiones />
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/mis-lesiones"
+        element={
+          <ProtectedRoute roles={['estudiante']}>
+            <MisLesiones />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* ========== ESTADÍSTICAS - Todos los usuarios autenticados ========== */}
+      {/* ========== ESTADÍSTICAS ========== */}
       <Route
         path="/estadisticas"
         element={
@@ -180,10 +243,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/mis-estadisticas"
+        element={
+          <ProtectedRoute roles={['estudiante']}>
+            <MisEstadisticas />
+          </ProtectedRoute>
+        }
+      />
 
-      
-
-      {/* ========== RESERVAS - Solo Estudiantes y Académicos ========== */}
+      {/* ========== RESERVAS - Estudiante y Académico ========== */}
       <Route
         path="/reservas/nueva"
         element={
@@ -192,35 +261,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* Mis Lesiones - Solo Estudiantes  */}
-      <Route
-        path="/mis-lesiones"
-        element={
-          <ProtectedRoute roles={['estudiante', ]}>
-            <MisLesiones />
-          </ProtectedRoute>
-        }
-      />
-       <Route
-        path="/mis-estadisticas"
-        element={
-          <ProtectedRoute roles={['estudiante', ]}>
-            <MisEstadisticas />
-          </ProtectedRoute>
-        }
-      />
-
-
-      {/* Mis Evaluaciones - Solo Estudiantes  */}
-      <Route
-        path="/mis-evaluaciones"
-        element={
-          <ProtectedRoute roles={['estudiante']}>
-            <MisEvaluaciones />
-          </ProtectedRoute>
-        }
-      />
-
       <Route
         path="/reservas/mis-reservas"
         element={
@@ -229,8 +269,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/aprobar-reservas"
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <AprobarReservasPage />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* ========== SESIONES - Entrenador y SuperAdmin ========== */}
+      {/* ========== SESIONES - Solo Entrenador ========== */}
       <Route
         path="/sesiones"
         element={
@@ -240,43 +288,31 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/aprobar-reservas"
-        element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
-            <AprobarReservasPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
         path="/sesiones/editar/:id"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <EditarSesion />
           </ProtectedRoute>
         }
       />
-      
       <Route
         path="/sesiones/nueva"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <SesionNueva />
           </ProtectedRoute>
         }
       />
-
       <Route
-  path="/sesiones/:sesionId/alineacion"
-  element={
-    <ProtectedRoute roles={['entrenador', 'superadmin']}>
-      <AlineacionCompleta />
-    </ProtectedRoute>
-  }
-/>
+        path="/sesiones/:sesionId/alineacion"
+        element={
+          <ProtectedRoute roles={['entrenador']}>
+            <AlineacionCompleta />
+          </ProtectedRoute>
+        }
+      />
 
       {/* ========== ASISTENCIAS ========== */}
-      {/* Marcar Asistencia - Solo Estudiantes */}
       <Route
         path="/marcar-asistencia"
         element={
@@ -285,12 +321,10 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      
-      {/* Gestionar Asistencias - Entrenador y SuperAdmin */}
       <Route
         path="/sesiones/:sesionId/asistencias"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <GestionarAsistencias />
           </ProtectedRoute>
         }
@@ -305,7 +339,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      
       <Route 
         path="/jugadores/nuevo" 
         element={
@@ -314,7 +347,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }   
       />
-      
       <Route 
         path="/jugadores/editar/:id" 
         element={
@@ -323,7 +355,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      
       <Route 
         path="/jugadores/:id/grupos" 
         element={
@@ -342,7 +373,6 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      
       <Route 
         path="/grupos/:id/miembros" 
         element={
@@ -356,13 +386,21 @@ function AppRoutes() {
       <Route
         path="/evaluaciones"
         element={
-          <ProtectedRoute roles={['entrenador', 'superadmin']}>
+          <ProtectedRoute roles={['entrenador']}>
             <Evaluaciones />
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/mis-evaluaciones"
+        element={
+          <ProtectedRoute roles={['estudiante']}>
+            <MisEvaluaciones />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Página 404 - Debe estar al final */}
+      {/* ========== 404 ========== */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -375,26 +413,26 @@ export default function App() {
   return (
     <ConfigProvider theme={darkMode ? ubbDarkTheme : ubbLightTheme}>
       <AntApp>
-      <Router>
-        <ScrollToTop />
-        <AuthProvider>
-          <div
-            style={{
-              position: 'fixed',
-              top: 16,
-              left: 800,
-              zIndex: 1000,
-            }}
-          >
-           {/* <Button type="primary" onClick={toggleTheme}>
-              {darkMode ? 'Modo Claro ☀️' : 'Modo Oscuro 🌙'}
-            </Button> */}
-          </div>
+        <Router>
+          <ScrollToTop />
+          <AuthProvider>
+            <div
+              style={{
+                position: 'fixed',
+                top: 16,
+                left: 800,
+                zIndex: 1000,
+              }}
+            >
+              {/* <Button type="primary" onClick={toggleTheme}>
+                {darkMode ? 'Modo Claro ☀️' : 'Modo Oscuro 🌙'}
+              </Button> */}
+            </div>
 
-          <AppRoutes />
-        </AuthProvider>
-      </Router>
-       </AntApp>
+            <AppRoutes />
+          </AuthProvider>
+        </Router>
+      </AntApp>
     </ConfigProvider>
   );
 }

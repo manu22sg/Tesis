@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Form, Input, Button, Card, Typography, message, Alert } from "antd";
+import { Form, Input, Button, Card, Typography, App, Alert } from "antd";
 import { EyeOutlined, EyeInvisibleOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { restablecerPasswordRequest } from "../services/auth.services.js";
@@ -33,6 +33,8 @@ const getStrengthText = (score) => {
 };
 
 export default function RestablecerPassword() {
+  const { message } = App.useApp(); 
+
   const navigate = useNavigate();
   const { token } = useParams();
   const [form] = Form.useForm();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, Form, InputNumber, Alert, Space, Typography, Divider,
-  message, Row, Col, Card, Tag
+  App, Row, Col, Card, Tag
 } from 'antd';
 import {
   TrophyOutlined, FireOutlined, WarningOutlined
@@ -25,6 +25,7 @@ const RegistrarResultadoModal = ({
   const [loading, setLoading] = useState(false);
   const [hayEmpate, setHayEmpate] = useState(false);
   const [esEliminacionDirecta, setEsEliminacionDirecta] = useState(false);
+  const { message } = App.useApp(); 
 
   useEffect(() => {
     if (partido && visible) {

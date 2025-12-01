@@ -9,7 +9,9 @@ import {
   reordenarEntrenamientosController,
   duplicarEntrenamientoController,
   obtenerEstadisticasController,
-  asignarEntrenamientosController
+  asignarEntrenamientosController,
+  exportarEntrenamientosExcel,
+  exportarEntrenamientosPDF
 } from '../controllers/entrenamientoSesionController.js';
 import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 import {
@@ -118,5 +120,9 @@ router.patch(
   validate(asignarEntrenamientosBody),
   asignarEntrenamientosController
 );
+
+router.get('/export/excel', exportarEntrenamientosExcel);
+router.get('/export/pdf', exportarEntrenamientosPDF);
+
 
 export default router;

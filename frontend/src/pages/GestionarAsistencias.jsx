@@ -5,7 +5,7 @@ import {
   Tag,
   Button,
   Space,
-  message,
+  App,
   Empty,
   Tooltip,
   Popconfirm,
@@ -68,6 +68,7 @@ const ESTADOS = {
 export default function GestionarAsistencias() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
 
   const [asistencias, setAsistencias] = useState([]);
   const [sesion, setSesion] = useState([]);

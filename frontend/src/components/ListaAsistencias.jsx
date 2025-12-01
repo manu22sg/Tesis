@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Card, Table, Space, Tooltip, Avatar, Typography, Pagination, ConfigProvider, message, Button
+  Card, Table, Space, Tooltip, Avatar, Typography, Pagination, ConfigProvider, App, Button
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { 
@@ -44,6 +44,7 @@ const ListaAsistencias = ({
     tamanioPagina: 10,
     total: 0,
   });
+  const { message } = App.useApp(); 
 
   const requestIdRef = useRef(0);
   const mountedRef = useRef(true);

@@ -6,7 +6,7 @@ import {
   Input,
   DatePicker,
   Space,
-  message,
+  App,
   Empty,
   Button,
   ConfigProvider
@@ -31,6 +31,7 @@ const { RangePicker } = DatePicker;
 export default function MisLesiones() {
   const { usuario } = useAuth();
   const jugadorId = usuario?.jugadorId;
+  const { message } = App.useApp(); 
 
   const [lesiones, setLesiones] = useState([]);
   const [loading, setLoading] = useState(false);

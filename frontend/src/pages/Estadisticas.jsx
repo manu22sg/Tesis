@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
-  Card, Button, Modal, Select, Row, Col, Space, message, ConfigProvider, Typography, Dropdown, Spin 
+  Card, Button, Modal, Select, Row, Col, Space, App, ConfigProvider, Typography, Dropdown, Spin 
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { PlusOutlined, ReloadOutlined, SlidersOutlined, FileExcelOutlined, FilePdfOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -23,7 +23,8 @@ export default function Estadisticas() {
   const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);
   const [loadingBusquedaJugador, setLoadingBusquedaJugador] = useState(false);
   const searchTimeout = useRef(null);
-  
+    const { message } = App.useApp(); 
+
   const [modo, setModo] = useState('sesion');
   const [sesiones, setSesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -206,52 +207,68 @@ export default function Estadisticas() {
   };
 
   const handleExportarExcel = async () => {
-    try {
-      const params = {
-        tipo: modo,
-        id: modo === 'sesion' ? sesionId : jugadorId
-      };
+  try {
+    const params = {
+      tipo: modo,
+      id: modo === 'sesion' ? sesionId : jugadorId
+    };
 
-      const blob = await exportarEstadisticasExcel(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `estadisticas_${modo}_${Date.now()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+    const result = await exportarEstadisticasExcel(params);
 
-    } catch (error) {
-      console.error('Error:', error);
-      message.error(error.message || 'Error al exportar a Excel');
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
     }
-  };
 
-  const handleExportarPDF = async () => {
-    try {
-      const params = {
-        tipo: modo,
-        id: modo === 'sesion' ? sesionId : jugadorId
-      };
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
+};
 
-      const blob = await exportarEstadisticasPDF(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `estadisticas_${modo}_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+const handleExportarPDF = async () => {
+  try {
+    const params = {
+      tipo: modo,
+      id: modo === 'sesion' ? sesionId : jugadorId
+    };
 
-    } catch (error) {
-      console.error('Error:', error);
-      message.error(error.message || 'Error al exportar a PDF');
+    const result = await exportarEstadisticasPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
     }
-  };
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
 
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);

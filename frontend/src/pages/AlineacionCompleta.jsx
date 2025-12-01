@@ -1,15 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Table, Tag, Button, Space, message, Empty, Tooltip,
+  Card, Table, Tag, Button, Space, Empty, Tooltip,
   Modal, Form, Select, InputNumber, Input, Spin, Popconfirm,
-  Tabs, ConfigProvider, Typography, Alert, Avatar
+  Tabs, ConfigProvider, Typography, Alert, Avatar, Dropdown,App
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {ThunderboltOutlined ,
   UserOutlined,  PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
   UserAddOutlined, FieldTimeOutlined, TableOutlined,
-  AimOutlined, ArrowLeftOutlined
+  AimOutlined, ArrowLeftOutlined, DownloadOutlined,
+  FileExcelOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import {
   crearAlineacion,
@@ -52,7 +54,7 @@ export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
   const [modalInteligenteVisible, setModalInteligenteVisible] = useState(false);
-
+const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
@@ -227,8 +229,16 @@ export default function AlineacionCompleta() {
   };
   const handleExportExcel = async () => {
   try {
-    const blob = await exportarAlineacionExcel(sesionId);
-    descargarArchivo(blob, `alineacion_sesion_${sesionId}.xlsx`);
+    const result = await exportarAlineacionExcel(sesionId);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+    }
+
   } catch (error) {
     console.error("Error al exportar Excel:", error);
     message.error(error.message || "Error al exportar Excel");
@@ -237,8 +247,16 @@ export default function AlineacionCompleta() {
 
 const handleExportPDF = async () => {
   try {
-    const blob = await exportarAlineacionPDF(sesionId);
-    descargarArchivo(blob, `alineacion_sesion_${sesionId}.pdf`);
+    const result = await exportarAlineacionPDF(sesionId);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+    }
+
   } catch (error) {
     console.error("Error al exportar PDF:", error);
     message.error(error.message || "Error al exportar PDF");
@@ -246,13 +264,40 @@ const handleExportPDF = async () => {
 };
 
 function descargarArchivo(blob, nombre) {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  window.URL.revokeObjectURL(url);
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
 }
+const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportPDF,
+      },
+    ],
+  };
+
+
 
   const jugadoresYaEnAlineacion = alineacion?.jugadores?.map(j => j.jugadorId) || [];
   const jugadoresFiltrados = jugadoresDisponibles.filter(
@@ -454,14 +499,11 @@ function descargarArchivo(blob, nombre) {
 
       {/* Exportar (solo si hay jugadores) */}
       {alineacion?.jugadores?.length > 0 && (
-        <Space size="small">
-          <Button onClick={handleExportExcel}>
-            Exportar Excel
-          </Button>
-          <Button onClick={handleExportPDF}>
-            Exportar PDF
-          </Button>
-        </Space>
+        <Dropdown menu={menuExportar} trigger={['hover']}>
+                    <Button icon={<DownloadOutlined />}>
+                      Exportar
+                    </Button>
+                  </Dropdown>
       )}
 
       {/* Agregar Jugador - DESHABILITADO SIN GRUPO */}

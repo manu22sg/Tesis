@@ -105,7 +105,8 @@ export const listarJugadoresPorEquipoYCampeonato = async (req, res) => {
 export async function exportarEstadisticasCampeonatoExcel(req, res) {
   try {
     const { campeonatoId } = req.params;
-    const { equipoId, q } = req.query;
+    const { mobile, equipoId, q } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!campeonatoId) {
       return res.status(400).json({
@@ -174,7 +175,6 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
       const estadisticasEquipo = estadisticasPorEquipo[equipoNombre];
       
       estadisticasEquipo.forEach((e, index) => {
-        // Obtener nombre del jugador con las relaciones correctas
         let jugadorNombre = "Desconocido";
         
         if (e.jugadorCampeonato?.usuario) {
@@ -202,7 +202,6 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
 
         const row = sheet.addRow(rowData);
 
-        // Resaltar primera fila de cada equipo
         if (index === 0) {
           row.getCell('equipo').font = { bold: true };
           row.fill = {
@@ -213,11 +212,10 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
         }
       });
 
-      // Línea separadora entre equipos
       sheet.addRow({});
     });
 
-    // Ajustar bordes
+    // Bordes
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         row.eachCell((cell) => {
@@ -232,13 +230,26 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `estadisticas_campeonato_${campeonatoId}_${fecha}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="estadisticas_campeonato_${campeonatoId}_${Date.now()}.xlsx"`
+      `attachment; filename="estadisticas_campeonato_${campeonatoId}_${fecha}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
 
     return res.send(buffer);
 
@@ -246,17 +257,16 @@ export async function exportarEstadisticasCampeonatoExcel(req, res) {
     console.error("Error exportando estadísticas a Excel:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al exportar estadísticas",
-      error: error.message
+      message: "Error al exportar estadísticas a Excel"
     });
   }
 }
 
-// GET /api/estadisticas-campeonato/campeonato/:campeonatoId/pdf - Exportar estadísticas a PDF
 export async function exportarEstadisticasCampeonatoPDF(req, res) {
   try {
     const { campeonatoId } = req.params;
-    const { equipoId, q } = req.query;
+    const { mobile, equipoId, q } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!campeonatoId) {
       return res.status(400).json({
@@ -271,7 +281,6 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
 
     const { items: estadisticas } = await service.listarEstadisticas(filtros);
 
-
     if (!estadisticas || estadisticas.length === 0) {
       return res.status(404).json({
         success: false,
@@ -279,19 +288,48 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
       });
     }
 
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const doc = new PDFDocument({ 
+      margin: 40, 
+      size: "A4",
+      info: {
+        Title: `Estadísticas del Campeonato ${campeonatoId}`,
+        Author: 'Sistema de Gestión Deportiva'
+      }
+    });
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="estadisticas_campeonato_${campeonatoId}_${Date.now()}.pdf"`
-    );
+    let chunks = [];
 
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `estadisticas_campeonato_${campeonatoId}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="estadisticas_campeonato_${campeonatoId}_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
-    // Encabezado
-    doc.fontSize(20).font('Helvetica-Bold').text("Estadísticas del Campeonato", { align: "center" });
-    doc.fontSize(9).font('Helvetica').text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    // Título principal
+    doc.fontSize(20)
+       .font('Helvetica-Bold')
+       .text("Estadísticas del Campeonato", { align: "center" });
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    
     doc.moveDown(2);
 
     // Agrupar por equipo
@@ -312,13 +350,16 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
       const estadisticasEquipo = estadisticasPorEquipo[equipoNombre];
 
       // Título del equipo
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#1890FF').text(equipoNombre);
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#1890FF')
+         .text(equipoNombre, { continued: false });
+      
       doc.moveDown(0.5);
 
       estadisticasEquipo.forEach((e, index) => {
         if (doc.y > 720) doc.addPage();
 
-        // Obtener nombre del jugador con las relaciones correctas
         let jugadorNombre = "Desconocido";
         
         if (e.jugadorCampeonato?.usuario) {
@@ -331,10 +372,14 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
         const equipoB = e.partido?.equipoB?.nombre || "Equipo B";
 
         // Nombre del jugador
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000')
-          .text(`${index + 1}. ${jugadorNombre}`, { continued: false });
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor('#000000')
+           .text(`${index + 1}. ${jugadorNombre}`, { continued: false });
 
-        doc.fontSize(9).font('Helvetica').fillColor('#666666');
+        doc.fontSize(9)
+           .font('Helvetica')
+           .fillColor('#666666');
 
         // Información del partido
         doc.text(`   Partido: ${equipoA} vs ${equipoB}`);
@@ -347,9 +392,9 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
           ` Goles: ${e.goles ?? 0}`,
           ` Asist: ${e.asistencias ?? 0}`,
           ` Ataj: ${e.atajadas ?? 0}`,
-          ` ${e.tarjetasAmarillas ?? 0}`,
-          ` ${e.tarjetasRojas ?? 0}`,
-          ` ${e.minutosJugados ?? 0}'`
+          ` Amarillas: ${e.tarjetasAmarillas ?? 0}`,
+          `Roja: ${e.tarjetasRojas ?? 0}`,
+          ` Minutos jugados: ${e.minutosJugados ?? 0}'`
         ];
 
         doc.text(`   ${stats.join(' | ')}`);
@@ -359,30 +404,34 @@ export async function exportarEstadisticasCampeonatoPDF(req, res) {
 
       if (equipoIdx < equiposOrdenados.length - 1) {
         doc.moveDown(0.5);
-        doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#D9D9D9").stroke();
+        doc.moveTo(40, doc.y)
+           .lineTo(555, doc.y)
+           .strokeColor("#D9D9D9")
+           .stroke();
         doc.moveDown(1);
       }
     });
 
     // Footer
-    doc.fontSize(8).fillColor('#999999').text(
-      `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
-      40,
-      doc.page.height - 50,
-      { align: 'center' }
-    );
+    doc.fontSize(8)
+       .fillColor('#999999')
+       .text(
+         `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
+         40,
+         doc.page.height - 50,
+         { align: 'center' }
+       );
 
     doc.end();
 
   } catch (error) {
     console.error("Error exportando estadísticas a PDF:", error);
     if (!res.headersSent) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: "Error al exportar estadísticas"
+        message: "Error al exportar estadísticas a PDF"
       });
     }
   }
 }
-
 

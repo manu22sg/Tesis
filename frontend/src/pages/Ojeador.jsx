@@ -9,7 +9,7 @@ import {
   Tag,
   Empty,
   Typography,
-  message,
+  App,
   Pagination,
   ConfigProvider,
   Avatar,
@@ -47,6 +47,7 @@ export default function Ojeador() {
   const [qDebounced, setQDebounced] = useState('');
   const [filtroCarreraId, setFiltroCarreraId] = useState(null);
   const [filtroAnio, setFiltroAnio] = useState(null);
+  const { message } = App.useApp(); 
 
   // Opciones de filtros
   const [carrerasOpts, setCarrerasOpts] = useState([]);

@@ -5,7 +5,7 @@ import {
   Tag,
   Button,
   Space,
-  message,
+  App,
   Empty,
   Tooltip,
   Popconfirm,
@@ -58,6 +58,7 @@ const ESTADO_COLORS = {
 export default function Jugadores() {
   const navigate = useNavigate();
   const [exportando, setExportando] = useState(false);
+  const { message } = App.useApp(); 
 
   // Data y carga
   const [jugadores, setJugadores] = useState([]);

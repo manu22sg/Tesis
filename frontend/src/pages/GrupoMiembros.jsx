@@ -4,7 +4,7 @@ import {
   Table,
   Button,
   Space,
-  message,
+  App,
   Empty,
   Typography,
   Tag,
@@ -64,6 +64,7 @@ export default function GrupoMiembros() {
   const [sesionDetalle, setSesionDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [canchasOpts, setCanchasOpts] = useState([]);
+  const { message } = App.useApp(); 
 
 
   const [modalJugadorVisible, setModalJugadorVisible] = useState(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, Select, Button, Space, Steps, Alert, Spin, message } from 'antd';
+import { Modal, Form, Select, Button, Space, Steps, Alert, Spin, App } from 'antd';
 import {
   ThunderboltOutlined,
   AimOutlined,
@@ -20,6 +20,7 @@ const ModalAlineacionInteligente = ({
   sesionId,
   grupoId
 }) => {
+const { message } = App.useApp(); 
 
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);

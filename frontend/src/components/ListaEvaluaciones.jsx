@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, message, Button
+  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, App, Button
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import { EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
@@ -32,6 +32,8 @@ const ListaEvaluaciones = ({
     tamanioPagina: 10,
     total: 0,
   });
+  const { message } = App.useApp(); 
+
 
   // ✅ Control de requests
   const requestIdRef = useRef(0);

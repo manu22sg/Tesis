@@ -5,11 +5,10 @@ import {
   Breadcrumb,
   Button,
   Space,
-  message,
   Spin,
   Table,
   Avatar,
-  Empty
+  Empty,App
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -22,6 +21,8 @@ import { campeonatoService } from '../services/campeonato.services';
 function CampeonatoTablaContent() {
   const { id } = useParams();
   const navigate = useNavigate();
+    const { message } = App.useApp(); 
+
   const { setCampeonatoActivo } = useCampeonatoActivo();
   
   const [campeonato, setCampeonato] = useState(null);

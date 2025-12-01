@@ -304,7 +304,7 @@ export const insertarUsuarioEnEquipo = async ({
     }
   }
 
-  // 🟦 VALIDACIONES DE TIPO DE CAMPEONATO (YA EXISTENTES)
+  //  VALIDACIONES DE TIPO DE CAMPEONATO (YA EXISTENTES)
   if (campeonato.tipoCampeonato === 'mechon') {
     const anioActual = new Date().getFullYear();
 
@@ -443,6 +443,8 @@ export const listarJugadoresPorEquipo = async (equipoId) => {
       id: j.id,
       usuarioId: j.usuarioId,
       nombre: j.usuario?.nombre,
+      apellido: j.usuario?.apellido,
+
       rut: j.usuario?.rut,
       posicion: j.posicion,
       numeroCamiseta: j.numeroCamiseta,

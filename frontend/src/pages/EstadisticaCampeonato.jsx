@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Table, Button, Space, message, Tag, Tooltip, Popconfirm,
+  Card, Table, Button, Space, Tag, Tooltip, Popconfirm,App,
   Row, Col, Empty, Breadcrumb, Input, Select, Alert, Pagination, ConfigProvider,Dropdown
 } from 'antd';
 import esES from 'antd/locale/es_ES';
@@ -18,11 +18,13 @@ import { equipoService } from '../services/equipo.services';
 function EstadisticasContent() {
   const { id: campeonatoId } = useParams();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
 
   const [estadisticas, setEstadisticas] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [todosLosJugadores, setTodosLosJugadores] = useState([]);
   const [loading, setLoading] = useState(false);
+const [exportando, setExportando] = useState(false);
 
   const [filtros, setFiltros] = useState({ busqueda: '', equipoId: null });
   const [current, setCurrent] = useState(1);
@@ -47,13 +49,23 @@ function EstadisticasContent() {
       if (!equipos.length) return;
       try {
         const prom = equipos.map(async (eq) => {
-          const jugadores = await equipoService.listarJugadores(eq.id);
-          return (jugadores || []).map((j) => ({
-            id: j.id,
-            usuario: { nombre: j.nombre ?? j.usuario?.nombre ?? '', apellido: j.apellido ?? j.usuario?.apellido ?? '' , rut: j.rut ?? j.usuario?.rut ?? '' },
-            equipo: { id: eq.id, nombre: eq.nombre },
-          }));
-        });
+  const response = await equipoService.listarJugadores(eq.id);
+  
+  // Unwrap la respuesta igual que en EquipoManager
+  const data = response.data?.data || response.data || response;
+  const jugadores = Array.isArray(data) ? data : data.jugadores || [];
+  
+  return jugadores.map((j) => ({
+    id: j.id,
+    usuario: { 
+      nombre: j.nombre ?? j.usuario?.nombre ?? '', 
+      apellido: j.apellido ?? j.usuario?.apellido ?? '', 
+      rut: j.rut ?? j.usuario?.rut ?? '' 
+    },
+    equipo: { id: eq.id, nombre: eq.nombre },
+  }));
+});
+
         const result = await Promise.all(prom);
         setTodosLosJugadores(result.flat());
       } catch (err) {
@@ -117,45 +129,77 @@ function EstadisticasContent() {
     setFiltros({ busqueda: '', equipoId: null });
     setCurrent(1);
   };
-  const handleExportarExcel = async () => {
+const handleExportarExcel = async () => {
+  setExportando(true);
   try {
-    const blob = await estadisticaService.exportarExcel(campeonatoId, filtros.equipoId,filtros.busqueda);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `estadisticas_campeonato_${campeonatoId}_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const result = await estadisticaService.exportarExcel(
+      campeonatoId, 
+      filtros.equipoId, 
+      filtros.busqueda
+    );
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
 
   } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a Excel');
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar estadísticas a Excel');
+  } finally {
+    setExportando(false);
   }
 };
 
 const handleExportarPDF = async () => {
+  setExportando(true);
   try {
-    const blob = await estadisticaService.exportarPDF(campeonatoId, filtros.equipoId,filtros.busqueda);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `estadisticas_campeonato_${campeonatoId}_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const result = await estadisticaService.exportarPDF(
+      campeonatoId, 
+      filtros.equipoId, 
+      filtros.busqueda
+    );
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
 
   } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a PDF');
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar estadísticas a PDF');
+  } finally {
+    setExportando(false);
   }
 };
 
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
 
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
   // === Filtrado
   const estadisticasFiltradas = useMemo(() => {
     const texto = filtros.busqueda?.toLowerCase().trim();

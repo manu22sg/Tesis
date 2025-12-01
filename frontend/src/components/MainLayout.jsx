@@ -86,7 +86,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
     ]),
     getItem('Asistencias', 'asistencias', <CheckCircleOutlined />),
-
     getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
     getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
@@ -98,26 +97,8 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
   ];
 
-  const superAdminItems = [
-    getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
-      getItem('Gestionar Canchas', 'canchas-gestion', <EditOutlined />),
-      getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
-    ]),
-    getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
-      getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
-      getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
-    ]),
-    getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-    getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
-      getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
-      getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
-    ]),
-    getItem('Grupos', 'grupos', <TeamOutlined />),
-    getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
-    getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
-  ];
-
   const estudianteItems = [
+    getItem('Campeonatos', 'campeonatos-publico', <TrophyOutlined />),
     getItem('Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
@@ -134,6 +115,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   ];
 
   const academicoItems = [
+    getItem('Campeonatos', 'campeonatos-publico', <TrophyOutlined />),
     getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
@@ -142,7 +124,6 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   ];
 
   const itemsByRole = {
-    superadmin: superAdminItems,
     entrenador: entrenadorItems,
     estudiante: estudianteItems,
     academico: academicoItems,
@@ -156,11 +137,12 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     '/gestion-canchas': 'canchas-gestion',
     '/canchas': 'canchas',
     '/campeonatos': 'campeonatos-lista',
+    '/campeonatos/publico': 'campeonatos-publico',
     '/reservas/nueva': 'reservas-nueva',
     '/reservas/mis-reservas': 'reservas-mis',
     '/aprobar-reservas': 'aprobar-reservas',
     '/sesiones': 'sesiones',
-     '/asistencias': 'asistencias',
+    '/asistencias': 'asistencias',
     '/sesiones/nueva': 'sesiones-nueva',
     '/entrenamientos': 'entrenamientos',
     '/lesiones': 'lesiones',
@@ -179,11 +161,14 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   if (!selectedKey) {
     const campeonatoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/(info|equipos|fixture|tabla|estadisticas)$/);
+    const campeonatoPublicoMatch = location.pathname.match(/^\/campeonatos\/(\d+)\/publico$/);
     const ojeadorMatch = location.pathname.match(/^\/ojeador(\/\d+)?$/);
 
     if (campeonatoMatch) {
       const [, id, seccion] = campeonatoMatch;
       selectedKey = `campeonato-${id}-${seccion}`;
+    } else if (campeonatoPublicoMatch) {
+      selectedKey = 'campeonatos-publico';
     } else if (ojeadorMatch) {
       selectedKey = 'ojeador';
     } else {
@@ -219,6 +204,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       'canchas-ver': '/canchas',
       canchas: '/canchas',
       'campeonatos-lista': '/campeonatos',
+      'campeonatos-publico': '/campeonatos/publico',
       'reservas-nueva': '/reservas/nueva',
       'reservas-mis': '/reservas/mis-reservas',
       'aprobar-reservas': '/aprobar-reservas',
@@ -241,8 +227,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     if (keyToPath[key]) navigate(keyToPath[key]);
   };
 
- const userMenuItems = [
-    
+  const userMenuItems = [
     { type: 'divider' },
     {
       key: 'dashboard',
@@ -259,6 +244,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
       danger: true,
     },
   ];
+
   // ======================================
   // 🚨 RENDER DINÁMICO (*SIN cortar hooks*)
   // ======================================
@@ -279,7 +265,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   } else {
     contenido = (
       <Layout style={{ minHeight: '100vh' }}>
-       <Sider
+        <Sider
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
@@ -337,7 +323,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Avatar style={{ backgroundColor: '#014898' }} icon={<UserOutlined />} />
-{!collapsed && <span>{`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Usuario'}</span>}
+                {!collapsed && <span>{`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Usuario'}</span>}
               </div>
             </Dropdown>
           </Header>

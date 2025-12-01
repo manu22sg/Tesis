@@ -95,32 +95,120 @@ export const listarJugadoresPorEquipoYCampeonato = async (equipoId, campeonatoId
 
 export const exportarExcel = async (campeonatoId, equipoId = null, busqueda = null) => {
   try {
-    const params = {};
-    if (equipoId) params.equipoId = equipoId;
-    if (busqueda) params.q = busqueda;
+    const params = new URLSearchParams();
+    if (equipoId) params.append('equipoId', equipoId);
+    if (busqueda) params.append('q', busqueda);
     
-    const response = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/excel`, {
-      params,
-      responseType: 'blob'
+    const res = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/excel?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay estadísticas para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `estadisticas_campeonato_${campeonatoId}_${Date.now()}.xlsx`
+        };
+      }
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `estadisticas_campeonato_${campeonatoId}_${new Date().toISOString().split('T')[0]}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error('Error exportando estadísticas a Excel:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar estadísticas a Excel');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar estadísticas a Excel');
   }
 };
 
 export const exportarPDF = async (campeonatoId, equipoId = null, busqueda = null) => {
   try {
-    const params = {};
-    if (equipoId) params.equipoId = equipoId;
-    if (busqueda) params.q = busqueda;
+    const params = new URLSearchParams();
+    if (equipoId) params.append('equipoId', equipoId);
+    if (busqueda) params.append('q', busqueda);
     
-    const response = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/pdf`, {
-      params,
-      responseType: 'blob'
+    const res = await api.get(`/estadisticaCampeonato/campeonato/${campeonatoId}/pdf?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay estadísticas para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `estadisticas_campeonato_${campeonatoId}_${Date.now()}.pdf`
+        };
+      }
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `estadisticas_campeonato_${campeonatoId}_${new Date().toISOString().split('T')[0]}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error('Error exportando estadísticas a PDF:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar estadísticas a PDF');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar estadísticas a PDF');
   }
 };

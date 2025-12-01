@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Card, Table, Input, Button, Space, Tag, message, Modal, Typography, Spin,
+  Card, Table, Input, Button, Space, Tag, App, Modal, Typography, Spin,
   Pagination, Switch, Alert, ConfigProvider, Tooltip
 } from 'antd';
 import locale from 'antd/locale/es_ES';
@@ -26,6 +26,8 @@ const toNum = (v) => {
 const hasCoords = (lat, lon) => toNum(lat) !== null && toNum(lon) !== null;
 
 export default function MarcarAsistencia() {
+    const { message } = App.useApp(); 
+
   const { usuario } = useAuth();
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -7,7 +7,7 @@ import {
   Input,
   Button,
   Form,
-  message,
+  App,
   Space,
   ConfigProvider,
   Alert,
@@ -40,7 +40,8 @@ export default function ReservaNueva() {
   const [participantesInfo, setParticipantesInfo] = useState({});
   const [buscandoParticipantes, setBuscandoParticipantes] = useState(false);
   const [capacidadMaxima, setCapacidadMaxima] = useState(12);
-  
+  const { message } = App.useApp(); 
+
   // Estados para el autocomplete
   const [opcionesAutoComplete, setOpcionesAutoComplete] = useState([
     {

@@ -7,7 +7,7 @@ import {
   Row,
   Col,
   Space, 
-  message, 
+  App, 
   ConfigProvider,
   Typography,
   Dropdown,
@@ -44,7 +44,8 @@ export default function Evaluaciones() {
   const [jugadores, setJugadores] = useState([]);
   const [sesionId, setSesionId] = useState(null);
   const [jugadorId, setJugadorId] = useState(null);
-  
+    const { message } = App.useApp(); 
+
   // Estados dependientes
   const [jugadoresDelGrupo, setJugadoresDelGrupo] = useState([]);
   const [sesionesDelJugador, setSesionesDelJugador] = useState([]);
@@ -290,70 +291,85 @@ export default function Evaluaciones() {
 
   // Exportación
   const handleExportarExcel = async () => {
-    setExportando(true);
-    try {
-      const params = {};
-      
-      if (modo === 'sesion' && sesionId) {
-        params.sesionId = sesionId;
-        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
-      } else if (modo === 'jugador' && jugadorId) {
-        params.jugadorId = jugadorId;
-        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
-      }
-
-      const blob = await exportarEvaluacionesExcel(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `evaluaciones_${modo}_${Date.now()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-
-      message.success('Excel exportado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      message.error(error.message || 'Error al exportar a Excel');
-    } finally {
-      setExportando(false);
+  setExportando(true);
+  try {
+    const params = {};
+    
+    if (modo === 'sesion' && sesionId) {
+      params.sesionId = sesionId;
+      if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+    } else if (modo === 'jugador' && jugadorId) {
+      params.jugadorId = jugadorId;
+      if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
     }
-  };
 
-  const handleExportarPDF = async () => {
-    setExportando(true);
-    try {
-      const params = {};
-      
-      if (modo === 'sesion' && sesionId) {
-        params.sesionId = sesionId;
-        if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
-      } else if (modo === 'jugador' && jugadorId) {
-        params.jugadorId = jugadorId;
-        if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
-      }
+    const result = await exportarEvaluacionesExcel(params);
 
-      const blob = await exportarEvaluacionesPDF(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `evaluaciones_${modo}_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-
-      message.success('PDF exportado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      message.error(error.message || 'Error al exportar a PDF');
-    } finally {
-      setExportando(false);
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
     }
-  };
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  } finally {
+    setExportando(false);
+  }
+};
+
+const handleExportarPDF = async () => {
+  setExportando(true);
+  try {
+    const params = {};
+    
+    if (modo === 'sesion' && sesionId) {
+      params.sesionId = sesionId;
+      if (filtroJugadorEnSesion) params.jugadorId = filtroJugadorEnSesion;
+    } else if (modo === 'jugador' && jugadorId) {
+      params.jugadorId = jugadorId;
+      if (filtroSesionDelJugador) params.sesionId = filtroSesionDelJugador;
+    }
+
+    const result = await exportarEvaluacionesPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  } finally {
+    setExportando(false);
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
 
   const canConsultar = useMemo(() => {
     return (modo === 'sesion' && sesionId) || (modo === 'jugador' && jugadorId);

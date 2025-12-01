@@ -5,7 +5,7 @@ import {
   Input,
   Select,
   Button,
-  message,
+  App,
   Spin,
   AutoComplete,
   DatePicker,
@@ -44,6 +44,7 @@ export default function JugadorForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);

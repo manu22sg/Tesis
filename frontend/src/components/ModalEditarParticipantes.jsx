@@ -5,7 +5,7 @@ import {
   Button,
   Space,
   Tag,
-  message,
+  App,
   Alert,
   Spin,
   Empty,
@@ -40,6 +40,7 @@ export default function ModalEditarParticipantes({
   const [searchValue, setSearchValue] = useState('');
   const [error, setError] = useState('');
   const { usuario } = useAuth();
+  const { message } = App.useApp(); 
 
   // Calcular tiempo restante hasta la reserva
   const calcularTiempoRestante = () => {

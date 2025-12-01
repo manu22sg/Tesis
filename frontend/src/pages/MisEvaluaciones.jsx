@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Table, Button, message, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col, ConfigProvider } from 'antd';
+import { Table, Button, App, Card, Pagination, DatePicker, Select, Space, Tag, Statistic, Row, Col, ConfigProvider } from 'antd';
 import { ReloadOutlined, TrophyOutlined, LineChartOutlined } from '@ant-design/icons';
 import { obtenerMisEvaluaciones } from '../services/evaluacion.services.js';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,8 @@ const { RangePicker } = DatePicker;
 
 export default function MisEvaluaciones() {
   const { usuario } = useAuth();
+    const { message } = App.useApp(); 
+
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({

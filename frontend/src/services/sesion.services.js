@@ -148,66 +148,136 @@ function limpiarPayload(data) {
 }
 
 
-export async function exportarSesionesExcel(filtros = {}, mobile = false) {
+export async function exportarSesionesExcel(filtros = {}) {
   try {
-    // Agregar el parámetro mobile a los filtros
-    const params = { ...filtros };
-    if (mobile) {
-      params.mobile = 'true';
-    }
+    const params = new URLSearchParams();
     
-    const queryString = new URLSearchParams(params).toString();
-    const res = await api.get(`/sesion/excel?${queryString}`, {
-      responseType: mobile ? 'json' : 'blob'
+    // Agregar todos los filtros
+    if (filtros.q) params.append('q', filtros.q);
+    if (filtros.fecha) params.append('fecha', filtros.fecha);
+    if (filtros.horaInicio) params.append('horaInicio', filtros.horaInicio);
+    if (filtros.horaFin) params.append('horaFin', filtros.horaFin);
+    if (filtros.canchaId) params.append('canchaId', filtros.canchaId);
+    if (filtros.grupoId) params.append('grupoId', filtros.grupoId);
+    if (filtros.tipoSesion) params.append('tipoSesion', filtros.tipoSesion);
+
+    const res = await api.get(`/sesion/excel?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    
-    // Si es mobile y viene base64, decodificar
-    if (mobile && res.data.base64) {
-      const base64 = res.data.base64;
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay sesiones para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `sesiones_${Date.now()}.xlsx`
+        };
       }
-      return new Blob([bytes], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `sesiones_${Date.now()}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando sesiones a Excel:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar sesiones a Excel');
+      }
     }
     
-    return res.data;
-  } catch (error) {
-    console.error('Error exportando Excel:', error);
-    throw error.response?.data?.message || 'Error al exportar Excel';
+    throw new Error(error.message || 'Error al exportar sesiones a Excel');
   }
 }
 
-export async function exportarSesionesPDF(filtros = {}, mobile = false) {
+export async function exportarSesionesPDF(filtros = {}) {
   try {
-    // Agregar el parámetro mobile a los filtros
-    const params = { ...filtros };
-    if (mobile) {
-      params.mobile = 'true';
-    }
+    const params = new URLSearchParams();
     
-    const queryString = new URLSearchParams(params).toString();
-    const res = await api.get(`/sesion/pdf?${queryString}`, {
-      responseType: mobile ? 'json' : 'blob'
+    // Agregar todos los filtros
+    if (filtros.q) params.append('q', filtros.q);
+    if (filtros.fecha) params.append('fecha', filtros.fecha);
+    if (filtros.horaInicio) params.append('horaInicio', filtros.horaInicio);
+    if (filtros.horaFin) params.append('horaFin', filtros.horaFin);
+    if (filtros.canchaId) params.append('canchaId', filtros.canchaId);
+    if (filtros.grupoId) params.append('grupoId', filtros.grupoId);
+    if (filtros.tipoSesion) params.append('tipoSesion', filtros.tipoSesion);
+
+    const res = await api.get(`/sesion/pdf?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    
-    // Si es mobile y viene base64, decodificar
-    if (mobile && res.data.base64) {
-      const base64 = res.data.base64;
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay sesiones para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `sesiones_${Date.now()}.pdf`
+        };
       }
-      return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `sesiones_${Date.now()}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando sesiones a PDF:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar sesiones a PDF');
+      }
     }
     
-    return res.data;
-  } catch (error) {
-    console.error('Error exportando PDF:', error);
-    throw error.response?.data?.message || 'Error al exportar PDF';
+    throw new Error(error.message || 'Error al exportar sesiones a PDF');
   }
 }

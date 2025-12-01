@@ -20,13 +20,13 @@ export default function CampeonatosPublico() {
   const [campeonatosOriginales, setCampeonatosOriginales] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ⭐ FILTROS – INCLUYE POR DEFECTO SOLO “creado” & “en_juego”
+  // ⭐ FILTROS – SIN VALORES POR DEFECTO (muestra todos)
   const [filtros, setFiltros] = useState({
     formato: null,
     genero: null,
     anio: null,
     semestre: null,
-    estado: ['creado', 'en_juego']
+    estado: null
   });
 
   // === CARGAR CAMPEONATOS ===
@@ -49,7 +49,7 @@ export default function CampeonatosPublico() {
   const campeonatosFiltrados = useMemo(() => {
     let res = [...campeonatosOriginales];
 
-    // estado es array (creado / en_juego)
+    // estado puede ser array o null
     if (filtros.estado?.length > 0) {
       res = res.filter(c => filtros.estado.includes(c.estado));
     }
@@ -68,13 +68,16 @@ export default function CampeonatosPublico() {
       genero: null,
       anio: null,
       semestre: null,
-      estado: ['creado', 'en_juego']
+      estado: null
     });
   };
 
+  // ⭐ AÑOS DISPONIBLES - Incluye año actual y próximo
   const aniosDisponibles = useMemo(() => {
-    const anios = [...new Set(campeonatosOriginales.map(c => c.anio))];
-    return anios.sort((a, b) => b - a);
+    const anioActual = new Date().getFullYear();
+    const aniosExistentes = [...new Set(campeonatosOriginales.map(c => c.anio))];
+    const todosLosAnios = [...new Set([...aniosExistentes, anioActual, anioActual + 1])];
+    return todosLosAnios.sort((a, b) => b - a);
   }, [campeonatosOriginales]);
 
   const getEstadoConfig = (estado) => {
@@ -87,7 +90,7 @@ export default function CampeonatosPublico() {
     return config[estado] || { color: 'default', text: estado };
   };
 
-  const hayFiltrosActivos = Object.values(filtros).some(v => v !== null);
+  const hayFiltrosActivos = Object.values(filtros).some(v => v !== null && (Array.isArray(v) ? v.length > 0 : true));
 
   return (
     <MainLayout>
@@ -100,12 +103,12 @@ export default function CampeonatosPublico() {
               <div>
                 <h2 style={{ margin: 0 }}>Campeonatos Universitarios</h2>
                 <p style={{ margin: 0, color: '#666' }}>
-                  Explora los campeonatos activos y próximos
+                  Explora todos los campeonatos disponibles
                 </p>
               </div>
               <Statistic
                 title="En Curso"
-                value={campeonatosFiltrados.filter(c => c.estado === 'en_juego').length}
+                value={campeonatosOriginales.filter(c => c.estado === 'en_juego').length}
                 prefix={<FireOutlined />}
                 valueStyle={{ color: '#52c41a' }}
               />
@@ -120,6 +123,7 @@ export default function CampeonatosPublico() {
           >
             <Row gutter={[16, 16]}>
               
+              {/* ⭐ FORMATO - Incluye 8v8 */}
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
                   allowClear
@@ -130,6 +134,7 @@ export default function CampeonatosPublico() {
                 >
                   <Option value="5v5">5v5</Option>
                   <Option value="7v7">7v7</Option>
+                  <Option value="8v8">8v8</Option>
                   <Option value="11v11">11v11</Option>
                 </Select>
               </Col>
@@ -148,6 +153,7 @@ export default function CampeonatosPublico() {
                 </Select>
               </Col>
 
+              {/* ⭐ AÑO - Incluye año actual y próximo */}
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
                   allowClear
@@ -175,7 +181,7 @@ export default function CampeonatosPublico() {
                 </Select>
               </Col>
 
-              {/* ⭐ ESTADO MULTISELECT (mostrando solo próximos/en curso por defecto) */}
+              {/* ⭐ ESTADO MULTISELECT - Sin "cancelado" */}
               <Col xs={24} sm={12} md={8} lg={4}>
                 <Select
                   mode="multiple"
@@ -188,7 +194,6 @@ export default function CampeonatosPublico() {
                   <Option value="creado">Próximamente</Option>
                   <Option value="en_juego">En Curso</Option>
                   <Option value="finalizado">Finalizado</Option>
-                  <Option value="cancelado">Cancelado</Option>
                 </Select>
               </Col>
             </Row>
@@ -225,59 +230,59 @@ export default function CampeonatosPublico() {
                         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                           <TrophyOutlined style={{ fontSize: 32 }} />
                           <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {estadoConfig.text}
-</span>
+                            padding: '4px 12px',
+                            borderRadius: 4,
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            color: estadoConfig.color === 'blue' ? '#1890ff' : 
+                                   estadoConfig.color === 'green' ? '#52c41a' : 
+                                   estadoConfig.color === 'gold' ? '#faad14' : '#f5222d'
+                          }}>
+                            {estadoConfig.text}
+                          </span>
                         </Space>
-                        <h3 style={{ marginTop: 12 }}>{c.nombre}</h3>
+                        <h3 style={{ marginTop: 12, marginBottom: 0 }}>{c.nombre}</h3>
                       </div>
 
                       {/* BODY */}
                       <div style={{ padding: 20 }}>
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                           <Row gutter={12}>
+                        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                          <Row gutter={12}>
+                            {/* Formato */}
+                            <Col span={12}>
+                              <span style={{ color: '#999' }}>Formato</span>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                border: '1px solid #B9BBBB',
+                                backgroundColor: '#f5f5f5',
+                                marginLeft: 8
+                              }}>
+                                {(c.formato || "").toUpperCase()}
+                              </span>
+                            </Col>
 
-      {/* Formato */}
-      <Col span={12}>
-        <span style={{ color: '#999' }}>Formato</span>
-        <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  marginLeft: 8
-}}>
-  {(c.formato || "").charAt(0).toUpperCase() + (c.formato || "").slice(1)}
-</span>
-      </Col>
+                            {/* Género */}
+                            <Col span={12}>
+                              <span style={{ color: '#999' }}>Género </span>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: 4,
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                border: '1px solid #B9BBBB',
+                                backgroundColor: '#f5f5f5',
+                                marginLeft: 8
+                              }}>
+                                {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
+                              </span>
+                            </Col>
+                          </Row>
 
-      {/* Género con colores dinámicos */}
-      <Col span={12}>
-        <span style={{ color: '#999' }}>Género </span>
-        <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  marginLeft: 8
-}}>
-  {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
-</span>
-      </Col>
-
-    </Row>
-
-                          <Divider />
+                          <Divider style={{ margin: '12px 0' }} />
 
                           <Row gutter={12}>
                             <Col span={12}>
@@ -292,8 +297,8 @@ export default function CampeonatosPublico() {
                             </Col>
                           </Row>
 
-                          <div style={{ color: '#999' }}>
-                            {c.anio} • Semestre {c.semestre}
+                          <div style={{ color: '#999', fontSize: '13px' }}>
+                            📅 {c.anio} • Semestre {c.semestre}
                           </div>
 
                           <Button
@@ -313,7 +318,19 @@ export default function CampeonatosPublico() {
             </Row>
           ) : (
             <Card>
-              <Empty description="No hay campeonatos disponibles" />
+              <Empty 
+                description={
+                  hayFiltrosActivos 
+                    ? "No se encontraron campeonatos con los filtros aplicados"
+                    : "No hay campeonatos disponibles"
+                }
+              >
+                {hayFiltrosActivos && (
+                  <Button type="primary" onClick={limpiarFiltros}>
+                    Limpiar Filtros
+                  </Button>
+                )}
+              </Empty>
             </Card>
           )}
 

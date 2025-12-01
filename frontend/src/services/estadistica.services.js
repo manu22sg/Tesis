@@ -70,25 +70,108 @@ export const eliminarEstadistica = async (id) => {
 
 export const exportarEstadisticasExcel = async (params = {}) => {
   try {
-    const response = await api.get('/estadisticas/excel', {
-      params,
-      responseType: 'blob'
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/estadisticas/excel?${query}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay estadísticas para exportar");
+    }
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `estadisticas_${Date.now()}.xlsx`
+        };
+      }
+    }
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `estadisticas_${Date.now()}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error("Error exportando estadísticas Excel:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar Excel");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar Excel");
   }
 };
 
-
 export const exportarEstadisticasPDF = async (params = {}) => {
   try {
-    const response = await api.get('/estadisticas/pdf', {
-      params,
-      responseType: 'blob'
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/estadisticas/pdf?${query}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay estadísticas para exportar");
+    }
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `estadisticas_${Date.now()}.pdf`
+        };
+      }
+    }
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `estadisticas_${Date.now()}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error("Error exportando estadísticas PDF:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar PDF");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar PDF");
   }
 };

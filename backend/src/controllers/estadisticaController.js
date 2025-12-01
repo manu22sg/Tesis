@@ -78,7 +78,8 @@ export async function deleteEstadistica(req,res){
 
 export async function exportarEstadisticasExcel(req, res) {
   try {
-    const { tipo, id } = req.query; // ✅ Ya validado por Joi
+    const { tipo, id, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     let resultado, err;
     
@@ -179,7 +180,17 @@ export async function exportarEstadisticasExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `estadisticas_${tipo}_${Date.now()}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="estadisticas_${tipo}_${Date.now()}.xlsx"`
@@ -200,7 +211,8 @@ export async function exportarEstadisticasExcel(req, res) {
 
 export async function exportarEstadisticasPDF(req, res) {
   try {
-    const { tipo, id } = req.query; // ✅ Ya validado por Joi
+    const { tipo, id, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     let resultado, err;
     
@@ -235,14 +247,28 @@ export async function exportarEstadisticasPDF(req, res) {
     }
 
     const doc = new PDFDocument({ margin: 40 });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="estadisticas_${tipo}_${Date.now()}.pdf"`
-    );
-
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `estadisticas_${tipo}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="estadisticas_${tipo}_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     doc.fontSize(18).font("Helvetica-Bold")
       .text(`Estadísticas por ${tipo === 'sesion' ? 'Sesión' : 'Jugador'}`, { align: "center" });

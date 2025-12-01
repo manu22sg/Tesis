@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Card, Button, Table, Modal, Form, Input, Select, Space, message,
+  Card, Button, Table, Modal, Form, Input, Select, Space, App,
   Popconfirm, Tag, Descriptions, Empty, Drawer, InputNumber, Divider,
   List, Avatar, Badge, Tooltip, Row, Col, AutoComplete,Dropdown,ConfigProvider
 } from 'antd';
@@ -23,12 +23,13 @@ const { Option } = Select;
 const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   const [equipos, setEquipos] = useState([]);
   const [carreras, setCarreras] = useState([]);
+  const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [modalJugadorVisible, setModalJugadorVisible] = useState(false);
-
+const [exportando, setExportando] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [jugadoresEquipo, setJugadoresEquipo] = useState([]);
@@ -297,45 +298,70 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     };
     return colors[tipo?.toLowerCase()] || 'default';
   };
-  const handleExportarExcel = async () => {
-  try {
-    const blob = await equipoService.exportarExcel(campeonatoId, true);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `equipos_campeonato_${campeonatoId}_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
 
-    message.success('Excel exportado correctamente');
+  const handleExportarExcel = async () => {
+  setExportando(true);
+  try {
+    const result = await equipoService.exportarExcel(campeonatoId, true);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
   } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a Excel');
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar equipos a Excel');
+  } finally {
+    setExportando(false);
   }
 };
 
 const handleExportarPDF = async () => {
+  setExportando(true);
   try {
-    const blob = await equipoService.exportarPDF(campeonatoId, true);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `equipos_campeonato_${campeonatoId}_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const result = await equipoService.exportarPDF(campeonatoId, true);
 
-    message.success('PDF exportado correctamente');
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
   } catch (error) {
-    console.error('Error:', error);
-    message.error('Error al exportar a PDF');
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar equipos a PDF');
+  } finally {
+    setExportando(false);
   }
 };
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
 
 
   // --------------------------
@@ -671,7 +697,7 @@ const handleExportarPDF = async () => {
                       }
                       title={
                         <Space>
-                          {jugador.nombre}
+                          {`${jugador.nombre} ${jugador.apellido || ''}`}
                           {jugador.numeroCamiseta && (
                             <span style={{
   padding: '2px 8px',

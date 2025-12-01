@@ -181,49 +181,76 @@ export default function GestionCanchas() {
   };
 
   const handleExportExcel = async () => {
-    setExportando(true);
-    try {
-      const params = {};
-      if (filtroEstado !== 'todos') params.estado = filtroEstado;
-      if (qDebounced) params.q = qDebounced;
+  setExportando(true);
+  try {
+    const params = {};
+    if (filtroEstado !== 'todos') params.estado = filtroEstado;
+    if (qDebounced) params.q = qDebounced;
 
-      const blob = await exportarCanchasExcel(params);
-      descargarArchivo(blob, `canchas_${Date.now()}.xlsx`);
+    const result = await exportarCanchasExcel(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
       message.success("Excel descargado correctamente");
-    } catch (error) {
-      console.error("Error al exportar Excel:", error);
-      message.error(error.message || "Error al exportar Excel");
-    } finally {
-      setExportando(false);
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
 
-  const handleExportPDF = async () => {
-    setExportando(true);
-    try {
-      const params = {};
-      if (filtroEstado !== 'todos') params.estado = filtroEstado;
-      if (qDebounced) params.q = qDebounced;
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar canchas a Excel');
+  } finally {
+    setExportando(false);
+  }
+};
 
-      const blob = await exportarCanchasPDF(params);
-      descargarArchivo(blob, `canchas_${Date.now()}.pdf`);
+const handleExportPDF = async () => {
+  setExportando(true);
+  try {
+    const params = {};
+    if (filtroEstado !== 'todos') params.estado = filtroEstado;
+    if (qDebounced) params.q = qDebounced;
+
+    const result = await exportarCanchasPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
       message.success("PDF descargado correctamente");
-    } catch (error) {
-      console.error("Error al exportar PDF:", error);
-      message.error(error.message || "Error al exportar PDF");
-    } finally {
-      setExportando(false);
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
 
-  function descargarArchivo(blob, nombre) {
+  } catch (error) {
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar canchas a PDF');
+  } finally {
+    setExportando(false);
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = nombre;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
   }
+}
 
   const aplicarFiltro = (estado) => {
     setFiltroEstado(estado);

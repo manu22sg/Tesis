@@ -92,7 +92,8 @@ export async function getMisEvaluaciones(req, res) {
 
 export async function exportarEvaluacionesExcel(req, res) {
   try {
-    const { jugadorId, sesionId, desde, hasta, q } = req.query; // ✅ Ya validado
+    const { jugadorId, sesionId, desde, hasta, q, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     const filtros = {
       page: 1,
@@ -105,7 +106,6 @@ export async function exportarEvaluacionesExcel(req, res) {
     if (hasta) filtros.hasta = hasta;
     if (q) filtros.q = q;
 
-    // Si es estudiante, solo ve sus evaluaciones
     if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
       filtros.jugadorId = req.user.jugadorId;
     }
@@ -200,7 +200,17 @@ export async function exportarEvaluacionesExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `evaluaciones_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="evaluaciones_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.xlsx"`
@@ -221,7 +231,8 @@ export async function exportarEvaluacionesExcel(req, res) {
 
 export async function exportarEvaluacionesPDF(req, res) {
   try {
-    const { jugadorId, sesionId, desde, hasta, q } = req.query; // ✅ Ya validado
+    const { jugadorId, sesionId, desde, hasta, q, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     const filtros = {
       page: 1,
@@ -234,7 +245,6 @@ export async function exportarEvaluacionesPDF(req, res) {
     if (hasta) filtros.hasta = hasta;
     if (q) filtros.q = q;
 
-    // Si es estudiante, solo ve sus evaluaciones
     if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
       filtros.jugadorId = req.user.jugadorId;
     }
@@ -258,14 +268,28 @@ export async function exportarEvaluacionesPDF(req, res) {
     }
 
     const doc = new PDFDocument({ margin: 40 });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="evaluaciones_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.pdf"`
-    );
-
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `evaluaciones_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="evaluaciones_${sesionId ? `sesion_${sesionId}` : `jugador_${jugadorId}`}_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     doc.fontSize(18).font("Helvetica-Bold").text("Evaluaciones", { align: "center" });
     doc.moveDown(1);

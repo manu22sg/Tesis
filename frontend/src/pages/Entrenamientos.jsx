@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import {
   Card, Table, Button, Space, Empty, Tooltip,
   Modal, Popconfirm, Input, Pagination, ConfigProvider,
-  InputNumber, Form, Typography, Divider, Tag, Statistic, Row, Col, Select, Spin,App
+  InputNumber, Form, Typography, Divider, Tag, Statistic, Row, Col, Select, Spin,App,Dropdown
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
   SearchOutlined, FileTextOutlined, ClockCircleOutlined,
   OrderedListOutlined, ArrowLeftOutlined, CopyOutlined,
-  BarChartOutlined, SortAscendingOutlined, LinkOutlined
+  BarChartOutlined, SortAscendingOutlined, LinkOutlined,DownloadOutlined,FileExcelOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  exportarEntrenamientosExcel,
+  exportarEntrenamientosPDF,
   obtenerEntrenamientos,
   obtenerEntrenamientosPorSesion,
   crearEntrenamiento,
@@ -65,6 +68,8 @@ function SortableRow({ id, children, ...props }) {
 }
 
 export default function Entrenamientos() {
+  const [exportando, setExportando] = useState(false);
+
   const navigate = useNavigate();
   const { sesionId } = useParams();
 const { message } = App.useApp(); 
@@ -124,6 +129,97 @@ const { message } = App.useApp();
       setLoading(false);
     }
   };
+
+  const handleExportarExcel = async () => {
+  setExportando(true); // Si tienes este estado
+  try {
+    const filtros = {
+      q: query || undefined,
+      sesionId: sesionId || undefined,
+    };
+    
+    const result = await exportarEntrenamientosExcel(filtros);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar entrenamientos a Excel');
+  } finally {
+    setExportando(false);
+  }
+};
+
+const handleExportarPDF = async () => {
+  setExportando(true);
+  try {
+    const filtros = {
+      q: query || undefined,
+      sesionId: sesionId || undefined,
+    };
+    
+    const result = await exportarEntrenamientosPDF(filtros);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
+  } catch (error) {
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar entrenamientos a PDF');
+  } finally {
+    setExportando(false);
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
+const menuExportar = {
+  items: [
+    {
+      key: 'excel',
+      label: 'Exportar a Excel',
+      icon: <FileExcelOutlined />,
+      onClick: handleExportarExcel,
+    },
+    {
+      key: 'pdf',
+      label: 'Exportar a PDF',
+      icon: <FilePdfOutlined />,
+      onClick: handleExportarPDF,
+    },
+  ],
+};
+
+
 
   const cargarInfoSesion = async () => {
     if (sesionId) {
@@ -473,6 +569,14 @@ const { message } = App.useApp();
                     Volver
                   </Button>
                 )}
+                 <Dropdown menu={menuExportar} trigger={['hover']}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={exportando}
+        >
+          Exportar
+        </Button>
+      </Dropdown>
                 <Button icon={<BarChartOutlined />} onClick={cargarEstadisticas}>
                   Estadísticas
                 </Button>
@@ -733,6 +837,7 @@ const { message } = App.useApp();
             ]}
             width={600}
           >
+              
             {estadisticas ? (
               <Row gutter={[16, 16]}>
                 <Col span={12}>

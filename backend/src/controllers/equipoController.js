@@ -57,7 +57,8 @@ export const listarJugadoresEquipo = async (req, res) => {
 export async function exportarEquiposExcel(req, res) {
   try {
     const { campeonatoId } = req.params;
-    const { incluirJugadores = 'true' } = req.query;
+    const { mobile, incluirJugadores = 'true' } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!campeonatoId) {
       return res.status(400).json({
@@ -80,7 +81,6 @@ export async function exportarEquiposExcel(req, res) {
     workbook.created = new Date();
     workbook.modified = new Date();
 
-    // Una sola hoja: Equipos y Jugadores
     const sheet = workbook.addWorksheet("Equipos y Jugadores");
     
     sheet.columns = [
@@ -120,7 +120,6 @@ export async function exportarEquiposExcel(req, res) {
         const totalJugadores = jugadores.length;
 
         if (totalJugadores === 0) {
-          // Equipo sin jugadores
           sheet.addRow({
             equipo: equipo.nombre,
             carrera: equipo.carrera?.nombre || "—",
@@ -136,10 +135,8 @@ export async function exportarEquiposExcel(req, res) {
             atajadas: "—"
           });
         } else {
-          // Agregar fila por cada jugador
           jugadores.forEach((j, index) => {
             const rowData = {
-              // Solo mostrar info del equipo en la primera fila
               equipo: index === 0 ? equipo.nombre : "",
               carrera: index === 0 ? (equipo.carrera?.nombre || "—") : "",
               tipo: index === 0 ? formatearTipo(equipo.tipo) : "",
@@ -156,7 +153,6 @@ export async function exportarEquiposExcel(req, res) {
 
             const row = sheet.addRow(rowData);
 
-            // Resaltar primera fila de cada equipo
             if (index === 0) {
               row.getCell('equipo').font = { bold: true };
               row.getCell('totalJugadores').font = { bold: true };
@@ -169,7 +165,6 @@ export async function exportarEquiposExcel(req, res) {
           });
         }
 
-        // Línea separadora entre equipos (fila vacía)
         sheet.addRow({});
 
       } catch (error) {
@@ -177,7 +172,7 @@ export async function exportarEquiposExcel(req, res) {
       }
     }
 
-    // Ajustar bordes
+    // Bordes
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         row.eachCell((cell) => {
@@ -192,13 +187,26 @@ export async function exportarEquiposExcel(req, res) {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `equipos_campeonato_${campeonatoId}_${fecha}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="equipos_campeonato_${campeonatoId}_${Date.now()}.xlsx"`
+      `attachment; filename="equipos_campeonato_${campeonatoId}_${fecha}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
 
     return res.send(buffer);
 
@@ -206,17 +214,16 @@ export async function exportarEquiposExcel(req, res) {
     console.error("Error exportando equipos a Excel:", error);
     return res.status(500).json({
       success: false,
-      message: "Error al exportar equipos",
-      error: error.message
+      message: "Error al exportar equipos a Excel"
     });
   }
 }
 
-// GET /api/equipos/campeonato/:campeonatoId/pdf - Exportar equipos a PDF
 export async function exportarEquiposPDF(req, res) {
   try {
     const { campeonatoId } = req.params;
-    const { incluirJugadores = 'true' } = req.query;
+    const { mobile, incluirJugadores = 'true' } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!campeonatoId) {
       return res.status(400).json({
@@ -234,24 +241,53 @@ export async function exportarEquiposPDF(req, res) {
       });
     }
 
-    const doc = new PDFDocument({ margin: 40 });
+    const doc = new PDFDocument({ 
+      margin: 40,
+      size: "A4",
+      info: {
+        Title: `Equipos del Campeonato ${campeonatoId}`,
+        Author: 'Sistema de Gestión Deportiva'
+      }
+    });
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="equipos_campeonato_${campeonatoId}_${Date.now()}.pdf"`
-    );
+    let chunks = [];
 
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `equipos_campeonato_${campeonatoId}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="equipos_campeonato_${campeonatoId}_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
-    doc.fontSize(18).font("Helvetica-Bold").text("Equipos del Campeonato", { align: "center" });
-    doc.fontSize(10).font("Helvetica").text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    // Título principal
+    doc.fontSize(20)
+       .font('Helvetica-Bold')
+       .text("Equipos del Campeonato", { align: "center" });
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    
     doc.moveDown(2);
 
     for (let index = 0; index < equipos.length; index++) {
       const equipo = equipos[index];
       
-      // Verificar si necesitamos nueva página (solo para nuevos equipos, no jugadores)
       if (index > 0 && doc.y > 650) doc.addPage();
 
       const formatearTipo = (tipo) => {
@@ -259,15 +295,27 @@ export async function exportarEquiposPDF(req, res) {
       };
 
       // Encabezado del equipo
-      doc.fontSize(14).font("Helvetica-Bold").fillColor('#1890FF').text(equipo.nombre || "Equipo sin nombre");
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#1890FF')
+         .text(equipo.nombre || "Equipo sin nombre", { continued: false });
 
-      doc.font("Helvetica").fontSize(10).fillColor('#666666').text(`   Carrera: ${equipo.carrera?.nombre || "—"}`);
-      doc.text(`   Tipo: ${formatearTipo(equipo.tipo)}`);
-      doc.fontSize(11).font("Helvetica-Bold").fillColor('#000000').text(`   Total de jugadores: ${equipo.jugadores?.length || 0}`);
+      doc.moveDown(0.5);
+
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#000000');
+
+      doc.text(`Carrera: ${equipo.carrera?.nombre || "—"}`);
+      doc.text(`Tipo: ${formatearTipo(equipo.tipo)}`);
+      
+      doc.fontSize(11)
+         .font('Helvetica-Bold')
+         .text(`Total de jugadores: ${equipo.jugadores?.length || 0}`);
       
       doc.moveDown(0.5);
 
-      // Incluir jugadores si se solicita
+      // Incluir jugadores
       if (incluirJugadores === 'true') {
         try {
           const dataJugadores = await listarJugadoresPorEquipo(equipo.id);
@@ -275,14 +323,16 @@ export async function exportarEquiposPDF(req, res) {
 
           if (jugadores.length > 0) {
             jugadores.forEach((j, idx) => {
-              // Solo cambiar de página si realmente no hay espacio (más restrictivo)
               if (doc.y > 720) doc.addPage();
 
-              doc.fontSize(10).font("Helvetica-Bold").fillColor('#000000').text(
-                `${idx + 1}. ${j.nombre || "—"} ${j.apellido || ""}`, { continued: false }
-              );
+              doc.fontSize(10)
+                 .font('Helvetica-Bold')
+                 .fillColor('#000000')
+                 .text(`${idx + 1}. ${j.nombre || "—"} ${j.apellido || ""}`, { continued: false });
 
-              doc.fontSize(9).font("Helvetica").fillColor('#666666');
+              doc.fontSize(9)
+                 .font('Helvetica')
+                 .fillColor('#666666');
 
               const detalles = [
                 `      RUT: ${j.rut || '—'}`,
@@ -297,41 +347,51 @@ export async function exportarEquiposPDF(req, res) {
               doc.moveDown(0.3);
             });
           } else {
-            doc.fontSize(10).font("Helvetica-Oblique").fillColor('#999999').text("   Sin jugadores registrados");
+            doc.fontSize(10)
+               .font('Helvetica-Oblique')
+               .fillColor('#999999')
+               .text("   Sin jugadores registrados");
           }
         } catch (error) {
           console.error(`Error cargando jugadores del equipo ${equipo.id}:`, error);
-          doc.fontSize(9).font("Helvetica-Oblique").fillColor('#999999').text("   Error al cargar jugadores");
+          doc.fontSize(9)
+             .font('Helvetica-Oblique')
+             .fillColor('#999999')
+             .text("   Error al cargar jugadores");
         }
       }
 
       doc.moveDown(1);
 
-      // Línea separadora entre equipos
+      // Línea separadora
       if (index < equipos.length - 1) {
-        doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#D9D9D9").stroke();
+        doc.moveTo(40, doc.y)
+           .lineTo(555, doc.y)
+           .strokeColor('#D9D9D9')
+           .stroke();
         doc.moveDown(1);
       }
     }
 
-    // Footer en última página
-    doc.fontSize(8).fillColor('#999999').text(
-      `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
-      40,
-      doc.page.height - 50,
-      { align: 'center' }
-    );
+    // Footer
+    doc.fontSize(8)
+       .fillColor('#999999')
+       .text(
+         `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
+         40,
+         doc.page.height - 50,
+         { align: 'center' }
+       );
 
     doc.end();
 
   } catch (error) {
     console.error("Error exportando equipos a PDF:", error);
     if (!res.headersSent) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: "Error al exportar equipos"
+        message: "Error al exportar equipos a PDF"
       });
     }
   }
 }
-

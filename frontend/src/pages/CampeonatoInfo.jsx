@@ -10,12 +10,11 @@ import {
   Input,
   Select,
   InputNumber,
-  message,
   Row,
   Col,
   Alert,
   Divider,
-  Breadcrumb
+  Breadcrumb,App
 } from 'antd';
 import {
   ThunderboltOutlined,
@@ -41,7 +40,7 @@ function CampeonatoInfoContent() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { setCampeonatoActivo } = useCampeonatoActivo();
-  
+  const { message } = App.useApp(); 
   const [campeonato, setCampeonato] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

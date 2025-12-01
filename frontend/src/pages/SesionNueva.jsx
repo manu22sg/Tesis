@@ -7,7 +7,7 @@ import {
   DatePicker,
   TimePicker,
   Button,
-  message,
+  App,
   Spin,
   ConfigProvider,
   Radio,
@@ -31,6 +31,7 @@ dayjs.locale('es');
 export default function SesionNueva() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

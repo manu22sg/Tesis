@@ -5,7 +5,7 @@ import {
   Tag,
   Button,
   Space,
-  message,
+  App,
   Select,
   Empty,
   Tooltip,
@@ -57,6 +57,8 @@ export default function MisReservas() {
     pageSize: 10,
     total: 0,
   });
+    const { message } = App.useApp(); 
+
   const [detalleModal, setDetalleModal] = useState(false);
   const [reservaDetalle, setReservaDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);

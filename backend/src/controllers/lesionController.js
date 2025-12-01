@@ -56,7 +56,8 @@ export async function deleteLesion(req, res) {
 
 export async function exportarLesionesExcel(req, res) {
   try {
-    const { jugadorId, desde, hasta, q } = req.query; // ✅ Ya validado
+    const { jugadorId, desde, hasta, q, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     const filtros = {
       page: 1,
@@ -68,7 +69,6 @@ export async function exportarLesionesExcel(req, res) {
     if (hasta) filtros.hasta = hasta;
     if (q) filtros.q = q;
 
-    // Si es estudiante, solo ve sus lesiones
     if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
       filtros.jugadorId = req.user.jugadorId;
     }
@@ -142,7 +142,17 @@ export async function exportarLesionesExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `lesiones_${Date.now()}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="lesiones_${Date.now()}.xlsx"`
@@ -163,7 +173,8 @@ export async function exportarLesionesExcel(req, res) {
 
 export async function exportarLesionesPDF(req, res) {
   try {
-    const { jugadorId, desde, hasta, q } = req.query; // ✅ Ya validado
+    const { jugadorId, desde, hasta, q, mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
 
     const filtros = {
       page: 1,
@@ -175,7 +186,6 @@ export async function exportarLesionesPDF(req, res) {
     if (hasta) filtros.hasta = hasta;
     if (q) filtros.q = q;
 
-    // Si es estudiante, solo ve sus lesiones
     if (req.user?.rol === 'estudiante' && req.user?.jugadorId) {
       filtros.jugadorId = req.user.jugadorId;
     }
@@ -199,14 +209,28 @@ export async function exportarLesionesPDF(req, res) {
     }
 
     const doc = new PDFDocument({ margin: 40 });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="lesiones_${Date.now()}.pdf"`
-    );
-
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `lesiones_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="lesiones_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     doc.fontSize(18).font("Helvetica-Bold").text("Listado de Lesiones", { align: "center" });
     doc.moveDown(1);
@@ -264,6 +288,7 @@ Días de Lesión: ${diasLesion}
     }
   }
 }
+
 
 function formatearFechaExcel(fecha) {
   if (!fecha || fecha === "—") return "—";

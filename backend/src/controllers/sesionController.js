@@ -174,13 +174,23 @@ export async function exportarSesionesExcel(req, res) {
     const isMobile = mobile === 'true';
 
     const [result, err] = await obtenerSesiones({ ...req.query, page: 1, limit: 5000 });
-    if (err) return res.status(400).json({ success: false, message: err });
+    if (err) {
+      return res.status(400).json({ success: false, message: err });
+    }
 
     const sesiones = result.sesiones;
+
+    if (!sesiones || sesiones.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No hay sesiones para exportar"
+      });
+    }
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "SPORTUBB";
     workbook.created = new Date();
+    workbook.modified = new Date();
 
     const sheet = workbook.addWorksheet("Sesiones");
 
@@ -195,7 +205,16 @@ export async function exportarSesionesExcel(req, res) {
       { header: "Token Vigente", key: "tokenVigente", width: 12 },
     ];
 
-    sheet.getRow(1).font = { bold: true };
+    // Estilos del header
+    sheet.getRow(1).font = { bold: true, size: 12 };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1890FF' }
+    };
+    sheet.getRow(1).font.color = { argb: 'FFFFFFFF' };
+    sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    sheet.getRow(1).height = 25;
 
     sesiones.forEach(s => {
       sheet.addRow({
@@ -210,24 +229,50 @@ export async function exportarSesionesExcel(req, res) {
       });
     });
 
-    const buffer = await workbook.xlsx.writeBuffer();
+    // Agregar bordes a todas las celdas
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+          };
+        });
+      }
+    });
 
+    const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
+
+    // 📱 MOBILE
     if (isMobile) {
-      const base64 = buffer.toString('base64');
       return res.json({
         success: true,
-        base64,
-        fileName: `sesiones_${Date.now()}.xlsx`
+        fileName: `sesiones_${fecha}.xlsx`,
+        base64: buffer.toString("base64")
       });
     }
 
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", `attachment; filename="sesiones_${Date.now()}.xlsx"`);
+    // 💻 WEB
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="sesiones_${fecha}.xlsx"`
+    );
+
     return res.send(buffer);
 
   } catch (error) {
-    console.error("Export Excel error:", error);
-    return res.status(500).json({ success: false, message: "Error al exportar sesiones" });
+    console.error("Error exportando sesiones a Excel:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Error al exportar sesiones a Excel" 
+    });
   }
 }
 
@@ -237,22 +282,72 @@ export async function exportarSesionesPDF(req, res) {
     const isMobile = mobile === 'true';
 
     const [result, err] = await obtenerSesiones({ ...req.query, page: 1, limit: 5000 });
-    if (err) return res.status(400).json({ success: false, message: err });
+    if (err) {
+      return res.status(500).json({ 
+        success: false, 
+        message: err 
+      });
+    }
 
     const sesiones = result.sesiones;
 
-    const doc = new PDFDocument({ margin: 40 });
-    const chunks = [];
+    if (!sesiones || sesiones.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No hay sesiones para exportar"
+      });
+    }
 
-    doc.on('data', (chunk) => chunks.push(chunk));
+    const doc = new PDFDocument({ 
+      margin: 40, 
+      size: "A4",
+      info: {
+        Title: 'Listado de Sesiones',
+        Author: 'SPORTUBB'
+      }
+    });
 
+    let chunks = [];
+
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `sesiones_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="sesiones_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
+
+    // Título principal
     doc.fontSize(20)
-      .font("Helvetica-Bold")
-      .text("Listado de Sesiones", { align: "center" });
+       .font('Helvetica-Bold')
+       .text("Listado de Sesiones", { align: "center" });
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    
     doc.moveDown(2);
 
+    // Procesar cada sesión
     sesiones.forEach((s, index) => {
-      if (doc.y > 700) doc.addPage();
+      // Verificar si necesitamos nueva página
+      if (index > 0 && doc.y > 650) {
+        doc.addPage();
+      }
 
       const fecha = parseDateLocal(s.fecha).toLocaleDateString("es-CL");
       const horaInicio = s.horaInicio?.slice(0, 5);
@@ -260,54 +355,64 @@ export async function exportarSesionesPDF(req, res) {
       const nombreGrupo = s.grupo?.nombre || s.grupo || "Sin grupo";
       const nombreLugar = s.cancha?.nombre || s.ubicacionExterna || "—";
 
-      doc.fontSize(12)
-        .font("Helvetica-Bold")
-        .fillColor("#1890FF")
-        .text(`Sesión del ${fecha} — ${nombreGrupo}`);
+      // Encabezado de la sesión
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#1890FF')
+         .text(`Sesión del ${fecha} — ${nombreGrupo}`, { continued: false });
 
+      doc.moveDown(0.5);
+
+      // Detalles de la sesión
       doc.fontSize(10)
-        .font("Helvetica")
-        .fillColor("#000")
-        .text(`Fecha: ${fecha}`)
-        .text(`Hora: ${horaInicio} - ${horaFin}`)
-        .text(`Tipo: ${s.tipoSesion}`)
-        .text(`Grupo: ${nombreGrupo}`)
-        .text(`Lugar: ${nombreLugar}`)
-        .text(`Token Activo: ${s.tokenActivo ? "Sí" : "No"}`)
-        .text(`Token Vigente: ${s.tokenVigente ? "Sí" : "No"}`);
+         .font('Helvetica')
+         .fillColor('#000000');
+
+      const detalles = [
+        `Fecha: ${fecha}`,
+        `Hora: ${horaInicio} - ${horaFin}`,
+        `Tipo: ${s.tipoSesion}`,
+        `Grupo: ${nombreGrupo}`,
+        `Lugar: ${nombreLugar}`,
+        `Token Activo: ${s.tokenActivo ? "Sí" : "No"}`,
+        `Token Vigente: ${s.tokenVigente ? "Sí" : "No"}`
+      ];
+
+      detalles.forEach(detalle => {
+        doc.text(detalle);
+      });
 
       doc.moveDown(1);
 
+      // Línea separadora entre sesiones
       if (index < sesiones.length - 1) {
-        doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
+        doc.moveTo(40, doc.y)
+           .lineTo(555, doc.y)
+           .strokeColor('#D9D9D9')
+           .stroke();
         doc.moveDown(1);
       }
     });
 
+    // Footer en última página
+    doc.fontSize(8)
+       .fillColor('#999999')
+       .text(
+         `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
+         40,
+         doc.page.height - 50,
+         { align: 'center' }
+       );
+
     doc.end();
 
-    if (isMobile) {
-      return new Promise((resolve, reject) => {
-        doc.on('end', () => {
-          const buffer = Buffer.concat(chunks);
-          const base64 = buffer.toString('base64');
-          res.json({
-            success: true,
-            base64,
-            fileName: `sesiones_${Date.now()}.pdf`
-          });
-          resolve();
-        });
-        doc.on('error', reject);
+  } catch (error) {
+    console.error("Error exportando sesiones a PDF:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        success: false, 
+        message: "Error al exportar sesiones a PDF" 
       });
     }
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="sesiones_${Date.now()}.pdf"`);
-    doc.pipe(res);
-
-  } catch (error) {
-    console.error("Export PDF error:", error);
-    return res.status(500).json({ success: false, message: "Error al exportar sesiones" });
   }
 }

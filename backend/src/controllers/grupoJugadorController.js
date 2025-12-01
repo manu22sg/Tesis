@@ -90,6 +90,9 @@ export async function obtenerMiembrosDeGrupoController(req, res) {
 
 export async function exportarGruposExcel(req, res) {
   try {
+    const { mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
+
     const filtros = {
       nombre: req.query.nombre || req.query.q || null,
     };
@@ -99,16 +102,20 @@ export async function exportarGruposExcel(req, res) {
       return res.status(400).json({ success: false, message: err });
     }
 
+    if (grupos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No hay grupos para exportar"
+      });
+    }
+
     const workbook = new ExcelJS.Workbook();
-    
-    // Metadatos del archivo
     workbook.creator = 'Sistema de Gestión Deportiva';
     workbook.created = new Date();
     workbook.modified = new Date();
     
     const sheet = workbook.addWorksheet("Grupos y Jugadores");
 
-    // Configuración de columnas
     sheet.columns = [
       { header: "Grupo", key: "grupo", width: 25 },
       { header: "Descripción", key: "descripcion", width: 35 },
@@ -121,7 +128,6 @@ export async function exportarGruposExcel(req, res) {
       { header: "Estado", key: "estado", width: 12 },
     ];
 
-    // Estilo del encabezado
     sheet.getRow(1).font = { bold: true, size: 12 };
     sheet.getRow(1).fill = {
       type: 'pattern',
@@ -132,13 +138,11 @@ export async function exportarGruposExcel(req, res) {
     sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
     sheet.getRow(1).height = 25;
 
-    // Procesar cada grupo
     grupos.forEach((grupo) => {
       const jugadores = grupo.jugadorGrupos || [];
       const totalMiembros = jugadores.length;
 
       if (totalMiembros === 0) {
-        // Grupo sin jugadores
         sheet.addRow({
           grupo: grupo.nombre,
           descripcion: grupo.descripcion || "",
@@ -151,14 +155,12 @@ export async function exportarGruposExcel(req, res) {
           estado: "—",
         });
       } else {
-        // Agregar fila por cada jugador
         jugadores.forEach((jg, index) => {
           const jugador = jg.jugador;
           const usuario = jugador?.usuario;
-          const carrera = usuario?.carrera; // ← Ahora carrera viene de Usuario
+          const carrera = usuario?.carrera;
 
           const rowData = {
-            // Solo mostrar nombre del grupo en la primera fila
             grupo: index === 0 ? grupo.nombre : "",
             descripcion: index === 0 ? (grupo.descripcion || "") : "",
             totalMiembros: index === 0 ? totalMiembros : "",
@@ -172,7 +174,6 @@ export async function exportarGruposExcel(req, res) {
 
           const row = sheet.addRow(rowData);
 
-          // Resaltar primera fila de cada grupo
           if (index === 0) {
             row.getCell('grupo').font = { bold: true };
             row.getCell('totalMiembros').font = { bold: true };
@@ -183,7 +184,6 @@ export async function exportarGruposExcel(req, res) {
             };
           }
 
-          // Colorear estado
           const estadoCell = row.getCell('estado');
           if (jugador?.estado === 'activo') {
             estadoCell.font = { color: { argb: 'FF52C41A' }, bold: true };
@@ -193,13 +193,11 @@ export async function exportarGruposExcel(req, res) {
         });
       }
 
-      // Línea separadora entre grupos (fila vacía)
       sheet.addRow({});
     });
 
-    // Ajustar bordes
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber > 1) { // Saltar encabezado
+      if (rowNumber > 1) {
         row.eachCell((cell) => {
           cell.border = {
             top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
@@ -211,16 +209,23 @@ export async function exportarGruposExcel(req, res) {
       }
     });
 
-    // Generar buffer
     const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
 
-    // Headers de respuesta
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `grupos_${fecha}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    
-    const fecha = new Date().toISOString().split('T')[0];
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="grupos_${fecha}.xlsx"`
@@ -238,13 +243,27 @@ export async function exportarGruposExcel(req, res) {
 
 export async function exportarGruposPDF(req, res) {
   try {
+    const { nombre, q, mobile } = req.query;
+    const isMobile = mobile === "true";
+
     const filtros = {
-      nombre: req.query.nombre || req.query.q || null,
+      nombre: nombre || q || null,
     };
 
     const [grupos, err] = await obtenerGruposParaExportar(filtros);
+    
     if (err) {
-      return res.status(400).json({ success: false, message: err });
+      return res.status(500).json({ 
+        success: false, 
+        message: err 
+      });
+    }
+
+    if (!grupos || grupos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No hay grupos para exportar"
+      });
     }
 
     const doc = new PDFDocument({ 
@@ -256,15 +275,29 @@ export async function exportarGruposPDF(req, res) {
       }
     });
 
-    res.setHeader("Content-Type", "application/pdf");
-    
-    const fecha = new Date().toISOString().split('T')[0];
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="grupos_${fecha}.pdf"`
-    );
+    let chunks = [];
 
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `grupos_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="grupos_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     // Título principal
     doc.fontSize(20)
@@ -327,8 +360,10 @@ export async function exportarGruposPDF(req, res) {
           doc.fontSize(10)
              .font('Helvetica-Bold')
              .fillColor('#000000')
-           .text(
-        `${idx + 1}. ${`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Sin nombre'}`, { continued: false });
+             .text(
+               `${idx + 1}. ${`${usuario?.nombre || ''} ${usuario?.apellido || ''}`.trim() || 'Sin nombre'}`, 
+               { continued: false }
+             );
 
           doc.fontSize(9)
              .font('Helvetica')
@@ -377,13 +412,13 @@ export async function exportarGruposPDF(req, res) {
   } catch (error) {
     console.error("Error exportando grupos a PDF:", error);
     if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Error al exportar grupos a PDF" });
+      return res.status(500).json({ 
+        success: false, 
+        message: "Error al exportar grupos a PDF" 
+      });
     }
   }
 }
-
 
 export async function getEstadisticasEntrenador(req, res) {
   try {

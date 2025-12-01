@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Breadcrumb, Button, Space, message, Spin, Tabs, ConfigProvider } from 'antd';
+import { Card, Breadcrumb, Button, Space, Spin, Tabs, ConfigProvider,App } from 'antd';
 import { ArrowLeftOutlined, CalendarOutlined, FireOutlined } from '@ant-design/icons';
 import MainLayout, { useCampeonatoActivo } from '../components/MainLayout';
 import FixtureManager from '../components/FixtureManager';
@@ -13,7 +13,7 @@ function CampeonatoFixtureContent() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { setCampeonatoActivo } = useCampeonatoActivo();
-  
+  const { message } = App.useApp(); 
   const [campeonato, setCampeonato] = useState(null);
   const [canchas, setCanchas] = useState([]);
   const [loading, setLoading] = useState(false);

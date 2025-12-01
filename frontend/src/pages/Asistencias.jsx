@@ -6,11 +6,10 @@ import {
   Row,
   Col,
   Space,
-  message,
   ConfigProvider,
   Typography,
   Dropdown,
-  Spin
+  Spin,App
 } from 'antd';
 import EditarAsistenciaModal from '../components/EditarAsistenciaModal.jsx'
 import locale from 'antd/locale/es_ES';
@@ -40,6 +39,7 @@ const { Text } = Typography;
 const PRELOAD_LIMIT = 50;
 
 export default function Asistencias() {
+  const { message } = App.useApp(); 
   const [modalVisible, setModalVisible] = useState(false);
 const [editModalVisible, setEditModalVisible] = useState(false);
 const [asistenciaSeleccionada, setAsistenciaSeleccionada] = useState(null);

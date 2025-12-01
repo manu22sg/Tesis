@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Form, InputNumber, Button, Select, message, Row, Col, Spin, Divider, Typography } from 'antd';
+import { Form, InputNumber, Button, Select, App, Row, Col, Spin, Divider, Typography } from 'antd';
 import { upsertEstadistica } from '../services/estadistica.services.js';
 import { obtenerSesiones } from '../services/sesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
@@ -23,7 +23,8 @@ const FormularioEstadistica = ({
   const [sesiones, setSesiones] = useState([]);
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
   const [esPortero, setEsPortero] = useState(false);
-  
+  const { message } = App.useApp(); 
+
   // Estados de búsqueda de jugadores
   const [busquedaJugador, setBusquedaJugador] = useState('');
   const [jugadoresBusqueda, setJugadoresBusqueda] = useState([]);

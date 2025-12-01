@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Card, Button, Modal, message, Space, Descriptions,
+  Card, Button, Modal, App, Space, Descriptions,
   Alert, Spin, Empty, Table, Typography, Tooltip, Dropdown
 } from 'antd';
 import {
@@ -33,6 +33,8 @@ dayjs.locale('es');
 const { Text } = Typography;
 
 const FixtureManager = ({ campeonatoId, onUpdate }) => {
+  const { message } = App.useApp(); 
+
   const [loading, setLoading] = useState(false);
   const [campeonato, setCampeonato] = useState(null);
   const [partidos, setPartidos] = useState([]);
@@ -134,7 +136,7 @@ const handleSortearPrimeraRonda = async () => {
 const handleGenerarSiguienteRonda = async () => {
   const partidosAgrupados = agruparPartidosPorRonda();
   const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
-    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
+    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4, dieciseisavos: 5 };
     return (orden[a] || 99) - (orden[b] || 99);
   });
   const ultimaRonda = rondasOrdenadas[0];
@@ -342,50 +344,67 @@ const handleProgramar = async (values, arbitroSeleccionado) => {
       final: 'Final',
       semifinal: 'Semifinal',
       cuartos: 'Cuartos de Final',
-      octavos: 'Octavos de Final'
+      octavos: 'Octavos de Final',
+      dieciseisavos: 'Dieciseisavos de Final'
     };
     return nombres[ronda] || ronda.replace('_', ' ').toUpperCase();
   };
 
   const handleExportarExcel = async () => {
-    try {
-      const blob = await campeonatoService.exportarFixtureExcel(campeonatoId);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+  try {
+    const result = await campeonatoService.exportarFixtureExcel(campeonatoId);
 
-      message.success('Excel exportado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      message.error('Error al exportar a Excel');
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
     }
-  };
 
-  const handleExportarPDF = async () => {
-    try {
-      const blob = await campeonatoService.exportarFixturePDF(campeonatoId);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a Excel');
+  }
+};
 
-      message.success('PDF exportado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      message.error('Error al exportar a PDF');
+const handleExportarPDF = async () => {
+  try {
+    const result = await campeonatoService.exportarFixturePDF(campeonatoId);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
     }
-  };
+
+  } catch (error) {
+    console.error('Error:', error);
+    message.error(error.message || 'Error al exportar a PDF');
+  }
+};
+
+// Agregar esta función si no la tienes:
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
 
   if (!campeonato) {
     return (
@@ -397,7 +416,7 @@ const handleProgramar = async (values, arbitroSeleccionado) => {
 
   const partidosAgrupados = agruparPartidosPorRonda();
   const rondasOrdenadas = Object.keys(partidosAgrupados).sort((a, b) => {
-    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4 };
+    const orden = { final: 1, semifinal: 2, cuartos: 3, octavos: 4, dieciseisavos: 5};
     return (orden[a] || 99) - (orden[b] || 99);
   });
   const ultimaRonda = rondasOrdenadas[0];

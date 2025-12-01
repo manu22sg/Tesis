@@ -7,8 +7,7 @@ import {
   DatePicker,
   TimePicker,
   Button,
-  message,
-  Spin,
+App,  Spin,
   ConfigProvider,
   Radio,
   Space
@@ -31,6 +30,7 @@ export default function EditarSesion() {
   const { id } = useParams();
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

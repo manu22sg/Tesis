@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Form, Input, Button, Card, Typography, message, Alert } from "antd";
+import { Form, Input, Button, Card, Typography, App, Alert } from "antd";
 import { MailOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { solicitarRestablecimientoRequest } from "../services/auth.services.js";
@@ -11,6 +11,7 @@ export default function SolicitarRestablecimiento() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [emailEnviado, setEmailEnviado] = useState(false);
+  const { message } = App.useApp(); 
 
   const onFinish = async (values) => {
     setLoading(true);

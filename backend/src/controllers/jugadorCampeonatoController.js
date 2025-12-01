@@ -125,6 +125,7 @@ export async function exportarPerfilExcelController(req, res) {
   try {
     const { usuarioId } = req.params;
     const { mobile } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!usuarioId || isNaN(Number(usuarioId))) {
       return res.status(400).json({
@@ -132,8 +133,6 @@ export async function exportarPerfilExcelController(req, res) {
         message: 'ID de usuario inválido'
       });
     }
-
-    const isMobile = mobile === 'true';
 
     const [perfil, error] = await obtenerPerfilJugadorCampeonato(Number(usuarioId));
 
@@ -148,6 +147,9 @@ export async function exportarPerfilExcelController(req, res) {
     const { usuario, totalesGenerales, promedios, historialCampeonatos } = perfil;
 
     const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema de Gestión Deportiva';
+    workbook.created = new Date();
+    workbook.modified = new Date();
 
     // 📋 Hoja 1: Información General
     const sheetInfo = workbook.addWorksheet('Información General');
@@ -155,6 +157,17 @@ export async function exportarPerfilExcelController(req, res) {
       { header: 'Campo', key: 'campo', width: 25 },
       { header: 'Valor', key: 'valor', width: 40 }
     ];
+
+    // Estilos del header
+    sheetInfo.getRow(1).font = { bold: true, size: 12 };
+    sheetInfo.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1890FF' }
+    };
+    sheetInfo.getRow(1).font.color = { argb: 'FFFFFFFF' };
+    sheetInfo.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    sheetInfo.getRow(1).height = 25;
 
     sheetInfo.addRows([
       { campo: 'Nombre Completo', valor: `${usuario.nombre} ${usuario.apellido}` },
@@ -179,8 +192,21 @@ export async function exportarPerfilExcelController(req, res) {
       { campo: 'Promedio Minutos/Partido', valor: promedios.minutosPartido }
     ]);
 
-    sheetInfo.getRow(1).font = { bold: true };
     sheetInfo.getColumn('campo').font = { bold: true };
+
+    // Agregar bordes
+    sheetInfo.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+          };
+        });
+      }
+    });
 
     // 📋 Hoja 2: Historial por Campeonato
     const sheetHistorial = workbook.addWorksheet('Historial Campeonatos');
@@ -202,6 +228,17 @@ export async function exportarPerfilExcelController(req, res) {
       { header: 'Rojas', key: 'rojas', width: 10 }
     ];
 
+    // Estilos del header
+    sheetHistorial.getRow(1).font = { bold: true, size: 12 };
+    sheetHistorial.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1890FF' }
+    };
+    sheetHistorial.getRow(1).font.color = { argb: 'FFFFFFFF' };
+    sheetHistorial.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    sheetHistorial.getRow(1).height = 25;
+
     historialCampeonatos.forEach(camp => {
       sheetHistorial.addRow({
         campeonato: camp.campeonatoNombre,
@@ -222,7 +259,19 @@ export async function exportarPerfilExcelController(req, res) {
       });
     });
 
-    sheetHistorial.getRow(1).font = { bold: true };
+    // Agregar bordes
+    sheetHistorial.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+          };
+        });
+      }
+    });
 
     // 📋 Hoja 3: Detalle de Partidos
     const sheetPartidos = workbook.addWorksheet('Detalle Partidos');
@@ -241,6 +290,17 @@ export async function exportarPerfilExcelController(req, res) {
       { header: 'Rojas', key: 'rojas', width: 8 },
       { header: 'Minutos', key: 'minutos', width: 10 }
     ];
+
+    // Estilos del header
+    sheetPartidos.getRow(1).font = { bold: true, size: 12 };
+    sheetPartidos.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1890FF' }
+    };
+    sheetPartidos.getRow(1).font.color = { argb: 'FFFFFFFF' };
+    sheetPartidos.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    sheetPartidos.getRow(1).height = 25;
 
     historialCampeonatos.forEach(camp => {
       if (camp.partidos && camp.partidos.length > 0) {
@@ -264,44 +324,54 @@ export async function exportarPerfilExcelController(req, res) {
       }
     });
 
-    sheetPartidos.getRow(1).font = { bold: true };
+    // Agregar bordes
+    sheetPartidos.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+          };
+        });
+      }
+    });
 
     const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
 
+    // 📱 MOBILE
     if (isMobile) {
-      const base64 = buffer.toString('base64');
       return res.json({
         success: true,
-        base64,
-        fileName: `perfil_${usuario.nombre}_${usuario.apellido}.xlsx`
+        fileName: `perfil_${usuario.nombre}_${usuario.apellido}_${fecha}.xlsx`,
+        base64: buffer.toString('base64')
       });
     }
 
+    // 💻 WEB
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="perfil_${usuario.nombre}_${usuario.apellido}.xlsx"`
+      `attachment; filename="perfil_${usuario.nombre}_${usuario.apellido}_${fecha}.xlsx"`
     );
     return res.send(buffer);
 
   } catch (error) {
-    console.error('Error exportando Excel:', error);
+    console.error('Error exportando perfil a Excel:', error);
     return res.status(500).json({
       success: false,
-      message: 'Error al exportar perfil a Excel',
-      error: error.message
+      message: 'Error al exportar perfil a Excel'
     });
   }
 }
 
-/**
- * 🆕 GET /api/ojeador/:usuarioId/exportar/pdf
- * Exportar perfil completo del jugador a PDF
- */
 export async function exportarPerfilPDFController(req, res) {
   try {
     const { usuarioId } = req.params;
     const { mobile } = req.query;
+    const isMobile = mobile === 'true';
 
     if (!usuarioId || isNaN(Number(usuarioId))) {
       return res.status(400).json({
@@ -309,8 +379,6 @@ export async function exportarPerfilPDFController(req, res) {
         message: 'ID de usuario inválido'
       });
     }
-
-    const isMobile = mobile === 'true';
 
     const [perfil, error] = await obtenerPerfilJugadorCampeonato(Number(usuarioId));
 
@@ -324,20 +392,48 @@ export async function exportarPerfilPDFController(req, res) {
 
     const { usuario, totalesGenerales, promedios, historialCampeonatos } = perfil;
 
-    const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
-    const chunks = [];
+    const doc = new PDFDocument({ 
+      margin: 50, 
+      size: 'LETTER',
+      info: {
+        Title: `Perfil de ${usuario.nombre} ${usuario.apellido}`,
+        Author: 'SportUBB'
+      }
+    });
 
-    doc.on('data', (chunk) => chunks.push(chunk));
+    let chunks = [];
+
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `perfil_${usuario.nombre}_${usuario.apellido}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="perfil_${usuario.nombre}_${usuario.apellido}_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     // 🎨 Header
     doc.fontSize(20).font('Helvetica-Bold').text('PERFIL DE JUGADOR', { align: 'center' });
     doc.moveDown();
 
     // 📋 Información Personal
-    doc.fontSize(16).font('Helvetica-Bold').text('Información Personal', { underline: true });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#1890FF').text('Información Personal', { underline: true });
     doc.moveDown(0.5);
     
-    doc.fontSize(11).font('Helvetica');
+    doc.fontSize(11).font('Helvetica').fillColor('#000000');
     doc.text(`Nombre: ${usuario.nombre} ${usuario.apellido}`);
     doc.text(`RUT: ${usuario.rut || '—'}`);
     doc.text(`Email: ${usuario.email || '—'}`);
@@ -348,10 +444,10 @@ export async function exportarPerfilPDFController(req, res) {
     doc.moveDown();
 
     // 📊 Estadísticas Generales
-    doc.fontSize(16).font('Helvetica-Bold').text('Estadísticas Generales', { underline: true });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#1890FF').text('Estadísticas Generales', { underline: true });
     doc.moveDown(0.5);
 
-    doc.fontSize(11).font('Helvetica');
+    doc.fontSize(11).font('Helvetica').fillColor('#000000');
     doc.text(`Campeonatos: ${totalesGenerales.campeonatos}`);
     doc.text(`Goles: ${totalesGenerales.goles}`);
     doc.text(`Asistencias: ${totalesGenerales.asistencias}`);
@@ -363,16 +459,16 @@ export async function exportarPerfilPDFController(req, res) {
     doc.moveDown();
 
     // 📈 Promedios
-    doc.fontSize(14).font('Helvetica-Bold').text('Promedios por Partido');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1890FF').text('Promedios por Partido');
     doc.moveDown(0.3);
-    doc.fontSize(11).font('Helvetica');
+    doc.fontSize(11).font('Helvetica').fillColor('#000000');
     doc.text(`Goles/Partido: ${promedios.golesPartido}`);
     doc.text(`Asistencias/Partido: ${promedios.asistenciasPartido}`);
     doc.text(`Minutos/Partido: ${promedios.minutosPartido}'`);
     doc.moveDown(1.5);
 
     // 🏆 Historial por Campeonato
-    doc.fontSize(16).font('Helvetica-Bold').text('Historial por Campeonato', { underline: true });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#1890FF').text('Historial por Campeonato', { underline: true });
     doc.moveDown(0.5);
 
     historialCampeonatos.forEach((camp, index) => {
@@ -381,7 +477,7 @@ export async function exportarPerfilPDFController(req, res) {
         doc.addPage();
       }
 
-      doc.fontSize(12).font('Helvetica-Bold');
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
       doc.text(`${camp.campeonatoNombre} (${camp.anio}-${camp.semestre})`, { continued: false });
       
       doc.fontSize(10).font('Helvetica');
@@ -399,18 +495,17 @@ export async function exportarPerfilPDFController(req, res) {
 
       doc.moveDown(0.5);
 
-      // 🆕 AGREGAR PARTIDOS DETALLADOS
+      // Partidos detallados
       if (camp.partidos && camp.partidos.length > 0) {
         doc.fontSize(11).font('Helvetica-Bold').text('Partidos:', { underline: true });
         doc.moveDown(0.3);
 
         camp.partidos.forEach((partido, pIndex) => {
-          // Verificar espacio para cada partido
           if (doc.y > 680) {
             doc.addPage();
           }
 
-          doc.fontSize(9).font('Helvetica');
+          doc.fontSize(9).font('Helvetica').fillColor('#000000');
           
           const fecha = partido.fecha 
             ? new Date(partido.fecha).toLocaleDateString('es-CL') 
@@ -421,7 +516,6 @@ export async function exportarPerfilPDFController(req, res) {
             ? ` (Penales: ${partido.penalesA}-${partido.penalesB})` 
             : '';
 
-          // Línea principal del partido
           doc.text(
             `${pIndex + 1}. ${fecha} | ${partido.ronda || 'Sin ronda'} | ${partido.equipoANombre} vs ${partido.equipoBNombre}`,
             { continued: false }
@@ -430,14 +524,13 @@ export async function exportarPerfilPDFController(req, res) {
           doc.fontSize(8).font('Helvetica');
           doc.text(`   Resultado: ${resultado}${penales}`);
           
-          // Estadísticas del jugador en ese partido
           const stats = [];
-          if (partido.golesJugador > 0) stats.push(` Goles: ${partido.golesJugador}`);
-          if (partido.asistenciasJugador > 0) stats.push(` Asistencias: ${partido.asistenciasJugador}`);
+          if (partido.golesJugador > 0) stats.push(`Goles: ${partido.golesJugador}`);
+          if (partido.asistenciasJugador > 0) stats.push(`Asistencias: ${partido.asistenciasJugador}`);
           if (partido.atajadasJugador > 0) stats.push(` Atajadas: ${partido.atajadasJugador}`);
-          if (partido.tarjetasAmarillasJugador > 0) stats.push(` Amarillas: ${partido.tarjetasAmarillasJugador}`);
+          if (partido.tarjetasAmarillasJugador > 0) stats.push(`Amarillas: ${partido.tarjetasAmarillasJugador}`);
           if (partido.tarjetasRojasJugador > 0) stats.push(` Rojas: ${partido.tarjetasRojasJugador}`);
-          if (partido.minutosJugados > 0) stats.push(` Minutos jugados: ${partido.minutosJugados}'`);
+          if (partido.minutosJugados > 0) stats.push(` Minutos: ${partido.minutosJugados}'`);
 
           if (stats.length > 0) {
             doc.text(`   Jugador: ${stats.join(' | ')}`);
@@ -450,47 +543,42 @@ export async function exportarPerfilPDFController(req, res) {
 
         doc.moveDown(0.5);
       } else {
-        doc.fontSize(9).font('Helvetica-Oblique');
+        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#666666');
         doc.text('No hay partidos registrados en este campeonato.');
         doc.moveDown(0.5);
       }
 
       doc.moveDown(1);
+
+      // Línea separadora entre campeonatos
+      if (index < historialCampeonatos.length - 1) {
+        doc.moveTo(50, doc.y)
+           .lineTo(562, doc.y)
+           .strokeColor('#D9D9D9')
+           .stroke();
+        doc.moveDown(1);
+      }
     });
+
+    // Footer
+    doc.fontSize(8)
+       .fillColor('#999999')
+       .text(
+         `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
+         50,
+         doc.page.height - 50,
+         { align: 'center' }
+       );
 
     doc.end();
 
-    return new Promise((resolve, reject) => {
-      doc.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-
-        if (isMobile) {
-          const base64 = buffer.toString('base64');
-          return res.json({
-            success: true,
-            base64,
-            fileName: `perfil_${usuario.nombre}_${usuario.apellido}.pdf`
-          });
-        }
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename="perfil_${usuario.nombre}_${usuario.apellido}.pdf"`
-        );
-        res.send(buffer);
-        resolve();
-      });
-
-      doc.on('error', reject);
-    });
-
   } catch (error) {
-    console.error('Error exportando PDF:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error al exportar perfil a PDF',
-      error: error.message
-    });
+    console.error('Error exportando perfil a PDF:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error al exportar perfil a PDF'
+      });
+    }
   }
 }

@@ -50,56 +50,109 @@ export const actualizarPosicionesJugadores = async (alineacionId, jugadores) => 
 export async function exportarAlineacionExcel(sesionId) {
   try {
     const res = await api.get(`/alineaciones/excel/${sesionId}`, {
-      responseType: "blob"
+      responseType: "blob",
+      validateStatus: (status) => status < 500
     });
-    
-    if (res.data.type === 'application/json') {
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar Excel');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay jugadores en la alineación");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar Excel');
-      } catch {
-        throw new Error('Error al exportar Excel');
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `alineacion_sesion_${sesionId}.xlsx`
+        };
       }
     }
-    throw error;
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `alineacion_sesion_${sesionId}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error("Error exportando alineación Excel:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar Excel");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar Excel");
   }
 }
 
 export async function exportarAlineacionPDF(sesionId) {
   try {
     const res = await api.get(`/alineaciones/pdf/${sesionId}`, {
-      responseType: "blob"
+      responseType: "blob",
+      validateStatus: (status) => status < 500
     });
-    
-    if (res.data.type === 'application/json') {
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar PDF');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay jugadores en la alineación");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar PDF');
-      } catch {
-        throw new Error('Error al exportar PDF');
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `alineacion_sesion_${sesionId}.pdf`
+        };
       }
     }
-    throw error;
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `alineacion_sesion_${sesionId}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error("Error exportando alineación PDF:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar PDF");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar PDF");
   }
 }
+
 
 export const generarAlineacionInteligente = async (datos) => {
   try {

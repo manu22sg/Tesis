@@ -6,7 +6,6 @@ import {
   Space, 
   Modal, 
   Input, 
-  message, 
   Tag, 
   Row, 
   Col,
@@ -18,7 +17,7 @@ import {
   Empty,
   ConfigProvider,
   Pagination,
-  Dropdown
+  Dropdown,App
 } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -55,6 +54,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const AprobarReservasPage = () => {
+  const { message } = App.useApp(); 
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [canchasDisponibles, setCanchasDisponibles] = useState([]);

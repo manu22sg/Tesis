@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  DatePicker, Button, Card, Table,  message, Spin,
+  DatePicker, Button, Card, Table,App, Spin,
   ConfigProvider, Pagination, Select, Space
 } from 'antd';
 import { FilterOutlined, PlusOutlined } from '@ant-design/icons';
@@ -19,6 +19,7 @@ const DEFAULT_PAGE_SIZE = 5;
 export default function DisponibilidadCancha() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
+  const { message } = App.useApp(); 
 
   const [fecha, setFecha] = useState(dayjs());
   const [loading, setLoading] = useState(false);

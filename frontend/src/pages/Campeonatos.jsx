@@ -9,7 +9,6 @@ import {
   Input,
   InputNumber,
   Select,
-  message,
   Tooltip,
   Popconfirm,
   Row,
@@ -19,7 +18,8 @@ import {
   ConfigProvider,
   Pagination,
   Dropdown,
-  Tag
+  Tag,
+  App
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -50,7 +50,7 @@ const { Option } = Select;
 function CampeonatosContent() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  
+  const { message } = App.useApp(); 
   // Ahora el hook está dentro del Provider
   const { setCampeonatoActivo } = useCampeonatoActivo();
   
@@ -60,6 +60,7 @@ function CampeonatosContent() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form] = Form.useForm();
+const [exportando, setExportando] = useState(false);
 
   // Estado para los filtros
   const [filtros, setFiltros] = useState({
@@ -234,59 +235,86 @@ function CampeonatosContent() {
   }
 };
 
-  const handleExportarExcel = async () => {
-    try {
-      const params = {};
-      if (filtros.formato) params.formato = filtros.formato;
-      if (filtros.genero) params.genero = filtros.genero;
-      if (filtros.anio) params.anio = filtros.anio;
-      if (filtros.semestre) params.semestre = filtros.semestre;
-      if (filtros.estado) params.estado = filtros.estado;
-      if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
+ const handleExportarExcel = async () => {
+  setExportando(true);
+  try {
+    const params = {};
+    if (filtros.formato) params.formato = filtros.formato;
+    if (filtros.genero) params.genero = filtros.genero;
+    if (filtros.anio) params.anio = filtros.anio;
+    if (filtros.semestre) params.semestre = filtros.semestre;
+    if (filtros.estado) params.estado = filtros.estado;
+    if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
 
-      const blob = await campeonatoService.exportarExcel(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `campeonatos_${Date.now()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+    const result = await campeonatoService.exportarExcel(params);
 
-    } catch (error) {
-      console.error('Error:', error);
-      message.error('Error al exportar a Excel');
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
 
-  const handleExportarPDF = async () => {
-    try {
-      const params = {};
-      if (filtros.formato) params.formato = filtros.formato;
-      if (filtros.genero) params.genero = filtros.genero;
-      if (filtros.anio) params.anio = filtros.anio;
-      if (filtros.semestre) params.semestre = filtros.semestre;
-      if (filtros.estado) params.estado = filtros.estado;
-      if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar campeonatos a Excel');
+  } finally {
+    setExportando(false);
+  }
+};
 
-      const blob = await campeonatoService.exportarPDF(params);
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `campeonatos_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+const handleExportarPDF = async () => {
+  setExportando(true);
+  try {
+    const params = {};
+    if (filtros.formato) params.formato = filtros.formato;
+    if (filtros.genero) params.genero = filtros.genero;
+    if (filtros.anio) params.anio = filtros.anio;
+    if (filtros.semestre) params.semestre = filtros.semestre;
+    if (filtros.estado) params.estado = filtros.estado;
+    if (filtros.tipoCampeonato) params.tipoCampeonato = filtros.tipoCampeonato;
 
-    } catch (error) {
-      console.error('Error:', error);
-      message.error('Error al exportar a PDF');
+    const result = await campeonatoService.exportarPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
+
+  } catch (error) {
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar campeonatos a PDF');
+  } finally {
+    setExportando(false);
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
 
   const handleEliminar = useCallback(async (id) => {
     try {

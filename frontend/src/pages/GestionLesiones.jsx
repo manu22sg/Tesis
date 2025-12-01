@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
-  message, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
+  App, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
   Pagination, ConfigProvider, Input as AntInput, Dropdown
 } from 'antd';
 import locale from 'antd/locale/es_ES';
@@ -32,6 +32,7 @@ export default function GestionLesiones() {
   const rolUsuario = usuario?.rol;
   const jugadorId = usuario?.jugadorId;
    const [exportando, setExportando] = useState(false);
+  const { message } = App.useApp(); 
 
   const [lesiones, setLesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -190,6 +191,7 @@ export default function GestionLesiones() {
   };
   const handleExportarExcel = async () => {
   try {
+    setExportando(true);
     const params = {};
     if (qDebounced) params.q = qDebounced;
     if (filtroJugadorId) params.jugadorId = filtroJugadorId;
@@ -198,25 +200,28 @@ export default function GestionLesiones() {
       params.hasta = rangoFechas[1].format('YYYY-MM-DD');
     }
 
-    const blob = await exportarLesionesExcel(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `lesiones_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const result = await exportarLesionesExcel(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
 
   } catch (error) {
     console.error('Error:', error);
     message.error(error.message || 'Error al exportar a Excel');
+  } finally {
+    setExportando(false);
   }
 };
 
 const handleExportarPDF = async () => {
   try {
+    setExportando(true);
     const params = {};
     if (qDebounced) params.q = qDebounced;
     if (filtroJugadorId) params.jugadorId = filtroJugadorId;
@@ -225,22 +230,43 @@ const handleExportarPDF = async () => {
       params.hasta = rangoFechas[1].format('YYYY-MM-DD');
     }
 
-    const blob = await exportarLesionesPDF(params);
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `lesiones_${Date.now()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const result = await exportarLesionesPDF(params);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
 
   } catch (error) {
     console.error('Error:', error);
     message.error(error.message || 'Error al exportar a PDF');
+  } finally {
+    setExportando(false);
   }
 };
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
 const menuExportar = {
   items: [
     {

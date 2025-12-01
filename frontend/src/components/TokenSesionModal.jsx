@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, memo } from 'react';
 import { 
   Modal, Button, Alert, Divider, Popconfirm, InputNumber, Space,
-  Typography, message, Switch, Spin, Tooltip
+  Typography, App, Switch, Spin, Tooltip
 } from 'antd';
 import { 
   KeyOutlined, LockOutlined, UnlockOutlined, CopyOutlined,
@@ -30,6 +30,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
   const [ubicacion, setUbicacion] = useState({ latitud: null, longitud: null });
   const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const [errorUbicacion, setErrorUbicacion] = useState(null);
+  const { message } = App.useApp(); 
 
   // Reset limpio al abrir/cerrar
   useEffect(() => {

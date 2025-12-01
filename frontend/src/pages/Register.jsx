@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Form, Input, Button, Card, Typography, message, Select, InputNumber } from "antd";
+import { Form, Input, Button, Card, Typography, App, Select, InputNumber } from "antd";
 import {
   EyeOutlined,
   EyeInvisibleOutlined,
@@ -68,6 +68,8 @@ const getStrengthColor = (score) => {
 // COMPONENTE
 // ----------------------
 export default function Register() {
+  const { message } = App.useApp(); 
+
   const [form] = Form.useForm();
   const rutRef = useRef(null);
   const navigate = useNavigate();

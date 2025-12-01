@@ -126,3 +126,129 @@ export async function asignarEntrenamientosASesion(sesionId, ids) {
     throw error;
   }
 }
+
+// ✅ NUEVAS FUNCIONES DE EXPORTACIÓN
+
+// Exportar entrenamientos a Excel
+export async function exportarEntrenamientosExcel(filtros = {}) {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filtros.q) params.append('q', filtros.q);
+    if (filtros.sesionId) params.append('sesionId', filtros.sesionId);
+
+    const res = await api.get(`/entrenamientos/export/excel?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
+    });
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay entrenamientos para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `entrenamientos_${new Date().toISOString().split('T')[0]}.xlsx`
+        };
+      }
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `entrenamientos_${new Date().toISOString().split('T')[0]}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando entrenamientos a Excel:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar entrenamientos a Excel');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar entrenamientos a Excel');
+  }
+}
+
+// Exportar entrenamientos a PDF
+export async function exportarEntrenamientosPDF(filtros = {}) {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filtros.q) params.append('q', filtros.q);
+    if (filtros.sesionId) params.append('sesionId', filtros.sesionId);
+
+    const res = await api.get(`/entrenamientos/export/pdf?${params.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
+    });
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay entrenamientos para exportar");
+    }
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `entrenamientos_${new Date().toISOString().split('T')[0]}.pdf`
+        };
+      }
+    }
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `entrenamientos_${new Date().toISOString().split('T')[0]}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando entrenamientos a PDF:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar entrenamientos a PDF');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar entrenamientos a PDF');
+  }
+}

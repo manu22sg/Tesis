@@ -14,7 +14,7 @@ import {
   InputNumber,
   Tooltip,
   Popconfirm,
-  message,
+  App,
   Typography,
   Alert
 } from 'antd';
@@ -46,6 +46,7 @@ const EstadisticasPartidoModal = ({
   const [jugadoresDisponibles, setJugadoresDisponibles] = useState([]);
   const [todosLosJugadores, setTodosLosJugadores] = useState([]);
   const [form] = Form.useForm();
+  const { message } = App.useApp(); 
 
   // Máximo de minutos según si hubo penales
   const maxMinutos = useMemo(() => {

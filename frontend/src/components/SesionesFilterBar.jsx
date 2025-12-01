@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useMemo, useRef } from 'react';
-import { Row, Col, Input, Button, DatePicker, TimePicker, Select, message, Card } from 'antd';
+import { Row, Col, Input, Button, DatePicker, TimePicker, Select, App, Card } from 'antd';
 import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { obtenerCanchas } from '../services/cancha.services';
 import { obtenerGrupos } from '../services/grupo.services';
@@ -10,6 +10,7 @@ const SesionesFilterBar = memo(({ filtros, setFiltros }) => {
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { message } = App.useApp(); 
 
   // estado local para debounce de q
   const [busqueda, setBusqueda] = useState(filtros.q || '');

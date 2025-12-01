@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Button, message, Select, Spin } from 'antd';
+import { Form, Input, InputNumber, Button, App, Select, Spin } from 'antd';
 import { crearEvaluacion, actualizarEvaluacion } from '../services/evaluacion.services.js';
 import { useEffect, useState, useRef } from 'react';
 import { obtenerJugadores } from '../services/jugador.services.js';
@@ -14,7 +14,8 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
   const [jugadorSeleccionado, setJugadorSeleccionado] = useState(null);
   const [busquedaJugador, setBusquedaJugador] = useState('');
   const [mostrarAdvertencia, setMostrarAdvertencia] = useState(false);
-  
+  const { message } = App.useApp(); 
+
   const editando = !!initialValues;
   const searchTimeout = useRef(null);
 

@@ -70,56 +70,120 @@ export async function obtenerCanchas(filtros = {}) {
 
 export async function exportarCanchasExcel(params = {}) {
   try {
-    const query = new URLSearchParams(params).toString();
-    const res = await api.get(`/canchas/excel?${query}`, {
-      responseType: "blob"
+    const queryParams = new URLSearchParams();
+    if (params.estado) queryParams.append('estado', params.estado);
+    if (params.q) queryParams.append('q', params.q);
+
+    const res = await api.get(`/canchas/excel?${queryParams.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    
-    if (res.data.type === 'application/json') {
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar Excel');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay canchas para exportar");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar Excel');
-      } catch {
-        throw new Error('Error al exportar Excel');
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `canchas_${new Date().toISOString().split('T')[0]}.xlsx`
+        };
       }
     }
-    throw error;
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `canchas_${new Date().toISOString().split('T')[0]}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando canchas a Excel:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar canchas a Excel');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar canchas a Excel');
   }
 }
 
 export async function exportarCanchasPDF(params = {}) {
   try {
-    const query = new URLSearchParams(params).toString();
-    const res = await api.get(`/canchas/pdf?${query}`, {
-      responseType: "blob"
+    const queryParams = new URLSearchParams();
+    if (params.estado) queryParams.append('estado', params.estado);
+    if (params.q) queryParams.append('q', params.q);
+
+    const res = await api.get(`/canchas/pdf?${queryParams.toString()}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    
-    if (res.data.type === 'application/json') {
+
+    // Si recibimos un error JSON dentro de un blob
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
       const text = await res.data.text();
-      const error = JSON.parse(text);
-      throw new Error(error.message || 'Error al exportar PDF');
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay canchas para exportar");
     }
-    
-    return res.data;
-  } catch (error) {
-    if (error.response?.data instanceof Blob) {
-      const text = await error.response.data.text();
-      try {
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error al exportar PDF');
-      } catch {
-        throw new Error('Error al exportar PDF');
+
+    // 📱 Mobile → JSON con base64 (convertido a Blob por axios)
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `canchas_${new Date().toISOString().split('T')[0]}.pdf`
+        };
       }
     }
-    throw error;
+
+    // 🖥️ Web → blob directo
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `canchas_${new Date().toISOString().split('T')[0]}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
+  } catch (error) {
+    console.error('Error exportando canchas a PDF:', error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error('Error al exportar canchas a PDF');
+      }
+    }
+    
+    throw new Error(error.message || 'Error al exportar canchas a PDF');
   }
 }

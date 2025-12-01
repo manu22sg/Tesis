@@ -4,7 +4,7 @@ import {
   Form,
   Select,
   Button,
-  message,
+  App,
   Space,
   Spin,
   Radio
@@ -32,6 +32,7 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [loadingJugadores, setLoadingJugadores] = useState(false);
   const [loadingSesiones, setLoadingSesiones] = useState(false);
+  const { message } = App.useApp(); 
 
   const [jugadores, setJugadores] = useState([]);
   const [sesiones, setSesiones] = useState([]);

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Avatar, Tag, Tooltip, Button, Space, Switch, message, Modal, Popconfirm } from 'antd';
+import { Avatar, Tag, Tooltip, Button, Space, Switch, App, Modal, Popconfirm } from 'antd';
 import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined, DeleteOutlined } from '@ant-design/icons';
 
 const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJugador }) => {
@@ -11,6 +11,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [jugadorParaEliminar, setJugadorParaEliminar] = useState(null);
   const campoRef = useRef(null);
+  const { message } = App.useApp(); 
 
   const posicionesDefecto = {
     'portero': { x: 50, y: 90 },

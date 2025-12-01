@@ -67,6 +67,8 @@ export async function patchActualizarPosiciones(req, res) {
 export async function exportarAlineacionExcel(req, res) {
   try {
     const sesionId = parseInt(req.params.sesionId, 10);
+    const { mobile } = req.query; 
+    const isMobile = mobile === "true";
     
     const [alineacion, err] = await obtenerAlineacionPorSesion(sesionId);
     
@@ -87,7 +89,7 @@ export async function exportarAlineacionExcel(req, res) {
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
+    workbook.creator = "SportUBB";
     const sheet = workbook.addWorksheet("Alineación");
 
     // Información de la sesión - Fila 1
@@ -127,7 +129,7 @@ export async function exportarAlineacionExcel(req, res) {
     // Fila vacía
     currentRow++;
 
-    // 🔥 Headers manualmente (sin usar sheet.columns que crea una fila automáticamente)
+    // Headers
     const headerRow = sheet.getRow(currentRow);
     headerRow.values = ['Dorsal', 'Jugador', 'RUT', 'Posición', 'Comentario'];
     headerRow.font = { bold: true };
@@ -154,10 +156,12 @@ export async function exportarAlineacionExcel(req, res) {
     });
 
     jugadoresOrdenados.forEach(j => {
+      const nombreCompleto = `${j.jugador?.usuario?.nombre|| ''}${j.jugador?.usuario?.apellido || ''}`.trim() || "—"; // ✅ Apellido agregado
+      
       const row = sheet.getRow(currentRow);
       row.values = [
         j.orden || "—",
-        j.jugador?.usuario?.nombre || "—",
+        nombreCompleto,
         j.jugador?.usuario?.rut || "—",
         j.posicion || "—",
         j.comentario || "—"
@@ -165,7 +169,7 @@ export async function exportarAlineacionExcel(req, res) {
       currentRow++;
     });
 
-    // Ajustar bordes (desde la fila del header hasta el final)
+    // Ajustar bordes
     const headerRowNumber = alineacion.sesion?.grupo?.nombre ? 6 : 5;
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber >= headerRowNumber) {
@@ -182,7 +186,17 @@ export async function exportarAlineacionExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `alineacion_sesion_${sesionId}_${Date.now()}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="alineacion_sesion_${sesionId}_${Date.now()}.xlsx"`
@@ -204,6 +218,8 @@ export async function exportarAlineacionExcel(req, res) {
 export async function exportarAlineacionPDF(req, res) {
   try {
     const sesionId = parseInt(req.params.sesionId, 10);
+    const { mobile } = req.query; // ✅ Agregado mobile
+    const isMobile = mobile === "true";
     
     const [alineacion, err] = await obtenerAlineacionPorSesion(sesionId);
     
@@ -224,14 +240,28 @@ export async function exportarAlineacionPDF(req, res) {
     }
 
     const doc = new PDFDocument({ margin: 40 });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="alineacion_sesion_${sesionId}_${Date.now()}.pdf"`
-    );
-
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `alineacion_sesion_${sesionId}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="alineacion_sesion_${sesionId}_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     // Título
     doc.fontSize(18).font("Helvetica-Bold").text("Alineación", { align: "center" });
@@ -248,7 +278,6 @@ export async function exportarAlineacionPDF(req, res) {
         doc.text(`Lugar: ${alineacion.sesion.ubicacionExterna}`, { align: "center" });
       }
 
-      
       if (alineacion.sesion.grupo?.nombre) {
         doc.text(`Grupo: ${alineacion.sesion.grupo.nombre}`, { align: "center" });
       }
@@ -272,9 +301,10 @@ export async function exportarAlineacionPDF(req, res) {
       if (doc.y > 700) doc.addPage();
 
       const dorsal = j.orden ? `#${j.orden}` : "—";
+      const nombreCompleto = `${j.jugador?.usuario?.nombre ||''}${j.jugador?.usuario?.apellido || ''}`.trim() || "Jugador"; // ✅ Apellido agregado
       
       doc.fontSize(12).font("Helvetica-Bold")
-       .text(`${dorsal} - ${j.jugador?.usuario?.nombre || "Jugador"} ${j.jugador?.usuario?.apellido ? j.jugador?.usuario?.apellido : ""}`, { continued: false });
+         .text(`${dorsal} - ${nombreCompleto}`, { continued: false });
 
       doc.font("Helvetica").fontSize(10).text(`
 RUT: ${j.jugador?.usuario?.rut || "—"}
@@ -306,13 +336,22 @@ ${j.comentario ? `Comentario: ${j.comentario}` : ""}
   }
 }
 
+
 // Función auxiliar
 function formatearFechaExcel(fecha) {
   if (!fecha) return "—";
+  
+  // ✅ Si la fecha es string en formato YYYY-MM-DD, parsearlo directamente
+  if (typeof fecha === 'string' && fecha.match(/^\d{4}-\d{2}-\d{2}/)) {
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    return `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}`;
+  }
+  
+  // Si es un objeto Date o timestamp
   const d = new Date(fecha);
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const anio = d.getFullYear();
+  const dia = String(d.getUTCDate()).padStart(2, '0'); // ✅ Usar UTC
+  const mes = String(d.getUTCMonth() + 1).padStart(2, '0'); // ✅ Usar UTC
+  const anio = d.getUTCFullYear(); // ✅ Usar UTC
   return `${dia}/${mes}/${anio}`;
 }
 

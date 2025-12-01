@@ -4,7 +4,7 @@ import {
   Table,
   Button,
   Space,
-  message,
+  App,
   Modal,
   Form,
   Input,
@@ -47,6 +47,7 @@ const { TextArea } = Input;
 export default function Grupos() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { message } = App.useApp(); 
 
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -212,38 +213,77 @@ export default function Grupos() {
     setFiltroNombre('');
   };
 
-  // Funciones de exportación
-  const handleExportarExcel = async () => {
-    setExportando(true);
-    try {
-      const filtros = {
-        nombre: qDebounced || undefined,
-        q: qDebounced || undefined,
-      };
-      await exportarGruposExcel(filtros);
-    } catch (error) {
-      console.error('Error exportando a Excel:', error);
-      message.error(typeof error === 'string' ? error : 'Error al exportar grupos a Excel');
-    } finally {
-      setExportando(false);
-    }
-  };
+ const handleExportarExcel = async () => {
+  setExportando(true);
+  try {
+    const filtros = {
+      nombre: qDebounced || undefined,
+      q: qDebounced || undefined,
+    };
+    
+    const result = await exportarGruposExcel(filtros);
 
-  const handleExportarPDF = async () => {
-    setExportando(true);
-    try {
-      const filtros = {
-        nombre: qDebounced || undefined,
-        q: qDebounced || undefined,
-      };
-      await exportarGruposPDF(filtros);
-    } catch (error) {
-      console.error('Error exportando a PDF:', error);
-      message.error(typeof error === 'string' ? error : 'Error al exportar grupos a PDF');
-    } finally {
-      setExportando(false);
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
     }
-  };
+
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar grupos a Excel');
+  } finally {
+    setExportando(false);
+  }
+};
+
+const handleExportarPDF = async () => {
+  setExportando(true);
+  try {
+    const filtros = {
+      nombre: qDebounced || undefined,
+      q: qDebounced || undefined,
+    };
+    
+    const result = await exportarGruposPDF(filtros);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
+  } catch (error) {
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar grupos a PDF');
+  } finally {
+    setExportando(false);
+  }
+};
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
 
   // Menú dropdown para exportación
   const menuExportar = {

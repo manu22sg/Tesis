@@ -108,26 +108,108 @@ export const obtenerMisEvaluaciones = async (filtros = {}) => {
 
 export const exportarEvaluacionesExcel = async (params = {}) => {
   try {
-    const response = await api.get('/evaluaciones/excel', {
-      params,
-      responseType: 'blob'
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/evaluaciones/excel?${query}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay evaluaciones para exportar");
+    }
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `evaluaciones_${Date.now()}.xlsx`
+        };
+      }
+    }
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `evaluaciones_${Date.now()}.xlsx`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error("Error exportando evaluaciones Excel:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar Excel");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar Excel");
   }
 };
-
 
 export const exportarEvaluacionesPDF = async (params = {}) => {
   try {
-    const response = await api.get('/evaluaciones/pdf', {
-      params,
-      responseType: 'blob'
+    const query = new URLSearchParams(params).toString();
+    const res = await api.get(`/evaluaciones/pdf?${query}`, {
+      responseType: 'blob',
+      validateStatus: (status) => status < 500
     });
-    return response.data;
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || "No hay evaluaciones para exportar");
+    }
+
+    if (res.data instanceof Blob && res.data.type === 'application/json') {
+      const text = await res.data.text();
+      const jsonData = JSON.parse(text);
+      
+      if (jsonData.success && jsonData.base64) {
+        return {
+          modo: "mobile",
+          base64: jsonData.base64,
+          nombre: jsonData.fileName || `evaluaciones_${Date.now()}.pdf`
+        };
+      }
+    }
+
+    if (res.data instanceof Blob) {
+      return {
+        modo: "web",
+        blob: res.data,
+        nombre: `evaluaciones_${Date.now()}.pdf`
+      };
+    }
+
+    throw new Error("Respuesta inesperada del servidor");
+
   } catch (error) {
-    throw error.response?.data || error;
+    console.error("Error exportando evaluaciones PDF:", error);
+    
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message);
+      } catch {
+        throw new Error("Error al exportar PDF");
+      }
+    }
+    
+    throw new Error(error.message || "Error al exportar PDF");
   }
 };
-

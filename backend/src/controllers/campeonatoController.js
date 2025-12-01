@@ -3,6 +3,7 @@ import {
   actualizarCampeonato, eliminarCampeonato
 } from "../services/campeonatoServices.js";
 import { obtenerPartidosConRelaciones } from '../services/partidoServices.js';
+import dayjs from "dayjs";
 
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
@@ -90,18 +91,25 @@ export const postGenerarSiguienteRonda = async (req, res) => {
 export async function exportarCampeonatosExcel(req, res) {
   try {
     const { 
+      mobile,
       formato,
       genero,
       anio,
       semestre,
-      estado
+      estado,
+      tipoCampeonato
     } = req.query;
+
+    const isMobile = mobile === 'true';
 
     // Obtener todos los campeonatos
     const campeonatos = await listarCampeonatos();
 
     if (!campeonatos || campeonatos.length === 0) {
-      return error(res, "No hay campeonatos para exportar", 404);
+      return res.status(404).json({
+        success: false,
+        message: "No hay campeonatos para exportar"
+      });
     }
 
     // Aplicar filtros
@@ -122,13 +130,22 @@ export async function exportarCampeonatosExcel(req, res) {
     if (estado) {
       campeonatosFiltrados = campeonatosFiltrados.filter(c => c.estado === estado);
     }
+    if (tipoCampeonato) {
+      campeonatosFiltrados = campeonatosFiltrados.filter(c => c.tipoCampeonato === tipoCampeonato);
+    }
 
     if (campeonatosFiltrados.length === 0) {
-      return error(res, "No hay campeonatos que coincidan con los filtros", 404);
+      return res.status(404).json({
+        success: false,
+        message: "No hay campeonatos que coincidan con los filtros"
+      });
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
+    workbook.creator = "SPORTUBB";
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
     const sheet = workbook.addWorksheet("Campeonatos");
 
     sheet.columns = [
@@ -144,7 +161,16 @@ export async function exportarCampeonatosExcel(req, res) {
       { header: "Fecha Creación", key: "fechaCreacion", width: 18 }
     ];
 
-    sheet.getRow(1).font = { bold: true };
+    // Estilos del header
+    sheet.getRow(1).font = { bold: true, size: 12 };
+    sheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1890FF' }
+    };
+    sheet.getRow(1).font.color = { argb: 'FFFFFFFF' };
+    sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    sheet.getRow(1).height = 25;
 
     campeonatosFiltrados.forEach(c => {
       const formatearEstado = (estado) => {
@@ -179,39 +205,75 @@ export async function exportarCampeonatosExcel(req, res) {
       });
     });
 
-    const buffer = await workbook.xlsx.writeBuffer();
+    // Agregar bordes
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+            right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+          };
+        });
+      }
+    });
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    const buffer = await workbook.xlsx.writeBuffer();
+    const fecha = new Date().toISOString().split('T')[0];
+
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `campeonatos_${fecha}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="campeonatos_${Date.now()}.xlsx"`
+      `attachment; filename="campeonatos_${fecha}.xlsx"`
     );
-    res.setHeader("Content-Length", buffer.length);
 
     return res.send(buffer);
 
   } catch (err) {
     console.error("Error exportando campeonatos a Excel:", err);
-    return error(res, "Error al exportar campeonatos", 500);
+    return res.status(500).json({
+      success: false,
+      message: "Error al exportar campeonatos a Excel"
+    });
   }
 }
 
-// GET /api/campeonatos/pdf - Exportar campeonatos a PDF
 export async function exportarCampeonatosPDF(req, res) {
   try {
     const { 
+      mobile,
       formato,
       genero,
       anio,
       semestre,
-      estado
+      estado,
+      tipoCampeonato
     } = req.query;
+
+    const isMobile = mobile === 'true';
 
     // Obtener todos los campeonatos
     const campeonatos = await listarCampeonatos();
 
     if (!campeonatos || campeonatos.length === 0) {
-      return error(res, "No hay campeonatos para exportar", 404);
+      return res.status(404).json({
+        success: false,
+        message: "No hay campeonatos para exportar"
+      });
     }
 
     // Aplicar filtros
@@ -232,26 +294,63 @@ export async function exportarCampeonatosPDF(req, res) {
     if (estado) {
       campeonatosFiltrados = campeonatosFiltrados.filter(c => c.estado === estado);
     }
-
-    if (campeonatosFiltrados.length === 0) {
-      return error(res, "No hay campeonatos que coincidan con los filtros", 404);
+    if (tipoCampeonato) {
+      campeonatosFiltrados = campeonatosFiltrados.filter(c => c.tipoCampeonato === tipoCampeonato);
     }
 
-    const doc = new PDFDocument({ margin: 40 });
+    if (campeonatosFiltrados.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No hay campeonatos que coincidan con los filtros"
+      });
+    }
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="campeonatos_${Date.now()}.pdf"`
-    );
+    const doc = new PDFDocument({ 
+      margin: 40,
+      size: "A4",
+      info: {
+        Title: 'Listado de Campeonatos',
+        Author: 'Sistema de Gestión Deportiva'
+      }
+    });
 
-    doc.pipe(res);
+    let chunks = [];
 
-    doc.fontSize(18).font("Helvetica-Bold").text("Listado de Campeonatos", { align: "center" });
-    doc.moveDown(1);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `campeonatos_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      const fecha = new Date().toISOString().split('T')[0];
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="campeonatos_${fecha}.pdf"`
+      );
+      doc.pipe(res);
+    }
+
+    // Título principal
+    doc.fontSize(20)
+       .font('Helvetica-Bold')
+       .text("Listado de Campeonatos", { align: "center" });
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: "center" });
+    
+    doc.moveDown(2);
 
     campeonatosFiltrados.forEach((c, index) => {
-      if (doc.y > 680) doc.addPage();
+      if (doc.y > 650) doc.addPage();
 
       const formatearEstado = (estado) => {
         const map = {
@@ -271,56 +370,100 @@ export async function exportarCampeonatosPDF(req, res) {
         return tipo === 'mechon' ? 'Mechón' : 'Intercarrera';
       };
 
-      doc.fontSize(12).font("Helvetica-Bold").text(c.nombre || "Campeonato sin nombre");
+      // Encabezado del campeonato
+      doc.fontSize(14)
+         .font('Helvetica-Bold')
+         .fillColor('#1890FF')
+         .text(c.nombre || "Campeonato sin nombre", { continued: false });
 
-      doc.font("Helvetica").fontSize(10).text(`
-Tipo: ${formatearTipo(c.tipoCampeonato || 'intercarrera')}
-Formato: ${c.formato || "—"}
-Género: ${formatearGenero(c.genero)}
-Año/Semestre: ${c.anio || "—"} - Semestre ${c.semestre || "—"}
-Estado: ${formatearEstado(c.estado)}
-Cantidad de Equipos: ${c.equipos?.length || 0}
-Cantidad de Partidos: ${c.partidos?.length || 0}
-Fecha de Creación: ${c.fechaCreacion ? new Date(c.fechaCreacion).toLocaleDateString('es-CL') : "—"}
-      `);
+      doc.moveDown(0.5);
 
+      // Detalles
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#000000');
+
+      const detalles = [
+        `Tipo: ${formatearTipo(c.tipoCampeonato || 'intercarrera')}`,
+        `Formato: ${c.formato || "—"}`,
+        `Género: ${formatearGenero(c.genero)}`,
+        `Año/Semestre: ${c.anio || "—"} - Semestre ${c.semestre || "—"}`,
+        `Estado: ${formatearEstado(c.estado)}`,
+        `Cantidad de Equipos: ${c.equipos?.length || 0}`,
+        `Cantidad de Partidos: ${c.partidos?.length || 0}`,
+        `Fecha de Creación: ${c.fechaCreacion ? new Date(c.fechaCreacion).toLocaleDateString('es-CL') : "—"}`
+      ];
+
+      detalles.forEach(detalle => {
+        doc.text(detalle);
+      });
+
+      doc.moveDown(1);
+
+      // Línea separadora
       if (index < campeonatosFiltrados.length - 1) {
-        doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor("#CCCCCC").stroke();
+        doc.moveTo(40, doc.y)
+           .lineTo(555, doc.y)
+           .strokeColor('#D9D9D9')
+           .stroke();
         doc.moveDown(1);
       }
     });
+
+    // Footer
+    doc.fontSize(8)
+       .fillColor('#999999')
+       .text(
+         `Documento generado automáticamente - ${new Date().toLocaleString('es-ES')}`,
+         40,
+         doc.page.height - 50,
+         { align: 'center' }
+       );
 
     doc.end();
 
   } catch (err) {
     console.error("Error exportando campeonatos a PDF:", err);
     if (!res.headersSent) {
-      return error(res, "Error al exportar campeonatos", 500);
+      return res.status(500).json({
+        success: false,
+        message: "Error al exportar campeonatos a PDF"
+      });
     }
   }
 }
 
 
-
 export async function exportarFixtureExcel(req, res) {
   try {
     const { id: campeonatoId } = req.params;
+    const { mobile } = req.query;
+    const isMobile = mobile === "true";
 
     if (!campeonatoId) {
-      return error(res, "campeonatoId es requerido", 400);
+      return res.status(400).json({
+        success: false,
+        message: "campeonatoId es requerido"
+      });
     }
 
     const campeonato = await obtenerCampeonato(campeonatoId);
 
     if (!campeonato) {
-      return error(res, "Campeonato no encontrado", 404);
+      return res.status(404).json({
+        success: false,
+        message: "Campeonato no encontrado"
+      });
     }
 
     // Obtener partidos con todas sus relaciones (equipos y cancha)
     const partidos = await obtenerPartidosConRelaciones(campeonatoId);
 
     if (partidos.length === 0) {
-      return error(res, "No hay partidos para exportar en este campeonato", 404);
+      return res.status(404).json({
+        success: false,
+        message: "No hay partidos para exportar en este campeonato"
+      });
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -422,7 +565,7 @@ export async function exportarFixtureExcel(req, res) {
           equipoB: equipoB?.nombre || "—",
           ganador: ganador?.nombre || "—",
           penales: penalesTexto,
-          fecha: p.fecha ? new Date(p.fecha).toLocaleDateString('es-CL') : "—",
+fecha: p.fecha ? dayjs(p.fecha).local().format('DD/MM/YYYY') : 'Sin fecha',
           hora: hora,
           cancha: p.cancha?.nombre || "—",
           estado: formatearEstado(p.estado)
@@ -469,7 +612,17 @@ export async function exportarFixtureExcel(req, res) {
 
     const buffer = await workbook.xlsx.writeBuffer();
 
-    res.setHeader("Content-Type", "application/octet-stream");
+    // 📱 MOBILE
+    if (isMobile) {
+      return res.json({
+        success: true,
+        fileName: `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.xlsx`,
+        base64: buffer.toString("base64")
+      });
+    }
+
+    // 💻 WEB
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.xlsx"`
@@ -480,41 +633,69 @@ export async function exportarFixtureExcel(req, res) {
 
   } catch (err) {
     console.error("Error exportando fixture a Excel:", err);
-    return error(res, "Error al exportar fixture", 500);
+    return res.status(500).json({
+      success: false,
+      message: "Error al exportar fixture",
+      error: err.message
+    });
   }
 }
 
-// GET /api/campeonatos/:id/fixture/pdf - Exportar fixture a PDF
 export async function exportarFixturePDF(req, res) {
   try {
     const { id: campeonatoId } = req.params;
+    const { mobile } = req.query;
+    const isMobile = mobile === "true";
 
     if (!campeonatoId) {
-      return error(res, "campeonatoId es requerido", 400);
+      return res.status(400).json({
+        success: false,
+        message: "campeonatoId es requerido"
+      });
     }
 
     const campeonato = await obtenerCampeonato(campeonatoId);
 
     if (!campeonato) {
-      return error(res, "Campeonato no encontrado", 404);
+      return res.status(404).json({
+        success: false,
+        message: "Campeonato no encontrado"
+      });
     }
 
     // Obtener partidos con todas sus relaciones (equipos y cancha)
     const partidos = await obtenerPartidosConRelaciones(campeonatoId);
 
     if (partidos.length === 0) {
-      return error(res, "No hay partidos para exportar en este campeonato", 404);
+      return res.status(404).json({
+        success: false,
+        message: "No hay partidos para exportar en este campeonato"
+      });
     }
 
     const doc = new PDFDocument({ margin: 40, size: "A4" });
+    let chunks = [];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf"`
-    );
-
-    doc.pipe(res);
+    // 📱 MOBILE
+    if (isMobile) {
+      doc.on("data", chunk => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        return res.json({
+          success: true,
+          fileName: `fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf`,
+          base64: pdfBuffer.toString("base64")
+        });
+      });
+    } else {
+      // 💻 WEB
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="fixture_${campeonato.nombre.replace(/\s/g, '_')}_${Date.now()}.pdf"`
+      );
+      doc.pipe(res);
+    }
 
     // Encabezado
     doc.fontSize(20).font('Helvetica-Bold').text(`Fixture - ${campeonato.nombre}`, { align: "center" });
@@ -609,7 +790,7 @@ export async function exportarFixturePDF(req, res) {
 
         // Info adicional
         const detalles = [];
-        if (p.fecha) detalles.push(`Fecha: ${new Date(p.fecha).toLocaleDateString('es-CL')}`);
+if (p.fecha) detalles.push(`Fecha: ${dayjs(p.fecha).local().format('DD/MM/YYYY')}`);
         if (p.horaInicio) {
           const horaInicioFormateada = formatearHora(p.horaInicio);
           const horaFinFormateada = p.horaFin ? ` - ${formatearHora(p.horaFin)}` : '';
@@ -644,11 +825,14 @@ export async function exportarFixturePDF(req, res) {
   } catch (err) {
     console.error("Error exportando fixture a PDF:", err);
     if (!res.headersSent) {
-      return error(res, "Error al exportar fixture", 500);
+      return res.status(500).json({
+        success: false,
+        message: "Error al exportar fixture",
+        error: err.message
+      });
     }
   }
 }
-
 function formatearHora(horaStr) {
   if (!horaStr) return "—";
 

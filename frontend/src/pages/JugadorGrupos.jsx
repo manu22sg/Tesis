@@ -5,7 +5,7 @@ import {
   Tag,
   Button,
   Space,
-  message,
+  App,
   Empty,
   Modal,
   Select,
@@ -35,6 +35,7 @@ const { Option } = Select;
 export default function JugadorGrupos() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
 
   const [jugador, setJugador] = useState(null);
   const [loading, setLoading] = useState(true);

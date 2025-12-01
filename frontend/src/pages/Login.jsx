@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, message, Card, Spin, Typography } from 'antd';
+import { Form, Input, Button, App, Card, Spin, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { loginRequest } from '../services/auth.services.js';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,7 @@ export default function Login() {
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
   const { login, isAuthenticated, usuario, loading: authLoading } = useAuth();
+  const { message } = App.useApp(); 
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && usuario) {

@@ -1,4 +1,3 @@
-// src/pages/DetalleCampeonatoPublico.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -34,7 +33,7 @@ const EstadisticasPublicas = ({ campeonato, jugadores, estadisticas }) => {
   const [filtroEquipo, setFiltroEquipo] = useState(null);
   const [busqueda, setBusqueda] = useState("");
 
-  // mapa: partidoId → “Equipo A vs Equipo B – ronda”
+  // mapa: partidoId → "Equipo A vs Equipo B – ronda"
   const partidosMap = useMemo(() => {
     const map = {};
     campeonato.partidos?.forEach(p => {
@@ -182,11 +181,19 @@ export default function DetalleCampeonatoPublico() {
       const jugadoresFinal = [];
 
       for (const eq of equipos) {
-        const js = await equipoService.listarJugadores(eq.id);
-        (js || []).forEach(j =>
+        const response = await equipoService.listarJugadores(eq.id);
+        
+        // ✅ Unwrap la respuesta (igual que en EstadisticaCampeonato.jsx)
+        const data = response.data?.data || response.data || response;
+        const js = Array.isArray(data) ? data : data.jugadores || [];
+        
+        js.forEach(j =>
           jugadoresFinal.push({
             id: j.id,
-            usuario: { nombre: j.nombre ??  j.usuario?.nombre ?? "" },
+            usuario: { 
+              nombre: j.nombre ?? j.usuario?.nombre ?? "",
+              apellido: j.apellido ?? j.usuario?.apellido ?? ""
+            },
             equipo: { id: eq.id, nombre: eq.nombre }
           })
         );
@@ -293,6 +300,7 @@ export default function DetalleCampeonatoPublico() {
   );
 
 
+  // ✅ COLUMNAS FIXTURE - SIN ESTADO
   const columnasFixture = [
     {
       title: "Equipo A",
@@ -325,55 +333,27 @@ export default function DetalleCampeonatoPublico() {
     },
     {
       title: "Fecha / Hora",
-      width: 160,
+      width: 200,
       render: (_, p) => (
         <Space direction="vertical" size={0}>
           {p.fecha ? formatearFecha(p.fecha) : (
-  <span style={{
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 500,
-    border: '1px solid #B9BBBB',
-    backgroundColor: '#f5f5f5'
-  }}>
-    Por programar
-  </span>
-)}
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: '12px',
+              fontWeight: 500,
+              border: '1px solid #B9BBBB',
+              backgroundColor: '#f5f5f5'
+            }}>
+              Por programar
+            </span>
+          )}
           {p.horaInicio &&
             <span style={{ fontSize: 12, color: "#999" }}>
               {formatearRangoHoras(p.horaInicio, p.horaFin)}
             </span>}
         </Space>
       )
-    },
-    {
-      title: "Estado",
-      dataIndex: "estado",
-      width: 120,
-      align: "center",
-      render: estado => {
-  const textos = {
-    pendiente: "Pendiente",
-    programado: "Programado",
-    en_juego: "En Juego",
-    en_curso: "En Curso",
-    finalizado: "Finalizado",
-    cancelado: "Cancelado",
-  };
-  return (
-    <span style={{
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '12px',
-      fontWeight: 500,
-      border: '1px solid #B9BBBB',
-      backgroundColor: '#f5f5f5'
-    }}>
-      {textos[estado]}
-    </span>
-  );
-}
     }
   ];
 
@@ -476,15 +456,15 @@ export default function DetalleCampeonatoPublico() {
                     <FireOutlined style={{ color: "#ff4d4f" }} />
                     {ronda.toUpperCase()}
                     <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {partidosPorRonda[ronda].length} partidos
-</span>
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      border: '1px solid #B9BBBB',
+                      backgroundColor: '#f5f5f5'
+                    }}>
+                      {partidosPorRonda[ronda].length} partidos
+                    </span>
                   </Space>
                 }
               >
@@ -525,21 +505,10 @@ export default function DetalleCampeonatoPublico() {
                   <Space>
                     <Avatar size={48} icon={<TeamOutlined />} />
                     <div>
-                      <h4>{e.nombre}</h4>
+                      <h4 style={{ margin: 0 }}>{e.nombre}</h4>
                       <span style={{ fontSize: 12, color: "#999" }}>{e.carrera?.nombre}</span>
                     </div>
                   </Space>
-
-                <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {(e.tipo || "").charAt(0).toUpperCase() + (e.tipo || "").slice(1)}
-</span>
 
                   {e.jugadores && (
                     <div>
@@ -594,40 +563,40 @@ export default function DetalleCampeonatoPublico() {
                     <h2 style={{ margin: 0 }}>{campeonato.nombre}</h2>
 
                     <Space style={{ marginTop: 8 }}>
-                     <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {campeonato.formato}
-</span>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        border: '1px solid #B9BBBB',
+                        backgroundColor: '#f5f5f5'
+                      }}>
+                        {campeonato.formato}
+                      </span>
 
                       <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {(campeonato.genero || "").charAt(0).toUpperCase() + (campeonato.genero || "").slice(1)}
-</span>
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        border: '1px solid #B9BBBB',
+                        backgroundColor: '#f5f5f5'
+                      }}>
+                        {(campeonato.genero || "").charAt(0).toUpperCase() + (campeonato.genero || "").slice(1)}
+                      </span>
 
-                    <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {campeonato.estado === "en_juego" ? "En Curso" :
-   campeonato.estado === "finalizado" ? "Finalizado" :
-   "Próximamente"}
-</span>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        border: '1px solid #B9BBBB',
+                        backgroundColor: '#f5f5f5'
+                      }}>
+                        {campeonato.estado === "en_juego" ? "En Curso" :
+                         campeonato.estado === "finalizado" ? "Finalizado" :
+                         "Próximamente"}
+                      </span>
                     </Space>
                   </div>
                 </Space>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import {
-  Card, Button, Space, message, Pagination, ConfigProvider, Dropdown
+  Card, Button, Space, App, Pagination, ConfigProvider, Dropdown
 } from 'antd';
 import { CalendarOutlined, PlusOutlined, ReloadOutlined, DownloadOutlined,FilePdfOutlined,FileExcelOutlined} from '@ant-design/icons';
 import locale from 'antd/locale/es_ES';
@@ -24,14 +24,15 @@ import {
 const DetalleSesionModal = lazy(() => import('../components/DetalleSesionModal.jsx'));
 const TokenSesionModal = lazy(() => import('../components/TokenSesionModal.jsx'));
 
-message.config({ maxCount: 1 });
 dayjs.locale('es');
 
 export default function Sesiones() {
+  const { message } = App.useApp(); 
+
   const [sesiones, setSesiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-     const [exportando, setExportando] = useState(false);
+  const [exportando, setExportando] = useState(false);
 
 
   const [filtros, setFiltros] = useState({
@@ -167,16 +168,8 @@ export default function Sesiones() {
     handlePageChange,
   }), [sesiones, loading, verDetalle, handleEliminar, pagination, handlePageChange, cargarSesiones]);
 
-  const descargarArchivo = (blob, nombre) => {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  window.URL.revokeObjectURL(url);
-};
-
-const handleExportExcel = async () => {
+  const handleExportExcel = async () => {
+  setExportando(true); // Si tienes este estado
   try {
     const query = {};
 
@@ -188,18 +181,29 @@ const handleExportExcel = async () => {
     }
     if (filtros.canchaId) query.canchaId = filtros.canchaId;
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
-    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
+    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;
 
-    const blob = await exportarSesionesExcel(query,false);
-    descargarArchivo(blob, `sesiones_${Date.now()}.xlsx`);
+    const result = await exportarSesionesExcel(query);
 
-  } catch (err) {
-    message.error("Error exportando Excel");
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar sesiones a Excel');
+  } finally {
+    setExportando(false);
   }
 };
-
 
 const handleExportPDF = async () => {
+  setExportando(true); // Si tienes este estado
   try {
     const query = {};
 
@@ -211,15 +215,45 @@ const handleExportPDF = async () => {
     }
     if (filtros.canchaId) query.canchaId = filtros.canchaId;
     if (filtros.grupoId) query.grupoId = filtros.grupoId;
-    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;  // ✅ AGREGAR ESTO
+    if (filtros.tipoSesion) query.tipoSesion = filtros.tipoSesion;
 
-    const blob = await exportarSesionesPDF(query,false);
-    descargarArchivo(blob, `sesiones_${Date.now()}.pdf`);
+    const result = await exportarSesionesPDF(query);
 
-  } catch {
-    message.error("Error exportando PDF");
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
+  } catch (error) {
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar sesiones a PDF');
+  } finally {
+    setExportando(false);
   }
 };
+
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
+
 
 const menuExportar = {
   items: [

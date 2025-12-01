@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Breadcrumb, Button, Space, message, Spin } from 'antd';
+import { Card, Breadcrumb, Button, Space, Spin,App } from 'antd';
 import { ArrowLeftOutlined, TeamOutlined } from '@ant-design/icons';
 import MainLayout, { useCampeonatoActivo } from '../components/MainLayout';
 import EquipoManager from '../components/EquipoManager';
@@ -10,6 +10,7 @@ import { campeonatoService } from '../services/campeonato.services';
 function CampeonatoEquiposContent() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { message } = App.useApp(); 
   const { setCampeonatoActivo } = useCampeonatoActivo();
   
   const [campeonato, setCampeonato] = useState(null);

@@ -11,7 +11,7 @@ import {
   Row,
   Col,
   Typography,
-  message,
+  App,
   Spin,
   ConfigProvider,
   Avatar,
@@ -36,10 +36,11 @@ const { Title, Text } = Typography;
 export default function PerfilJugador() {
   const { usuarioId } = useParams();
   const navigate = useNavigate();
-const [exportando, setExportando] = useState(false); 
+  const [exportando, setExportando] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [perfil, setPerfil] = useState(null);
   const [expandedKeys, setExpandedKeys] = useState([]);
+  const { message } = App.useApp(); 
 
   useEffect(() => {
     cargarPerfil();
@@ -58,54 +59,69 @@ const [exportando, setExportando] = useState(false);
     }
   };
   const handleExportarExcel = async () => {
+  setExportando(true);
   try {
-    setExportando(true); // 👈 Cambiar aquí
-    message.loading('Generando Excel...', 0);
-    const blob = await ojeadorService.exportarPerfilExcel(usuarioId, false);
-    
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `perfil_${perfil.usuario.nombre}_${perfil.usuario.apellido}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    message.destroy();
-    message.success('Excel descargado correctamente');
+    const result = await ojeadorService.exportarPerfilExcel(usuarioId);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("Excel descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
   } catch (error) {
-    message.destroy();
-    message.error(error || 'Error al exportar Excel');
+    console.error('Error exportando a Excel:', error);
+    message.error(error.message || 'Error al exportar perfil a Excel');
   } finally {
-    setExportando(false); // 👈 Cambiar aquí
+    setExportando(false);
   }
 };
 
 const handleExportarPDF = async () => {
+  setExportando(true);
   try {
-    setExportando(true); // 👈 Cambiar aquí
-    message.loading('Generando PDF...', 0);
-    const blob = await ojeadorService.exportarPerfilPDF(usuarioId, false);
-    
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `perfil_${perfil.usuario.nombre}_${perfil.usuario.apellido}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    message.destroy();
-    message.success('PDF descargado correctamente');
+    const result = await ojeadorService.exportarPerfilPDF(usuarioId);
+
+    if (result.modo === "web" && result.blob) {
+      descargarArchivo(result.blob, result.nombre);
+      message.success("PDF descargado correctamente");
+    } else if (result.modo === "mobile" && result.base64) {
+      console.log("BASE64 recibido:", result.base64);
+      message.success("Archivo generado (mobile)");
+      // TODO: Implementar descarga móvil con expo-sharing
+    }
+
   } catch (error) {
-    message.destroy();
-    message.error(error || 'Error al exportar PDF');
+    console.error('Error exportando a PDF:', error);
+    message.error(error.message || 'Error al exportar perfil a PDF');
   } finally {
-    setExportando(false); // 👈 Cambiar aquí
+    setExportando(false);
   }
 };
+
+// Función helper para descargar archivos (agregar si no la tienes)
+function descargarArchivo(blob, nombre) {
+  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+    console.error('createObjectURL no disponible');
+    return;
+  }
+
+  try {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+  }
+}
 const menuExportar = {
   items: [
     {
