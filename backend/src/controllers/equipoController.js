@@ -24,9 +24,22 @@ export const deleteEquipo = async (req, res) => {
 };
 
 export const getEquiposDeCampeonato = async (req, res) => {
-  try { res.json(await listarEquiposPorCampeonato(req.params.campeonatoId)); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  try {
+    const { campeonatoId } = req.params;
+    const { page, limit } = req.query;
+
+    const resultado = await listarEquiposPorCampeonato(campeonatoId, {
+      page,
+      limit
+    });
+
+    res.json(resultado);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 };
+
+
 
 export const postAgregarUsuarioAEquipo = async (req, res) => {
   try {
@@ -67,7 +80,12 @@ export async function exportarEquiposExcel(req, res) {
       });
     }
 
-    const equipos = await listarEquiposPorCampeonato(campeonatoId);
+     const resultado = await listarEquiposPorCampeonato(campeonatoId, {
+      page: 1,
+      limit: 9999 // Para traer todos los equipos sin paginación
+    });
+        const equipos = resultado.data; // ⭐ Extraer el array
+
 
     if (!equipos || equipos.length === 0) {
       return res.status(404).json({
@@ -77,7 +95,7 @@ export async function exportarEquiposExcel(req, res) {
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
+    workbook.creator = "SPORTUBB";
     workbook.created = new Date();
     workbook.modified = new Date();
 
@@ -232,7 +250,13 @@ export async function exportarEquiposPDF(req, res) {
       });
     }
 
-    const equipos = await listarEquiposPorCampeonato(campeonatoId);
+    const resultado = await listarEquiposPorCampeonato(campeonatoId, {
+      page: 1,
+      limit: 9999 // Para traer todos los equipos
+    });
+    
+    const equipos = resultado.data; // ⭐ Extraer el array
+
 
     if (!equipos || equipos.length === 0) {
       return res.status(404).json({

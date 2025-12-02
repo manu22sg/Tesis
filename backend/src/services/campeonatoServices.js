@@ -41,17 +41,14 @@ export const crearCampeonato = async (payload) => {
     where: { formato, genero, tipoCampeonato, estado: "creado" },
   });
 
-  if (activo)
-    throw new Error(
-      `Ya hay un campeonato activo de formato ${formato} (${genero}) tipo ${tipoCampeonato}. Finaliza el actual antes de crear uno nuevo.`
-    );
+ 
 
   // Verificar disponibilidad mínima de canchas
   const minJugadores =
-    formato === "11v11" ? 11 :
-    formato === "8v8"  ? 8  :
-    formato === "7v7"  ? 7  :
-    5;
+    formato === "11v11" ? 22 :
+    formato === "8v8"  ? 16  :
+    formato === "7v7"  ? 14  :
+    10;
   
   const canchaValida = await canchaRepo.findOne({
     where: {

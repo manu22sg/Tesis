@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card, Row, Col, Tag, Button, Space, Empty, Spin, Select,
-  Statistic, Divider, ConfigProvider
+  Statistic, Divider, ConfigProvider, Pagination
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -29,6 +29,13 @@ export default function CampeonatosPublico() {
     estado: null
   });
 
+  // ⭐ ESTADO DE PAGINACIÓN
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 9, // 9 cards por página (3x3 grid)
+    total: 0
+  });
+
   // === CARGAR CAMPEONATOS ===
   useEffect(() => {
     const cargar = async () => {
@@ -36,6 +43,10 @@ export default function CampeonatosPublico() {
       try {
         const data = await campeonatoService.listar();
         setCampeonatosOriginales(data || []);
+        setPagination(prev => ({
+          ...prev,
+          total: data?.length || 0
+        }));
       } catch (error) {
         console.error('Error cargando campeonatos:', error);
       } finally {
@@ -62,6 +73,22 @@ export default function CampeonatosPublico() {
     return res;
   }, [filtros, campeonatosOriginales]);
 
+  // ⭐ DATOS PAGINADOS
+  const datosPaginados = useMemo(() => {
+    const start = (pagination.current - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
+    return campeonatosFiltrados.slice(start, end);
+  }, [campeonatosFiltrados, pagination.current, pagination.pageSize]);
+
+  // ⭐ ACTUALIZAR TOTAL AL FILTRAR
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      current: 1, // Resetear a página 1 cuando cambian filtros
+      total: campeonatosFiltrados.length
+    }));
+  }, [campeonatosFiltrados]);
+
   const limpiarFiltros = () => {
     setFiltros({
       formato: null,
@@ -70,6 +97,10 @@ export default function CampeonatosPublico() {
       semestre: null,
       estado: null
     });
+    setPagination(prev => ({
+      ...prev,
+      current: 1
+    }));
   };
 
   // ⭐ AÑOS DISPONIBLES - Incluye año actual y próximo
@@ -206,116 +237,141 @@ export default function CampeonatosPublico() {
                 <Spin size="large" />
               </div>
             </Card>
-          ) : campeonatosFiltrados.length > 0 ? (
-            <Row gutter={[24, 24]}>
-              {campeonatosFiltrados.map(c => {
-                const estadoConfig = getEstadoConfig(c.estado);
-                const equiposCount = c.equipos?.length || 0;
-                const totalPartidos = c.partidos?.length || 0;
-                const finalizados = c.partidos?.filter(p => p.estado === 'finalizado').length || 0;
+          ) : datosPaginados.length > 0 ? (
+            <>
+              <Row gutter={[24, 24]}>
+                {datosPaginados.map(c => {
+                  const estadoConfig = getEstadoConfig(c.estado);
+                  const equiposCount = c.equipos?.length || 0;
+                  const totalPartidos = c.partidos?.length || 0;
+                  const finalizados = c.partidos?.filter(p => p.estado === 'finalizado').length || 0;
 
-                return (
-                  <Col xs={24} sm={12} lg={8} key={c.id}>
-                    <Card
-                      hoverable
-                      bodyStyle={{ padding: 0 }}
-                      style={{ borderRadius: 8 }}
-                    >
-                      {/* HEADER */}
-                      <div style={{
-                        padding: 24,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        color: 'white'
-                      }}>
-                        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                          <TrophyOutlined style={{ fontSize: 32 }} />
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: 4,
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            color: estadoConfig.color === 'blue' ? '#1890ff' : 
-                                   estadoConfig.color === 'green' ? '#52c41a' : 
-                                   estadoConfig.color === 'gold' ? '#faad14' : '#f5222d'
-                          }}>
-                            {estadoConfig.text}
-                          </span>
-                        </Space>
-                        <h3 style={{ marginTop: 12, marginBottom: 0 }}>{c.nombre}</h3>
-                      </div>
+                  return (
+                    <Col xs={24} sm={12} lg={8} key={c.id}>
+                      <Card
+                        hoverable
+                        bodyStyle={{ padding: 0 }}
+                        style={{ borderRadius: 8 }}
+                      >
+                        {/* HEADER */}
+                        <div style={{
+                          padding: 24,
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white'
+                        }}>
+                          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                            <TrophyOutlined style={{ fontSize: 32 }} />
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: 4,
+                              fontSize: '12px',
+                              fontWeight: 500,
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              color: estadoConfig.color === 'blue' ? '#1890ff' : 
+                                     estadoConfig.color === 'green' ? '#52c41a' : 
+                                     estadoConfig.color === 'gold' ? '#faad14' : '#f5222d'
+                            }}>
+                              {estadoConfig.text}
+                            </span>
+                          </Space>
+                          <h3 style={{ marginTop: 12, marginBottom: 0 }}>{c.nombre}</h3>
+                        </div>
 
-                      {/* BODY */}
-                      <div style={{ padding: 20 }}>
-                        <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                          <Row gutter={12}>
-                            {/* Formato */}
-                            <Col span={12}>
-                              <span style={{ color: '#999' }}>Formato</span>
-                              <span style={{
-                                padding: '2px 8px',
-                                borderRadius: 4,
-                                fontSize: '12px',
-                                fontWeight: 500,
-                                border: '1px solid #B9BBBB',
-                                backgroundColor: '#f5f5f5',
-                                marginLeft: 8
-                              }}>
-                                {(c.formato || "").toUpperCase()}
-                              </span>
-                            </Col>
+                        {/* BODY */}
+                        <div style={{ padding: 20 }}>
+                          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                            <Row gutter={12}>
+                              {/* Formato */}
+                              <Col span={12}>
+                                <span style={{ color: '#999' }}>Formato</span>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                  fontSize: '12px',
+                                  fontWeight: 500,
+                                  border: '1px solid #B9BBBB',
+                                  backgroundColor: '#f5f5f5',
+                                  marginLeft: 8
+                                }}>
+                                  {(c.formato || "").toUpperCase()}
+                                </span>
+                              </Col>
 
-                            {/* Género */}
-                            <Col span={12}>
-                              <span style={{ color: '#999' }}>Género </span>
-                              <span style={{
-                                padding: '2px 8px',
-                                borderRadius: 4,
-                                fontSize: '12px',
-                                fontWeight: 500,
-                                border: '1px solid #B9BBBB',
-                                backgroundColor: '#f5f5f5',
-                                marginLeft: 8
-                              }}>
-                                {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
-                              </span>
-                            </Col>
-                          </Row>
+                              {/* Género */}
+                              <Col span={12}>
+                                <span style={{ color: '#999' }}>Género </span>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                  fontSize: '12px',
+                                  fontWeight: 500,
+                                  border: '1px solid #B9BBBB',
+                                  backgroundColor: '#f5f5f5',
+                                  marginLeft: 8
+                                }}>
+                                  {(c.genero || "").charAt(0).toUpperCase() + (c.genero || "").slice(1)}
+                                </span>
+                              </Col>
+                            </Row>
 
-                          <Divider style={{ margin: '12px 0' }} />
+                            <Divider style={{ margin: '12px 0' }} />
 
-                          <Row gutter={12}>
-                            <Col span={12}>
-                              <TeamOutlined style={{ color: '#014898' }} />
-                              <strong style={{ marginLeft: 8 }}>{equiposCount}</strong> Equipos
-                            </Col>
-                            <Col span={12}>
-                              <CalendarOutlined style={{ color: '#006B5B' }} />
-                              <strong style={{ marginLeft: 8 }}>
-                                {finalizados}/{totalPartidos}
-                              </strong> Partidos
-                            </Col>
-                          </Row>
+                            <Row gutter={12}>
+                              <Col span={12}>
+                                <TeamOutlined style={{ color: '#014898' }} />
+                                <strong style={{ marginLeft: 8 }}>{equiposCount}</strong> Equipos
+                              </Col>
+                              <Col span={12}>
+                                <CalendarOutlined style={{ color: '#006B5B' }} />
+                                <strong style={{ marginLeft: 8 }}>
+                                  {finalizados}/{totalPartidos}
+                                </strong> Partidos
+                              </Col>
+                            </Row>
 
-                          <div style={{ color: '#999', fontSize: '13px' }}>
-                            📅 {c.anio} • Semestre {c.semestre}
-                          </div>
+                            <div style={{ color: '#999', fontSize: '13px' }}>
+                              📅 {c.anio} • Semestre {c.semestre}
+                            </div>
 
-                          <Button
-                            type="primary"
-                            block
-                            icon={<EyeOutlined />}
-                            onClick={() => navigate(`/campeonatos/${c.id}/publico`)}
-                          >
-                            Ver Detalles
-                          </Button>
-                        </Space>
-                      </div>
-                    </Card>
-                  </Col>
-                );
-              })}
-            </Row>
+                            <Button
+                              type="primary"
+                              block
+                              icon={<EyeOutlined />}
+                              onClick={() => navigate(`/campeonatos/${c.id}/publico`)}
+                            >
+                              Ver Detalles
+                            </Button>
+                          </Space>
+                        </div>
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+
+              {/* ⭐ PAGINACIÓN */}
+              {pagination.total > 0 && (
+                <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                  <Pagination
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    total={pagination.total}
+                    onChange={(page, size) => {
+                      setPagination({ ...pagination, current: page, pageSize: size });
+                      // Scroll suave al inicio
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onShowSizeChange={(current, size) => {
+                      setPagination({ ...pagination, current: 1, pageSize: size });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    showSizeChanger
+                    showTotal={(total) => `Total: ${total} campeonatos`}
+                    pageSizeOptions={['6', '9', '12', '18']}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <Card>
               <Empty 

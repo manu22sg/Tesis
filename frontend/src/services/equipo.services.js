@@ -41,15 +41,18 @@ export const equipoService = {
   },
 
   // Listar equipos por campeonato
-  listarPorCampeonato: async (campeonatoId) => {
-    try {
-      const res = await api.get(`/equipos/campeonato/${campeonatoId}`);
-      return normalizar(res);
-    } catch (error) {
-      console.error("Error al listar equipos del campeonato:", error);
-      throw error;
-    }
-  },
+  listarPorCampeonato: async (campeonatoId, page = 1, limit = 10) => {
+  try {
+    const response = await api.get(`/equipos/campeonato/${campeonatoId}`, {
+      params: { page, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error al listar equipos por campeonato:", error);
+    throw error; // opcional: puedes retornar algo distinto si prefieres
+  }
+},
+
 
   // Listar jugadores de un equipo
   listarJugadores: async (equipoId) => {

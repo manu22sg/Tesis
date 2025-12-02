@@ -41,7 +41,7 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
         100 // metros
       );
       if (!dentro) {
-        return [null, `Debe estar cerca del lugar del entrenamiento`, 403];
+        return [null, `Debe estar cerca del lugar de la sesión`, 403];
       }
     } else {
       // Si NO requiere geofence, ignoramos cualquier lat/lon que venga (no bloqueamos)
@@ -64,7 +64,7 @@ export async function marcarAsistenciaPorToken({ token, jugadorId, estado, latit
       return [guardado, null, 201];
     } catch (e) {
       if (e?.code === "23505" || e?.code === "ER_DUP_ENTRY") {
-        return [null, "Ya registraste asistencia para esta sesión", 409];
+        return [null, "Ya registró asistencia para esta sesión", 409];
       }
       throw e;
     }

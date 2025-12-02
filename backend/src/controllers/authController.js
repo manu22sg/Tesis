@@ -236,7 +236,7 @@ export async function verificarEmail(req, res) {
       result,
       result.yaVerificado 
         ? 'Esta cuenta ya fue verificada anteriormente' 
-        : 'Cuenta verificada con éxito. Ya puedes iniciar sesión'
+        : 'Cuenta verificada con éxito. Ya puede iniciar sesión'
     );
 
   } catch (err) {
@@ -273,7 +273,7 @@ export async function reenviarVerificacion(req, res) {
     return success(
       res,
       null,
-      'Correo de verificación reenviado exitosamente. Revisa tu bandeja de entrada.'
+      'Correo de verificación reenviado exitosamente. Revise su bandeja de entrada.'
     );
 
   } catch (err) {
@@ -353,7 +353,7 @@ export async function solicitarRestablecimiento(req, res) {
     return success(
       res,
       result,
-      'Correo de restablecimiento enviado exitosamente. Revisa tu bandeja de entrada'
+      'Correo de restablecimiento enviado exitosamente. Revise su bandeja de entrada'
     );
 
   } catch (err) {
@@ -398,7 +398,7 @@ export async function restablecerPassword(req, res) {
     return success(
       res,
       result,
-      'Contraseña restablecida exitosamente. Ya puedes iniciar sesión'
+      'Contraseña restablecida exitosamente. Ya puede iniciar sesión'
     );
 
   } catch (err) {

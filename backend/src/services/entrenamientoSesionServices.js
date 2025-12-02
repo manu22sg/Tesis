@@ -386,7 +386,7 @@ export const asignarEntrenamientosASesion = async (sesionId, entrenamientoIds) =
       const entrenamiento = await repo.findOne({ where: { id: Number(id) } });
       
       if (!entrenamiento) {
-        return [null, `Entrenamiento con ID ${id} no encontrado`];
+        return [null, `Entrenamiento no encontrado`];
       }
 
       // Actualizar sesionId y orden

@@ -46,13 +46,16 @@ export const campeonatoService = {
 
   // Eliminar campeonato
   eliminar: async (id) => {
-    try {
-      const response = await api.delete(`${CAMPEONATOS_BASE}/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
+  try {
+    const response = await api.delete(`${CAMPEONATOS_BASE}/${id}`);
+    return response.data;
+  } catch (error) {
+    console.log(error.response?.data?.message);
+    // Lanzar el mensaje específico del error
+    throw new Error(error.response?.data?.message || 'Error al eliminar campeonato');
+  }
+},
+
 
   // Sortear primera ronda
   sortearPrimeraRonda: async (id) => {

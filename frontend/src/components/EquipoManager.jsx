@@ -30,6 +30,11 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   const [editingId, setEditingId] = useState(null);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [jugadoresEquipo, setJugadoresEquipo] = useState([]);
+const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
 
   const [form] = Form.useForm();
   const [formJugador] = Form.useForm();
@@ -45,21 +50,35 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
   // --------------------------
   // 📌 Cargar equipos
   // --------------------------
-  useEffect(() => {
-    if (campeonatoId) cargarEquipos();
-  }, [campeonatoId]);
+const cargarEquipos = async (page = 1, pageSize = 10) => {
+  setLoading(true);
+  try {
+    const resultado = await equipoService.listarPorCampeonato(
+      campeonatoId, 
+      page, 
+      pageSize
+    );
+    
+    setEquipos(resultado.data);
+    setPagination({
+      current: resultado.pagination.page,
+      pageSize: resultado.pagination.limit,
+      total: resultado.pagination.total
+    });
+  } catch (error) {
+    message.error(error?.response?.data?.error || 'Error al cargar equipos');
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const cargarEquipos = async () => {
-    setLoading(true);
-    try {
-      const data = await equipoService.listarPorCampeonato(campeonatoId);
-      setEquipos(data);
-    } catch (error) {
-      message.error(error?.response?.data?.error || 'Error al cargar equipos');
-    } finally {
-      setLoading(false);
-    }
-  };
+// Y en el useEffect simplemente:
+useEffect(() => {
+  if (campeonatoId) {
+    cargarEquipos(); // Sin argumentos, usa los defaults
+  }
+}, [campeonatoId]);
+
 
   // --------------------------
   // 📌 Cargar carreras
@@ -214,26 +233,26 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
     }, 500);
   };
 
-  const buscarUsuariosAPI = async (q) => {
-    setBuscandoUsuarios(true);
-    try {
-      const resultados = await buscarUsuarios(q, {
-        roles: ['estudiante', 'academico'],
-        carreraId: equipoSeleccionado?.carreraId
-      });
+ const buscarUsuariosAPI = async (q) => {
+  setBuscandoUsuarios(true);
+  try {
+    const resultados = await buscarUsuarios(q, {
+      roles: ['estudiante', 'academico']
+      // SIN carreraId - dejamos que el backend valide
+    });
 
-      const rutosEnEquipo = jugadoresEquipo.map(j => j.rut);
-      const usuariosFiltrados = resultados.filter(r => !rutosEnEquipo.includes(r.rut));
-      
-      setUsuarios(Array.isArray(usuariosFiltrados) ? usuariosFiltrados : []);
-    } catch (error) {
-      console.error('Error buscando usuarios:', error);
-      message.error('Error al buscar usuarios');
-      setUsuarios([]);
-    } finally {
-      setBuscandoUsuarios(false);
-    }
-  };
+    const rutosEnEquipo = jugadoresEquipo.map(j => j.rut);
+    const usuariosFiltrados = resultados.filter(r => !rutosEnEquipo.includes(r.rut));
+    
+    setUsuarios(Array.isArray(usuariosFiltrados) ? usuariosFiltrados : []);
+  } catch (error) {
+    console.error('Error buscando usuarios:', error);
+    message.error('Error al buscar usuarios');
+    setUsuarios([]);
+  } finally {
+    setBuscandoUsuarios(false);
+  }
+};
 
   const handleUsuarioChange = (usuarioId) => {
     const usuario = usuarios.find(u => u.id === usuarioId);
@@ -520,19 +539,28 @@ const EquipoManager = ({ campeonatoId, campeonatoInfo, onUpdate }) => {
             </Space>
           </div>
 
-          <Table
-            columns={columns}
-            dataSource={equipos}
-            loading={loading}
-            rowKey="id"
-            pagination={{
-              position: ['bottomLeft'],
-              pageSize: 10,
-              showSizeChanger: true,
-              pageSizeOptions: ['5', '10', '20', '50']
-            }}
-            locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
-          />
+         <Table
+  columns={columns}
+  dataSource={equipos}
+  loading={loading}
+  rowKey="id"
+  pagination={{
+    current: pagination.current,
+    pageSize: pagination.pageSize,
+    total: pagination.total,
+    position: ['bottomLeft'],
+    showSizeChanger: true,
+    pageSizeOptions: ['5', '10', '20', '50'],
+    onChange: (page, pageSize) => {
+      cargarEquipos(page, pageSize);
+    },
+    onShowSizeChange: (current, size) => {
+      cargarEquipos(1, size);
+    },
+    showTotal: (total) => `Total: ${total} equipos`
+  }}
+  locale={{ emptyText: <Empty description="No hay equipos registrados" /> }}
+/>
         </Card>
 
         {/* ----------------------

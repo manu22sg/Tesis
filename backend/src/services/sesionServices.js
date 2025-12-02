@@ -78,7 +78,7 @@ export async function crearSesion(datos) {
       });
       for (const p of partidos) {
         if (hayConflictoHorario(nuevaVentana, p)) {
-          return [null, `Ya existe un partido de campeonato en ese horario (ID: ${p.id}). Debe reprogramar el partido primero.`];
+          return [null, `Ya existe un partido de campeonato en ese horario  Debe reprogramar el partido primero.`];
         }
       }
     }
@@ -90,7 +90,7 @@ export async function crearSesion(datos) {
       });
       for (const s of sesionesMismoGrupo) {
         if (hayConflictoHorario(nuevaVentana, s)) {
-          return [null, `Ya existe una sesión para este grupo en ese horario (id: ${s.id})`];
+          return [null, `Ya existe una sesión para este grupo en ese horario `];
         }
       }
     }
@@ -151,9 +151,12 @@ export async function obtenerSesiones(filtros = {}) {
         .leftJoin('jg.jugador', 'j')
         .andWhere('j.id = :jugadorId', { jugadorId });
     }
+   //const hoy = formatYMD(new Date());
+    //qb.andWhere('s.fecha >= :hoy', { hoy });
 
-    qb.orderBy('s.fecha', 'DESC')
-      .addOrderBy('s.horaInicio', 'DESC')
+
+    qb.orderBy('s.fecha', 'ASC')
+      .addOrderBy('s.horaInicio', 'ASC')
       .skip(skip)
       .take(limit);
 

@@ -93,7 +93,7 @@ export async function crearAlineacion({ sesionId, generadaAuto = false, jugadore
       );
       
       if (titulares.length > 11) {
-        return [null, 'No puedes agregar más de 11 jugadores titulares'];
+        return [null, 'No puede agregar más de 11 jugadores titulares'];
       }
 
       const filas = jugadores.map(j => alinJugRepo.create({
@@ -335,7 +335,7 @@ export async function actualizarPosicionesJugadores(alineacionId, jugadores) {
     });
     
     if (titularesNuevos.length > 11) {
-      return [null, 'No puedes tener más de 11 jugadores con posición en la cancha'];
+      return [null, 'No puede tener más de 11 jugadores con posición en la cancha'];
     }
     
     // Actualizar cada jugador

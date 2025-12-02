@@ -58,7 +58,7 @@ export const deleteCampeonato = async (req, res) => {
     return success(res, data, "Campeonato eliminado exitosamente");
   }
   catch (e) {
-    console.log("Error al eliminar campeonato ID:", req.params.id, e); 
+    //console.log("Error al eliminar campeonato ID:", req.params.id, e); 
     return error(res, e.message, 400);
   }
 };

@@ -47,7 +47,7 @@ export async function getReservasUsuario(req, res) {
     const { reservas, pagination } = result;
     const mensaje = reservas.length > 0
       ? `${reservas.length} reserva(s) encontrada(s) - Página ${pagination.currentPage} de ${pagination.totalPages}`
-      : 'No tienes reservas registradas';
+      : 'No tiene reservas registradas';
 
     return success(res, { reservas, pagination }, mensaje);
   } catch (e) {
@@ -112,7 +112,7 @@ export async function putCancelarReserva(req, res) {
       if (err.includes('no encontrada')) {
         return notFound(res, err);
       }
-      if (err.includes('No tienes permiso') || err.includes('No se puede cancelar')) {
+      if (err.includes('No tiene permiso') || err.includes('No se puede cancelar')) {
         return error(res, err, 403);
       }
       return error(res, err, 500);

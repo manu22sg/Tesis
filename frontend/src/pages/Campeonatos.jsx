@@ -264,6 +264,12 @@ const [exportando, setExportando] = useState(false);
     setExportando(false);
   }
 };
+const datosPaginados = useMemo(() => {
+  const start = (pagination.current - 1) * pagination.pageSize;
+  const end = start + pagination.pageSize;
+  return campeonatos.slice(start, end);
+}, [campeonatos, pagination.current, pagination.pageSize]);
+
 
 const handleExportarPDF = async () => {
   setExportando(true);
@@ -317,13 +323,15 @@ function descargarArchivo(blob, nombre) {
 
 
   const handleEliminar = useCallback(async (id) => {
-    try {
-      await campeonatoService.eliminar(id);
-      cargarCampeonatos();
-    } catch {
-      message.error('Error al eliminar campeonato');
-    }
-  }, [cargarCampeonatos]);
+  try {
+    await campeonatoService.eliminar(id);
+    cargarCampeonatos();
+    message.success('Campeonato eliminado correctamente');
+  } catch (error) {
+    // Mostrar el mensaje específico del error
+    message.error(error.message || 'Error al eliminar campeonato');
+  }
+}, [cargarCampeonatos]);
 
   const verDetalle = async (campeonato) => {
     // Establecer campeonato como activo en el sidebar
@@ -574,29 +582,38 @@ function descargarArchivo(blob, nombre) {
         </Card>
 
         {/* Tabla principal */}
-        <Card>
-          <Table
-            columns={columns}
-            dataSource={campeonatos}
-            loading={loading}
-            rowKey="id"
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showTotal: (total) => `Total: ${total} campeonatos`,
-              pageSizeOptions: ['5', '10', '20'],
-              onChange: (page, size) => {
-                setPagination({ ...pagination, current: page, pageSize: size });
-              },
-              position: ['bottomLeft']
-            }}
-            scroll={{ x: 1000 }}
-            size="middle"
-            locale={{ emptyText: <Empty description="No hay campeonatos" /> }}
-          />
-        </Card>
+       <Card>
+  <Table
+    columns={columns}
+    dataSource={datosPaginados}  // ✅ Usar datos paginados
+    loading={loading}
+    rowKey="id"
+    pagination={false}  // ✅ Deshabilitada porque la manejamos nosotros
+    scroll={{ x: 1000 }}
+    size="middle"
+    locale={{ emptyText: <Empty description="No hay campeonatos" /> }}
+  />
+
+  {/* 3. Agregar la paginación manual después de la tabla */}
+  {pagination.total > 0 && (
+    <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+      <Pagination
+        current={pagination.current}
+        pageSize={pagination.pageSize}
+        total={pagination.total}
+        onChange={(page, size) => {
+          setPagination({ ...pagination, current: page, pageSize: size });
+        }}
+        onShowSizeChange={(current, size) => {
+          setPagination({ ...pagination, current: 1, pageSize: size });
+        }}
+        showSizeChanger
+        showTotal={(total) => `Total: ${total} campeonatos`}
+        pageSizeOptions={['5', '10', '20']}
+      />
+    </div>
+  )}
+</Card>
 
         {/* Modal Crear/Editar */}
         <Modal

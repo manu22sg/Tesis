@@ -159,7 +159,7 @@ export async function getSesionesPorEstudiante(req, res) {
     const { sesiones, pagination } = result;
     const msg = sesiones.length
       ? `${sesiones.length} sesión(es) — Página ${pagination?.currentPage}/${pagination?.totalPages}`
-      : 'No tienes sesiones registradas';
+      : 'No tiene sesiones registradas';
 
     return success(res, result, msg);
   } catch (e) {

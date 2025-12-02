@@ -37,7 +37,7 @@ export async function getEstadisticasPorJugador(req,res){
   const { page = 1, limit = 10, busqueda = '', sesionId } = req.query; // ✅ Agregado sesionId
   
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {
-    return error(res,'No tienes permiso para ver estadísticas de otro jugador',403);
+    return error(res,'No tiene permiso para ver estadísticas de otro jugador',403);
   }
   
   const [data, err] = await obtenerEstadisticasPorJugador({ 

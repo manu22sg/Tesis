@@ -169,7 +169,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
     });
     for (const p of partidos) {
       if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-        return [false, `Ya existe un partido de campeonato en ese horario (ID: ${p.id})`];
+        return [false, `Ya existe un partido de campeonato en ese horario`];
       }
     }
 
@@ -245,7 +245,7 @@ export async function crearReserva(datosReserva, usuarioId) {
     // 3. Validar que el número de participantes coincida con la capacidad de la cancha
     if (participantesCompletos.length !== capacidadMaxima) {
       await queryRunner.rollbackTransaction();
-      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tienes ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
+      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tiene ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
     }
 
     // 4. Validar que no haya RUTs duplicados
@@ -490,7 +490,7 @@ export async function editarParticipantesReserva(reservaId, participantes, usuar
     // 7. Validar número de participantes
     if (participantesCompletos.length !== capacidadMaxima) {
       await queryRunner.rollbackTransaction();
-      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tienes ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
+      return [null, `Esta cancha requiere exactamente ${capacidadMaxima} participantes. Tiene ${participantesCompletos.length} participante${participantesCompletos.length !== 1 ? 's' : ''}.`];
     }
 
     // 8. Validar RUTs únicos

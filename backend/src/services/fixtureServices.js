@@ -243,7 +243,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     if (finalizados.length !== todosPartidos.length) {
       throw new Error(
         `Solo ${finalizados.length} de ${todosPartidos.length} partidos están finalizados en "${rondaAUsar}". ` +
-        `Completa todos los partidos antes de generar la siguiente ronda.`
+        `Complete todos los partidos antes de generar la siguiente ronda.`
       );
     }
 
@@ -291,7 +291,7 @@ export const generarSiguienteRonda = async ({ campeonatoId, rondaAnterior }) => 
     if (ganadores.length % 2 !== 0) {
       throw new Error(
         `Número impar de ganadores (${ganadores.length}) en "${rondaAUsar}". ` +
-        `Revisa los partidos de esa ronda.`
+        `Revise los partidos de esa ronda.`
       );
     }
 

@@ -228,19 +228,39 @@ export const eliminarEquipo = async (equipoId) => {
 
 //  LISTAR EQUIPOS POR CAMPEONATO
 
-export const listarEquiposPorCampeonato = async (campeonatoId) => {
+export const listarEquiposPorCampeonato = async (campeonatoId, opciones = {}) => {
   const repo = EquipoRepo();
-  return await repo.find({
+  
+  // Extraer parámetros de paginación
+  const page = parseInt(opciones.page) || 1;
+  const limit = parseInt(opciones.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // Consulta con paginación
+  const [equipos, total] = await repo.findAndCount({
     where: { campeonatoId: Number(campeonatoId) },
     relations: ["jugadores", "carrera"],
     order: { id: "ASC" },
+    skip: skip,
+    take: limit
   });
+
+  return {
+    data: equipos,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 };
+
 
 
 //  AGREGAR USUARIO A EQUIPO (con validaciones)
 
-export const insertarUsuarioEnEquipo = async ({
+/*export const insertarUsuarioEnEquipo = async ({
   campeonatoId,
   equipoId,
   usuarioId,
@@ -393,8 +413,179 @@ export const insertarUsuarioEnEquipo = async ({
     jugador: guardado,
   };
 };
+*/
 
 
+
+export const insertarUsuarioEnEquipo = async ({
+  campeonatoId,
+  equipoId,
+  usuarioId,
+  numeroCamiseta,
+  posicion,
+}) => {
+  const usuarioRepo = UsuarioRepo();
+  const equipoRepo = EquipoRepo();
+  const jugadorRepo = JugadorCampRepo();
+  const campeonatoRepositorio = campRepo();
+
+  // 1. Obtener usuario con carrera
+  const usuario = await usuarioRepo.findOne({
+    where: { id: Number(usuarioId) },
+    relations: ["carrera"],
+  });
+  if (!usuario) throw new Error("Usuario no existe");
+
+  // NUEVO: Identificar si es académico
+  const esAcademico = usuario.rol === 'academico';
+
+  // 2. Obtener equipo con carrera
+  const equipo = await equipoRepo.findOne({
+    where: { id: Number(equipoId) },
+    relations: ["carrera"],
+  });
+  if (!equipo) throw new Error("Equipo no encontrado");
+
+  if (equipo.campeonatoId !== Number(campeonatoId))
+    throw new Error("El equipo no pertenece a este campeonato");
+
+  // MODIFICADO: Solo validar carrera si NO es académico
+  if (!esAcademico) {
+    if (!usuario.carreraId || !usuario.carrera) {
+      throw new Error(
+        `El usuario ${usuario.nombre} ${usuario.apellido}  no tiene una carrera asociada en el sistema`
+      );
+    }
+    
+    if (!equipo.carreraId || !equipo.carrera) {
+      throw new Error(
+        `El equipo "${equipo.nombre}" no tiene una carrera asociada en el sistema`
+      );
+    }
+  }
+
+  // 3. Obtener campeonato
+  const campeonato = await campeonatoRepositorio.findOne({
+    where: { id: Number(campeonatoId) }
+  });
+  if (!campeonato) throw new Error("Campeonato no encontrado");
+
+  // 3.1 VALIDACIÓN DE GÉNERO DEL CAMPEONATO
+  const generoCamp = campeonato.genero?.trim().toLowerCase();
+  const sexoUsuario = usuario.sexo?.trim().toLowerCase();
+
+  if (!sexoUsuario) {
+    throw new Error(`El usuario ${usuario.nombre || ''} ${usuario.apellido || ''} no tiene sexo registrado en el sistema`);
+  }
+
+  if (generoCamp !== "mixto") {
+    if (sexoUsuario !== generoCamp) {
+      throw new Error(
+        `Este campeonato es ${generoCamp}. ` +
+        `El usuario ${usuario.nombre} es de sexo ${sexoUsuario}, por lo que no puede inscribirse.`
+      );
+    }
+  }
+
+  // MODIFICADO: VALIDACIONES DE TIPO DE CAMPEONATO (solo para NO académicos)
+  if (!esAcademico) {
+    if (campeonato.tipoCampeonato === 'mechon') {
+      const anioActual = new Date().getFullYear();
+
+      if (!usuario.anioIngresoUniversidad) {
+        throw new Error(
+          `El usuario ${usuario.nombre || ''} ${usuario.apellido || ''} no tiene registrado su año de ingreso a la carrera`
+        );
+      }
+
+      if (usuario.anioIngresoUniversidad !== anioActual) {
+        throw new Error(
+          `Este campeonato es solo para mechones del año ${anioActual}. ` +
+          `El usuario ${usuario.nombre || ''} ${usuario.apellido || ''} ingresó en ${usuario.anioIngresoUniversidad}`
+        );
+      }
+    } else if (campeonato.tipoCampeonato === 'intercarrera') {
+      if (usuario.carreraId !== equipo.carreraId) {
+        throw new Error(
+          `El usuario ${usuario.nombre} ${usuario.apellido}  pertenece a la carrera "${usuario.carrera.nombre}" ` +
+          `y no puede inscribirse en un equipo de "${equipo.carrera.nombre}"`
+        );
+      }
+    }
+  } else {
+    // NUEVO: Validaciones específicas para académicos
+    if (campeonato.tipoCampeonato === 'mechon') {
+      throw new Error(
+        `Los académicos no pueden participar en campeonatos de mechones`
+      );
+    }
+ 
+  }
+
+  // 4. Validar que no esté en otro equipo (igual para todos)
+  const yaParticipa = await jugadorRepo.findOne({
+    where: {
+      campeonatoId: Number(campeonatoId),
+      usuarioId: Number(usuarioId),
+    },
+  });
+  if (yaParticipa) {
+    throw new Error(
+      `El usuario ${usuario.nombre} ${usuario.apellido}  ya está inscrito en otro equipo de este campeonato`
+    );
+  }
+
+  // 5. Validar número de camiseta (igual para todos)
+  if (numeroCamiseta !== null && numeroCamiseta !== undefined) {
+    const camisetaRepetida = await jugadorRepo.findOne({
+      where: {
+        equipoId: Number(equipoId),
+        numeroCamiseta: Number(numeroCamiseta),
+      },
+    });
+    if (camisetaRepetida) {
+      throw new Error(
+        `El número de camiseta ${numeroCamiseta} ya está en uso en este equipo`
+      );
+    }
+  }
+
+  // 6. Validación de límite por formato (igual para todos)
+  const limites = {
+    "5v5":  { min: 10,  max: 20 },
+    "7v7":  { min: 14,  max: 28 },
+    "8v8":  { min: 16,  max: 32 },
+    "11v11":{ min: 22, max: 44 }
+  };
+  const formato = campeonato.formato?.toLowerCase();
+  const reglas = limites[formato] || limites["11v11"];
+
+  const jugadoresActuales = await jugadorRepo.count({
+    where: { equipoId: Number(equipoId) },
+  });
+
+  if (jugadoresActuales >= reglas.max) {
+    throw new Error(
+      `Este equipo ya alcanzó el máximo permitido de jugadores (${reglas.max}) para el formato ${campeonato.formato}`
+    );
+  }
+
+  // 7. Insertar jugador (igual para todos)
+  const jugador = jugadorRepo.create({
+    campeonatoId: Number(campeonatoId),
+    equipoId: Number(equipoId),
+    usuarioId: Number(usuarioId),
+    numeroCamiseta: numeroCamiseta ?? null,
+    posicion: posicion ?? null,
+  });
+
+  const guardado = await jugadorRepo.save(jugador);
+
+  return {
+    message: `Jugador ${usuario.nombre} ${usuario.apellido}  agregado al equipo ${equipo.nombre}`,
+    jugador: guardado,
+  };
+};
 
 //  QUITAR USUARIO DE EQUIPO
 

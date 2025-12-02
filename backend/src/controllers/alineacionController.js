@@ -222,7 +222,7 @@ export async function postGenerarAlineacionInteligente(req, res) {
       return error(res, message, status || 400, extra);
     }
 
-    return success(res, alineacion, 'Alineación inteligente generada exitosamente', 201);
+    return success(res, alineacion, 'Alineación sugerida generada exitosamente', 201);
 
   } catch (e) {
     console.error('postGenerarAlineacionInteligente:', e);

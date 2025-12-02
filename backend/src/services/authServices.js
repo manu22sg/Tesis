@@ -382,7 +382,7 @@ export async function reenviarVerificacionService(email) {
           <!DOCTYPE html>
           <html>
             <body style="font-family: Arial, sans-serif">
-              <h2>Hola ${usuario.nombre}!</h2>
+              <h2>Hola ${usuario.nombre} ${usuario.apellido}!</h2>
               <p>Aquí tiene un nuevo enlace para verificar su cuenta:</p>
               <p><a href="${urlVerificacion}">Verificar mi cuenta</a></p>
               <p>Este enlace expira en 24 horas.</p>

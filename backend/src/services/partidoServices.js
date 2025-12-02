@@ -57,7 +57,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     
     for (const p of partidos) {
       if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-        return [false, `Ya existe un partido en la misma cancha y horario (ID: ${p.id})`];
+        return [false, `Ya existe un partido en la misma cancha y horario`];
       }
     }
 
@@ -223,7 +223,7 @@ export const registrarResultado = async ({
     ganador = partido.equipoBId;
   } else {
     // EMPATE - Verificar si es eliminación directa
-    const esEliminacionDirecta = ["octavos", "cuartos", "semifinal", "final"].includes(
+    const esEliminacionDirecta = [ "dieciseisavos ","octavos", "cuartos", "semifinal", "final"].includes(
       partido.ronda?.toLowerCase()
     );
 
