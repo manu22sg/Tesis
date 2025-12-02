@@ -58,7 +58,7 @@ export async function crearSesion(datos) {
       });
       for (const s of sesionesMismaCancha) {
         if (hayConflictoHorario(nuevaVentana, s)) {
-          return [null, `Ya existe una sesión en la misma cancha y horario (id: ${s.id})`];
+          return [null, `Ya existe una sesión en la misma cancha y horario (${s.horaInicio} - ${s.horaFin})`];
         }
       }
 
@@ -68,7 +68,7 @@ export async function crearSesion(datos) {
       });
       for (const r of reservas) {
         if (hayConflictoHorario(nuevaVentana, r)) {
-          return [null, `Hay una reserva (${r.estado}) en ese horario. Debe gestionar la reserva ID: ${r.id} primero.`];
+          return [null, `Hay una reserva (${r.estado}) en ese horario. Debe gestionar la reserva primero.`];
         }
       }
 
@@ -305,7 +305,7 @@ export async function actualizarSesion(id, datos) {
 
       for (const s of sesionesMismaCancha) {
         if (s.id !== id && hayConflictoHorario(nuevaSesionHorario, s)) {
-          return [null, `Conflicto con otra sesión en la misma cancha (id: ${s.id})`];
+          return [null, `Conflicto con otra sesión en la misma cancha `];
         }
       }
 
@@ -320,7 +320,7 @@ export async function actualizarSesion(id, datos) {
         if (hayConflictoHorario(nuevaSesionHorario, r)) {
           return [
             null,
-            `Conflicto con reserva (${r.estado}) ID: ${r.id}. Debe gestionar la reserva primero.`,
+            `Conflicto con reserva (${r.estado}). Debe gestionar la reserva primero.`,
           ];
         }
       }
@@ -334,7 +334,7 @@ export async function actualizarSesion(id, datos) {
       });
       for (const p of partidos) {
         if (hayConflictoHorario(nuevaSesionHorario, p)) {
-          return [null, `Conflicto con partido de campeonato ID: ${p.id}.`];
+          return [null, `Conflicto con partido de campeonato .`];
         }
       }
     }
@@ -346,7 +346,7 @@ export async function actualizarSesion(id, datos) {
       });
       for (const s of mismas) {
         if (s.id !== id && hayConflictoHorario(nuevaSesionHorario, s)) {
-          return [null, `Conflicto con otra sesión del grupo (id: ${s.id})`];
+          return [null, `Conflicto con otra sesión del grupo `];
         }
       }
     }

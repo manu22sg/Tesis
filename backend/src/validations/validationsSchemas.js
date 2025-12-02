@@ -34,6 +34,10 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+const formatearFechaParaMensaje = (fechaYYYYMMDD) => {
+  const [year, month, day] = fechaYYYYMMDD.split('-');
+  return `${day}/${month}/${year}`;
+};
 // ✅ Valida fecha para RESERVAS (desde mañana, máximo 14 días)
 const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
@@ -53,7 +57,7 @@ const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     
     if (fecha < mañana) {
       return helpers.error('any.invalid', { 
-        message: `Solo se puede consultar disponibilidad desde mañana en adelante. Hoy es ${hoyStr}` 
+        message: `Solo se puede consultar disponibilidad desde mañana en adelante. Hoy es ${formatearFechaParaMensaje(hoyStr)}` 
       });
     }
     
@@ -85,13 +89,13 @@ const fechaSesionSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
     
     if (fecha < hoy) {
       return helpers.error('any.invalid', { 
-        message: `No se pueden programar sesiones en fechas pasadas. Hoy es ${hoyStr}` 
+        message: `No se puede programar en fechas pasadas. Hoy es ${formatearFechaParaMensaje(hoyStr)}` 
       });
     }
     
     if (fecha > max) {
       return helpers.error('any.invalid', { 
-        message: `No se pueden programar sesiones con más de ${ANTICIPACION_MAXIMA_SESIONES_DIAS} días de anticipación` 
+        message: `No se puede programar con más de ${ANTICIPACION_MAXIMA_SESIONES_DIAS} días de anticipación` 
       });
     }
     
@@ -210,7 +214,7 @@ export const verificarDisponibilidadSesionQuery = Joi.object({
   // Permitir hasta medianoche (24:00)
   if (i < minInicio || f > minFin) {
     return helpers.error('any.invalid', {
-      message: `Horario de sesiones: ${HORARIO_SESIONES.horainicio} - 00:00 (medianoche)`
+      message: `Horario: ${HORARIO_SESIONES.horainicio} - 00:00 (medianoche)`
     });
   }
 

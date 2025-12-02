@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, App, Button
+  Card, Table, Space, Tooltip, Popconfirm, Avatar, Typography, Pagination, ConfigProvider, App, Button, Input
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import { EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, EyeInvisibleOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -17,12 +17,13 @@ import { formatearHora, formatearFecha } from '../utils/formatters.js';
 
 dayjs.locale('es');
 const { Text } = Typography;
+const { Search } = Input;
 
 const ListaEstadisticas = ({
   tipo = 'sesion',
   id = null,
-  filtroJugadorId,
-  filtroSesionId,
+  filtroJugadorId = null, // ✅ Filtro opcional para sesiones
+  filtroSesionId = null,  // ✅ Filtro opcional para jugadores
   userRole = 'entrenador',
   onEdit = null,
   reloadKey = 0,
@@ -30,15 +31,14 @@ const ListaEstadisticas = ({
   const [estadisticas, setEstadisticas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mostrarTodo, setMostrarTodo] = useState(false);
+  const [busqueda, setBusqueda] = useState(''); // ✅ Estado para búsqueda
   const [paginacion, setPaginacion] = useState({
     actual: 1,
     tamanioPagina: 10,
     total: 0,
   });
-  const { message } = App.useApp(); 
+  const { message } = App.useApp();
 
-
-  // ✅ Control de requests
   const requestIdRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -47,8 +47,7 @@ const ListaEstadisticas = ({
     return () => { mountedRef.current = false; };
   }, []);
 
-  // ✅ Función de carga
-  const cargarDatos = async (page = 1, limit = 10) => {
+  const cargarDatos = async (page = 1, limit = 10, searchTerm = '') => {
     if (!id && tipo !== 'mias') {
       setEstadisticas([]);
       setPaginacion({ actual: 1, tamanioPagina: limit, total: 0 });
@@ -57,35 +56,32 @@ const ListaEstadisticas = ({
 
     const reqId = ++requestIdRef.current;
     setLoading(true);
-    
+
     try {
       let respuesta;
+
       if (tipo === 'mias') {
-        respuesta = await obtenerMisEstadisticas(page, limit);
+        respuesta = await obtenerMisEstadisticas(page, limit, searchTerm, filtroSesionId);
       } else if (tipo === 'sesion') {
-        respuesta = await obtenerEstadisticasPorSesion(id, page, limit);
+        // ✅ Pasar filtroJugadorId al backend
+        respuesta = await obtenerEstadisticasPorSesion(id, page, limit, searchTerm, filtroJugadorId);
       } else if (tipo === 'jugador') {
-        respuesta = await obtenerEstadisticasPorJugador(id, page, limit);
+        // ✅ Pasar filtroSesionId al backend
+        respuesta = await obtenerEstadisticasPorJugador(id, page, limit, searchTerm, filtroSesionId);
       }
 
       if (reqId !== requestIdRef.current) return;
 
-      const datos = respuesta?.data || respuesta || {};
-      const lista = datos.estadisticas || [];
-      const total = datos.total ?? lista.length;
+      const lista = respuesta.estadisticas || [];
+      const total = respuesta.total ?? lista.length;
 
-      const listFiltrada = lista.filter((e) => {
-        const okJugador = filtroJugadorId ? Number(e?.jugador?.id) === Number(filtroJugadorId) : true;
-        const okSesion  = filtroSesionId ? Number(e?.sesion?.id)  === Number(filtroSesionId)  : true;
-        return okJugador && okSesion;
-      });
-
-      setEstadisticas(listFiltrada);
+      setEstadisticas(lista);
       setPaginacion({
-        actual: datos.page || page,
+        actual: Number(respuesta.page) || page,
         tamanioPagina: limit,
-        total: (filtroJugadorId || filtroSesionId) ? listFiltrada.length : total,
+        total: total,
       });
+
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('Error al cargar estadísticas:', err);
@@ -95,21 +91,37 @@ const ListaEstadisticas = ({
     }
   };
 
+  // ✅ Recargar cuando cambia la búsqueda (con debounce)
   useEffect(() => {
-    cargarDatos(1, paginacion.tamanioPagina);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, id, filtroJugadorId, filtroSesionId, reloadKey, paginacion.tamanioPagina]);
+    const timer = setTimeout(() => {
+      setPaginacion(prev => ({ ...prev, actual: 1 }));
+      cargarDatos(1, paginacion.tamanioPagina, busqueda);
+    }, 500); // Espera 500ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timer);
+  }, [busqueda]);
+
+  // ✅ Recargar cuando cambia la página o el tamaño
+  useEffect(() => {
+    cargarDatos(paginacion.actual, paginacion.tamanioPagina, busqueda);
+  }, [paginacion.actual, paginacion.tamanioPagina, reloadKey]);
+
+  // ✅ Recargar cuando cambia tipo, id, O los filtros opcionales
+  useEffect(() => {
+    setBusqueda(''); // Limpiar búsqueda al cambiar contexto
+    setPaginacion(prev => ({ ...prev, actual: 1 }));
+    cargarDatos(1, paginacion.tamanioPagina, '');
+  }, [tipo, id, filtroJugadorId, filtroSesionId]);
 
   const onPage = (page, size) => {
     setPaginacion({ ...paginacion, actual: page, tamanioPagina: size });
-    cargarDatos(page, size);
   };
 
   const onDelete = async (estadisticaId) => {
     try {
       await eliminarEstadistica(estadisticaId);
       message.success('Estadística eliminada');
-      cargarDatos(paginacion.actual, paginacion.tamanioPagina);
+      cargarDatos(paginacion.actual, paginacion.tamanioPagina, busqueda);
     } catch (e) {
       console.error('Error eliminando estadística:', e);
       message.error('No se pudo eliminar la estadística');

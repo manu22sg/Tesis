@@ -229,7 +229,7 @@ export default function ReservaNueva() {
         const motivo = response.message || response.motivo || 'El horario no está disponible';
         setDisponibilidadStatus({
           type: 'error',
-          message: `❌ ${motivo}`
+          message: ` ${motivo}`
         });
       } else {
         // Respuesta inesperada

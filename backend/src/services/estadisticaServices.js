@@ -35,35 +35,76 @@ export async function upsertEstadistica(payload) {
     return [null, 'Error interno del servidor'];
   }
 }
-
-export async function obtenerEstadisticasPorJugador({ jugadorId, pagina=1, limite=50 }) {
+export async function obtenerEstadisticasPorJugador({ jugadorId, page=1, limit=50, busqueda='', sesionId=null }) {
   try {
     const repo = AppDataSource.getRepository(EstadisticaBasicaSchema);
-    const skip = (pagina-1)*limite;
-    const [items, total] = await repo.findAndCount({
-      where: { jugadorId },
-      relations: ['sesion'],
-      order: { fechaRegistro: 'DESC' },
-      skip, take: limite
-    });
-    return [{ estadisticas: items, total, pagina, totalPaginas: Math.ceil(total/limite) }, null];
+    const skip = (page-1)*limit;
+    
+    let queryBuilder = repo.createQueryBuilder('estadistica')
+      .leftJoinAndSelect('estadistica.sesion', 'sesion')
+      .leftJoinAndSelect('estadistica.jugador', 'jugador')
+      .where('estadistica.jugadorId = :jugadorId', { jugadorId });
+
+    // ✅ Filtrar por sesión específica si se proporciona
+    if (sesionId) {
+      queryBuilder = queryBuilder.andWhere('estadistica.sesionId = :sesionId', { sesionId });
+    }
+
+    // Búsqueda por nombre de sesión
+    if (busqueda && busqueda.trim()) {
+      queryBuilder = queryBuilder.andWhere(
+        '(LOWER(sesion.nombre) LIKE LOWER(:busqueda) OR ' +
+        'LOWER(sesion.tipoSesion) LIKE LOWER(:busqueda))',
+        { busqueda: `%${busqueda.trim()}%` }
+      );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('estadistica.fechaRegistro', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return [{ estadisticas: items, total, page, totalPaginas: Math.ceil(total/limit) }, null];
   } catch (e) {
     console.error('obtenerEstadisticasPorJugador:', e);
     return [null, 'Error interno del servidor'];
   }
 }
 
-export async function obtenerEstadisticasPorSesion({ sesionId, pagina=1, limite=50 }) {
+export async function obtenerEstadisticasPorSesion({ sesionId, page=1, limit=50, busqueda='', jugadorId=null }) {
   try {
     const repo = AppDataSource.getRepository(EstadisticaBasicaSchema);
-    const skip = (pagina-1)*limite;
-    const [items, total] = await repo.findAndCount({
-      where: { sesionId },
-      relations: ['jugador','jugador.usuario'],
-      order: { goles: 'DESC' }, // puedes ajustar el orden
-      skip, take: limite
-    });
-    return [{ estadisticas: items, total, pagina, totalPaginas: Math.ceil(total/limite) }, null];
+    const skip = (page-1)*limit;
+    
+    let queryBuilder = repo.createQueryBuilder('estadistica')
+      .leftJoinAndSelect('estadistica.jugador', 'jugador')
+      .leftJoinAndSelect('jugador.usuario', 'usuario')
+      .leftJoinAndSelect('estadistica.sesion', 'sesion')
+      .where('estadistica.sesionId = :sesionId', { sesionId });
+
+    // ✅ Filtrar por jugador específico si se proporciona
+    if (jugadorId) {
+      queryBuilder = queryBuilder.andWhere('estadistica.jugadorId = :jugadorId', { jugadorId });
+    }
+
+    // Búsqueda por nombre de jugador o RUT
+    if (busqueda && busqueda.trim()) {
+      queryBuilder = queryBuilder.andWhere(
+        '(LOWER(usuario.nombre) LIKE LOWER(:busqueda) OR ' +
+        'LOWER(usuario.apellido) LIKE LOWER(:busqueda) OR ' +
+        'LOWER(usuario.rut) LIKE LOWER(:busqueda))',
+        { busqueda: `%${busqueda.trim()}%` }
+      );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('estadistica.goles', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return [{ estadisticas: items, total, page, totalPaginas: Math.ceil(total/limit) }, null];
   } catch (e) {
     console.error('obtenerEstadisticasPorSesion:', e);
     return [null, 'Error interno del servidor'];

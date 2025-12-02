@@ -125,13 +125,13 @@ export const registerSchema = Joi.object({
 
   anioIngresoUniversidad: Joi.number()
     .integer()
-    .min(1990)
+    .min(2000)
     .max(new Date().getFullYear())
     .optional()
     .allow(null,'')
     .messages({
       'number.base': 'El año de ingreso debe ser un número válido',
-      'number.min': 'El año de ingreso no puede ser anterior a 1990',
+      'number.min': 'El año de ingreso no puede ser anterior a 2000',
       'number.max': `El año de ingreso no puede ser mayor a ${new Date().getFullYear()}`
     })
 })

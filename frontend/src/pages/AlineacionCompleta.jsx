@@ -1,34 +1,29 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Table, Tag, Button, Space, Empty, Tooltip,
+  Card, Table, Button, Space, Empty, Tooltip,
   Modal, Form, Select, InputNumber, Input, Spin, Popconfirm,
-  Tabs, ConfigProvider, Typography, Alert, Avatar, Dropdown,App
+  Tabs, ConfigProvider, Typography, Alert, Avatar, Dropdown, App, Row, Col
 } from 'antd';
 import locale from 'antd/locale/es_ES';
-import {ThunderboltOutlined ,
-  UserOutlined,  PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
-  UserAddOutlined, FieldTimeOutlined, TableOutlined,
-  AimOutlined, ArrowLeftOutlined, DownloadOutlined,
-  FileExcelOutlined,
-  FilePdfOutlined
-} from '@ant-design/icons';
 import {
-  crearAlineacion,
-  obtenerAlineacionPorSesion,
-  agregarJugadorAlineacion,
-  actualizarJugadorAlineacion,
-  quitarJugadorAlineacion,
-  eliminarAlineacion,
-  actualizarPosicionesJugadores,
-  exportarAlineacionExcel,
-  exportarAlineacionPDF
+  ThunderboltOutlined, UserOutlined, PlusOutlined, DeleteOutlined, EditOutlined,
+  UserAddOutlined, FieldTimeOutlined, TableOutlined, AimOutlined, ArrowLeftOutlined,
+  DownloadOutlined, FileExcelOutlined, FilePdfOutlined, TeamOutlined
+} from '@ant-design/icons';
+import InfoAlineacionInteligente from '../components/InfoAlineacionInteligente.jsx';
 
+import {
+  crearAlineacion, obtenerAlineacionPorSesion, agregarJugadorAlineacion,
+  actualizarJugadorAlineacion, quitarJugadorAlineacion, eliminarAlineacion,
+  actualizarPosicionesJugadores, exportarAlineacionExcel, exportarAlineacionPDF
 } from '../services/alineacion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { obtenerSesionPorId } from '../services/sesion.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import CampoAlineacion from '../components/CampoAlineacion.jsx';
+import PanelSuplentes from '../components/PanelSuplentes.jsx';
+import EstadisticasAlineacion from '../components/EstadisticasAlineacion.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 import ModalAlineacionInteligente from '../components/ModalAlineacionInteligente.jsx';
 
@@ -36,25 +31,21 @@ const { TextArea } = Input;
 const { Text } = Typography;
 
 const POSICIONES = [
-  'Portero',
-  'Defensa Central',
-  'Defensa Central Derecho',
-  'Defensa Central Izquierdo',
-  'Lateral Derecho',
-  'Lateral Izquierdo',
-  'Mediocentro Defensivo',
-  'Mediocentro',
-  'Mediocentro Ofensivo',
-  'Extremo Derecho',
-  'Extremo Izquierdo',
-  'Delantero Centro'
+  'Portero', 'Defensa Central', 'Defensa Central Derecho', 'Defensa Central Izquierdo',
+  'Lateral Derecho', 'Lateral Izquierdo', 'Mediocentro Defensivo', 'Mediocentro',
+  'Mediocentro Ofensivo', 'Extremo Derecho', 'Extremo Izquierdo', 'Delantero Centro'
 ];
+
+const MAX_JUGADORES_ALINEACION = 26; // 11 titulares + 15 suplentes
+const MAX_TITULARES = 11;
+const MAX_SUPLENTES = 15;
+
 
 export default function AlineacionCompleta() {
   const { sesionId } = useParams();
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const [modalInteligenteVisible, setModalInteligenteVisible] = useState(false);
-const { message } = App.useApp(); 
 
   const [loading, setLoading] = useState(false);
   const [alineacion, setAlineacion] = useState(null);
@@ -75,7 +66,6 @@ const { message } = App.useApp();
     }
   }, [sesionId]);
 
-  // Cargar jugadores después de tener la info de la sesión
   useEffect(() => {
     if (sesionInfo) {
       cargarJugadores();
@@ -144,28 +134,73 @@ const { message } = App.useApp();
     }
   };
 
-  const handleAgregarJugador = async (values, continuar = false) => {
-    try {
-      await agregarJugadorAlineacion({
-        alineacionId: alineacion.id,
-        ...values
-      });
-
-      await cargarAlineacion();
-
-      if (continuar) {
-        form.resetFields();
-        setFormularioCompleto(false);
-      } else {
-        setModalVisible(false);
-        form.resetFields();
-        setFormularioCompleto(false);
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Error al agregar jugador');
-      console.error(error);
+const handleAgregarJugador = async (values, continuar = false) => {
+  try {
+    // Validar que el dorsal esté presente
+    if (!values.orden) {
+      message.error('El dorsal es obligatorio');
+      return;
     }
-  };
+    const dorsalRepetido = alineacion.jugadores?.some(j => j.orden === values.orden);
+    if (dorsalRepetido) {
+      message.error(`El dorsal #${values.orden} ya está en uso. Por favor elige otro número.`);
+      return;
+    }
+
+
+    // Validar límites
+    const totalJugadores = alineacion.jugadores?.length || 0;
+    if (totalJugadores >= MAX_JUGADORES_ALINEACION) {
+      message.error(`No se pueden agregar más de ${MAX_JUGADORES_ALINEACION} jugadores a la alineación`);
+      return;
+    }
+
+    // Validar límite de titulares (dorsal 1-11)
+    if (values.orden >= 1 && values.orden <= 11) {
+      const titularesActuales = alineacion.titulares?.length || 0;
+      if (titularesActuales >= MAX_TITULARES) {
+        message.error(`Ya hay ${MAX_TITULARES} titulares. Usa dorsal 12 o mayor para suplentes`);
+        return;
+      }
+    }
+
+    // Validar límite de suplentes (dorsal 12+)
+    if (values.orden > 11) {
+      const suplentesActuales = alineacion.suplentes?.length || 0;
+      if (suplentesActuales >= MAX_SUPLENTES) {
+        message.error(`Ya hay ${MAX_SUPLENTES} suplentes. No se pueden agregar más`);
+        return;
+      }
+    }
+
+    await agregarJugadorAlineacion({
+      alineacionId: alineacion.id,
+      ...values
+    });
+
+    message.success('Jugador agregado correctamente');
+    await cargarAlineacion();
+
+    if (continuar) {
+      form.resetFields();
+      // Calcular el siguiente dorsal y establecerlo como requerido
+      const siguienteDorsal = calcularSiguienteDorsal();
+      form.setFieldsValue({
+        orden: siguienteDorsal
+      });
+      setFormularioCompleto(false);
+    } else {
+      setModalVisible(false);
+      form.resetFields();
+      setFormularioCompleto(false);
+    }
+  } catch (error) {
+    message.error(error.response?.data?.message || 'Error al agregar jugador');
+    console.error(error);
+  }
+};
+
+
 
   const handleActualizarJugador = async (values) => {
     try {
@@ -188,12 +223,7 @@ const { message } = App.useApp();
   const handleQuitarJugador = async (jugadorId) => {
     try {
       await quitarJugadorAlineacion(alineacion.id, jugadorId);
-
-      setAlineacion(prev => ({
-        ...prev,
-        jugadores: prev.jugadores.filter(j => j.jugadorId !== jugadorId)
-      }));
-
+      message.success("Jugador eliminado")
       cargarAlineacion();
     } catch (error) {
       console.error('Error al quitar jugador:', error);
@@ -204,12 +234,65 @@ const { message } = App.useApp();
   const handleEliminarAlineacion = async () => {
     try {
       await eliminarAlineacion(alineacion.id);
+      message.success('Alineación eliminada');
       setAlineacion(null);
     } catch (error) {
       message.error('Error al eliminar la alineación');
       console.error(error);
     }
   };
+
+  const handlePromoverATitular = async (jugador) => {
+    try {
+      // Asignar un orden 1-11 disponible y posición en cancha
+      const ordenesUsados = new Set(
+        alineacion.titulares?.map(t => t.orden).filter(Boolean) || []
+      );
+      let nuevoOrden = 1;
+      while (ordenesUsados.has(nuevoOrden) && nuevoOrden <= 11) {
+        nuevoOrden++;
+      }
+
+      if (nuevoOrden > 11) {
+        message.warning('Ya hay 11 titulares. Debes remover uno primero.');
+        return;
+      }
+
+      // Posiciones por defecto según la posición del jugador
+      const posicionesDefecto = {
+        'portero': { x: 50, y: 90 },
+        'defensa central': { x: 50, y: 75 },
+        'defensa central derecho': { x: 60, y: 75 },
+        'defensa central izquierdo': { x: 40, y: 75 },
+        'lateral derecho': { x: 80, y: 75 },
+        'lateral izquierdo': { x: 20, y: 75 },
+        'mediocentro defensivo': { x: 50, y: 60 },
+        'mediocentro': { x: 50, y: 45 },
+        'mediocentro ofensivo': { x: 50, y: 30 },
+        'extremo derecho': { x: 80, y: 30 },
+        'extremo izquierdo': { x: 20, y: 30 },
+        'delantero centro': { x: 50, y: 15 }
+      };
+
+      const posKey = jugador.posicion?.toLowerCase() || 'mediocentro';
+      const posDefecto = posicionesDefecto[posKey] || { x: 50, y: 50 };
+
+      await actualizarJugadorAlineacion({
+        alineacionId: alineacion.id,
+        jugadorId: jugador.jugadorId,
+        orden: nuevoOrden,
+        posicionX: posDefecto.x,
+        posicionY: posDefecto.y
+      });
+
+      message.success(`${jugador.jugador?.usuario?.nombre} promovido a titular`);
+      cargarAlineacion();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Error al promover jugador');
+      console.error(error);
+    }
+  };
+
 
   const abrirModalEditar = (jugador) => {
     setJugadorEditando(jugador);
@@ -221,66 +304,62 @@ const { message } = App.useApp();
     setModalEditVisible(true);
   };
 
-  // Validar que el formulario esté completo
   const validarFormularioCompleto = () => {
     const valores = form.getFieldsValue();
     const completo = valores.jugadorId && valores.posicion;
     setFormularioCompleto(completo);
   };
+
   const handleExportExcel = async () => {
-  try {
-    const result = await exportarAlineacionExcel(sesionId);
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("Excel descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
+    try {
+      const result = await exportarAlineacionExcel(sesionId);
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("Excel descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error("Error al exportar Excel:", error);
+      message.error(error.message || "Error al exportar Excel");
     }
+  };
 
-  } catch (error) {
-    console.error("Error al exportar Excel:", error);
-    message.error(error.message || "Error al exportar Excel");
-  }
-};
-
-const handleExportPDF = async () => {
-  try {
-    const result = await exportarAlineacionPDF(sesionId);
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("PDF descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
+  const handleExportPDF = async () => {
+    try {
+      const result = await exportarAlineacionPDF(sesionId);
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("PDF descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      message.error(error.message || "Error al exportar PDF");
     }
+  };
 
-  } catch (error) {
-    console.error("Error al exportar PDF:", error);
-    message.error(error.message || "Error al exportar PDF");
+  function descargarArchivo(blob, nombre) {
+    if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+      console.error('createObjectURL no disponible');
+      return;
+    }
+    try {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar archivo:', error);
+    }
   }
-};
 
-function descargarArchivo(blob, nombre) {
-  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
-    console.error('createObjectURL no disponible');
-    return;
-  }
-
-  try {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombre;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error al descargar archivo:', error);
-  }
-}
-const menuExportar = {
+  const menuExportar = {
     items: [
       {
         key: 'excel',
@@ -297,18 +376,15 @@ const menuExportar = {
     ],
   };
 
-
-
   const jugadoresYaEnAlineacion = alineacion?.jugadores?.map(j => j.jugadorId) || [];
   const jugadoresFiltrados = jugadoresDisponibles.filter(
     j => !jugadoresYaEnAlineacion.includes(j.id)
   );
 
-  // Opciones de Select de jugadores (label/value) para evitar errores de filtrado
   const opcionesJugadores = useMemo(() => {
     return jugadoresFiltrados.map(j => ({
       value: j.id,
-      label: `${j.usuario?.nombre ||  `Jugador #${j.id}`} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || ''}`.trim()
+      label: `${j.usuario?.nombre || `Jugador #${j.id}`} ${j.usuario?.apellido || ''} - ${j.usuario?.rut || ''}`.trim()
     }));
   }, [jugadoresFiltrados]);
 
@@ -317,24 +393,41 @@ const menuExportar = {
       title: 'Dorsal',
       dataIndex: 'orden',
       key: 'orden',
-      width: 60,
+      width: 80,
       sorter: (a, b) => (a.orden || 999) - (b.orden || 999),
-      render: (orden) => orden ? <span>#{orden}</span> : <Text type="secondary">—</Text>
+      render: (orden, record) => {
+        const color = record.tipo === 'titular' ? 'green' : 
+                      record.tipo === 'suplente' ? 'gold' : 'default';
+        return orden ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: color === 'green' ? '#52c41a' : 
+                             color === 'gold' ? '#faad14' : '#d9d9d9',
+              display: 'inline-block'
+            }} />
+            #{orden}
+          </span>
+        ) : <Text type="secondary">—</Text>;
+      }
     },
     {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => (
         <Space>
-           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Avatar 
-          size={40} 
-          icon={<UserOutlined />} 
-          style={{ backgroundColor: '#014898' }}
-        />
-        </div>
+          <Avatar 
+            size={40} 
+            icon={<UserOutlined />} 
+            style={{ 
+              backgroundColor: record.tipo === 'titular' ? '#52c41a' : 
+                              record.tipo === 'suplente' ? '#faad14' : '#8c8c8c'
+            }}
+          />
           <span>
-  {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''} - ${record.jugador?.usuario?.rut || 'Sin RUT'}`.trim()}
+            {`${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''} - ${record.jugador?.usuario?.rut || 'Sin RUT'}`.trim()}
           </span>
         </Space>
       )
@@ -344,6 +437,26 @@ const menuExportar = {
       dataIndex: 'posicion',
       key: 'posicion',
       render: (posicion) => <span>{posicion}</span>
+    },
+    {
+      title: 'Tipo',
+      key: 'tipo',
+      width: 100,
+      render: (_, record) => {
+        const config = {
+          titular: { color: 'green', text: 'Titular' },
+          suplente: { color: 'gold', text: 'Suplente' },
+        };
+        const tipo = config[record.tipo] || config.sin_definir;
+        return <span style={{
+          padding: '2px 8px',
+          borderRadius: 4,
+          fontSize: '12px',
+          fontWeight: 500,
+          border: '1px solid #B9BBBB',
+          backgroundColor: '#f5f5f5'
+        }}>{tipo.text}</span>;
+      }
     },
     {
       title: 'Comentario',
@@ -381,6 +494,40 @@ const menuExportar = {
       )
     }
   ];
+  const calcularSiguienteDorsal = () => {
+  if (!alineacion?.jugadores || alineacion.jugadores.length === 0) {
+    return 1;
+  }
+  
+  // Obtener todos los dorsales existentes
+  const dorsalesUsados = alineacion.jugadores
+    .map(j => j.orden)
+    .filter(orden => orden != null)
+    .sort((a, b) => a - b);
+  
+  // Si no hay dorsales, empezar en 1
+  if (dorsalesUsados.length === 0) {
+    return 1;
+  }
+  
+  // Buscar el primer número disponible desde 1
+  let siguienteDorsal = 1;
+  for (const dorsal of dorsalesUsados) {
+    if (dorsal === siguienteDorsal) {
+      siguienteDorsal++;
+    } else if (dorsal > siguienteDorsal) {
+      break;
+    }
+  }
+  
+  return siguienteDorsal;
+};
+
+const puedeAgregarJugador = () => {
+  if (!alineacion) return true;
+  const totalJugadores = alineacion.jugadores?.length || 0;
+  return totalJugadores < MAX_JUGADORES_ALINEACION;
+};
 
   if (loading && !alineacion) {
     return (
@@ -399,7 +546,6 @@ const menuExportar = {
     );
   }
 
-  // Helper para mostrar cancha o ubicación externa
   const getLugarSesion = (s) => s?.cancha?.nombre || s?.ubicacionExterna || 'Sin ubicación';
 
   if (!alineacion) {
@@ -425,15 +571,11 @@ const menuExportar = {
               />
             )}
 
+
             <Card>
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                styles={{ image: { height: 100 } }}
-                description={
-                  <div>
-                    <h3>No hay alineación creada para esta sesión</h3>
-                  </div>
-                }
+                description="No hay alineación creada para esta sesión"
               >
                 <Button
                   type="primary"
@@ -472,115 +614,129 @@ const menuExportar = {
               style={{ marginBottom: 16 }}
             />
           )}
+            <InfoAlineacionInteligente alineacion={alineacion} />
 
-          {/* Contenido principal */}
-        <Card
-  title={
-    <Space>
-      <FieldTimeOutlined />
-      <span>Alineación</span>
-    </Space>
-  }
-  extra={
-    <Space wrap>
-      {/* Botón Alineación Inteligente con Tooltip */}
-      <Tooltip 
-        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
-      >
-        <Button
-          type="dashed"
-          icon={<ThunderboltOutlined />}
-          onClick={() => setModalInteligenteVisible(true)}
-          disabled={!sesionInfo?.grupo?.id}
-        >
-          Alineación Inteligente
-        </Button>
-      </Tooltip>
+          {/* Estadísticas */}
+          {alineacion?.estadisticas && (
+            <EstadisticasAlineacion 
+              estadisticas={alineacion.estadisticas}
+              jugadores={alineacion.jugadores}
+            />
+          )}
 
-      {/* Exportar (solo si hay jugadores) */}
-      {alineacion?.jugadores?.length > 0 && (
-        <Dropdown menu={menuExportar} trigger={['hover']}>
-                    <Button icon={<DownloadOutlined />}>
-                      Exportar
-                    </Button>
+          <Card
+            title={
+              <Space>
+                <FieldTimeOutlined />
+                <span>Alineación</span>
+              </Space>
+            }
+            extra={
+              <Space wrap>
+                <Tooltip title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}>
+                  <Button
+                    type="dashed"
+                    icon={<ThunderboltOutlined />}
+                    onClick={() => setModalInteligenteVisible(true)}
+                    disabled={!sesionInfo?.grupo?.id}
+                  >
+                    Alineación Sugerida
+                  </Button>
+                </Tooltip>
+
+                {alineacion?.jugadores?.length > 0 && (
+                  <Dropdown menu={menuExportar} trigger={['hover']}>
+                    <Button icon={<DownloadOutlined />}>Exportar</Button>
                   </Dropdown>
-      )}
+                )}
 
-      {/* Agregar Jugador - DESHABILITADO SIN GRUPO */}
-      <Tooltip 
-        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
-      >
-        <Button
-          type="primary"
-          icon={<UserAddOutlined />}
-          onClick={() => {
-            setModalVisible(true);
-            form.resetFields();
-            setFormularioCompleto(false);
-          }}
-          disabled={!sesionInfo?.grupo?.id || opcionesJugadores.length === 0}
-        >
-          Agregar Jugador
-        </Button>
-      </Tooltip>
-
-      {/* Eliminar alineación (SOLO si hay jugadores) */}
-      {alineacion?.jugadores?.length > 0 && (
-        <Popconfirm
-          title="¿Eliminar alineación?"
-          description="Esta acción eliminará todos los jugadores"
-          onConfirm={handleEliminarAlineacion}
-          okText="Eliminar"
-          cancelText="Cancelar"
-          okButtonProps={{ danger: true }}
-        >
-          <Button danger icon={<DeleteOutlined />}>
-            Eliminar
-          </Button>
-        </Popconfirm>
-      )}
-    </Space>
+                <Tooltip 
+  title={
+    !sesionInfo?.grupo?.id 
+      ? "Esta sesión no tiene un grupo asignado" 
+      : !puedeAgregarJugador() 
+        ? `Límite alcanzado (${MAX_JUGADORES_ALINEACION} jugadores máximo)`
+        : ""
   }
 >
-  {alineacion.jugadores && alineacion.jugadores.length > 0 ? (
-    <Tabs
-      activeKey={vistaActual}
-      onChange={setVistaActual}
-      items={[
-        {
-          key: 'campo',
-          label: (
-            <span>
-              <AimOutlined />
-              Vista Campo
-            </span>
-          ),
-          children: (
-            <CampoAlineacion
-              jugadores={alineacion.jugadores}
-              onActualizarPosiciones={async (jugadoresActualizados) => {
-                try {
-                  const response = await actualizarPosicionesJugadores(alineacion.id, jugadoresActualizados);
-                  setAlineacion(response.data);
-                } catch (error) {
-                  console.error('Error al guardar posiciones:', error);
-                  message.error(error.response?.data?.message || 'Error al guardar posiciones');
-                }
-              }}
-              onEliminarJugador={async (jugadorId) => {
-                await handleQuitarJugador(jugadorId);
-              }}
-            />
-          )
-        },
+  <Button
+    type="primary"
+    icon={<UserAddOutlined />}
+    onClick={() => {
+      setModalVisible(true);
+      form.resetFields();
+      form.setFieldsValue({
+        orden: calcularSiguienteDorsal()
+      });
+      setFormularioCompleto(false);
+    }}
+    disabled={
+      !sesionInfo?.grupo?.id || 
+      opcionesJugadores.length === 0 || 
+      !puedeAgregarJugador()
+    }
+  >
+    Agregar Jugador {alineacion && `(${alineacion.jugadores?.length || 0}/${MAX_JUGADORES_ALINEACION})`}
+  </Button>
+</Tooltip>
+
+                {alineacion?.jugadores?.length > 0 && (
+                  <Popconfirm
+                    title="¿Eliminar alineación?"
+                    description="Esta acción eliminará todos los jugadores"
+                    onConfirm={handleEliminarAlineacion}
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button danger icon={<DeleteOutlined />}>Eliminar</Button>
+                  </Popconfirm>
+                )}
+              </Space>
+            }
+          >
+            {alineacion.jugadores && alineacion.jugadores.length > 0 ? (
+              <Tabs
+                activeKey={vistaActual}
+                onChange={setVistaActual}
+                items={[
+                  {
+                    key: 'campo',
+                    label: (<span><AimOutlined /> Vista Campo</span>),
+                    children: (
+                      <Row gutter={16}>
+                        <Col xs={24} lg={17}>
+                          <CampoAlineacion
+                            titulares={alineacion.titulares || []}
+                            onActualizarPosiciones={async (jugadoresActualizados) => {
+                              try {
+                                const response = await actualizarPosicionesJugadores(
+                                  alineacion.id, 
+                                  jugadoresActualizados
+                                );
+                                setAlineacion(response.data);
+                              } catch (error) {
+                                console.error('Error al guardar posiciones:', error);
+                                message.error(error.response?.data?.message || 'Error al guardar posiciones');
+                              }
+                            }}
+                            onEliminarJugador={handleQuitarJugador}
+                          />
+                        </Col>
+                        <Col xs={24} lg={7}>
+                          <PanelSuplentes
+                            suplentes={alineacion.suplentes || []}
+                            sinDefinir={alineacion.sinDefinir || []}
+                            onEliminarJugador={handleQuitarJugador}
+                            onPromoverATitular={handlePromoverATitular}
+                          />
+                        </Col>
+                      </Row>
+                    )
+                  },
                   {
                     key: 'tabla',
-                    label: (
-                      <span>
-                        <TableOutlined />
-                        Vista Tabla
-                      </span>
-                    ),
+                    label: (<span><TableOutlined /> Vista Tabla</span>),
                     children: (
                       <Table
                         columns={columns}
@@ -595,36 +751,32 @@ const menuExportar = {
                 ]}
               />
             ) : (
-               <Empty description="No hay jugadores en la alineación">
-      {/* TAMBIÉN deshabilitar aquí */}
-      <Tooltip 
-        title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}
-      >
-        <Button
-          type="primary"
-          icon={<UserAddOutlined />}
-          onClick={() => {
-            setModalVisible(true);
-            form.resetFields();
-            setFormularioCompleto(false);
-          }}
-          disabled={!sesionInfo?.grupo?.id}
-        >
-          Agregar Primer Jugador
-        </Button>
-      </Tooltip>
-    </Empty>
+              <Empty description="No hay jugadores en la alineación">
+                <Tooltip title={!sesionInfo?.grupo?.id ? "Esta sesión no tiene un grupo asignado" : ""}>
+                  <Button
+  type="primary"
+  icon={<UserAddOutlined />}
+  onClick={() => {
+    setModalVisible(true);
+    form.resetFields();
+    // Establecer dorsal 1 para el primer jugador
+    form.setFieldsValue({
+      orden: calcularSiguienteDorsal()
+    });
+    setFormularioCompleto(false);
+  }}
+  disabled={!sesionInfo?.grupo?.id}
+>
+  Agregar Primer Jugador
+</Button>
+                </Tooltip>
+              </Empty>
             )}
           </Card>
 
           {/* Modal Agregar Jugador */}
           <Modal
-            title={
-              <Space>
-                <UserAddOutlined />
-                Agregar Jugador a la Alineación
-              </Space>
-            }
+            title={<Space><UserAddOutlined />Agregar Jugador a la Alineación</Space>}
             open={modalVisible}
             onCancel={() => {
               setModalVisible(false);
@@ -632,14 +784,11 @@ const menuExportar = {
               setFormularioCompleto(false);
             }}
             footer={[
-              <Button
-                key="cancel"
-                onClick={() => {
-                  setModalVisible(false);
-                  form.resetFields();
-                  setFormularioCompleto(false);
-                }}
-              >
+              <Button key="cancel" onClick={() => {
+                setModalVisible(false);
+                form.resetFields();
+                setFormularioCompleto(false);
+              }}>
                 Cancelar
               </Button>,
               <Button
@@ -692,32 +841,33 @@ const menuExportar = {
               >
                 <Select placeholder="Selecciona una posición">
                   {POSICIONES.map(pos => (
-                    <Select.Option key={pos} value={pos}>
-                      {pos}
-                    </Select.Option>
+                    <Select.Option key={pos} value={pos}>{pos}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
 
               <Form.Item
-                name="orden"
-                label="Número / Orden"
-                tooltip="Número de dorsal o posición en el orden (opcional)"
-              >
-                <InputNumber
-                  min={1}
-                  style={{ width: '100%' }}
-                  placeholder="Ej: 1, 2, 3..."
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="comentario"
-                label="Comentario"
-              >
+  name="orden"
+  label="Dorsal"
+  required  // ← AGREGAR ESTA LÍNEA para mostrar el asterisco rojo
+  rules={[
+    { required: true, message: 'El dorsal es obligatorio' },
+    { type: 'number', min: 1, max: 30, message: 'Dorsal debe estar entre 1 y 30' }
+  ]}
+  tooltip="Dorsal 1-11 para titulares, 12-26 para suplentes"
+  
+>
+  <InputNumber
+    min={1}
+    max={30}
+    style={{ width: '100%' }}
+    placeholder="Ej: 1, 10, 12..."
+  />
+</Form.Item>
+              <Form.Item name="comentario" label="Comentario">
                 <TextArea
                   rows={3}
-                  placeholder="Ej: Capitán, Suplente, Titular, etc."
+                  placeholder="Ej: Capitán, Buen estado físico, etc."
                   maxLength={500}
                   showCount
                 />
@@ -727,12 +877,7 @@ const menuExportar = {
 
           {/* Modal Editar Jugador */}
           <Modal
-            title={
-              <Space>
-                <EditOutlined />
-                Editar Jugador en Alineación
-              </Space>
-            }
+            title={<Space><EditOutlined />Editar Jugador en Alineación</Space>}
             open={modalEditVisible}
             onCancel={() => {
               setModalEditVisible(false);
@@ -742,45 +887,45 @@ const menuExportar = {
             footer={null}
             width={500}
           >
-            <Form
-              form={formEdit}
-              layout="vertical"
-              onFinish={handleActualizarJugador}
-            >
-              <Form.Item
-                name="posicion"
-                label="Posición"
-              >
+            <Form form={formEdit} layout="vertical" onFinish={handleActualizarJugador}>
+              <Form.Item name="posicion" label="Posición">
                 <Select placeholder="Selecciona una posición">
                   {POSICIONES.map(pos => (
-                    <Select.Option key={pos} value={pos}>
-                      {pos}
-                    </Select.Option>
+                    <Select.Option key={pos} value={pos}>{pos}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
 
               <Form.Item
-                name="orden"
-                label="Número / Orden"
-              >
-                <InputNumber
-                  min={1}
-                  style={{ width: '100%' }}
-                  placeholder="Número de orden"
-                />
-              </Form.Item>
+  name="orden"
+  label="Dorsal"
+  rules={[
+    { required: true, message: 'El dorsal es obligatorio' },
+    { type: 'number', min: 1, max: 99, message: 'Dorsal debe estar entre 1 y 99' }
+  ]}
+  tooltip="Dorsal 1-11 para titulares, 12-26 para suplentes"
+  extra={
+    <div style={{ fontSize: 12, marginTop: 4 }}>
+      <div>• Titulares: Dorsal 1-11 (máx. {MAX_TITULARES})</div>
+      <div>• Suplentes: Dorsal 12+ (máx. {MAX_SUPLENTES})</div>
+      {alineacion && (
+        <div style={{ marginTop: 4, color: '#1890ff' }}>
+          Actual: {alineacion.titulares?.length || 0} titulares, {alineacion.suplentes?.length || 0} suplentes
+        </div>
+      )}
+    </div>
+  }
+>
+  <InputNumber
+    min={1}
+    max={99}
+    style={{ width: '100%' }}
+    placeholder="Ej: 1, 10, 12..."
+  />
+</Form.Item>
 
-              <Form.Item
-                name="comentario"
-                label="Comentario"
-              >
-                <TextArea
-                  rows={3}
-                  placeholder="Comentario adicional"
-                  maxLength={500}
-                  showCount
-                />
+              <Form.Item name="comentario" label="Comentario">
+                <TextArea rows={3} placeholder="Comentario adicional" maxLength={500} showCount />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0 }}>
@@ -799,17 +944,17 @@ const menuExportar = {
               </Form.Item>
             </Form>
           </Modal>
+
           <ModalAlineacionInteligente
-  visible={modalInteligenteVisible}
-  onCancel={() => setModalInteligenteVisible(false)}
-  onSuccess={() => {
-    cargarAlineacion(); 
-  }}
-  sesionId={sesionId}
-  grupoId={sesionInfo?.grupo?.id}
-  tieneJugadores={alineacion?.jugadores?.length > 0}
-  
-/>
+            visible={modalInteligenteVisible}
+            onCancel={() => setModalInteligenteVisible(false)}
+            onSuccess={() => {
+              cargarAlineacion();
+            }}
+            sesionId={sesionId}
+            grupoId={sesionInfo?.grupo?.id}
+            tieneJugadores={alineacion?.jugadores?.length > 0}
+          />
         </div>
       </ConfigProvider>
     </MainLayout>

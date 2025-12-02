@@ -13,8 +13,8 @@ export async function getLesiones(req, res) {
   const { page = 1, limit = 10, jugadorId, desde, hasta, q } = req.query; // ✅ Cambio aquí
   
   const filtros = {
-    page: parseInt(page),     // ✅ Mapeo
-    limit: parseInt(limit)    // ✅ Mapeo
+    pagina: parseInt(page),     // ✅ Mapeo
+    limite: parseInt(limit)    // ✅ Mapeo
   };
   
   if (jugadorId) filtros.jugadorId = parseInt(jugadorId);

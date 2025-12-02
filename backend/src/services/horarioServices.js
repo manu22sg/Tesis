@@ -328,7 +328,7 @@ export async function verificarDisponibilidadReserva(
     
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con otra sesión de entrenamiento (${s.horaInicio} - ${s.horaFin}) `];
+        return [false, `Conflicto con otra sesión (${s.horaInicio} - ${s.horaFin}) `];
       }
     }
 

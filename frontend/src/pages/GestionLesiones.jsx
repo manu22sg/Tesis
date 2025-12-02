@@ -9,14 +9,14 @@ import {
   FileExcelOutlined,
   PlusOutlined, EditOutlined, DeleteOutlined,
   MedicineBoxOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  SearchOutlined, UserOutlined, DownloadOutlined,FilePdfOutlined
+  SearchOutlined, UserOutlined, DownloadOutlined, FilePdfOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import {
   crearLesion, obtenerLesiones, actualizarLesion,
-  eliminarLesion,exportarLesionesExcel, 
-  exportarLesionesPDF      
+  eliminarLesion, exportarLesionesExcel,
+  exportarLesionesPDF
 } from '../services/lesion.services.js';
 import { obtenerJugadores } from '../services/jugador.services.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -31,8 +31,8 @@ export default function GestionLesiones() {
   const { usuario } = useAuth();
   const rolUsuario = usuario?.rol;
   const jugadorId = usuario?.jugadorId;
-   const [exportando, setExportando] = useState(false);
-  const { message } = App.useApp(); 
+  const [exportando, setExportando] = useState(false);
+  const { message } = App.useApp();
 
   const [lesiones, setLesiones] = useState([]);
   const [jugadores, setJugadores] = useState([]);
@@ -42,7 +42,10 @@ export default function GestionLesiones() {
   const [modalEditando, setModalEditando] = useState(false);
   const [lesionActual, setLesionActual] = useState(null);
 
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  // Estados de paginación separados
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [tamañoPagina, setTamañoPagina] = useState(10);
+  const [totalRegistros, setTotalRegistros] = useState(0);
 
   // Filtros (server-side)
   const [busqueda, setBusqueda] = useState('');
@@ -55,9 +58,11 @@ export default function GestionLesiones() {
   const esEstudiante = rolUsuario === 'estudiante';
   const puedeEditar = ['entrenador', 'superadmin'].includes(rolUsuario);
 
-  // control de carreras de requests
+  // Control de carreras de requests
   const requestIdRef = useRef(0);
   const mountedRef = useRef(true);
+  const loadingRef = useRef(false);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -86,19 +91,25 @@ export default function GestionLesiones() {
 
   const cargarLesiones = async (
     page = 1,
-    pageSize = pagination.pageSize,
+    pageSize = 10,
     q = qDebounced,
     jugador = filtroJugadorId,
     rango = rangoFechas
   ) => {
+    // Prevenir llamadas duplicadas
+    if (loadingRef.current) return;
+
     const reqId = ++requestIdRef.current;
+    loadingRef.current = true;
     setLoading(true);
+
     try {
       const params = {
-        pagina: page,
-        limite: pageSize,
-      };
-      if (q) params.q = q; // 🔹 búsqueda server-side
+  page: page,
+  limit: pageSize,
+};
+
+      if (q) params.q = q;
       if (jugador) params.jugadorId = jugador;
       if (rango) {
         params.desde = rango[0].format('YYYY-MM-DD');
@@ -106,35 +117,43 @@ export default function GestionLesiones() {
       }
 
       const response = await obtenerLesiones(params);
-      if (reqId !== requestIdRef.current) return; // ignora respuestas viejas
+
+      if (reqId !== requestIdRef.current) return;
 
       const lista = response.data?.lesiones || [];
       setLesiones(lista);
-      setPagination(prev => ({
-        ...prev,
-        current: response.data?.pagina ?? page,
-        pageSize,
-        total: response.data?.total ?? 0,
-        totalPages: response.data?.totalPaginas,
-      }));
+      setPaginaActual(response.data?.pagina ?? page);
+      setTotalRegistros(response.data?.total ?? 0);
+
     } catch (error) {
       if (!mountedRef.current) return;
       console.error('Error al cargar lesiones:', error);
       message.error(error.message || 'Error al cargar lesiones');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        loadingRef.current = false;
+      }
     }
   };
 
-  // Efecto único: carga inicial + cambios de filtros/búsqueda/tamaño -> vuelve a página 1
+  // Efecto para carga inicial y cambios de filtros
   useEffect(() => {
-    cargarLesiones(1, pagination.pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    setPaginaActual(1);
+    cargarLesiones(1, tamañoPagina, qDebounced, filtroJugadorId, rangoFechas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qDebounced, filtroJugadorId, rangoFechas, pagination.pageSize]);
+  }, [qDebounced, filtroJugadorId, rangoFechas]);
 
+  // Handler de cambio de página
   const handlePageChange = (page, pageSize) => {
-    setPagination(prev => ({ ...prev, current: page, pageSize }));
-    cargarLesiones(page, pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    if (pageSize !== tamañoPagina) {
+      setTamañoPagina(pageSize);
+      setPaginaActual(1);
+      cargarLesiones(1, pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    } else {
+      setPaginaActual(page);
+      cargarLesiones(page, pageSize, qDebounced, filtroJugadorId, rangoFechas);
+    }
   };
 
   const handleCrear = async (values) => {
@@ -151,7 +170,7 @@ export default function GestionLesiones() {
       message.success('Lesión registrada');
       setModalVisible(false);
       form.resetFields();
-      cargarLesiones(pagination.current, pagination.pageSize);
+      cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al crear lesión');
@@ -172,7 +191,7 @@ export default function GestionLesiones() {
       setModalEditando(false);
       setLesionActual(null);
       form.resetFields();
-      cargarLesiones(pagination.current, pagination.pageSize);
+      cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al actualizar lesión');
@@ -183,107 +202,105 @@ export default function GestionLesiones() {
     try {
       await eliminarLesion(id);
       message.success('Lesión eliminada exitosamente');
-      cargarLesiones(pagination.current, pagination.pageSize);
+      cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
       console.error(error);
       message.error(error.message || 'Error al eliminar lesión');
     }
   };
+
   const handleExportarExcel = async () => {
-  try {
-    setExportando(true);
-    const params = {};
-    if (qDebounced) params.q = qDebounced;
-    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
-    if (rangoFechas) {
-      params.desde = rangoFechas[0].format('YYYY-MM-DD');
-      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+    try {
+      setExportando(true);
+      const params = {};
+      if (qDebounced) params.q = qDebounced;
+      if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+      if (rangoFechas) {
+        params.desde = rangoFechas[0].format('YYYY-MM-DD');
+        params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+      }
+
+      const result = await exportarLesionesExcel(params);
+
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("Excel descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      message.error(error.message || 'Error al exportar a Excel');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportarPDF = async () => {
+    try {
+      setExportando(true);
+      const params = {};
+      if (qDebounced) params.q = qDebounced;
+      if (filtroJugadorId) params.jugadorId = filtroJugadorId;
+      if (rangoFechas) {
+        params.desde = rangoFechas[0].format('YYYY-MM-DD');
+        params.hasta = rangoFechas[1].format('YYYY-MM-DD');
+      }
+
+      const result = await exportarLesionesPDF(params);
+
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("PDF descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      message.error(error.message || 'Error al exportar a PDF');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+      console.error('createObjectURL no disponible');
+      return;
     }
 
-    const result = await exportarLesionesExcel(params);
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("Excel descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
+    try {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar archivo:', error);
     }
-
-  } catch (error) {
-    console.error('Error:', error);
-    message.error(error.message || 'Error al exportar a Excel');
-  } finally {
-    setExportando(false);
-  }
-};
-
-const handleExportarPDF = async () => {
-  try {
-    setExportando(true);
-    const params = {};
-    if (qDebounced) params.q = qDebounced;
-    if (filtroJugadorId) params.jugadorId = filtroJugadorId;
-    if (rangoFechas) {
-      params.desde = rangoFechas[0].format('YYYY-MM-DD');
-      params.hasta = rangoFechas[1].format('YYYY-MM-DD');
-    }
-
-    const result = await exportarLesionesPDF(params);
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("PDF descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
-    }
-
-  } catch (error) {
-    console.error('Error:', error);
-    message.error(error.message || 'Error al exportar a PDF');
-  } finally {
-    setExportando(false);
-  }
-};
-
-function descargarArchivo(blob, nombre) {
-  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
-    console.error('createObjectURL no disponible');
-    return;
   }
 
-  try {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombre;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error al descargar archivo:', error);
-  }
-}
-
-const menuExportar = {
-  items: [
-    {
-      key: 'excel',
-      label: 'Exportar a Excel',
-      icon: <FileExcelOutlined />,
-      onClick: handleExportarExcel,
-    },
-    {
-      key: 'pdf',
-      label: 'Exportar a PDF',
-      icon: <FilePdfOutlined />,
-      onClick: handleExportarPDF,
-    },
-  ],
-};
-
+  const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportarExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportarPDF,
+      },
+    ],
+  };
 
   const abrirModalEditar = (record) => {
     setLesionActual(record);
@@ -301,29 +318,27 @@ const menuExportar = {
     setBusqueda('');
     setFiltroJugadorId(null);
     setRangoFechas(null);
-    // qDebounced se vacía tras 500ms y dispara la recarga
   };
 
-  // Opciones memoizadas para Select (evita ReactNode -> toLowerCase error)
   const opcionesJugadores = useMemo(() => {
-  return (jugadores || []).map((j) => {
-    const nombre = j.usuario?.nombre || `Jugador #${j.id}`;
-    const apellido = j.usuario?.apellido || '';
-    const rut = j.usuario?.rut || '';
-    
-    return {
-      value: j.id,
-      label: `${nombre} ${apellido} - ${rut}`.trim(),
-    };
-  });
-}, [jugadores]);
+    return (jugadores || []).map((j) => {
+      const nombre = j.usuario?.nombre || `Jugador #${j.id}`;
+      const apellido = j.usuario?.apellido || '';
+      const rut = j.usuario?.rut || '';
+
+      return {
+        value: j.id,
+        label: `${nombre} ${apellido} - ${rut}`.trim(),
+      };
+    });
+  }, [jugadores]);
 
   const columns = [
     {
       title: 'Jugador',
       key: 'jugador',
       render: (_, record) => {
-const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim();
+        const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.jugador?.usuario?.apellido || ''}`.trim();
         const rut = record.jugador?.usuario?.rut || '';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -378,71 +393,71 @@ const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.juga
       render: (_, record) =>
         record.fechaAltaReal ? (
           <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <CheckCircleOutlined />
-  Recuperado
-</span>
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: '12px',
+            fontWeight: 500,
+            border: '1px solid #B9BBBB',
+            backgroundColor: '#f5f5f5',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <CheckCircleOutlined />
+            Recuperado
+          </span>
         ) : (
-         <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <ClockCircleOutlined />
-  Activa
-</span>
+          <span style={{
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: '12px',
+            fontWeight: 500,
+            border: '1px solid #B9BBBB',
+            backgroundColor: '#f5f5f5',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <ClockCircleOutlined />
+            Activa
+          </span>
         ),
       align: 'center',
       width: 120,
     },
     ...(puedeEditar
       ? [
-          {
-            title: 'Acciones',
-            key: 'acciones',
-            align: 'center',
-            width: 150,
-            render: (_, record) => (
-              <Space size="small">
-                <Tooltip title="Editar">
-                  <Button
-                    size="middle"
-                    icon={<EditOutlined />}
-                    onClick={() => abrirModalEditar(record)}
-                  />
-                </Tooltip>
+        {
+          title: 'Acciones',
+          key: 'acciones',
+          align: 'center',
+          width: 150,
+          render: (_, record) => (
+            <Space size="small">
+              <Tooltip title="Editar">
+                <Button
+                  size="middle"
+                  icon={<EditOutlined />}
+                  onClick={() => abrirModalEditar(record)}
+                />
+              </Tooltip>
 
-                <Popconfirm
-                  title="¿Eliminar lesión?"
-                  description="Esta acción no se puede deshacer"
-                  onConfirm={() => handleEliminar(record.id)}
-                  okText="Sí, eliminar"
-                  cancelText="Cancelar"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Tooltip title="Eliminar">
-                    <Button danger size="middle" icon={<DeleteOutlined />} />
-                  </Tooltip>
-                </Popconfirm>
-              </Space>
-            ),
-          },
-        ]
+              <Popconfirm
+                title="¿Eliminar lesión?"
+                description="Esta acción no se puede deshacer"
+                onConfirm={() => handleEliminar(record.id)}
+                okText="Sí, eliminar"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+              >
+                <Tooltip title="Eliminar">
+                  <Button danger size="middle" icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            </Space>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -460,31 +475,28 @@ const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.juga
               </div>
             }
             extra={
-  puedeEditar && (
-    
-    <Space>
-      {hayFiltrosActivos && <Button onClick={limpiarFiltros}>Limpiar filtros</Button>}
-      <Dropdown menu={menuExportar} trigger={['hover']}>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={exportando}
-        >
-          Exportar
-        </Button>
-      </Dropdown>
+              puedeEditar && (
+                <Space>
+                  {hayFiltrosActivos && <Button onClick={limpiarFiltros}>Limpiar filtros</Button>}
+                  <Dropdown menu={menuExportar} trigger={['hover']}>
+                    <Button
+                      icon={<DownloadOutlined />}
+                      loading={exportando}
+                    >
+                      Exportar
+                    </Button>
+                  </Dropdown>
 
-      {/* ➕ Botón Nueva Lesión */}
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={() => setModalVisible(true)}
-      >
-        Nueva Lesión
-      </Button>
-    </Space>
-  )
-}
-
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setModalVisible(true)}
+                  >
+                    Nueva Lesión
+                  </Button>
+                </Space>
+              )
+            }
           >
             {/* Filtros */}
             <div
@@ -503,8 +515,6 @@ const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.juga
                 placeholder="Buscar por nombre, RUT o diagnóstico..."
               />
 
-             
-
               <RangePicker
                 value={rangoFechas}
                 onChange={setRangoFechas}
@@ -512,8 +522,6 @@ const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.juga
                 placeholder={['Fecha inicio', 'Fecha fin']}
                 style={{ width: '100%' }}
               />
-
-              
             </div>
 
             {/* Tabla */}
@@ -547,14 +555,14 @@ const nombre = `${record.jugador?.usuario?.nombre || 'Sin nombre'} ${record.juga
               }}
             />
 
+            {/* Paginación */}
             {lesiones.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 24 }}>
                 <Pagination
-                  current={pagination.current}
-                  pageSize={pagination.pageSize}
-                  total={pagination.total}
+                  current={paginaActual}
+                  pageSize={tamañoPagina}
+                  total={totalRegistros}
                   onChange={handlePageChange}
-                  onShowSizeChange={handlePageChange}
                   showSizeChanger
                   showTotal={(total) => `Total: ${total} lesiones`}
                   pageSizeOptions={['5', '10', '20', '50']}

@@ -206,11 +206,14 @@ export default function Estadisticas() {
     setReloadKey(k => k + 1);
   };
 
-  const handleExportarExcel = async () => {
+ const handleExportarExcel = async () => {
   try {
     const params = {
       tipo: modo,
-      id: modo === 'sesion' ? sesionId : jugadorId
+      id: modo === 'sesion' ? sesionId : jugadorId,
+      // ✅ Agregar filtros opcionales
+      ...(modo === 'sesion' && filtroJugadorEnSesion && { jugadorId: filtroJugadorEnSesion }),
+      ...(modo === 'jugador' && filtroSesionDelJugador && { sesionId: filtroSesionDelJugador })
     };
 
     const result = await exportarEstadisticasExcel(params);
@@ -233,7 +236,10 @@ const handleExportarPDF = async () => {
   try {
     const params = {
       tipo: modo,
-      id: modo === 'sesion' ? sesionId : jugadorId
+      id: modo === 'sesion' ? sesionId : jugadorId,
+      // ✅ Agregar filtros opcionales
+      ...(modo === 'sesion' && filtroJugadorEnSesion && { jugadorId: filtroJugadorEnSesion }),
+      ...(modo === 'jugador' && filtroSesionDelJugador && { sesionId: filtroSesionDelJugador })
     };
 
     const result = await exportarEstadisticasPDF(params);

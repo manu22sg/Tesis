@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Avatar, Tag, Tooltip, Button, Space, Switch, App, Modal, Popconfirm } from 'antd';
-import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Avatar, Tooltip, Button, Space, Switch, App, Popconfirm, Alert } from 'antd';
+import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
 
-const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJugador }) => {
+const CampoAlineacion = ({ 
+  titulares = [],  // Solo recibe titulares
+  onActualizarPosiciones, 
+  onEliminarJugador 
+}) => {
   const [jugadoresConPosicion, setJugadoresConPosicion] = useState([]);
   const [jugadorArrastrado, setJugadorArrastrado] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(true);
@@ -11,7 +15,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [jugadorParaEliminar, setJugadorParaEliminar] = useState(null);
   const campoRef = useRef(null);
-  const { message } = App.useApp(); 
+  const { message } = App.useApp();
 
   const posicionesDefecto = {
     'portero': { x: 50, y: 90 },
@@ -38,7 +42,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
   }, []);
 
   useEffect(() => {
-    const jugadoresInicializados = jugadores.map(j => {
+    const jugadoresInicializados = titulares.map(j => {
       const posKey = j.posicion?.toLowerCase() || 'mediocentro';
       const posDefecto = posicionesDefecto[posKey] || { x: 50, y: 50 };
       return {
@@ -48,7 +52,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
       };
     });
     setJugadoresConPosicion(jugadoresInicializados);
-  }, [jugadores]);
+  }, [titulares]);
 
   const handleDragStart = (e, jugador) => {
     if (!modoEdicion) return;
@@ -112,13 +116,15 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
     try {
       await onActualizarPosiciones(jugadoresConPosicion);
       setCambiosPendientes(false);
+      message.success('Posiciones guardadas correctamente');
     } catch (e) {
       console.error(e);
+      message.error('Error al guardar posiciones');
     }
   };
 
   const handleResetearPosiciones = () => {
-    const jugadoresReset = jugadores.map(j => {
+    const jugadoresReset = titulares.map(j => {
       const posKey = j.posicion?.toLowerCase() || 'mediocentro';
       const posDefecto = posicionesDefecto[posKey] || { x: 50, y: 50 };
       return { ...j, x: posDefecto.x, y: posDefecto.y };
@@ -128,8 +134,9 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
   };
 
   const renderJugador = (jugador) => {
-    const nombre = `${jugador.jugador?.usuario?.nombre || ''} ${jugador.jugador?.usuario?.apellido || ''} `.trim();
+    const nombre = `${jugador.jugador?.usuario?.nombre || ''} ${jugador.jugador?.usuario?.apellido || ''}`.trim();
     const iniciales = nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    
     return (
       <div
         key={jugador.jugadorId}
@@ -150,8 +157,10 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           title={
             <div>
               <div><strong>{nombre}</strong></div>
-              <div>{jugador.posicion}</div>
-              {jugador.comentario && <div style={{ fontSize: 11, marginTop: 4 }}>{jugador.comentario}</div>}
+              <div>  #{jugador.orden} {jugador.posicion} </div>
+              {jugador.comentario && (
+                <div style={{ fontSize: 11, marginTop: 4 }}>{jugador.comentario}</div>
+              )}
             </div>
           }
         >
@@ -159,7 +168,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             <Avatar
               size={56}
               style={{
-                backgroundColor: '#014098',
+                backgroundColor: '#014898',
                 fontSize: 18,
                 fontWeight: 'bold',
                 border: '3px solid white',
@@ -170,18 +179,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             </Avatar>
             <div className="jugador-info-overlay">
               <div className="jugador-nombre-campo">{nombre}</div>
-              {jugador.orden && (
-                <span className="jugador-numero-campo" style={{
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  border: '1px solid #B9BBBB',
-                  backgroundColor: '#f5f5f5'
-                }}>
-                  #{jugador.orden}
-                </span>
-              )}
+           
             </div>
           </div>
         </Tooltip>
@@ -191,7 +189,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
 
   return (
     <div>
-      {/* 🎨 CSS completo */}
       <style>{`
         .campo-futbol-interactivo {
           background: linear-gradient(to bottom, 
@@ -213,7 +210,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           border: 4px solid #1a4d2e;
         }
 
-        /* Línea media horizontal */
         .campo-futbol-interactivo::before {
           content: '';
           position: absolute;
@@ -226,7 +222,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           z-index: 1;
         }
 
-        /* Círculo central */
         .campo-futbol-interactivo::after {
           content: '';
           position: absolute;
@@ -240,7 +235,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           z-index: 1;
         }
 
-        /* Área grande (18 yardas) */
         .area-grande {
           position: absolute;
           left: 50%;
@@ -254,7 +248,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
         .area-grande.top { top: 0; border-top: none; }
         .area-grande.bottom { bottom: 0; border-bottom: none; }
 
-        /* Área pequeña (6 yardas) - área del portero */
         .area-pequena {
           position: absolute;
           left: 50%;
@@ -268,7 +261,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
         .area-pequena.top { top: 0; border-top: none; }
         .area-pequena.bottom { bottom: 0; border-bottom: none; }
 
-        /* Punto de penal */
         .punto-penal {
           position: absolute;
           left: 50%;
@@ -283,7 +275,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
         .punto-penal.top { top: 12%; }
         .punto-penal.bottom { bottom: 12%; }
 
-        /* Punto central */
         .punto-central {
           position: absolute;
           top: 50%;
@@ -296,7 +287,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           z-index: 2;
         }
 
-        /* SVG para arcos del área */
         .lineas-svg {
           position: absolute;
           top: 0;
@@ -307,7 +297,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           z-index: 1;
         }
 
-        /* Círculos de las esquinas */
         .circulo-esquina {
           position: absolute;
           width: 18px;
@@ -317,25 +306,10 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           z-index: 1;
         }
 
-        .circulo-esquina.top-left {
-          top: -9px;
-          left: -9px;
-        }
-
-        .circulo-esquina.top-right {
-          top: -9px;
-          right: -9px;
-        }
-
-        .circulo-esquina.bottom-left {
-          bottom: -9px;
-          left: -9px;
-        }
-
-        .circulo-esquina.bottom-right {
-          bottom: -9px;
-          right: -9px;
-        }
+        .circulo-esquina.top-left { top: -9px; left: -9px; }
+        .circulo-esquina.top-right { top: -9px; right: -9px; }
+        .circulo-esquina.bottom-left { bottom: -9px; left: -9px; }
+        .circulo-esquina.bottom-right { bottom: -9px; right: -9px; }
 
         .jugador-card { 
           display: flex; 
@@ -345,7 +319,7 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
         }
 
         .jugador-info-overlay {
-          background: linear-gradient(135deg, rgba(24, 144, 255, 0.95), rgba(16, 100, 200, 0.95));
+          background: linear-gradient(135deg,rgba(24, 144, 255, 0.95), rgba(16, 100, 200, 0.95));
           padding: 6px 12px;
           border-radius: 8px;
           color: white;
@@ -408,6 +382,18 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
       `}</style>
 
       <div className="campo-interactivo-container">
+        {titulares.length < 11 && (
+         <Alert
+  message={`${11 - titulares.length === 1 ? 'Falta' : 'Faltan'} ${
+    11 - titulares.length
+  } ${11 - titulares.length === 1 ? 'titular' : 'titulares'}`}
+  description="Solo se muestran los jugadores con dorsal 1-11 en la cancha"
+  type="info"
+  showIcon
+  style={{ marginBottom: 16 }}
+/>
+        )}
+
         <div className="campo-controles">
           <Space>
             <Switch
@@ -428,67 +414,51 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
           )}
 
           <Space>
-            <Button icon={<UndoOutlined />} onClick={handleResetearPosiciones} disabled={!modoEdicion}>
+            <Button 
+              icon={<UndoOutlined />} 
+              onClick={handleResetearPosiciones} 
+              disabled={!modoEdicion}
+            >
               Resetear
             </Button>
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleGuardarPosiciones} disabled={!cambiosPendientes}>
+            <Button 
+              type="primary" 
+              icon={<SaveOutlined />} 
+              onClick={handleGuardarPosiciones} 
+              disabled={!cambiosPendientes}
+            >
               Guardar Posiciones
             </Button>
           </Space>
         </div>
 
         <div ref={campoRef} className="campo-futbol-interactivo" onDragOver={handleDragOver} onDrop={handleDrop}>
-          {/* SVG con los arcos del área - Arcos PEQUEÑOS centrados desde el punto de penal */}
           <svg className="lineas-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Arco superior - semicírculo pequeño centrado que sale del área hacia afuera */}
-            <path
-              d="M 42 18 A 8 6 0 0 0 58 18"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.4)"
-              strokeWidth="0.3"
-            />
-            
-            {/* Arco inferior - semicírculo pequeño centrado que sale del área hacia afuera */}
-            <path
-              d="M 42 82 A 8 6 0 0 1 58 82"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.4)"
-              strokeWidth="0.3"
-            />
+            <path d="M 42 18 A 8 6 0 0 0 58 18" fill="none" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.3" />
+            <path d="M 42 82 A 8 6 0 0 1 58 82" fill="none" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.3" />
           </svg>
           
-          {/* Punto central */}
           <div className="punto-central" />
-          
-          {/* Áreas grandes (18 yardas) */}
           <div className="area-grande top" />
           <div className="area-grande bottom" />
-          
-          {/* Áreas pequeñas (6 yardas - área del portero) */}
           <div className="area-pequena top" />
           <div className="area-pequena bottom" />
-          
-          {/* Puntos de penal */}
           <div className="punto-penal top" />
           <div className="punto-penal bottom" />
-          
-          {/* Círculos de las esquinas */}
           <div className="circulo-esquina top-left" />
           <div className="circulo-esquina top-right" />
           <div className="circulo-esquina bottom-left" />
           <div className="circulo-esquina bottom-right" />
           
-          {/* Jugadores */}
           {jugadoresConPosicion.map(renderJugador)}
         </div>
 
         {modoEdicion && (
           <div style={{ marginTop: 16, padding: 12, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 8 }}>
-            ℹ️ <strong>Instrucciones:</strong> Arrastra jugadores hacia la papelera para eliminarlos.
+            ℹ️ <strong>Instrucciones:</strong> Arrastra jugadores para reposicionarlos. Arrastra hacia la papelera para eliminarlos.
           </div>
         )}
 
-        {/* Zona de eliminación - PAPELERA */}
         <Popconfirm
           title="¿Eliminar jugador de la alineación?"
           description={
@@ -506,7 +476,6 @@ const CampoAlineacion = ({ jugadores = [], onActualizarPosiciones, onEliminarJug
             if (!jugadorParaEliminar || !onEliminarJugador) return;
             try {
               await onEliminarJugador(jugadorParaEliminar.jugadorId);
-              message.success('Jugador eliminado de la alineación');
             } catch (error) {
               console.error(error);
               message.error('Error al eliminar el jugador');

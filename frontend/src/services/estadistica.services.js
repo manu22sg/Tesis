@@ -11,36 +11,39 @@ export const upsertEstadistica = async (data) => {
 };
 
 // Obtener estadísticas por jugador
-export const obtenerEstadisticasPorJugador = async (jugadorId, page = 1, limit = 50) => {
+export const obtenerEstadisticasPorJugador = async (jugadorId, page = 1, limit = 50, busqueda = '', sesionId = null) => {
   try {
-    const response = await api.get(`/estadisticas/jugador/${jugadorId}`, {
-      params: { page, limit }
-    });
-    return response.data;
+    const params = { page, limit, busqueda };
+    if (sesionId) params.sesionId = sesionId; // ✅ Filtro opcional de sesión
+    
+    const response = await api.get(`/estadisticas/jugador/${jugadorId}`, { params });
+    return response.data.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
 };
 
 // Obtener mis estadísticas (para estudiantes)
-export const obtenerMisEstadisticas = async (page = 1, limit = 50) => {
+export const obtenerMisEstadisticas = async (page = 1, limit = 50, busqueda = '', sesionId = null) => {
   try {
-    const response = await api.get('/estadisticas/mias', {
-      params: { page, limit }
-    });
-    return response.data;
+    const params = { page, limit, busqueda };
+    if (sesionId) params.sesionId = sesionId; // ✅ Filtro opcional de sesión
+    
+    const response = await api.get('/estadisticas/mias', { params });
+    return response.data.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
 };
 
 // Obtener estadísticas por sesión
-export const obtenerEstadisticasPorSesion = async (sesionId, page = 1, limit = 50) => {
+export const obtenerEstadisticasPorSesion = async (sesionId, page = 1, limit = 50, busqueda = '', jugadorId = null) => {
   try {
-    const response = await api.get(`/estadisticas/sesion/${sesionId}`, {
-      params: { page, limit }
-    });
-    return response.data;
+    const params = { page, limit, busqueda };
+    if (jugadorId) params.jugadorId = jugadorId; // ✅ Filtro opcional de jugador
+    
+    const response = await api.get(`/estadisticas/sesion/${sesionId}`, { params });
+    return response.data.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
@@ -56,7 +59,6 @@ export const obtenerEstadisticaPorId = async (id) => {
   }
 };
 
-
 // Eliminar estadística
 export const eliminarEstadistica = async (id) => {
   try {
@@ -67,7 +69,7 @@ export const eliminarEstadistica = async (id) => {
   }
 };
 
-
+// Exportar a Excel
 export const exportarEstadisticasExcel = async (params = {}) => {
   try {
     const query = new URLSearchParams(params).toString();
@@ -122,6 +124,7 @@ export const exportarEstadisticasExcel = async (params = {}) => {
   }
 };
 
+// Exportar a PDF
 export const exportarEstadisticasPDF = async (params = {}) => {
   try {
     const query = new URLSearchParams(params).toString();

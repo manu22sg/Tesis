@@ -131,6 +131,28 @@ export default function SesionNueva() {
   const canchaId = Form.useWatch('canchaId', form);
   const fecha = Form.useWatch('fecha', form);
   const horario = Form.useWatch('horario', form);
+  const verificarDuracionExcedida = () => {
+  if (!horario || !Array.isArray(horario) || !horario[0] || !horario[1]) {
+    return null;
+  }
+  const [inicio, fin] = horario;
+  const duracionMinutos = fin.diff(inicio, 'minutes');
+  
+  if (duracionMinutos > 180) {
+    const horas = Math.floor(duracionMinutos / 60);
+    const minutos = duracionMinutos % 60;
+    const textoHoras = horas > 0 ? `${horas} hora${horas !== 1 ? 's' : ''}` : '';
+    const textoMinutos = minutos > 0 ? `${minutos} min` : '';
+    const duracionTexto = [textoHoras, textoMinutos].filter(Boolean).join(' ');
+    
+    return `❌ Duración: ${duracionTexto} (máximo 3 horas)`;
+  }
+  
+  return null;
+};
+
+const mensajeDuracion = verificarDuracionExcedida();
+
 
   useEffect(() => {
     // Solo aplica para sesión única en cancha
@@ -183,6 +205,8 @@ console.log('🔍 Verificando disponibilidad:');
     return () => clearTimeout(t);
   }, [esRecurrente, tipoUbicacion, canchaId, fecha, horario]);
 
+
+  
   const onFinish = async (values) => {
   try {
     setSaving(true);
@@ -194,6 +218,13 @@ console.log('🔍 Verificando disponibilidad:');
       setSaving(false);
       return;
     }
+    const duracionHoras = horaFin.diff(horaInicio, 'hour', true);
+    if (duracionHoras > 3) {
+      message.error('La sesión no puede durar más de 3 horas');
+      setSaving(false);
+      return;
+    }
+
 
     let payload = {
       tipoSesion: values.tipoSesion,
@@ -393,68 +424,78 @@ console.log('🔍 Verificando disponibilidad:');
               {/* Fecha única o rango */}
               {!esRecurrente ? (
                 <Form.Item
-                  name="fecha"
-                  label="Fecha"
-                  rules={[{ required: true, message: 'Selecciona una fecha' }]}
-                >
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    disabledDate={(current) => {
-                      if (!current) return false;
-                      const day = current.day();
-                      return day === 0 || day === 6;
-                    }}
-                    classNames={{ popup: { root: 'hide-weekends' } }}
-                  />
-                </Form.Item>
+  name="fecha"
+  label="Fecha"
+  rules={[{ required: true, message: 'Selecciona una fecha' }]}
+>
+  <DatePicker
+    format="DD/MM/YYYY"
+    style={{ width: '100%' }}
+    disabledDate={(current) => {
+      if (!current) return false;
+      // Deshabilitar fechas anteriores a hoy
+      if (current.isBefore(dayjs().startOf('day'))) return true;
+      // Deshabilitar fines de semana
+      const day = current.day();
+      return day === 0 || day === 6;
+    }}
+    classNames={{ popup: { root: 'hide-weekends' } }}
+  />
+</Form.Item>
               ) : (
                 <>
                   <Form.Item
-                    name="fechaInicio"
-                    label="Fecha de inicio"
-                    rules={[{ required: true, message: 'Selecciona la fecha de inicio' }]}
-                  >
-                    <DatePicker
-                      format="DD/MM/YYYY"
-                      style={{ width: '100%' }}
-                      disabledDate={(current) => {
-                        if (!current) return false;
-                        const day = current.day();
-                        return day === 0 || day === 6;
-                      }}
-                      classNames={{ popup: { root: 'hide-weekends' } }}
-                    />
-                  </Form.Item>
+  name="fechaInicio"
+  label="Fecha de inicio"
+  rules={[{ required: true, message: 'Selecciona la fecha de inicio' }]}
+>
+  <DatePicker
+    format="DD/MM/YYYY"
+    style={{ width: '100%' }}
+    disabledDate={(current) => {
+      if (!current) return false;
+      // Deshabilitar fechas anteriores a hoy
+      if (current.isBefore(dayjs().startOf('day'))) return true;
+      // Deshabilitar fines de semana
+      const day = current.day();
+      return day === 0 || day === 6;
+    }}
+    classNames={{ popup: { root: 'hide-weekends' } }}
+  />
+</Form.Item>
 
-                  <Form.Item
-                    name="fechaFin"
-                    label="Fecha de fin"
-                    rules={[
-                      { required: true, message: 'Selecciona la fecha de fin' },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          const inicio = getFieldValue('fechaInicio');
-                          if (!value || !inicio || value.isAfter(inicio)) {
-                            return Promise.resolve();
-                          }
-                          return Promise.reject(new Error('Debe ser posterior a la fecha de inicio'));
-                        },
-                      }),
-                    ]}
-                  >
-                    <DatePicker
-                      format="DD/MM/YYYY"
-                      style={{ width: '100%' }}
-                      disabledDate={(current) => {
-                        if (!current) return false;
-                        const day = current.day();
-                        const inicio = form.getFieldValue('fechaInicio');
-                        return day === 0 || day === 6 || (inicio && current.isBefore(inicio, 'day'));
-                      }}
-                      classNames={{ popup: { root: 'hide-weekends' } }}
-                    />
-                  </Form.Item>
+                javascript<Form.Item
+  name="fechaFin"
+  label="Fecha de fin"
+  rules={[
+    { required: true, message: 'Selecciona la fecha de fin' },
+    ({ getFieldValue }) => ({
+      validator(_, value) {
+        const inicio = getFieldValue('fechaInicio');
+        if (!value || !inicio || value.isAfter(inicio)) {
+          return Promise.resolve();
+        }
+        return Promise.reject(new Error('Debe ser posterior a la fecha de inicio'));
+      },
+    }),
+  ]}
+>
+  <DatePicker
+    format="DD/MM/YYYY"
+    style={{ width: '100%' }}
+    disabledDate={(current) => {
+      if (!current) return false;
+      // Deshabilitar fechas anteriores a hoy
+      if (current.isBefore(dayjs().startOf('day'))) return true;
+      // Deshabilitar fines de semana
+      const day = current.day();
+      const inicio = form.getFieldValue('fechaInicio');
+      // Deshabilitar fechas antes de la fecha de inicio
+      return day === 0 || day === 6 || (inicio && current.isBefore(inicio, 'day'));
+    }}
+    classNames={{ popup: { root: 'hide-weekends' } }}
+  />
+</Form.Item>
 
                   <Form.Item
                     name="diasSemana"
@@ -468,35 +509,46 @@ console.log('🔍 Verificando disponibilidad:');
 
               {/* Horario */}
               <Form.Item
-                name="horario"
-                label="Horario"
-                rules={[{ required: true, message: 'Selecciona el horario' }]}
-                extra={
-                  tipoUbicacion === 'cancha' && !esRecurrente && (
-                    checkingDisp
-                      ? 'Verificando disponibilidad…'
-                      : dispOk === true
-                        ? ' Cancha disponible'
-                        : dispOk === false
-                          ? '❌ Cancha NO disponible en este horario'
-                          : null
-                  )
-                }
-              >
-               <TimePicker.RangePicker
-  format="HH:mm"
-  style={{ width: '100%' }}
-  minuteStep={30}
-  disabledTime={() => ({
-    disabledHours: () => [0,1,2,3,4,5,6,7], 
-    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-  })}
-  hideDisabledOptions
-  showNow={false}
-  placeholder={['Hora inicio', 'Hora fin']}
-  classNames={{ popup: { root: 'timepicker-academico' } }}
-/>
-              </Form.Item>
+  name="horario"
+  label="Horario"
+  rules={[{ required: true, message: 'Selecciona el horario' }]}
+  extra={
+    <>
+      {tipoUbicacion === 'cancha' && !esRecurrente && (
+        checkingDisp
+          ? 'Verificando disponibilidad…'
+          : dispOk === true
+            ? '✅ Cancha disponible'
+            : dispOk === false
+              ? '❌ Cancha NO disponible en este horario'
+              : null
+      )}
+      {mensajeDuracion && (
+        <div style={{ 
+          marginTop: tipoUbicacion === 'cancha' && !esRecurrente ? 4 : 0,
+          color: '#ff4d4f',
+          fontWeight: 500
+        }}>
+          {mensajeDuracion}
+        </div>
+      )}
+    </>
+  }
+>
+  <TimePicker.RangePicker
+    format="HH:mm"
+    style={{ width: '100%' }}
+    minuteStep={30}
+    disabledTime={() => ({
+      disabledHours: () => [0,1,2,3,4,5,6,7], 
+      disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
+    })}
+    hideDisabledOptions
+    showNow={false}
+    placeholder={['Hora inicio', 'Hora fin']}
+    classNames={{ popup: { root: 'timepicker-academico' } }}
+  />
+</Form.Item>
 
               {/* Tipo de sesión */}
             <Form.Item

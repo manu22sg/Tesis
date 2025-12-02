@@ -68,3 +68,19 @@ export const formatearRangoHoras = (horaInicio, horaFin) => {
   const fin = formatearHora(horaFin);
   return `${inicio} - ${fin}`;
 };
+
+
+export const formatearFechaCompleta = (fecha) => {
+  if (!fecha) return '';
+  
+  const d = new Date(fecha);
+  if (isNaN(d)) return '';
+  
+  return d.toLocaleString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};

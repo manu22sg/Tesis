@@ -149,7 +149,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
     const sesiones = await sesionRepo.find({ where: { canchaId, fecha } });
     for (const s of sesiones) {
       if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión de entrenamiento (ID: ${s.id})`];
+        return [false, `Conflicto con sesión ( ${s.horaInicio} - ${s.horaFin})`];
       }
     }
 

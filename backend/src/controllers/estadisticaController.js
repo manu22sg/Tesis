@@ -15,19 +15,36 @@ export async function postUpsertEstadistica(req,res){
   return success(res, data, 'Estadística guardada', 201);
 }
 
+export async function getEstadisticasPorSesion(req,res){
+  const sesionId = parseInt(req.params.sesionId,10);
+  const { page = 1, limit = 10, busqueda = '', jugadorId } = req.query; // ✅ Agregado jugadorId
+  
+  const [data, err] = await obtenerEstadisticasPorSesion({ 
+    sesionId, 
+    page,
+    limit,
+    busqueda,
+    jugadorId: jugadorId ? parseInt(jugadorId, 10) : null // ✅ Parsear jugadorId
+  });
+  
+  if (err) return error(res, err);
+  return success(res, data, 'Estadísticas por sesión');
+}
+
 export async function getEstadisticasPorJugador(req,res){
   const jugadorId = parseInt(req.params.jugadorId,10);
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, busqueda = '', sesionId } = req.query; // ✅ Agregado sesionId
   
-  // regla estudiante: solo sus propias "mías"
   if (req.user?.rol === 'estudiante' && req.user?.jugadorId !== jugadorId) {
     return error(res,'No tienes permiso para ver estadísticas de otro jugador',403);
   }
   
   const [data, err] = await obtenerEstadisticasPorJugador({ 
     jugadorId, 
-    pagina: page,  // ✅ Mapeo
-    limite: limit 
+    page,
+    limit,
+    busqueda,
+    sesionId: sesionId ? parseInt(sesionId, 10) : null // ✅ Parsear sesionId
   });
   
   if (err) return error(res, err);
@@ -36,30 +53,18 @@ export async function getEstadisticasPorJugador(req,res){
 
 export async function getMisEstadisticas(req,res){
   const jugadorId = req.user?.jugadorId;
-  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
+  const { page = 1, limit = 10, busqueda = '', sesionId } = req.query; // ✅ Agregado sesionId
   
   const [data, err] = await obtenerEstadisticasPorJugador({ 
     jugadorId, 
-    pagina: page,  // ✅ Mapeo
-    limite: limit 
+    page,
+    limit,
+    busqueda,
+    sesionId: sesionId ? parseInt(sesionId, 10) : null // ✅ Parsear sesionId
   });
   
   if (err) return error(res, err);
   return success(res, data, 'Mis estadísticas');
-}
-
-export async function getEstadisticasPorSesion(req,res){
-  const sesionId = parseInt(req.params.sesionId,10);
-  const { page = 1, limit = 10 } = req.query; // ✅ Cambio aquí
-  
-  const [data, err] = await obtenerEstadisticasPorSesion({ 
-    sesionId, 
-    pagina: page,  // ✅ Mapeo
-    limite: limit 
-  });
-  
-  if (err) return error(res, err);
-  return success(res, data, 'Estadísticas por sesión');
 }
 
 export async function getEstadisticaPorId(req,res){
@@ -78,7 +83,7 @@ export async function deleteEstadistica(req,res){
 
 export async function exportarEstadisticasExcel(req, res) {
   try {
-    const { tipo, id, mobile } = req.query; // ✅ Agregado mobile
+    const { tipo, id, mobile, jugadorId, sesionId } = req.query; // ✅ Agregados jugadorId y sesionId
     const isMobile = mobile === "true";
 
     let resultado, err;
@@ -86,14 +91,18 @@ export async function exportarEstadisticasExcel(req, res) {
     if (tipo === 'jugador') {
       [resultado, err] = await obtenerEstadisticasPorJugador({
         jugadorId: parseInt(id),
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000,
+        busqueda: '',
+        sesionId: sesionId ? parseInt(sesionId) : null // ✅ Filtro opcional
       });
     } else if (tipo === 'sesion') {
       [resultado, err] = await obtenerEstadisticasPorSesion({
         sesionId: parseInt(id),
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000,
+        busqueda: '',
+        jugadorId: jugadorId ? parseInt(jugadorId) : null // ✅ Filtro opcional
       });
     }
 
@@ -211,7 +220,7 @@ export async function exportarEstadisticasExcel(req, res) {
 
 export async function exportarEstadisticasPDF(req, res) {
   try {
-    const { tipo, id, mobile } = req.query; // ✅ Agregado mobile
+    const { tipo, id, mobile, jugadorId, sesionId } = req.query; // ✅ Agregados jugadorId y sesionId
     const isMobile = mobile === "true";
 
     let resultado, err;
@@ -219,14 +228,18 @@ export async function exportarEstadisticasPDF(req, res) {
     if (tipo === 'jugador') {
       [resultado, err] = await obtenerEstadisticasPorJugador({
         jugadorId: parseInt(id),
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000,
+        busqueda: '',
+        sesionId: sesionId ? parseInt(sesionId) : null // ✅ Filtro opcional
       });
     } else if (tipo === 'sesion') {
       [resultado, err] = await obtenerEstadisticasPorSesion({
         sesionId: parseInt(id),
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000,
+        busqueda: '',
+        jugadorId: jugadorId ? parseInt(jugadorId) : null // ✅ Filtro opcional
       });
     }
 
@@ -330,7 +343,6 @@ Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString
     }
   }
 }
-
 function formatearHora(horaStr) {
   if (!horaStr) return "—";
   const [h, m] = horaStr.split(":");

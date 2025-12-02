@@ -248,7 +248,7 @@ const { message } = App.useApp();
         />
 
         <Spin spinning={loadingFormaciones}>
-          <Form.Item
+           <Form.Item
             name="formacion"
             label="Formación"
             rules={[{ required: true, message: 'Selecciona una formación' }]}
@@ -257,18 +257,22 @@ const { message } = App.useApp();
               size="large"
               placeholder="Selecciona una formación"
               disabled={loadingFormaciones || formaciones.length === 0}
+              optionLabelProp="label"
             >
               {formaciones.map((f) => (
-                <Select.Option key={f.nombre} value={f.nombre}>
-                  <Space direction="vertical" size={0}>
-                    <strong>{f.nombre}</strong>
-                    <span style={{ fontSize: 12 }}>
-                      POR: {f.distribucion.POR} |
-                      DEF: {f.distribucion.DEF} |
-                      MED: {f.distribucion.MED} |
-                      DEL: {f.distribucion.DEL}
-                    </span>
-                  </Space>
+                <Select.Option 
+                  key={f.nombre} 
+                  value={f.nombre}
+                  label={f.nombre}
+                >
+                  <div style={{ padding: '4px 0' }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+                      {f.nombre}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      POR: {f.distribucion.POR} | DEF: {f.distribucion.DEF} | MED: {f.distribucion.MED} | DEL: {f.distribucion.DEL}
+                    </div>
+                  </div>
                 </Select.Option>
               ))}
             </Select>
@@ -287,7 +291,7 @@ const { message } = App.useApp();
       title={
         <Space>
           <ThunderboltOutlined />
-          Generar Alineación Inteligente
+          Generar Alineación Sugerida
         </Space>
       }
       open={visible}
@@ -324,7 +328,7 @@ const { message } = App.useApp();
         )
       ]}
       width={600}
-      maskClosable={false}
+      maskClosable={true}
     >
       <Steps current={currentStep} style={{ marginBottom: 32 }}>
         <Steps.Step title="Tipo" icon={<ThunderboltOutlined />} />
