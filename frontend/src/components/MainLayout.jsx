@@ -91,10 +91,10 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
       getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
       getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
+      getItem('Ver Evaluaciones', 'evaluaciones', <TrophyOutlined />),
+      getItem('Ver Estadísticas', 'estadisticas', <BarChartOutlined />),
     ]),
     getItem('Grupos', 'grupos', <TeamOutlined />),
-    getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
-    getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
   ];
 
   const estudianteItems = [
@@ -181,7 +181,8 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
     if (location.pathname.startsWith('/sesiones')) return ['sub_sesiones'];
     if (location.pathname.startsWith('/reservas')) return ['sub_reservas'];
     if (location.pathname.startsWith('/canchas')) return ['sub_canchas'];
-    if (location.pathname.startsWith('/jugadores') || location.pathname.startsWith('/lesiones'))
+    if (location.pathname.startsWith('/jugadores') || location.pathname.startsWith('/lesiones') || 
+        location.pathname.startsWith('/evaluaciones') || location.pathname.startsWith('/estadisticas'))
       return ['sub_jugadores'];
     return [];
   });
