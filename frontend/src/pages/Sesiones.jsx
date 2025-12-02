@@ -111,7 +111,7 @@ export default function Sesiones() {
     }
   }, [pagination, cargarSesiones]);
 
-  const handleActivarToken = useCallback(async (extra = {}) => {
+ const handleActivarToken = useCallback(async (extra = {}) => {
     if (!sesionToken?.id) return;
     try {
       setLoadingToken(true);
@@ -125,16 +125,17 @@ export default function Sesiones() {
         newArr[idx] = sesionActualizada;
         return newArr;
       });
-      console.log("SESION ACTUALIZADA DESDE BACKEND:", sesionActualizada);
 
       setSesionToken(sesionActualizada);
       message.success('Token generado correctamente');
-    } catch {
-      message.error('Error al generar token');
+    } catch (error) {  // ✅ Ahora sí capturas el error
+      // Mostrar el mensaje específico del backend
+      message.error(error || 'Error al generar token');
     } finally {
       setLoadingToken(false);
     }
   }, [sesionToken, ttlMin, tokenLength]);
+
 
   const handleDesactivarToken = useCallback(async () => {
     if (!sesionToken?.id) return;
@@ -172,7 +173,7 @@ export default function Sesiones() {
   }), [sesiones, loading, verDetalle, handleEliminar, pagination, handlePageChange, cargarSesiones]);
 
   const handleExportExcel = async () => {
-  setExportando(true); // Si tienes este estado
+  setExportando(true); 
   try {
     const query = {};
 
@@ -206,7 +207,7 @@ export default function Sesiones() {
 };
 
 const handleExportPDF = async () => {
-  setExportando(true); // Si tienes este estado
+  setExportando(true);
   try {
     const query = {};
 

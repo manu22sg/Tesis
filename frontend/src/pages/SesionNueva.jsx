@@ -378,10 +378,10 @@ console.log('🔍 Verificando disponibilidad:');
                 <Form.Item
                   name="canchaId"
                   label="Cancha"
-                  rules={[{ required: true, message: 'Selecciona una cancha' }]}
+                  rules={[{ required: true, message: 'Seleccione una cancha' }]}
                 >
                   <Select
-                    placeholder="Selecciona una cancha"
+                    placeholder="Seleccione una cancha"
                     options={canchas}
                     loading={!canchas.length}
                     showSearch
@@ -397,7 +397,7 @@ console.log('🔍 Verificando disponibilidad:');
                   name="ubicacionExterna"
                   label="Ubicación Externa"
                   rules={[
-                    { required: true, message: 'Ingresa la ubicación externa' },
+                    { required: true, message: 'Ingrese la ubicación externa' },
                     { max: 200, message: 'Máximo 200 caracteres' },
                   ]}
                 >
@@ -413,7 +413,7 @@ console.log('🔍 Verificando disponibilidad:');
               <Form.Item name="grupoId" label="Grupo (opcional)">
                 <Select
                   allowClear
-                  placeholder="Selecciona un grupo"
+                  placeholder="Seleccione un grupo"
                   options={grupos}
                   loading={!grupos.length}
                   showSearch
@@ -426,7 +426,7 @@ console.log('🔍 Verificando disponibilidad:');
                 <Form.Item
   name="fecha"
   label="Fecha"
-  rules={[{ required: true, message: 'Selecciona una fecha' }]}
+  rules={[{ required: true, message: 'Seleccione una fecha' }]}
 >
   <DatePicker
     format="DD/MM/YYYY"
@@ -447,7 +447,7 @@ console.log('🔍 Verificando disponibilidad:');
                   <Form.Item
   name="fechaInicio"
   label="Fecha de inicio"
-  rules={[{ required: true, message: 'Selecciona la fecha de inicio' }]}
+  rules={[{ required: true, message: 'Seleccione la fecha de inicio' }]}
 >
   <DatePicker
     format="DD/MM/YYYY"
@@ -468,7 +468,7 @@ console.log('🔍 Verificando disponibilidad:');
   name="fechaFin"
   label="Fecha de fin"
   rules={[
-    { required: true, message: 'Selecciona la fecha de fin' },
+    { required: true, message: 'Seleccione la fecha de fin' },
     ({ getFieldValue }) => ({
       validator(_, value) {
         const inicio = getFieldValue('fechaInicio');
@@ -500,7 +500,7 @@ console.log('🔍 Verificando disponibilidad:');
                   <Form.Item
                     name="diasSemana"
                     label="Días de la semana"
-                    rules={[{ required: true, message: 'Selecciona al menos un día' }]}
+                    rules={[{ required: true, message: 'Seleccione al menos un día' }]}
                   >
                     <Checkbox.Group options={diasSemanaOpciones} />
                   </Form.Item>
@@ -511,7 +511,7 @@ console.log('🔍 Verificando disponibilidad:');
               <Form.Item
   name="horario"
   label="Horario"
-  rules={[{ required: true, message: 'Selecciona el horario' }]}
+  rules={[{ required: true, message: 'Seleccione el horario' }]}
   extra={
     <>
       {tipoUbicacion === 'cancha' && !esRecurrente && (
@@ -554,9 +554,9 @@ console.log('🔍 Verificando disponibilidad:');
             <Form.Item
                 name="tipoSesion"
                 label="Tipo de sesión"
-                rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
+                rules={[{ required: true, message: 'Seleccione el tipo de sesión' }]}
               >
-                <Select placeholder="Selecciona el tipo de sesión">
+                <Select placeholder="Seleccione el tipo de sesión">
                   <Select.Option value="Entrenamiento">Entrenamiento</Select.Option>
                   <Select.Option value="Partido">Partido</Select.Option>
                   <Select.Option value="Partido Amistoso">Partido Amistoso</Select.Option>

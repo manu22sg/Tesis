@@ -38,7 +38,7 @@ export default function ModalAgregarJugador({
 
   const handleAgregar = () => {
     if (!jugadorId || !posicion) {
-      Alert.alert("Faltan datos", "Debes escoger jugador y posición.");
+      Alert.alert("Faltan datos", "Debe escoger jugador y posición.");
       return;
     }
 

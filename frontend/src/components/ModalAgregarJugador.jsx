@@ -133,11 +133,11 @@ export default function ModalAgregarJugador({
       <Divider style={{ margin: '16px 0' }} />
 
       <div>
-        <Text strong>Selecciona un jugador:</Text>
+        <Text strong>Seleccione un jugador:</Text>
         <Select
           value={jugadorSeleccionado}
           onChange={setJugadorSeleccionado}
-          placeholder="Escribe para buscar por nombre o RUT..."
+          placeholder="Escriba para buscar por nombre o RUT..."
           style={{ width: '100%', marginTop: 8 }}
           showSearch
           searchValue={busquedaJugador}
@@ -152,7 +152,7 @@ export default function ModalAgregarJugador({
               </div>
             ) : busquedaJugador.length < 2 ? (
               <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>
-                Escribe al menos 2 caracteres para buscar
+                Escriba al menos 2 caracteres para buscar
               </div>
             ) : jugadoresDisponibles.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 16, color: '#999' }}>

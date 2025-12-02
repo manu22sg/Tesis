@@ -46,7 +46,7 @@ export default function ReservaNueva() {
   const [opcionesAutoComplete, setOpcionesAutoComplete] = useState([
     {
       value: '',
-      label: 'Escribe al menos 2 caracteres para buscar...',
+      label: 'Escriba al menos 2 caracteres para buscar...',
       disabled: true
     }
   ]);
@@ -125,7 +125,7 @@ export default function ReservaNueva() {
         setOpcionesAutoComplete([
           {
             value: '',
-            label: 'Escribe al menos 2 caracteres para buscar...',
+            label: 'Escriba al menos 2 caracteres para buscar...',
             disabled: true
           }
         ]);
@@ -288,7 +288,7 @@ export default function ReservaNueva() {
 
   const agregarParticipante = (rut, option) => {
     if (participantes.length >= capacidadMaxima) {
-      message.warning(`Ya tienes ${capacidadMaxima} participantes (capacidad máxima de la cancha)`);
+      message.warning(`Ya tiene ${capacidadMaxima} participantes (capacidad máxima de la cancha)`);
       return;
     }
 
@@ -326,7 +326,7 @@ export default function ReservaNueva() {
     }
 
     if (participantes.length !== capacidadMaxima) {
-      message.error(`Se requieren exactamente ${capacidadMaxima} participantes para esta cancha. Actualmente tienes ${participantes.length}`);
+      message.error(`Se requieren exactamente ${capacidadMaxima} participantes para esta cancha. Actualmente tiene ${participantes.length}`);
       return;
     }
 
@@ -439,10 +439,10 @@ export default function ReservaNueva() {
               <Form.Item
                 label="Cancha"
                 name="canchaId"
-                rules={[{ required: true, message: 'Selecciona una cancha' }]}
+                rules={[{ required: true, message: 'Seleccione una cancha' }]}
               >
                 <Select
-                  placeholder="Selecciona una cancha"
+                  placeholder="Seleccione una cancha"
                   options={canchas}
                   loading={!canchas.length}
                   onChange={(value) => {
@@ -494,12 +494,12 @@ export default function ReservaNueva() {
               <Form.Item
                 label="Fecha"
                 name="fecha"
-                rules={[{ required: true, message: 'Selecciona la fecha de reserva' }]}
+                rules={[{ required: true, message: 'Seleccione la fecha de reserva' }]}
               >
                 <DatePicker
                   format="DD/MM/YYYY"
                   style={{ width: '100%' }}
-                  placeholder="Selecciona una fecha"
+                  placeholder="Seleccione una fecha"
                   onChange={() => {
                     // Re-verificar disponibilidad con nueva fecha
                     const horaInicio = form.getFieldValue('horaInicio');
@@ -523,7 +523,7 @@ export default function ReservaNueva() {
               <Form.Item
                 label="Hora de inicio"
                 name="horaInicio"
-                rules={[{ required: true, message: 'Selecciona la hora de inicio' }]}
+                rules={[{ required: true, message: 'Seleccione la hora de inicio' }]}
                 extra="Bloques disponibles: 08:00, 09:10, 10:20, 11:30, 12:40, 13:50, 15:00, 16:10"
               >
                 <TimePicker
@@ -606,7 +606,7 @@ export default function ReservaNueva() {
                   <Input
                     placeholder={
                       !canchaSeleccionada 
-                        ? 'Selecciona una cancha'
+                        ? 'Seleccione una cancha'
                         : `Buscar por nombre o RUT (${participantes.length}/${capacidadMaxima} agregados)`
                     }
                     allowClear

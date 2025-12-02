@@ -409,7 +409,7 @@ const CampoAlineacion = ({
 
           {cambiosPendientes && (
             <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '8px 12px', borderRadius: 4 }}>
-              ⚠️ Tienes cambios sin guardar
+              ⚠️ Tiene cambios sin guardar
             </div>
           )}
 

@@ -359,7 +359,7 @@ function descargarArchivo(blob, nombre) {
                         value={sesionId}
                         onChange={onSeleccionarSesion}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Selecciona una sesión"
+                        placeholder="Seleccione una sesión"
                         loading={loadingBase}
                         allowClear
                         showSearch
@@ -424,7 +424,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe al menos 2 caracteres
+                              Escriba al menos 2 caracteres
                             </div>
                           ) : busquedaJugador.trim().length >= 2 && jugadoresAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -432,7 +432,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : jugadoresAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe para buscar...
+                              Escriba para buscar...
                             </div>
                           ) : null
                         }
@@ -495,7 +495,7 @@ function descargarArchivo(blob, nombre) {
               />
             ) : (
               <Card style={{ textAlign: 'center', color: '#888' }}>
-                Selecciona {modo === 'sesion' ? 'una sesión' : 'un jugador'} para ver las estadísticas.
+                Seleccione {modo === 'sesion' ? 'una sesión' : 'un jugador'} para ver las estadísticas.
               </Card>
             )}
           </Card>

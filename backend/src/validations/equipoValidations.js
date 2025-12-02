@@ -79,7 +79,7 @@ export const actualizarEquipoBody = Joi.object({
       'any.only': 'El tipo debe ser masculino, femenino o mixto'
     }),
 }).min(1).messages({
-  'object.min': 'Debes proporcionar al menos un campo para actualizar'
+  'object.min': 'Debe proporcionar al menos un campo para actualizar'
 });
 
 export const agregarUsuarioEquipoBody = Joi.object({

@@ -146,12 +146,12 @@ export default function NuevaSesionScreen({ navigation }) {
   const handleCrear = async () => {
     // Validaciones básicas
     if (tipoUbicacion === 'cancha' && !canchaId) {
-      Alert.alert('Error', 'Selecciona una cancha');
+      Alert.alert('Error', 'Seleccione una cancha');
       return;
     }
     
     if (tipoUbicacion === 'externa' && !ubicacionExterna.trim()) {
-      Alert.alert('Error', 'Ingresa la ubicación externa');
+      Alert.alert('Error', 'Ingrese la ubicación externa');
       return;
     }
     

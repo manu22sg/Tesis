@@ -21,7 +21,7 @@ export default function SolicitarRestablecimiento() {
       
       // ✅ Si llega aquí, el correo se envió exitosamente
       setEmailEnviado(true);
-      message.success("Correo enviado exitosamente. Revisa tu bandeja de entrada.");
+      message.success("Correo enviado exitosamente. Revise su bandeja de entrada.");
 
     } catch (error) {
       console.error("Error:", error);
@@ -31,10 +31,10 @@ export default function SolicitarRestablecimiento() {
       
       if (errorMessage.includes("No existe una cuenta")) {
         message.error("No existe una cuenta registrada con este correo");
-      } else if (errorMessage.includes("verificar tu cuenta")) {
-        message.error("Debes verificar tu cuenta antes de restablecer la contraseña");
+      } else if (errorMessage.includes("verificar su cuenta")) {
+        message.error("Debe verificar su cuenta antes de restablecer la contraseña");
       } else if (errorMessage.includes("no está activa")) {
-        message.error("Tu cuenta no está activa. Contacta al administrador");
+        message.error("Su cuenta no está activa. Contacte al administrador");
       } else {
         message.error(errorMessage);
       }
@@ -123,8 +123,8 @@ export default function SolicitarRestablecimiento() {
               label="Correo institucional"
               name="email"
               rules={[
-                { required: true, message: "Ingresa tu correo" },
-                { type: "email", message: "Ingresa un correo válido" },
+                { required: true, message: "Ingrese su correo" },
+                { type: "email", message: "Ingrese un correo válido" },
                 {
                   pattern: /.+@(alumnos\.)?ubiobio\.cl$/,
                   message: "Debe ser un correo institucional UBB",

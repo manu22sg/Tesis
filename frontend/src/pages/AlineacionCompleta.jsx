@@ -254,7 +254,7 @@ const handleAgregarJugador = async (values, continuar = false) => {
       }
 
       if (nuevoOrden > 11) {
-        message.warning('Ya hay 11 titulares. Debes remover uno primero.');
+        message.warning('Ya hay 11 titulares. Debe remover uno primero.');
         return;
       }
 
@@ -824,10 +824,10 @@ const puedeAgregarJugador = () => {
               <Form.Item
                 name="jugadorId"
                 label="Jugador"
-                rules={[{ required: true, message: 'Selecciona un jugador' }]}
+                rules={[{ required: true, message: 'Seleccione un jugador' }]}
               >
                 <Select
-                  placeholder="Selecciona un jugador"
+                  placeholder="Seleccione un jugador"
                   showSearch
                   options={opcionesJugadores}
                   optionFilterProp="label"
@@ -837,9 +837,9 @@ const puedeAgregarJugador = () => {
               <Form.Item
                 name="posicion"
                 label="Posición"
-                rules={[{ required: true, message: 'Selecciona una posición' }]}
+                rules={[{ required: true, message: 'Seleccione una posición' }]}
               >
-                <Select placeholder="Selecciona una posición">
+                <Select placeholder="Seleccione una posición">
                   {POSICIONES.map(pos => (
                     <Select.Option key={pos} value={pos}>{pos}</Select.Option>
                   ))}
@@ -889,7 +889,7 @@ const puedeAgregarJugador = () => {
           >
             <Form form={formEdit} layout="vertical" onFinish={handleActualizarJugador}>
               <Form.Item name="posicion" label="Posición">
-                <Select placeholder="Selecciona una posición">
+                <Select placeholder="Seleccione una posición">
                   {POSICIONES.map(pos => (
                     <Select.Option key={pos} value={pos}>{pos}</Select.Option>
                   ))}

@@ -344,7 +344,7 @@ export async function cancelarReserva(reservaId, usuarioId) {
     // 2. Verificar que el usuario es el creador de la reserva
     if (reserva.usuarioId !== usuarioId) {
       await queryRunner.rollbackTransaction();
-      return [null, 'No tienes permiso para cancelar esta reserva'];
+      return [null, 'No tiene permiso para cancelar esta reserva'];
     }
 
     // 3. Verificar que la reserva esté en un estado cancelable

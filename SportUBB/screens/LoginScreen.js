@@ -16,7 +16,6 @@ import { useAuth } from '../context/AuthContext';
 import { loginRequest, reenviarVerificacionRequest } from '../services/authServices.js';
 import { Ionicons } from '@expo/vector-icons';
 
-// Importa tu logo aquí
  import LogoCancha from '../assets/images/figura113.png';
 
 export default function LoginScreen({ navigation }) {
@@ -33,7 +32,7 @@ export default function LoginScreen({ navigation }) {
   useEffect(() => {
     if (!authLoading && isAuthenticated && usuario) {
       // Navegar a la pantalla principal
-      navigation.replace('Main'); // o 'Dashboard' o como se llame tu pantalla principal
+      navigation.replace('Main');
     }
   }, [isAuthenticated, usuario, authLoading, navigation]);
 
@@ -55,7 +54,7 @@ export default function LoginScreen({ navigation }) {
   const validatePassword = (text) => {
     setPassword(text);
     if (text && text.length < 1) {
-      setPasswordError('Por favor ingresa tu contraseña');
+      setPasswordError('Por favor ingrese su contraseña');
     } else {
       setPasswordError('');
     }
@@ -66,7 +65,7 @@ export default function LoginScreen({ navigation }) {
     let hasError = false;
 
     if (!email) {
-      setEmailError('Por favor ingresa tu email');
+      setEmailError('Por favor ingrese su email');
       hasError = true;
     } else if (!/^[a-zA-Z0-9._%+-]+@(alumnos\.)?ubiobio\.cl$/.test(email)) {
       setEmailError('Debe ser un correo institucional UBB');
@@ -74,7 +73,7 @@ export default function LoginScreen({ navigation }) {
     }
 
     if (!password) {
-      setPasswordError('Por favor ingresa tu contraseña');
+      setPasswordError('Por favor ingrese su contraseña');
       hasError = true;
     }
 
@@ -118,7 +117,7 @@ export default function LoginScreen({ navigation }) {
       await reenviarVerificacionRequest(emailToVerify);
       Alert.alert(
         '✅ Correo enviado',
-        'Se ha enviado un nuevo correo de verificación. Revisa tu bandeja de entrada.'
+        'Se ha enviado un nuevo correo de verificación. Revise su bandeja de entrada.'
       );
     } catch (error) {
       Alert.alert(
@@ -248,13 +247,13 @@ export default function LoginScreen({ navigation }) {
               activeOpacity={0.7}
             >
               <Text style={styles.forgotPasswordText}>
-                ¿Olvidaste tu contraseña?
+                ¿Olvidó su contraseña?
               </Text>
             </TouchableOpacity>
 
             {/* REGISTER LINK */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>¿No tienes una cuenta? </Text>
+              <Text style={styles.registerText}>¿No tiene una cuenta? </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Register')}
                 disabled={loading}

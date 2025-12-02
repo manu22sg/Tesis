@@ -84,7 +84,7 @@ export default function NuevaReservaScreen({ navigation }) {
 
   const agregarParticipante = (usuario) => {
     if (!canchaSeleccionada) {
-      Alert.alert('Error', 'Primero selecciona una cancha');
+      Alert.alert('Error', 'Primero seleccione una cancha');
       return;
     }
 
@@ -127,12 +127,12 @@ export default function NuevaReservaScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!canchaSeleccionada) {
-      Alert.alert('Error', 'Selecciona una cancha');
+      Alert.alert('Error', 'Seleccione una cancha');
       return;
     }
 
     if (!horaInicio || !horaFin) {
-      Alert.alert('Error', 'Selecciona un horario');
+      Alert.alert('Error', 'Seleccione un horario');
       return;
     }
 

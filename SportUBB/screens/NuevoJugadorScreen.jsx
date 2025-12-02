@@ -109,12 +109,12 @@ export default function NuevoJugadorScreen({ navigation }) {
 
   const validarFormulario = () => {
     if (!usuarioSeleccionado) {
-      Alert.alert('Error', 'Debes seleccionar un usuario');
+      Alert.alert('Error', 'Debe seleccionar un usuario');
       return false;
     }
 
     if (!estado) {
-      Alert.alert('Error', 'Debes seleccionar un estado');
+      Alert.alert('Error', 'Debe seleccionar un estado');
       return false;
     }
 
@@ -379,7 +379,7 @@ export default function NuevoJugadorScreen({ navigation }) {
                   <Text style={styles.emptyText}>
                     {busqueda.length >= 2
                       ? 'No se encontraron usuarios disponibles'
-                      : 'Escribe al menos 2 caracteres para buscar'}
+                      : 'Escriba al menos 2 caracteres para buscar'}
                   </Text>
                 }
               />

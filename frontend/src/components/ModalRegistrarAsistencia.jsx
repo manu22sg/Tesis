@@ -172,7 +172,7 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
         <Form.Item
           name="jugadorId"
           label="Jugador"
-          rules={[{ required: true, message: 'Selecciona un jugador' }]}
+          rules={[{ required: true, message: 'Seleccione un jugador' }]}
         >
           <Select
             showSearch
@@ -189,7 +189,7 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
                 </div>
               ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
                 <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                  Escribe al menos 2 caracteres
+                  Escriba al menos 2 caracteres
                 </div>
               ) : busquedaJugador.trim().length >= 2 && jugadores.length === 0 ? (
                 <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -197,7 +197,7 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
                 </div>
               ) : jugadores.length === 0 ? (
                 <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                  Escribe para buscar...
+                  Escriba para buscar...
                 </div>
               ) : null
             }
@@ -214,14 +214,14 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
         <Form.Item
           name="sesionId"
           label="Sesión"
-          rules={[{ required: true, message: 'Selecciona una sesión' }]}
+          rules={[{ required: true, message: 'Seleccione una sesión' }]}
         >
           <Select
             showSearch
             placeholder={
               jugadorSeleccionado
-                ? 'Selecciona una sesión del jugador'
-                : 'Primero selecciona un jugador'
+                ? 'Seleccione una sesión del jugador'
+                : 'Primero seleccione un jugador'
             }
             disabled={!jugadorSeleccionado}
             notFoundContent={
@@ -232,7 +232,7 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
               ) : jugadorSeleccionado && sesiones.length === 0 ? (
                 'No hay sesiones disponibles para este jugador'
               ) : (
-                'Selecciona un jugador primero'
+                'Seleccione un jugador primero'
               )
             }
             filterOption={(input, option) => {
@@ -261,10 +261,10 @@ const ModalRegistrarAsistencia = ({ visible, onClose, onSuccess }) => {
         <Form.Item
           name="estado"
           label="Estado"
-          rules={[{ required: true, message: 'Selecciona un estado' }]}
+          rules={[{ required: true, message: 'Seleccione un estado' }]}
           initialValue="presente"
         >
-          <Select placeholder="Selecciona un estado">
+          <Select placeholder="Seleccione un estado">
             {ESTADOS_ASISTENCIA.map(estado => (
               <Select.Option key={estado.value} value={estado.value}>
                 <Space align="center" size={8}>

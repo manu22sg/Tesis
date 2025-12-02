@@ -323,7 +323,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   items={itemsByRole[userRole]}
   className="menu-scroll-hidden"
   style={{
-    height: 'calc(100vh - 50px)',  // tu ajuste
+    height: 'calc(100vh - 50px)',  
     overflowY: 'auto',
     paddingBottom: '50px',
   }}

@@ -79,7 +79,6 @@ const SesionesTable = memo(({
         const vigente = r.tokenVigente;   // true / false / undefined
         const activo  = r.tokenActivo;    // true / false
 
-        // Color único (la clave de tu problema)
         const color =
           vigente === true
             ? '#00ADD6'              // celeste (ACTIVO)

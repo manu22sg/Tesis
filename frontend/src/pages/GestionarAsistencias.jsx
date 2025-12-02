@@ -744,7 +744,7 @@ function descargarArchivo(blob, nombre) {
               <Form.Item
                 label={<span style={{ fontSize: 14, fontWeight: 500 }}>Jugador</span>}
                 name="jugadorId"
-                rules={[{ required: true, message: 'Selecciona un jugador' }]}
+                rules={[{ required: true, message: 'Seleccione un jugador' }]}
               >
                 <Select
                   showSearch
@@ -761,7 +761,7 @@ function descargarArchivo(blob, nombre) {
                       </div>
                     ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
                       <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                        Escribe al menos 2 caracteres
+                        Escriba al menos 2 caracteres
                       </div>
                     ) : busquedaJugador.trim().length >= 2 && jugadores.length === 0 ? (
                       <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -795,7 +795,7 @@ function descargarArchivo(blob, nombre) {
                 label={<span style={{ fontSize: 14, fontWeight: 500 }}>Estado</span>}
                 name="estado"
                 initialValue="presente"
-                rules={[{ required: true, message: 'Selecciona un estado' }]}
+                rules={[{ required: true, message: 'Seleccione un estado' }]}
               >
                 <Select size="large" style={{ borderRadius: 8 }}>
                   {Object.entries(ESTADOS).map(([key, config]) => (

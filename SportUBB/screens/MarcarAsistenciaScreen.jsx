@@ -153,7 +153,7 @@ export default function MarcarAsistenciaScreen() {
 
   const handleMarcarAsistencia = async () => {
     if (!token.trim()) {
-      Alert.alert('Error', 'Debes ingresar el token de asistencia');
+      Alert.alert('Error', 'Debe ingresar el token de asistencia');
       return;
     }
 
@@ -298,7 +298,7 @@ export default function MarcarAsistenciaScreen() {
       {sesiones.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyText}>No tienes sesiones disponibles</Text>
+          <Text style={styles.emptyText}>No tiene sesiones disponibles</Text>
         </View>
       ) : (
         <FlatList

@@ -107,7 +107,7 @@ const { message } = App.useApp();
       setCurrentStep(1);
 
     } catch {
-      message.error('Selecciona un tipo de alineación');
+      message.error('Seleccione un tipo de alineación');
     }
   };
 
@@ -202,7 +202,7 @@ const { message } = App.useApp();
       return (
         <div style={{ minHeight: 200 }}>
           <Alert
-            message="Selecciona el tipo de alineación"
+            message="Seleccione el tipo de alineación"
             description="Elige si prefieres una formación ofensiva o defensiva."
             type="info"
             showIcon
@@ -212,11 +212,11 @@ const { message } = App.useApp();
           <Form.Item
             name="tipoAlineacion"
             label="Tipo de Alineación"
-            rules={[{ required: true, message: 'Selecciona un tipo' }]}
+            rules={[{ required: true, message: 'Seleccione un tipo' }]}
           >
             <Select
               size="large"
-              placeholder="Selecciona el tipo"
+              placeholder="Seleccione el tipo"
               onChange={handleTipoChange}
             >
               <Select.Option value="ofensiva">
@@ -251,11 +251,11 @@ const { message } = App.useApp();
            <Form.Item
             name="formacion"
             label="Formación"
-            rules={[{ required: true, message: 'Selecciona una formación' }]}
+            rules={[{ required: true, message: 'Seleccione una formación' }]}
           >
             <Select
               size="large"
-              placeholder="Selecciona una formación"
+              placeholder="Seleccione una formación"
               disabled={loadingFormaciones || formaciones.length === 0}
               optionLabelProp="label"
             >

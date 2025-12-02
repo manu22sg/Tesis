@@ -295,7 +295,7 @@ export default function GrupoMiembrosScreen({ route, navigation }) {
 
   const handleConfirmarAgregar = async () => {
     if (!jugadorSeleccionado) {
-      Alert.alert('Atención', 'Selecciona un jugador');
+      Alert.alert('Atención', 'Seleccione un jugador');
       return;
     }
     try {

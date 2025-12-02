@@ -104,8 +104,8 @@ export default function MarcarAsistencia() {
   // Obtener ubicación del usuario
   const obtenerUbicacion = () => {
     if (!navigator.geolocation) {
-      setErrorUbicacion('Tu navegador no soporta geolocalización');
-      message.error('Tu navegador no soporta geolocalización');
+      setErrorUbicacion('Su navegador no soporta geolocalización');
+      message.error('Su navegador no soporta geolocalización');
       return;
     }
 
@@ -130,7 +130,7 @@ export default function MarcarAsistencia() {
   // Confirmar asistencia
   const handleMarcarAsistencia = async () => {
     if (!token) {
-      message.error('Debes ingresar el token de asistencia');
+      message.error('Debe ingresar el token de asistencia');
       return;
     }
 

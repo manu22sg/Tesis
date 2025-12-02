@@ -25,7 +25,7 @@ export default function Login() {
     setReenviandoEmail(true);
     try {
       await reenviarVerificacionRequest(email);
-      message.success('Correo de verificación reenviado exitosamente. Revisa tu bandeja de entrada.');
+      message.success('Correo de verificación reenviado exitosamente. Revise su bandeja de entrada.');
     } catch (error) {
       const errorMsg = error?.message || error?.error || 'Error al reenviar el correo';
       message.error(errorMsg);
@@ -156,7 +156,7 @@ export default function Login() {
           <Form.Item
             label="Contraseña"
             name="password"
-            rules={[{ required: true, message: "Por favor ingresa tu contraseña" }]}
+            rules={[{ required: true, message: "Por favor ingrese su contraseña" }]}
           >
             <Input.Password
               prefix={<LockOutlined />}

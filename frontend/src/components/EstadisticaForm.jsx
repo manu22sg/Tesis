@@ -274,7 +274,7 @@ const FormularioEstadistica = ({
           <Form.Item
             name="jugadorId"
             label="Jugador"
-            rules={[{ required: true, message: 'Selecciona un jugador' }]}
+            rules={[{ required: true, message: 'Seleccione un jugador' }]}
           >
             <Select
               showSearch
@@ -294,7 +294,7 @@ const FormularioEstadistica = ({
                   </div>
                 ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
                   <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    Escribe al menos 2 caracteres
+                    Escriba al menos 2 caracteres
                   </div>
                 ) : busquedaJugador.trim().length >= 2 && jugadoresAMostrar.length === 0 ? (
                   <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -302,7 +302,7 @@ const FormularioEstadistica = ({
                   </div>
                 ) : jugadoresAMostrar.length === 0 ? (
                   <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    Escribe para buscar...
+                    Escriba para buscar...
                   </div>
                 ) : null
               }
@@ -329,13 +329,13 @@ const FormularioEstadistica = ({
           <Form.Item
             name="sesionId"
             label="Sesión"
-            rules={[{ required: true, message: 'Selecciona una sesión' }]}
+            rules={[{ required: true, message: 'Seleccione una sesión' }]}
           >
             <Select
               placeholder={
                 jugadorSeleccionado
-                  ? 'Selecciona una sesión'
-                  : 'Primero selecciona un jugador'
+                  ? 'Seleccione una sesión'
+                  : 'Primero seleccione un jugador'
               }
               showSearch
               allowClear={!estadistica}

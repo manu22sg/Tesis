@@ -52,7 +52,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permiso denegado", "Debes permitir acceso a la ubicación.");
+        Alert.alert("Permiso denegado", "Debe permitir acceso a la ubicación.");
         return;
       }
 
@@ -74,7 +74,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
 
   const handleActivar = () => {
     if (requiereUbicacion && !ubicacion.latitud) {
-      Alert.alert("Falta ubicación", "Debes fijar una ubicación.");
+      Alert.alert("Falta ubicación", "Debe fijar una ubicación.");
       return;
     }
   const params = {

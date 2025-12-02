@@ -149,7 +149,7 @@ const handleGenerarSiguienteRonda = async () => {
       content: (
         <div>
           <p>Hay {partidosPendientes.length} partido(s) pendiente(s) en la ronda "{getRondaNombre(ultimaRonda)}".</p>
-          <p>Debes finalizar todos los partidos y asignar ganadores antes de generar la siguiente ronda.</p>
+          <p>Debe finalizar todos los partidos y asignar ganadores antes de generar la siguiente ronda.</p>
         </div>
       ),
     });
@@ -386,7 +386,6 @@ const handleExportarPDF = async () => {
   }
 };
 
-// Agregar esta función si no la tienes:
 function descargarArchivo(blob, nombre) {
   if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
     console.error('createObjectURL no disponible');
@@ -592,7 +591,7 @@ function descargarArchivo(blob, nombre) {
                   />
                 </Tooltip>
               )}
-              <Tooltip title={record.estado === 'pendiente' ? "Debes programar el partido primero" : "Registrar Resultado"}>
+              <Tooltip title={record.estado === 'pendiente' ? "Debe programar el partido primero" : "Registrar Resultado"}>
                 <Button
                   type="primary"
                   size="medium"

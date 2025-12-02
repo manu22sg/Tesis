@@ -233,7 +233,7 @@ export const registrarResultado = async ({
       if (penalesA === null || penalesB === null) {
         console.log(penalesA, penalesB);
         throw new Error(
-          "En eliminación directa no puede haber empate. Debes definir el resultado por penales."
+          "En eliminación directa no puede haber empate. Debe definir el resultado por penales."
         );
       }
 

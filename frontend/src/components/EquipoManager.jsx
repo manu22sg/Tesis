@@ -264,7 +264,7 @@ useEffect(() => {
   // --------------------------
   const handleAgregarJugador = async (values, continuar = false) => {
     if (!usuarioSeleccionado) {
-      return message.error('Debes seleccionar un usuario');
+      return message.error('Debe seleccionar un usuario');
     }
 
     setLoading(true);
@@ -809,7 +809,7 @@ useEffect(() => {
                     </div>
                   ) : busquedaUsuario.trim().length > 0 && busquedaUsuario.trim().length < 2 ? (
                     <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                      Escribe al menos 2 caracteres
+                      Escriba al menos 2 caracteres
                     </div>
                   ) : busquedaUsuario.trim().length >= 2 && usuarios.length === 0 ? (
                     <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -817,7 +817,7 @@ useEffect(() => {
                     </div>
                   ) : usuarios.length === 0 ? (
                     <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                      Escribe para buscar...
+                      Escriba para buscar...
                     </div>
                   ) : null
                 }

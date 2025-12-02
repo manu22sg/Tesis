@@ -106,7 +106,6 @@ export default function DisponibilidadCancha() {
       if (canchaSeleccionada) extra.canchaId = Number(canchaSeleccionada);
       if (filtroCapacidad) extra.capacidad = filtroCapacidad;
 
-      // OJO: axios no usa AbortController nativo, pero si tu api wrapper lo soporta, pásale { signal: controller.signal }
       const resp = await getDisponibilidadPorFecha(fechaStr, page, pageSize, extra);
       if (controller.signal.aborted) return;
 

@@ -43,7 +43,6 @@ const [exportando, setExportando] = useState(false);
     })();
   }, [campeonatoId]);
 
-  // === Cargar jugadores por equipo (usa tu listarJugadores con wrapper data.data.jugadores)
   useEffect(() => {
     (async () => {
       if (!equipos.length) return;

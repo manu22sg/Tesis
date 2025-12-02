@@ -158,7 +158,7 @@ export default function RestablecerPassword() {
             Nueva contraseña
           </Title>
           <Text type="secondary">
-            Ingresa una contraseña segura para tu cuenta
+            Ingrese una contraseña segura para su cuenta
           </Text>
         </div>
 
@@ -168,7 +168,7 @@ export default function RestablecerPassword() {
             label="Nueva contraseña"
             name="password"
             rules={[
-              { required: true, message: "Ingresa una contraseña" },
+              { required: true, message: "Ingrese una contraseña" },
               {
                 validator: (_, value) => {
                   if (!value) return Promise.resolve();
@@ -199,7 +199,7 @@ export default function RestablecerPassword() {
             dependencies={["password"]}
             hasFeedback
             rules={[
-              { required: true, message: "Confirma tu contraseña" },
+              { required: true, message: "Confirme su contraseña" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue("password") === value) {

@@ -100,7 +100,7 @@ export default function EditarJugadorScreen({ navigation, route }) {
 
   const validarFormulario = () => {
     if (!estado) {
-      Alert.alert('Error', 'Debes seleccionar un estado');
+      Alert.alert('Error', 'Debe seleccionar un estado');
       return false;
     }
 

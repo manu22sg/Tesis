@@ -45,7 +45,7 @@ export async function register(req, res) {
         user: result.user,
         message: result.message
       },
-      'Registro exitoso. Revisa tu correo institucional para verificar tu cuenta.',
+      'Registro exitoso. Revise su correo institucional para verificar su cuenta.',
       201
     );
 
@@ -338,7 +338,7 @@ export async function solicitarRestablecimiento(req, res) {
       if (errorMsg.includes('No existe una cuenta')) {
         return notFound(res, errorMsg);
       }
-      if (errorMsg.includes('verificar tu cuenta')) {
+      if (errorMsg.includes('verifique su cuenta')) {
         return forbidden(res, errorMsg);
       }
       if (errorMsg.includes('no está activa')) {

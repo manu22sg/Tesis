@@ -54,7 +54,6 @@ export async function activarTokenSesion(sesionId, params = {}) {
       sesion.longitudToken = null;
     }
 
-    // (opcional) persistir explícitamente un campo requiereUbicacion si lo tienes en el modelo:
     // sesion.requiereUbicacion = requiereUbicacion;
 
     const actualizado = await repo.save(sesion);

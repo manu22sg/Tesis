@@ -24,7 +24,7 @@ export async function enviarRecordatoriosSesiones() {
       .getMany();
 
     if (!sesiones.length) {
-      console.log('✓ No hay sesiones para enviar recordatorios');
+     // console.log('✓ No hay sesiones para enviar recordatorios');
       return;
     }
 
@@ -56,7 +56,7 @@ export async function enviarRecordatoriosSesiones() {
       const texto = `
 Hola 
 
-Te recordamos que mañana tienes una sesión del grupo "${grupo.nombre}".
+Le recordamos que mañana tiene una sesión del grupo "${grupo.nombre}".
 
   Fecha: ${fechaFmt}
   Hora: ${horario}

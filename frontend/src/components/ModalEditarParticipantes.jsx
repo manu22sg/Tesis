@@ -109,7 +109,7 @@ export default function ModalEditarParticipantes({
       setError('');
       
       if (!participantesSeleccionados || participantesSeleccionados.length === 0) {
-        setError('Debes seleccionar al menos un participante');
+        setError('Debe seleccionar al menos un participante');
         return;
       }
 
@@ -308,7 +308,7 @@ export default function ModalEditarParticipantes({
             ) : (
               <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
                 <SearchOutlined style={{ fontSize: 24, marginBottom: 8 }} />
-                <div>Escribe para buscar usuarios</div>
+                <div>Escriba para buscar usuarios</div>
               </div>
             )
           }

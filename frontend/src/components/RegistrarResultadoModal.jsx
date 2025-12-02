@@ -80,7 +80,7 @@ const RegistrarResultadoModal = ({
 
     if (esEliminacionDirecta && golesA === golesB) {
       if (typeof penalesA !== 'number' || typeof penalesB !== 'number') {
-        message.error('Debes definir el resultado por penales');
+        message.error('Debe definir el resultado por penales');
         return;
       }
       if (penalesA === penalesB) {

@@ -141,7 +141,7 @@ const handleExportExcel = async () => {
       const permissions = await StorageAccessFramework.requestDirectoryPermissionsAsync();
 
       if (!permissions.granted) {
-        Alert.alert("Permiso requerido", "Debes permitir acceso a Descargas.");
+        Alert.alert("Permiso requerido", "Debe permitir acceso a Descargas.");
         return;
       }
 
@@ -155,7 +155,7 @@ const handleExportExcel = async () => {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      Alert.alert("¡Descargado!", `Se guardó en tu carpeta seleccionada.`);
+      Alert.alert("¡Descargado!", `Se guardó en su carpeta seleccionada.`);
       return;
     }
 

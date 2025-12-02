@@ -334,10 +334,10 @@ export default function EditarSesion() {
                 <Form.Item
                   name="canchaId"
                   label="Cancha"
-                  rules={[{ required: true, message: 'Selecciona una cancha' }]}
+                  rules={[{ required: true, message: 'Seleccione una cancha' }]}
                 >
                   <Select
-                    placeholder="Selecciona una cancha"
+                    placeholder="Seleccione una cancha"
                     options={canchas}
                     loading={!canchas.length}
                     showSearch
@@ -353,7 +353,7 @@ export default function EditarSesion() {
                   name="ubicacionExterna"
                   label="Ubicación Externa"
                   rules={[
-                    { required: true, message: 'Ingresa la ubicación externa' },
+                    { required: true, message: 'Ingrese la ubicación externa' },
                     { max: 200, message: 'Máximo 200 caracteres' }
                   ]}
                 >
@@ -369,7 +369,7 @@ export default function EditarSesion() {
               <Form.Item name="grupoId" label="Grupo (opcional)">
                 <Select
                   allowClear
-                  placeholder="Selecciona un grupo"
+                  placeholder="Seleccione un grupo"
                   options={grupos}
                   loading={!grupos.length}
                   showSearch
@@ -381,7 +381,7 @@ export default function EditarSesion() {
               <Form.Item
                 name="fecha"
                 label="Fecha"
-                rules={[{ required: true, message: 'Selecciona una fecha' }]}
+                rules={[{ required: true, message: 'Seleccione una fecha' }]}
               >
                 <DatePicker
                   format="DD/MM/YYYY"
@@ -399,7 +399,7 @@ export default function EditarSesion() {
               <Form.Item
                 name="horario"
                 label="Horario"
-                rules={[{ required: true, message: 'Selecciona el horario' }]}
+                rules={[{ required: true, message: 'Seleccione el horario' }]}
               >
                 <TimePicker.RangePicker
                   format="HH:mm"
@@ -467,9 +467,9 @@ export default function EditarSesion() {
               <Form.Item
                 name="tipoSesion"
                 label="Tipo de sesión"
-                rules={[{ required: true, message: 'Selecciona el tipo de sesión' }]}
+                rules={[{ required: true, message: 'Seleccione el tipo de sesión' }]}
               >
-                <Select placeholder="Selecciona el tipo de sesión">
+                <Select placeholder="Seleccione el tipo de sesión">
                   <Select.Option value="Entrenamiento">Entrenamiento</Select.Option>
                   <Select.Option value="Partido">Partido</Select.Option>
                   <Select.Option value="Partido Amistoso">Partido Amistoso</Select.Option>

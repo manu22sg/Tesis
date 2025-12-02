@@ -162,7 +162,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
 
   const handleSubmit = async (values) => {
     if (!isEdit && !usuarioSeleccionado) {
-      message.error('Debes seleccionar un usuario válido');
+      message.error('Debe seleccionar un usuario válido');
       return;
     }
 
@@ -273,7 +273,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
   <Form.Item
     name="usuarioId"
     label="Usuario"
-    rules={[{ required: true, message: 'Selecciona un usuario' }]}
+    rules={[{ required: true, message: 'Seleccione un usuario' }]}
     validateTrigger="onSubmit"
   >
     <AutoComplete
@@ -297,7 +297,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
           </div>
         ) : valorBusqueda.length < 2 ? (
           <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
-            Escribe al menos 2 caracteres para buscar
+            Escriba al menos 2 caracteres para buscar
           </div>
         ) : (
           <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
@@ -346,9 +346,9 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
   <Form.Item 
     name="posicion" 
     label="Posición Principal"
-    rules={[{ required: true, message: 'Selecciona una posición principal' }]}
+    rules={[{ required: true, message: 'Seleccione una posición principal' }]}
   >
-    <Select placeholder="Selecciona una posición" allowClear>
+    <Select placeholder="Seleccione una posición" allowClear>
       <Option value="Portero">Portero</Option>
       <Option value="Defensa Central">Defensa Central</Option>
       <Option value="Defensa Central Derecho">Defensa Central Derecho</Option>
@@ -366,7 +366,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
 
   {/* OPCIONAL */}
   <Form.Item name="posicionSecundaria" label="Posición Secundaria">
-    <Select placeholder="Selecciona una posición (opcional)" allowClear>
+    <Select placeholder="Seleccione una posición (opcional)" allowClear>
       <Option value="Portero">Portero</Option>
       <Option value="Defensa Central">Defensa Central</Option>
       <Option value="Defensa Central Derecho">Defensa Central Derecho</Option>
@@ -385,9 +385,9 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
   <Form.Item 
     name="piernaHabil" 
     label="Pierna Hábil"
-    rules={[{ required: true, message: 'Selecciona la pierna hábil' }]}
+    rules={[{ required: true, message: 'Seleccione la pierna hábil' }]}
   >
-    <Select placeholder="Selecciona pierna hábil" allowClear>
+    <Select placeholder="Seleccione pierna hábil" allowClear>
       <Option value="Derecha">Derecha</Option>
       <Option value="Izquierda">Izquierda</Option>
       <Option value="Ambas">Ambas</Option>
@@ -450,9 +450,9 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
 <Form.Item
   name="estado"
   label="Estado"
-  rules={[{ required: true, message: 'Selecciona el estado' }]}
+  rules={[{ required: true, message: 'Seleccione el estado' }]}
 >
-  <Select placeholder="Selecciona el estado">
+  <Select placeholder="Seleccione el estado">
     <Option value="activo">Activo</Option>
     <Option value="inactivo">Inactivo</Option>
     <Option value="lesionado">Lesionado</Option>
@@ -464,11 +464,11 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
   <Form.Item 
     name="fechaNacimiento" 
     label="Fecha de Nacimiento"
-    rules={[{ required: true, message: 'Selecciona la fecha de nacimiento' }]}
+    rules={[{ required: true, message: 'Seleccione la fecha de nacimiento' }]}
   >
     <DatePicker
       format="DD/MM/YYYY"
-      placeholder="Selecciona una fecha"
+      placeholder="Seleccione una fecha"
       style={{ width: '100%' }}
     />
   </Form.Item>
@@ -476,9 +476,9 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
   <Form.Item 
     name="anioIngreso" 
     label="Año de Ingreso"
-    rules={[{ required: true, message: 'Selecciona el año de ingreso al sistema' }]}
+    rules={[{ required: true, message: 'Seleccione el año de ingreso al sistema' }]}
   >
-    <Select placeholder="Selecciona el año" showSearch>
+    <Select placeholder="Seleccione el año" showSearch>
       {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i).map(
         (year) => (
           <Option key={year} value={year}>

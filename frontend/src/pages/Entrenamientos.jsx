@@ -131,7 +131,7 @@ const { message } = App.useApp();
   };
 
   const handleExportarExcel = async () => {
-  setExportando(true); // Si tienes este estado
+  setExportando(true); 
   try {
     const filtros = {
       q: query || undefined,
@@ -364,7 +364,7 @@ const menuExportar = {
         (sesionSeleccionadaManual ? parseInt(sesionSeleccionadaManual) : null);
 
       if (!destino) {
-        message.warning('Selecciona o ingresa un ID de sesión');
+        message.warning('Seleccione');
         setLoadingAsignar(false);
         return;
       }
@@ -908,14 +908,14 @@ const menuExportar = {
       </p>
       <p style={{ marginBottom: 12 }}>
         <Text type="secondary">
-          Selecciona la sesión activa a la que deseas asignarlo:
+          Seleccione la sesión activa a la que deseas asignarlo:
         </Text>
       </p>
 
       <Select
         showSearch
         style={{ width: '100%' }}
-        placeholder="Selecciona una sesión activa"
+        placeholder="Seleccione una sesión activa"
         allowClear
         value={sesionSeleccionada}
         onChange={setSesionSeleccionada}

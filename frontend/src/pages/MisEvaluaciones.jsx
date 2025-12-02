@@ -379,7 +379,7 @@ export default function MisEvaluaciones() {
             rowKey="id"
             scroll={{ x: 1000 }}
             locale={{
-              emptyText: 'No tienes evaluaciones registradas aún'
+              emptyText: 'No tiene evaluaciones registradas aún'
             }}
           />
           

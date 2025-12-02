@@ -231,7 +231,7 @@ export default function CampoAlineacionMobile({
         </TouchableOpacity>
 
         {cambiosPendientes && (
-          <Text style={styles.warning}>⚠ Tienes cambios sin guardar</Text>
+          <Text style={styles.warning}>⚠ Tiene cambios sin guardar</Text>
         )}
 
         <View style={styles.actionRow}>

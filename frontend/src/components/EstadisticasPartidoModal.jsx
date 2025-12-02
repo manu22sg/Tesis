@@ -438,7 +438,7 @@ const EstadisticasPartidoModal = ({
           <Form.Item
             name="jugadorCampeonatoId"
             label="Jugador"
-            rules={[{ required: true, message: 'Selecciona a un jugador' }]}
+            rules={[{ required: true, message: 'Seleccione un jugador' }]}
           >
             <Select
               placeholder="Seleccionar jugador"

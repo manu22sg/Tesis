@@ -66,7 +66,7 @@ export async function enviarRecordatoriosReservas() {
         const texto = `
 Hola,
 
-Te recordamos que mañana tienes una reserva:
+Le recordamos que mañana tiene una reserva:
 📅 Fecha: ${fechaFmt}
 🕒 Hora: ${horario}
 🏟️ Cancha: ${r.cancha?.nombre || 'Sin asignar'}
@@ -99,7 +99,7 @@ Te recordamos que mañana tienes una reserva:
       }
     }
 
-    console.log(`✅ Recordatorios: ${totalEnviados} emails enviados (${reservasProcesadas}/${reservas.length} reservas)`);
+   // console.log(`✅ Recordatorios: ${totalEnviados} emails enviados (${reservasProcesadas}/${reservas.length} reservas)`);
     return { enviados: totalEnviados, procesadas: reservasProcesadas, total: reservas.length };
 
   } catch (error) {

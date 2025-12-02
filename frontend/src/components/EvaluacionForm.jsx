@@ -145,7 +145,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
                   'No se encontraron jugadores'
                 ) : (
                   <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                    Escribe para buscar jugadores...
+                    Escriba para buscar jugadores...
                   </div>
                 )
               ) : null
@@ -210,7 +210,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         name="tecnica" 
         label="Técnica"
         rules={[
-          { required: true, message: 'Ingresa una calificación' },
+          { required: true, message: 'Ingrese una calificación' },
           { type: 'number', min: 1, max: 10, message: 'Debe ser entre 1 y 10' }
         ]}
       >
@@ -221,7 +221,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         name="tactica" 
         label="Táctica"
         rules={[
-          { required: true, message: 'Ingresa una calificación' },
+          { required: true, message: 'Ingrese una calificación' },
           { type: 'number', min: 1, max: 10, message: 'Debe ser entre 1 y 10' }
         ]}
       >
@@ -232,7 +232,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         name="actitudinal" 
         label="Actitudinal"
         rules={[
-          { required: true, message: 'Ingresa una calificación' },
+          { required: true, message: 'Ingrese una calificación' },
           { type: 'number', min: 1, max: 10, message: 'Debe ser entre 1 y 10' }
         ]}
       >
@@ -243,7 +243,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         name="fisica" 
         label="Física"
         rules={[
-          { required: true, message: 'Ingresa una calificación' },
+          { required: true, message: 'Ingrese una calificación' },
           { type: 'number', min: 1, max: 10, message: 'Debe ser entre 1 y 10' }
         ]}
       >

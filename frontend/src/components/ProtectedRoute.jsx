@@ -39,7 +39,7 @@ export default function ProtectedRoute({ children, roles }) {
           <Result
             status="403"
             title="Acceso Denegado"
-            subTitle="Lo sentimos, no tienes permisos para acceder a esta página."
+            subTitle="Lo sentimos, no tiene permisos para acceder a esta página."
             extra={
               <Button type="primary" onClick={() => navigate('/dashboard')}>
                 Volver al Dashboard

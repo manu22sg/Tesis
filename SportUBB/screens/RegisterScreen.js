@@ -210,7 +210,7 @@ export default function RegisterScreen({ navigation }) {
 
       Alert.alert(
         'Registro exitoso',
-        'Revisa tu correo institucional para verificar tu cuenta',
+        'Revise su correo institucional para verificar su cuenta',
         [
           {
             text: 'OK',
@@ -474,7 +474,7 @@ export default function RegisterScreen({ navigation }) {
 
             {/* LINK A LOGIN */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>¿Ya tienes cuenta? </Text>
+              <Text style={styles.registerText}>¿Ya tiene una cuenta? </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Login')}
                 disabled={loading}

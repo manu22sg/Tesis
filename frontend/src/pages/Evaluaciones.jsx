@@ -470,7 +470,7 @@ function descargarArchivo(blob, nombre) {
                         value={sesionId}
                         onChange={onSeleccionarSesion}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Selecciona una sesión"
+                        placeholder="Seleccione una sesión"
                         loading={loadingBase}
                         allowClear
                         showSearch
@@ -511,7 +511,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : busquedaJugadorFiltro.trim().length > 0 && busquedaJugadorFiltro.trim().length < 2 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe al menos 2 caracteres
+                              Escriba al menos 2 caracteres
                             </div>
                           ) : busquedaJugadorFiltro.trim().length >= 2 && jugadoresFiltroAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -519,7 +519,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : jugadoresFiltroAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe para buscar...
+                              Escriba para buscar...
                             </div>
                           ) : null
                         }
@@ -554,7 +554,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : busquedaJugadorModo.trim().length > 0 && busquedaJugadorModo.trim().length < 2 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe al menos 2 caracteres
+                              Escriba al menos 2 caracteres
                             </div>
                           ) : busquedaJugadorModo.trim().length >= 2 && jugadoresModoAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
@@ -562,7 +562,7 @@ function descargarArchivo(blob, nombre) {
                             </div>
                           ) : jugadoresModoAMostrar.length === 0 ? (
                             <div style={{ padding: '8px 12px', color: '#8c8c8c' }}>
-                              Escribe para buscar...
+                              Escriba para buscar...
                             </div>
                           ) : null
                         }
@@ -625,7 +625,7 @@ function descargarArchivo(blob, nombre) {
               />
             ) : (
               <Card style={{ textAlign: 'center', color: '#888' }}>
-                Selecciona {modo === 'sesion' ? 'una sesión' : 'un jugador'} para ver las evaluaciones.
+                Seleccione {modo === 'sesion' ? 'una sesión' : 'un jugador'} para ver las evaluaciones.
               </Card>
             )}
           </Card>

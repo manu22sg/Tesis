@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
-import EntrenadorTabNavigator from './navigation/EntrenadorTabNavigator'; // Renombra tu TabNavigator.js actual
+import EntrenadorTabNavigator from './navigation/EntrenadorTabNavigator'; 
 import EstudianteTabNavigator from './navigation/EstudianteTabNavigator'; // Crear este nuevo archivo
 
 const Stack = createNativeStackNavigator();

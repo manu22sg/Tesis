@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
           
           return { 
             success: false, 
-            message: 'Debes verificar tu correo institucional antes de iniciar sesión.',
+            message: 'Debe verificar su correo institucional antes de iniciar sesión.',
             needsVerification: true
           };
         }

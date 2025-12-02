@@ -464,7 +464,7 @@ const ProgramarPartidoModal = ({
                         </div>
                       ) : valorBusquedaArbitro.length < 2 ? (
                         <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
-                          Escribe al menos 2 caracteres para buscar
+                          Escriba al menos 2 caracteres para buscar
                         </div>
                       ) : (
                         <div style={{ padding: '8px 12px', color: '#999', textAlign: 'center' }}>
@@ -479,7 +479,7 @@ const ProgramarPartidoModal = ({
               <Form.Item
                 name="canchaId"
                 label="Cancha"
-                rules={[{ required: true, message: 'Selecciona una cancha' }]}
+                rules={[{ required: true, message: 'Seleccione una cancha' }]}
               >
                 <Select 
                   placeholder="Seleccionar cancha"
@@ -510,7 +510,7 @@ const ProgramarPartidoModal = ({
               <Form.Item
                 name="fecha"
                 label="Fecha"
-                rules={[{ required: true, message: 'Selecciona una fecha' }]}
+                rules={[{ required: true, message: 'Seleccione una fecha' }]}
               >
                 <DatePicker
                   style={{ width: '100%' }}

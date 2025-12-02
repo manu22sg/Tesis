@@ -62,7 +62,7 @@ export async function authenticateToken(req, res, next) {
 
     // 5. Verificar estado y verificación
     if (!user.verificado) {
-      return forbidden(res, 'Debes verificar tu correo antes de acceder');
+      return forbidden(res, 'Debe verificar su correo antes de acceder');
     }
 
     if (user.estado !== 'activo') {
@@ -118,7 +118,7 @@ export function requireRole(roles) {
 
 
     if (!allowed.includes(userRole)) {
-      return forbidden(res, 'No tienes permisos para acceder a este recurso');
+      return forbidden(res, 'No tiene permisos para acceder a este recurso');
     }
     
     next();

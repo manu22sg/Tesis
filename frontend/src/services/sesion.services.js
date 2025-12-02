@@ -102,8 +102,8 @@ export async function activarTokenSesion(sesionId, params = {}) {
     const response = await api.post(`/sesionToken/activar/${sesionId}`, payload);
     return response.data?.data;
   } catch (error) {
-    console.error('Error activando token:', error);
-    throw error;
+    console.error(error.response?.data.message);
+    throw error.response?.data.message;
   }
 }
 

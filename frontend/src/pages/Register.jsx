@@ -340,7 +340,7 @@ export default function Register() {
               rules={[
                 {
                   required: true,
-                  message: "Selecciona tu carrera"
+                  message: "Seleccione su carrera"
                 }
               ]}
             >
@@ -386,7 +386,7 @@ export default function Register() {
           <Form.Item
             label="Contraseña"
             name="password"
-            rules={[{ required: true, message: "Ingresa una contraseña" }]}
+            rules={[{ required: true, message: "Ingrese una contraseña" }]}
           >
             <Input.Password
               placeholder="••••••••"
@@ -404,7 +404,7 @@ export default function Register() {
             dependencies={['password']}
             hasFeedback
             rules={[
-              { required: true, message: "Confirma tu contraseña" },
+              { required: true, message: "Confirme su contraseña" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue("password") === value) {

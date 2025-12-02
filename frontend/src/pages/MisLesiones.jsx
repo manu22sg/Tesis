@@ -207,7 +207,7 @@ export default function MisLesiones() {
                     description={
                       hayFiltrosActivos
                         ? 'No se encontraron lesiones con los filtros aplicados'
-                        : 'No tienes lesiones registradas'
+                        : 'No tiene lesiones registradas'
                     }
                   />
                 ),

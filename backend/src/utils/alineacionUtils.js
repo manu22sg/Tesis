@@ -77,7 +77,7 @@ export function validarTitular(jugadores, nuevoOrden) {
   if (titularesActuales.length >= 11 && nuevoOrden >= 1 && nuevoOrden <= 11) {
     return {
       valido: false,
-      mensaje: 'Ya hay 11 titulares. Debes remover uno primero o asignar un orden mayor a 11.'
+      mensaje: 'Ya hay 11 titulares. Debe remover uno primero o asignar un orden mayor a 11.'
     };
   }
   

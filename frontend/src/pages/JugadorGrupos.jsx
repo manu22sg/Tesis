@@ -83,7 +83,7 @@ export default function JugadorGrupos() {
 
   const handleAgregarGrupo = async () => {
     if (!grupoSeleccionado) {
-      message.warning('Selecciona un grupo');
+      message.warning('Seleccione un grupo');
       return;
     }
 
@@ -307,11 +307,11 @@ export default function JugadorGrupos() {
         </div>
 
         <div>
-          <Text strong>Selecciona un grupo:</Text>
+          <Text strong>Seleccione un grupo:</Text>
           <Select
   value={grupoSeleccionado}
   onChange={setGrupoSeleccionado}
-  placeholder="Selecciona un grupo"
+  placeholder="Seleccione un grupo"
   style={{ width: '100%', marginTop: 8 }}
   size="large"
   showSearch

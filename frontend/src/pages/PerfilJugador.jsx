@@ -102,7 +102,7 @@ const handleExportarPDF = async () => {
   }
 };
 
-// Función helper para descargar archivos (agregar si no la tienes)
+
 function descargarArchivo(blob, nombre) {
   if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
     console.error('createObjectURL no disponible');

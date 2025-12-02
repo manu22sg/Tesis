@@ -48,7 +48,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
 
   const obtenerUbicacion = useCallback(() => {
     if (!navigator.geolocation) {
-      const msg = 'Tu navegador no soporta geolocalización';
+      const msg = 'Su navegador no soporta geolocalización';
       setErrorUbicacion(msg);
       message.error(msg);
       return;
@@ -85,7 +85,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
   const handleActivar = useCallback(() => {
     // Si el técnico exige ubicación, debe existir lat/lon
     if (requiereUbicacion && !(ubicacion.latitud && ubicacion.longitud)) {
-      message.error('Debes obtener la ubicación para exigirla a los jugadores.');
+      message.error('Debe obtener la ubicación para exigirla a los jugadores.');
       return;
     }
 
@@ -211,7 +211,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
                     <Text strong>Exigir ubicación a jugadores</Text>
                     <div>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        Si activas esto, deberás fijar un punto y los jugadores deberán estar cerca al marcar.
+                        Si activa esto, deberá fijar un punto y los jugadores deberán estar cerca al marcar.
                       </Text>
                     </div>
                   </div>
@@ -306,7 +306,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
               <Tooltip
                 title={
                   requiereUbicacion && !(ubicacion.latitud && ubicacion.longitud)
-                    ? 'Debes fijar la ubicación para activar el token con geofence'
+                    ? 'Debe fijar la ubicación para activar el token con geofence'
                     : ''
                 }
               >

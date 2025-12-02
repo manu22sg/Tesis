@@ -379,10 +379,10 @@ const calcularTiempoRestante = (fechaReserva, horaInicio) => {
                   <Empty
                     description={
                       filtroEstado
-                        ? `No tienes reservas con estado "${
+                        ? `No tiene reservas con estado "${
                             estadoConfig[filtroEstado]?.text || filtroEstado
                           }"`
-                        : 'No tienes reservas registradas'
+                        : 'No tiene reservas registradas'
                     }
                   >
                     {!filtroEstado && (

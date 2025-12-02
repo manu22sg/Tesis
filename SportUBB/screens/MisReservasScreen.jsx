@@ -304,8 +304,8 @@ export default function MisReservasScreen({ navigation }) {
           <Text style={styles.emptyIcon}>📅</Text>
           <Text style={styles.emptyText}>
             {filtroEstado 
-              ? `No tienes reservas con estado "${getEstadoTexto(filtroEstado)}"`
-              : 'No tienes reservas registradas'}
+              ? `No tiene reservas con estado "${getEstadoTexto(filtroEstado)}"`
+              : 'No tiene reservas registradas'}
           </Text>
           {!filtroEstado && (
             <TouchableOpacity

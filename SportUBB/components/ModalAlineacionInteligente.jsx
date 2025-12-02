@@ -150,7 +150,7 @@ export default function ModalAlineacionInteligente({
           {/* PASO 1 */}
           {step === 0 && (
             <>
-              <Text style={styles.subtitle}>Selecciona el tipo</Text>
+              <Text style={styles.subtitle}>Seleccione el tipo</Text>
 
               <TouchableOpacity
                 style={[
@@ -177,7 +177,7 @@ export default function ModalAlineacionInteligente({
           {/* PASO 2 */}
           {step === 1 && (
             <>
-              <Text style={styles.subtitle}>Selecciona una formación</Text>
+              <Text style={styles.subtitle}>Seleccione una formación</Text>
 
               {loadingFormaciones && (
                 <ActivityIndicator color="#1976d2" size="large" />

@@ -135,7 +135,7 @@ export const activarTokenSchema = Joi.object({
       .precision(6)
       .required()
       .messages({ 
-        "any.required": "Debes enviar latitudToken si requiereUbicacion es true",
+        "any.required": "Debe enviar latitudToken si requiereUbicacion es true",
         "number.min": "latitudToken debe ser al menos -90",
         "number.max": "latitudToken debe ser máximo 90"
       }),
@@ -157,7 +157,7 @@ export const activarTokenSchema = Joi.object({
       .precision(6)
       .required()
       .messages({ 
-        "any.required": "Debes enviar longitudToken si requiereUbicacion es true",
+        "any.required": "Debe enviar longitudToken si requiereUbicacion es true",
         "number.min": "longitudToken debe ser al menos -180",
         "number.max": "longitudToken debe ser máximo 180"
       }),
