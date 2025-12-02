@@ -143,7 +143,7 @@ const handleAgregarJugador = async (values, continuar = false) => {
     }
     const dorsalRepetido = alineacion.jugadores?.some(j => j.orden === values.orden);
     if (dorsalRepetido) {
-      message.error(`El dorsal #${values.orden} ya está en uso. Por favor elige otro número.`);
+      message.error(`El dorsal #${values.orden} ya está en uso. Por favor elija otro número.`);
       return;
     }
 

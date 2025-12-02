@@ -71,7 +71,7 @@ export default function MarcarAsistencia() {
       });
     } catch (error) {
       console.error('Error cargando sesiones:', error);
-      message.error('No se pudieron cargar tus sesiones');
+      message.error('No se pudieron cargar sus sesiones');
     } finally {
       setLoading(false);
     }

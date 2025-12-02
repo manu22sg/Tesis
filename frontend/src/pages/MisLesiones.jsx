@@ -56,7 +56,7 @@ export default function MisLesiones() {
       setLesiones(data);
     } catch (error) {
       console.error('Error cargando mis lesiones:', error);
-      message.error(error.message || 'Error al cargar tus lesiones');
+      message.error(error.message || 'Error al cargar sus lesiones');
     } finally {
       setLoading(false);
     }

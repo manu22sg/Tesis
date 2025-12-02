@@ -88,7 +88,7 @@ export async function getMisEvaluaciones(req, res) {
 
   const [data, err] = await obtenerEvaluaciones(filtros);
   if (err) return error(res, err);
-  return success(res, data, 'Tus evaluaciones');
+  return success(res, data, 'Sus evaluaciones');
 }
 
 export async function exportarEvaluacionesExcel(req, res) {

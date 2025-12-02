@@ -62,7 +62,7 @@ export default function MisReservasScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Error cargando reservas:', error);
-      Alert.alert('Error', 'No se pudieron cargar tus reservas');
+      Alert.alert('Error', 'No se pudieron cargar sus reservas');
       setReservas([]);
     } finally {
       setLoading(false);
@@ -274,7 +274,7 @@ export default function MisReservasScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#014898" />
-        <Text style={styles.loadingText}>Cargando tus reservas...</Text>
+        <Text style={styles.loadingText}>Cargando sus reservas...</Text>
       </View>
     );
   }

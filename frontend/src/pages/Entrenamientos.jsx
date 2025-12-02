@@ -721,7 +721,7 @@ const menuExportar = {
           <Form.Item
             name="sesionId"
             label="Asignar a sesión (opcional)"
-            tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
+            tooltip="Puede dejarlo vacío para crear un entrenamiento global"
           >
             <Select
               allowClear
@@ -736,7 +736,7 @@ const menuExportar = {
           <Form.Item
             name="sesionId"
             label="Asignar a sesión (opcional)"
-            tooltip="Puedes dejarlo vacío para crear un entrenamiento global"
+            tooltip="Puede dejarlo vacío para crear un entrenamiento global"
           >
             <InputNumber style={{ width: '100%' }} min={1} placeholder="ID de la sesión (opcional)" />
           </Form.Item>
@@ -788,7 +788,7 @@ const menuExportar = {
         <Form.Item
           name="orden"
           label="Orden"
-          tooltip="El orden se asigna automáticamente. Puedes cambiarlo manualmente si lo necesitas."
+          tooltip="El orden se asigna automáticamente. Puede cambiarlo manualmente si lo necesita."
           rules={[
             { type: 'number', min: 1, message: 'Mínimo 1' },
             { type: 'number', max: 99, message: 'Máximo 99' },

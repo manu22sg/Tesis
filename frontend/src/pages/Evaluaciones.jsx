@@ -496,7 +496,7 @@ function descargarArchivo(blob, nombre) {
                         value={filtroJugadorEnSesion}
                         onChange={setFiltroJugadorEnSesion}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Busca por nombre o RUT..."
+                        placeholder="Buscar por nombre o RUT..."
                         allowClear
                         showSearch
                         searchValue={busquedaJugadorFiltro}
@@ -540,7 +540,7 @@ function descargarArchivo(blob, nombre) {
                         value={jugadorId}
                         onChange={onSeleccionarJugador}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Busca por nombre o RUT..."
+                        placeholder="Buscar por nombre o RUT..."
                         loading={loadingBase || loadingBusquedaJugadorModo}
                         allowClear
                         showSearch

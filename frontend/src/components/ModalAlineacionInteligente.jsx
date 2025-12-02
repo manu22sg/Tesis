@@ -203,7 +203,7 @@ const { message } = App.useApp();
         <div style={{ minHeight: 200 }}>
           <Alert
             message="Seleccione el tipo de alineación"
-            description="Elige si prefieres una formación ofensiva o defensiva."
+            description="Elija si prefiera una formación ofensiva o defensiva."
             type="info"
             showIcon
             style={{ marginBottom: 24 }}

@@ -297,7 +297,7 @@ function CampeonatoInfoContent() {
         {campeonato.estado === 'creado' && (
           <Alert
             message="Campeonato en Preparación"
-            description="Este campeonato está en fase de preparación. Puedes agregar equipos y configurar el fixture."
+            description="Este campeonato está en fase de preparación. Puedee agregar equipos y configurar el fixture."
             type="info"
             showIcon
             icon={<InfoCircleOutlined />}

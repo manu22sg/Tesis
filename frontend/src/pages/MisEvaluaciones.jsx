@@ -104,7 +104,7 @@ export default function MisEvaluaciones() {
       calcularPromedios(evalData);
     } catch (err) {
       if (!mountedRef.current) return;
-      message.error('Error cargando tus evaluaciones');
+      message.error('Error cargando sus evaluaciones');
       console.error('Error completo:', err);
     } finally {
       if (mountedRef.current) setLoading(false);
@@ -267,7 +267,7 @@ export default function MisEvaluaciones() {
             Mis Evaluaciones
           </h1>
           <p style={{ color: '#666' }}>
-            Aquí puedes ver todas tus evaluaciones de rendimiento en las sesiones de entrenamiento.
+            Aquí puede ver todas sus evaluaciones de rendimiento en las sesiones de entrenamiento.
           </p>
         </div>
 

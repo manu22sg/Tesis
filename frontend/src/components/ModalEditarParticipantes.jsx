@@ -153,7 +153,7 @@ export default function ModalEditarParticipantes({
     const rutCreador = reserva.usuario?.rut;
     
     if (rut === rutCreador) {
-      message.warning('No puedes eliminar al creador de la reserva');
+      message.warning('No puede eliminar al creador de la reserva');
       return;
     }
 

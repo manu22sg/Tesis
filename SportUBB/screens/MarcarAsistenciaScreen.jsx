@@ -96,7 +96,7 @@ export default function MarcarAsistenciaScreen() {
       }
     } catch (error) {
       console.error('Error cargando sesiones:', error);
-      Alert.alert('Error', 'No se pudieron cargar tus sesiones');
+      Alert.alert('Error', 'No se pudieron cargar sus sesiones');
       setSesiones([]);
     } finally {
       setLoading(false);

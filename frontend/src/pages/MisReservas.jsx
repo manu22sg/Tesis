@@ -116,7 +116,7 @@ const calcularTiempoRestante = (fechaReserva, horaInicio) => {
       });
     } catch (error) {
       console.error('Error cargando reservas:', error);
-      message.error('Error al cargar tus reservas');
+      message.error('Error al cargar sus reservas');
     } finally {
       setLoading(false);
     }
