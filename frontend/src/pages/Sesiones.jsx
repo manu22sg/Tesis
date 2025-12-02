@@ -116,6 +116,7 @@ export default function Sesiones() {
     try {
       setLoadingToken(true);
       const payload = { ttlMin, tokenLength, ...extra };
+      
       const sesionActualizada = await activarTokenSesion(sesionToken.id, payload);
       setSesiones(prev => {
         const idx = prev.findIndex(s => s.id === sesionToken.id);
@@ -124,6 +125,8 @@ export default function Sesiones() {
         newArr[idx] = sesionActualizada;
         return newArr;
       });
+      console.log("SESION ACTUALIZADA DESDE BACKEND:", sesionActualizada);
+
       setSesionToken(sesionActualizada);
       message.success('Token generado correctamente');
     } catch {

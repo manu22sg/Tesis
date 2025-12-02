@@ -75,8 +75,8 @@ export async function listarAsistenciasDeSesionController(req, res) {
   const { page = 1, limit = 10, estado, jugadorId, entregoMaterial } = req.query; // ✅ Cambio aquí
   
   const [data, err, status] = await listarAsistenciasDeSesion(sesionId, { 
-    pagina: parseInt(page),     // ✅ Mapeo
-    limite: parseInt(limit),    // ✅ Mapeo
+    page: parseInt(page),     // ✅ Mapeo
+    limit: parseInt(limit),    // ✅ Mapeo
     estado,
     jugadorId: jugadorId ? parseInt(jugadorId) : undefined,
     entregoMaterial: entregoMaterial === "null"
@@ -144,8 +144,8 @@ export async function listarAsistenciasDeJugadorController(req, res) {
     }
 
     const [data, err, status] = await listarAsistenciasDeJugador(jugadorId, {
-      pagina: parseInt(page),     // ✅ Mapeo
-      limite: parseInt(limit),    // ✅ Mapeo
+      page: parseInt(page),     // ✅ Mapeo
+      limit: parseInt(limit),    // ✅ Mapeo
       estado,
       sesionId: sesionId ? parseInt(sesionId) : undefined
     });
@@ -191,19 +191,19 @@ if (!sesionId && !jugadorId) {
 
     if (sesionId && !jugadorId) {
       [result, err, status] = await listarAsistenciasDeSesion(parseInt(sesionId), {
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000
       });
     } else if (sesionId && jugadorId) {
       [result, err, status] = await listarAsistenciasDeSesion(parseInt(sesionId), {
-        pagina: 1,
-        limite: 5000,
+        page: 1,
+        limit: 5000,
         jugadorId: parseInt(jugadorId)
       });
     } else if (jugadorId && !sesionId) {
       [result, err, status] = await listarAsistenciasDeJugador(parseInt(jugadorId), {
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000
       });
     }
 
@@ -327,19 +327,19 @@ export async function exportarAsistenciasPDF(req, res) {
     let result, err, status;
     if (sesionId && !jugadorId) {
       [result, err, status] = await listarAsistenciasDeSesion(parseInt(sesionId), {
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000
       });
     } else if (sesionId && jugadorId) {
       [result, err, status] = await listarAsistenciasDeSesion(parseInt(sesionId), {
-        pagina: 1,
-        limite: 5000,
+        page: 1,
+        limit: 5000,
         jugadorId: parseInt(jugadorId)
       });
     } else if (jugadorId && !sesionId) {
       [result, err, status] = await listarAsistenciasDeJugador(parseInt(jugadorId), {
-        pagina: 1,
-        limite: 5000
+        page: 1,
+        limit: 5000
       });
     }
 

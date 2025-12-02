@@ -11,7 +11,6 @@ import dayjs from 'dayjs';
 
 const { Text } = Typography;
 
-message.config({ maxCount: 1 });
 
 const TokenSesionModal = memo(function TokenSesionModal({
   open,

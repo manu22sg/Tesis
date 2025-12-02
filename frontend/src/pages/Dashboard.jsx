@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext.jsx';
 import MainLayout from '../components/MainLayout.jsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { obtenerEstadisticasEntrenador } from '../services/grupo.services.js';
 import { obtenerMisReservas } from '../services/reserva.services.js';
 
@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [reservasStats, setReservasStats] = useState({ activas: 0, total: 0 });
   const [loadingReservas, setLoadingReservas] = useState(false);
 
+
   const getInitials = (nombre, apellido) => {
     return `${nombre?.charAt(0) || ''}${apellido?.charAt(0) || ''}`.toUpperCase();
   };
@@ -33,19 +34,27 @@ export default function Dashboard() {
   const esEntrenador = usuario?.rol === 'entrenador';
   const tienePerfilJugador = usuario?.jugador !== null && usuario?.jugador !== undefined;
 
-  // Cargar estadísticas si es entrenador
+  // ✅ Calcular años en la universidad con useMemo
+  const aniosEnUniversidad = useMemo(() => {
+    if (!usuario?.anioIngresoUniversidad) return null;
+    const anioIngreso = parseInt(usuario.anioIngresoUniversidad, 10);
+    if (isNaN(anioIngreso)) return null;
+    return new Date().getFullYear() - anioIngreso;
+  }, [usuario?.anioIngresoUniversidad]);
+
+  // ✅ Cargar estadísticas si es entrenador
   useEffect(() => {
     if (esEntrenador) {
       cargarEstadisticas();
     }
-  }, [esEntrenador]);
+  }, [esEntrenador, usuario]);
 
-  // Cargar reservas si es estudiante o académico
+  // ✅ Cargar reservas si es estudiante o académico
   useEffect(() => {
     if ((esEstudiante || esAcademico) && usuario?.id) {
       cargarReservas();
     }
-  }, [esEstudiante, esAcademico, usuario?.id]);
+  }, [esEstudiante, esAcademico, usuario]);
 
   const cargarEstadisticas = async () => {
     try {
@@ -63,9 +72,8 @@ export default function Dashboard() {
     try {
       setLoadingReservas(true);
       const response = await obtenerMisReservas(usuario.id);
-      console.log(response.reservas)
       if (response?.reservas) {
-        const reservas = response?.reservas;
+        const reservas = response.reservas;
         const activas = reservas.filter(r => 
           r.estado === 'pendiente' || r.estado === 'aprobada'
         ).length;
@@ -135,9 +143,7 @@ export default function Dashboard() {
         </Card>
 
         <Row gutter={[16, 16]}>
-          {/* ========================================
-              INFORMACIÓN PERSONAL - TODOS LOS ROLES
-          ======================================== */}
+          {/* INFORMACIÓN PERSONAL - TODOS LOS ROLES */}
           <Col xs={24} lg={12}>
             <Card 
               title={
@@ -198,9 +204,7 @@ export default function Dashboard() {
             </Card>
           </Col>
 
-          {/* ========================================
-              INFORMACIÓN ACADÉMICA - SOLO ESTUDIANTES
-          ======================================== */}
+          {/* INFORMACIÓN ACADÉMICA - SOLO ESTUDIANTES */}
           {esEstudiante && (
             <Col xs={24} lg={12}>
               <Card 
@@ -238,7 +242,8 @@ export default function Dashboard() {
                   >
                     {usuario?.anioIngresoUniversidad || 'No especificado'}
                   </Descriptions.Item>
-                  {usuario?.anioIngresoUniversidad && (
+                  {/* ✅ Usar el valor memoizado */}
+                  {aniosEnUniversidad !== null && (
                     <Descriptions.Item 
                       label={
                         <Space>
@@ -247,7 +252,7 @@ export default function Dashboard() {
                         </Space>
                       }
                     >
-                      {new Date().getFullYear() - usuario.anioIngresoUniversidad} años
+                      {aniosEnUniversidad} {aniosEnUniversidad === 1 ? 'año' : 'años'}
                     </Descriptions.Item>
                   )}
                 </Descriptions>
@@ -255,9 +260,7 @@ export default function Dashboard() {
             </Col>
           )}
 
-          {/* ========================================
-              GESTIÓN DE GRUPOS - SOLO ENTRENADORES
-          ======================================== */}
+          {/* GESTIÓN DE GRUPOS - SOLO ENTRENADORES */}
           {esEntrenador && (
             <Col xs={24} lg={12}>
               <Card 
@@ -302,9 +305,7 @@ export default function Dashboard() {
             </Col>
           )}
 
-          {/* ========================================
-              RESERVAS - ESTUDIANTES Y ACADÉMICOS
-          ======================================== */}
+          {/* RESERVAS - ESTUDIANTES Y ACADÉMICOS */}
           {(esEstudiante || esAcademico) && (
             <Col xs={24} lg={12}>
               <Card 
@@ -349,9 +350,7 @@ export default function Dashboard() {
             </Col>
           )}
 
-          {/* ========================================
-              PERFIL DEPORTIVO - ESTUDIANTES QUE SON JUGADORES
-          ======================================== */}
+          {/* PERFIL DEPORTIVO - ESTUDIANTES QUE SON JUGADORES */}
           {esEstudiante && tienePerfilJugador && (
             <Col xs={24} lg={12}>
               <Card 

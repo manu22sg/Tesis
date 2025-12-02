@@ -285,7 +285,6 @@ export default function Evaluaciones() {
   const onSuccessForm = () => {
     setModalVisible(false);
     setEditando(null);
-    message.success('Evaluación guardada');
     setReloadKey(k => k + 1);
   };
 

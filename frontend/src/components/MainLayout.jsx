@@ -116,7 +116,7 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
 
   const academicoItems = [
     getItem('Campeonatos', 'campeonatos-publico', <TrophyOutlined />),
-    getItem('Disponibilidad Canchas', 'canchas', <FieldTimeOutlined />),
+    getItem('Canchas', 'canchas', <FieldTimeOutlined />),
     getItem('Reservas', 'sub_reservas', <CalendarOutlined />, [
       getItem('Nueva Reserva', 'reservas-nueva', <PlusOutlined />),
       getItem('Mis Reservas', 'reservas-mis', <ScheduleOutlined />),

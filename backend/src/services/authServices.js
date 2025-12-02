@@ -433,7 +433,9 @@ export async function loginService(loginData) {
         'password',
         'estado',
         'verificado',
-        'carreraId'
+        'carreraId',
+        'sexo',
+        'anioIngresoUniversidad'
       ],
       relations: ['jugador', 'carrera'] // ← AGREGAR ESTO
     });
@@ -483,6 +485,9 @@ export async function loginService(loginData) {
       carreraId: user.carreraId,
       verificado: user.verificado,
       estado: user.estado,
+      sexo: user.sexo,                              
+      anioIngresoUniversidad: user.anioIngresoUniversidad, 
+
       jugador: user.jugador ? { // ← AGREGAR ESTO
         id: user.jugador.id,
         posicion: user.jugador.posicion,

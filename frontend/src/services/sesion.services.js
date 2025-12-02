@@ -44,7 +44,6 @@ export async function obtenerSesiones(filtros = {}) {
 
   const query = params.toString() ? `?${params.toString()}` : '';
   const res = await api.get(`/sesion${query}`);
-
   return {
     sesiones: res.data.data.sesiones,
     pagination: res.data.data.pagination,

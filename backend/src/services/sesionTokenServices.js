@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/config.db.js";
 import SesionEntrenamientoSchema from "../entity/SesionEntrenamiento.js";
 import { parseDateLocal } from '../utils/dateLocal.js';
-
+import dayjs from "dayjs";
 function generarToken(length = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
   let t = "";
@@ -58,8 +58,16 @@ export async function activarTokenSesion(sesionId, params = {}) {
     // sesion.requiereUbicacion = requiereUbicacion;
 
     const actualizado = await repo.save(sesion);
-    const sesionCompleta = await repo.findOne({ where: { id: actualizado.id }, relations: ['grupo', 'cancha'] });
-    return [sesionCompleta, null, 200];
+  const sesionCompleta = await repo.findOne({
+  where: { id: actualizado.id },
+  relations: ['grupo', 'cancha']
+});
+
+// ⭐ CALCULAR tokenVigente ANTES DE ENVIARLO
+sesionCompleta.tokenVigente = dayjs().isBefore(dayjs(sesionCompleta.tokenExpiracion));
+
+return [sesionCompleta, null, 200];
+
   } catch (error) {
     console.error("Error activando token:", error);
     return [null, "Error al activar token", 500];

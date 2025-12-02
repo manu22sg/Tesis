@@ -8,6 +8,7 @@ import {
 } from '../services/estadisticaServices.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 export async function postUpsertEstadistica(req,res){
   const [data, err] = await upsertEstadistica(req.body);
@@ -83,7 +84,7 @@ export async function deleteEstadistica(req,res){
 
 export async function exportarEstadisticasExcel(req, res) {
   try {
-    const { tipo, id, mobile, jugadorId, sesionId } = req.query; // ✅ Agregados jugadorId y sesionId
+    const { tipo, id, mobile, jugadorId, sesionId } = req.query;
     const isMobile = mobile === "true";
 
     let resultado, err;
@@ -94,7 +95,7 @@ export async function exportarEstadisticasExcel(req, res) {
         page: 1,
         limit: 5000,
         busqueda: '',
-        sesionId: sesionId ? parseInt(sesionId) : null // ✅ Filtro opcional
+        sesionId: sesionId ? parseInt(sesionId) : null
       });
     } else if (tipo === 'sesion') {
       [resultado, err] = await obtenerEstadisticasPorSesion({
@@ -102,7 +103,7 @@ export async function exportarEstadisticasExcel(req, res) {
         page: 1,
         limit: 5000,
         busqueda: '',
-        jugadorId: jugadorId ? parseInt(jugadorId) : null // ✅ Filtro opcional
+        jugadorId: jugadorId ? parseInt(jugadorId) : null
       });
     }
 
@@ -122,8 +123,56 @@ export async function exportarEstadisticasExcel(req, res) {
       });
     }
 
+    // ✅ Generar nombre descriptivo del archivo
+    let nombreArchivo = 'estadisticas';
+    
+    if (tipo === 'jugador' && estadisticas.length > 0) {
+      const primeraStat = estadisticas[0];
+      const jugadorNombre = primeraStat.jugador?.usuario?.nombre || '';
+      const jugadorApellido = primeraStat.jugador?.usuario?.apellido || '';
+      const nombreCompleto = `${jugadorNombre} ${jugadorApellido}`.trim();
+      
+      if (nombreCompleto) {
+        // Limpiar caracteres especiales para nombre de archivo
+        const nombreLimpio = nombreCompleto
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+          .replace(/[^a-zA-Z0-9\s]/g, '') // Quitar caracteres especiales
+          .replace(/\s+/g, '_'); // Espacios a guión bajo
+        
+        nombreArchivo = `estadisticas_${nombreLimpio}`;
+        
+        // Si hay filtro de sesión, agregar fecha
+        if (sesionId && primeraStat.sesion?.fecha) {
+          const fecha = formatearFecha(primeraStat.sesion.fecha).replace(/\//g, '-');
+          nombreArchivo += `_${fecha}`;
+        }
+      }
+    } else if (tipo === 'sesion' && estadisticas.length > 0) {
+      const sesion = estadisticas[0].sesion;
+      if (sesion?.fecha) {
+        const fecha = formatearFecha(sesion.fecha).replace(/\//g, '-');
+        nombreArchivo = `estadisticas_sesion_${fecha}`;
+        
+        // Si hay filtro de jugador, agregar nombre
+        if (jugadorId && estadisticas[0].jugador?.usuario?.nombre) {
+          const jugadorNombre = estadisticas[0].jugador.usuario.nombre || '';
+          const jugadorApellido = estadisticas[0].jugador.usuario.apellido || '';
+          const nombreCompleto = `${jugadorNombre} ${jugadorApellido}`.trim();
+          
+          const nombreLimpio = nombreCompleto
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .replace(/\s+/g, '_');
+          
+          nombreArchivo += `_${nombreLimpio}`;
+        }
+      }
+    }
+
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Sistema de Gestión Deportiva";
+    workbook.creator = "SPORTUBB";
     const sheet = workbook.addWorksheet("Estadísticas");
 
     if (tipo === 'sesion') {
@@ -135,7 +184,6 @@ export async function exportarEstadisticasExcel(req, res) {
         { header: "Tarjetas Amarillas", key: "tarjetasAmarillas", width: 18 },
         { header: "Tarjetas Rojas", key: "tarjetasRojas", width: 15 },
         { header: "Minutos Jugados", key: "minutosJugados", width: 15 },
-        { header: "Fecha Registro", key: "fechaRegistro", width: 15 }
       ];
     } else {
       sheet.columns = [
@@ -146,7 +194,6 @@ export async function exportarEstadisticasExcel(req, res) {
         { header: "Tarjetas Amarillas", key: "tarjetasAmarillas", width: 18 },
         { header: "Tarjetas Rojas", key: "tarjetasRojas", width: 15 },
         { header: "Minutos Jugados", key: "minutosJugados", width: 15 },
-        { header: "Fecha Registro", key: "fechaRegistro", width: 15 }
       ];
     }
 
@@ -167,22 +214,19 @@ export async function exportarEstadisticasExcel(req, res) {
           tarjetasAmarillas: e.tarjetasAmarillas ?? 0,
           tarjetasRojas: e.tarjetasRojas ?? 0,
           minutosJugados: e.minutosJugados ?? 0,
-          fechaRegistro: e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"
         });
       } else {
-        const fechaSesion = e.sesion?.fecha || "—";
-        const horaInicio = e.sesion?.horaInicio || "—";
-        const horaFin = e.sesion?.horaFin ? ` - ${e.sesion.horaFin}` : "";
+        const horaInicio = formatearHora(e.sesion?.horaInicio);
+        const horaFin = e.sesion?.horaFin ? ` - ${formatearHora(e.sesion.horaFin)}` : "";
         
         sheet.addRow({
-          fechaSesion: fechaSesion ? new Date(fechaSesion).toLocaleDateString('es-CL') : "—",
-          hora: `${formatearHora(horaInicio)}${formatearHora(horaFin)}`,
+          fechaSesion: formatearFecha(e.sesion?.fecha),
+          hora: `${horaInicio}${horaFin}`,
           goles: e.goles ?? 0,
           asistencias: e.asistencias ?? 0,
           tarjetasAmarillas: e.tarjetasAmarillas ?? 0,
           tarjetasRojas: e.tarjetasRojas ?? 0,
           minutosJugados: e.minutosJugados ?? 0,
-          fechaRegistro: e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"
         });
       }
     });
@@ -193,7 +237,7 @@ export async function exportarEstadisticasExcel(req, res) {
     if (isMobile) {
       return res.json({
         success: true,
-        fileName: `estadisticas_${tipo}_${Date.now()}.xlsx`,
+        fileName: `${nombreArchivo}.xlsx`, // ✅ Nombre descriptivo
         base64: buffer.toString("base64")
       });
     }
@@ -202,7 +246,7 @@ export async function exportarEstadisticasExcel(req, res) {
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="estadisticas_${tipo}_${Date.now()}.xlsx"`
+      `attachment; filename="${nombreArchivo}.xlsx"` // ✅ Nombre descriptivo
     );
     res.setHeader("Content-Length", buffer.length);
 
@@ -306,7 +350,6 @@ Asistencias: ${e.asistencias ?? 0}
 Tarjetas Amarillas: ${e.tarjetasAmarillas ?? 0}
 Tarjetas Rojas: ${e.tarjetasRojas ?? 0}
 Minutos Jugados: ${e.minutosJugados ?? 0}
-Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"}
         `);
       } else {
         const fechaSesion = e.sesion?.fecha || "—";
@@ -321,7 +364,6 @@ Asistencias: ${e.asistencias ?? 0}
 Tarjetas Amarillas: ${e.tarjetasAmarillas ?? 0}
 Tarjetas Rojas: ${e.tarjetasRojas ?? 0}
 Minutos Jugados: ${e.minutosJugados ?? 0}
-Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"}
         `);
       }
 
@@ -342,11 +384,4 @@ Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString
       });
     }
   }
-}
-function formatearHora(horaStr) {
-  if (!horaStr) return "—";
-  const [h, m] = horaStr.split(":");
-  const hh = String(h).padStart(2, '0');
-  const mm = String(m).padStart(2, '0');
-  return `${hh}:${mm}`;
 }

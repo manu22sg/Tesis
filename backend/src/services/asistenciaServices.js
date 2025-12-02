@@ -122,10 +122,10 @@ export async function eliminarAsistencia(id) {
   }
 }
 
-export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite = 50, estado, jugadorId, entregoMaterial }) {
+export async function listarAsistenciasDeSesion(sesionId, { page = 1, limit = 50, estado, jugadorId, entregoMaterial }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
-    const skip = (pagina - 1) * limite;
+    const skip = (page - 1) * limit;
 
     const qb = asistenciaRepo
       .createQueryBuilder("a")
@@ -146,15 +146,15 @@ export async function listarAsistenciasDeSesion(sesionId, { pagina = 1, limite =
     const [items, total] = await qb
       .orderBy("a.fechaRegistro", "DESC")  
       .skip(skip)
-      .take(limite)
+      .take(limit)
       .getManyAndCount();
 
     return [{
       asistencias: items,
       total,
-      pagina,
-      limite,
-      totalPaginas: Math.ceil(total / limite),
+      page,
+      limit,
+      totalPaginas: Math.ceil(total / limit),
     }, null, 200];
   } catch (error) {
     console.error("Error listando asistencias:", error);
@@ -208,10 +208,10 @@ export async function registrarAsistenciaManual({
 
 
 
-export async function listarAsistenciasDeJugador(jugadorId, { pagina = 1, limite = 50, estado, sesionId }) {
+export async function listarAsistenciasDeJugador(jugadorId, { page = 1, limit = 50, estado, sesionId }) {
   try {
     const asistenciaRepo = AppDataSource.getRepository(AsistenciaSchema);
-    const skip = (pagina - 1) * limite;
+    const skip = (page - 1) * limit;
 
     const qb = asistenciaRepo
       .createQueryBuilder("a")
@@ -227,15 +227,15 @@ export async function listarAsistenciasDeJugador(jugadorId, { pagina = 1, limite
       .orderBy("sesion.fecha", "DESC")
       .addOrderBy("sesion.horaInicio", "DESC")
       .skip(skip)
-      .take(limite)
+      .take(limit)
       .getManyAndCount();
 
     return [{
       asistencias: items,
       total,
-      pagina,
-      limite,
-      totalPaginas: Math.ceil(total / limite),
+      page,
+      limit,
+      totalPaginas: Math.ceil(total / limit),
     }, null, 200];
   } catch (error) {
     console.error("Error listando asistencias del jugador:", error);

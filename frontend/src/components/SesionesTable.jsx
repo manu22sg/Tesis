@@ -1,25 +1,12 @@
 import React, { memo, useMemo } from 'react';
-import { Table, Button, Space, Tag, Tooltip, Popconfirm } from 'antd';
+import { Table, Button, Space, Tooltip, Popconfirm } from 'antd';
 import {
   EyeOutlined, DeleteOutlined, EditOutlined, TeamOutlined,
   FileTextOutlined, UserOutlined, KeyOutlined, LockOutlined, 
-  UnlockOutlined, EnvironmentOutlined
+  UnlockOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { formatearFecha, formatearHora } from '../utils/formatters';
-
-const colorForTipo = (tipo) => {
-  const t = (tipo || '').toLowerCase();
-  return { 
-    tecnica: 'blue', 
-    táctica: 'green', 
-    tactica: 'green', 
-    fisica: 'orange', 
-    mixta: 'purple',
-    entrenamiento: 'volcano',
-    partido: 'red'
-  }[t] || 'default';
-};
 
 const SesionesTable = memo(({ 
   sesiones, 
@@ -48,9 +35,9 @@ const SesionesTable = memo(({
       render: (_, r) => {
         if (r.ubicacionExterna) {
           return (
-              <Space size={4}>
-                <span>{r.ubicacionExterna}</span>
-              </Space>
+            <Space size={4}>
+              <span>{r.ubicacionExterna}</span>
+            </Space>
           );
         }
         return r.cancha?.nombre || '—';
@@ -66,75 +53,74 @@ const SesionesTable = memo(({
     {
       title: 'Tipo',
       dataIndex: 'tipoSesion',
-      render: (t) => <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-block',
-  marginRight: '4px'
-}}>
-  {t || '—'}
-</span>,
+      render: (t) => (
+        <span style={{
+          padding: '2px 8px',
+          borderRadius: 4,
+          fontSize: '12px',
+          fontWeight: 500,
+          border: '1px solid #B9BBBB',
+          backgroundColor: '#f5f5f5',
+          display: 'inline-block',
+          marginRight: '4px'
+        }}>
+          {t || '—'}
+        </span>
+      ),
       width: 180,
     },
+
+    // ========================================================
+    // TOKEN — CORREGIDO COMPLETO (texto + icono + color)
+    // ========================================================
     {
       title: 'Token',
       render: (_, r) => {
-        // Si tokenVigente existe en el backend, usarlo; sino, fallback a tokenActivo
-        const vigente = r.tokenVigente !== undefined ? r.tokenVigente : r.tokenActivo;
-        
-        if (vigente) {
-          return <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <UnlockOutlined />Activo
-</span>;
-        }
-        
-        // Si tokenActivo es true pero tokenVigente es false, significa que expiró
-        if (r.tokenActivo && r.tokenVigente === false) {
-          return <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <LockOutlined />Expirado
-</span>;
-        }
-        
-        return <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <LockOutlined />Inactivo
-</span>;
+        const vigente = r.tokenVigente;   // true / false / undefined
+        const activo  = r.tokenActivo;    // true / false
+
+        // Color único (la clave de tu problema)
+        const color =
+          vigente === true
+            ? '#00ADD6'              // celeste (ACTIVO)
+            : vigente === false && activo
+              ? '#faad14'            // naranjo (EXPIRADO)
+              : '#8c8c8c';           // gris (INACTIVO o undef)
+
+        return (
+          <span style={{
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: '12px',
+            fontWeight: 500,
+            border: '1px solid #B9BBBB',
+            backgroundColor: '#f5f5f5',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color
+          }}>
+
+            {vigente === true ? (
+              <UnlockOutlined />
+            ) : vigente === false && activo ? (
+              <LockOutlined />
+            ) : (
+              <LockOutlined />
+            )}
+
+            {vigente === true 
+              ? 'Activo'
+              : vigente === false && activo
+                ? 'Expirado'
+                : 'Inactivo'
+            }
+          </span>
+        );
       },
-      width: 100,
+      width: 120,
     },
+
     {
       title: 'Acciones',
       render: (_, r) => (
@@ -157,27 +143,37 @@ const SesionesTable = memo(({
               onClick={() => navigate(`/sesiones/${r.id}/asistencias`)} 
             />
           </Tooltip>
+
+          {/* Botón token — también corregido */}
           <Tooltip title="Token">
             <Button
               icon={<KeyOutlined />}
               onClick={() => { setSesionToken(r); setTokenModal(true); }}
-              style={{ 
-                color: r.tokenVigente ? '#006B5B' : (r.tokenActivo && !r.tokenVigente ? '#faad14' : '#8c8c8c')
+              style={{
+                color:
+                  r.tokenVigente === true
+                    ? '#00ADD6'
+                    : r.tokenVigente === false && r.tokenActivo
+                      ? '#faad14'
+                      : '#8c8c8c'
               }}
             />
           </Tooltip>
+
           <Tooltip title="Detalle">
             <Button 
               icon={<EyeOutlined />} 
               onClick={() => verDetalle(r.id)} 
             />
           </Tooltip>
+
           <Tooltip title="Editar">
             <Button 
               icon={<EditOutlined />} 
               onClick={() => navigate(`/sesiones/editar/${r.id}`)} 
             />
           </Tooltip>
+
           <Popconfirm 
             title="¿Eliminar sesión?" 
             okText="Eliminar" 
@@ -191,7 +187,8 @@ const SesionesTable = memo(({
         </Space>
       ),
       width: 320,
-    },
+    }
+
   ], [navigate, verDetalle, handleEliminar, setTokenModal, setSesionToken]);
 
   return (

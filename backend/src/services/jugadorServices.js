@@ -65,10 +65,10 @@ export async function crearJugador(datosJugador) {
 }
 
 
-export async function obtenerTodosJugadores(pagina = 1, limite = 50, filtros = {}) {
+export async function obtenerTodosJugadores(page = 1, limit = 50, filtros = {}) {
   try {
     const jugadorRepository = AppDataSource.getRepository(JugadorSchema);
-    const skip = (pagina - 1) * limite;
+    const skip = (page - 1) * limit;
 
     const queryBuilder = jugadorRepository
       .createQueryBuilder("jugador")
@@ -135,15 +135,15 @@ export async function obtenerTodosJugadores(pagina = 1, limite = 50, filtros = {
 
     const [jugadores, total] = await queryBuilder
       .skip(skip)
-      .take(limite)
+      .take(limit)
       .orderBy("jugador.id", "ASC")
       .getManyAndCount();
 
     const resultado = {
       jugadores,
       total,
-      pagina: parseInt(pagina),
-      totalPaginas: Math.ceil(total / limite),
+      page: parseInt(page),
+      totalPaginas: Math.ceil(total / limit),
     };
 
     return [resultado, null];

@@ -464,7 +464,7 @@ console.log('🔍 Verificando disponibilidad:');
   />
 </Form.Item>
 
-                javascript<Form.Item
+               <Form.Item
   name="fechaFin"
   label="Fecha de fin"
   rules={[

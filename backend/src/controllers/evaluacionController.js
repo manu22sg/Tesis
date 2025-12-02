@@ -2,6 +2,7 @@ import { success, error, notFound } from '../utils/responseHandler.js';
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import { crearEvaluacion, obtenerEvaluaciones, obtenerEvaluacionPorId, actualizarEvaluacion, eliminarEvaluacion } from '../services/evaluacionServices.js';
+import { formatearFecha, formatearHora } from '../utils/formatters.js';
 
 export async function postCrearEvaluacion(req, res) {
   const [data, err] = await crearEvaluacion(req.body);
@@ -183,15 +184,15 @@ export async function exportarEvaluacionesExcel(req, res) {
 
         sheet.addRow({
           sesion: e.sesion?.tipoSesion || e.sesion?.nombre || "—",
-          fechaSesion: e.sesion?.fecha || "—",
-          horaInicio: e.sesion?.horaInicio || "—",
-          horaFin: e.sesion?.horaFin || "—",
+          fechaSesion: formatearFecha(e.sesion?.fecha || "—"),
+          horaInicio: formatearHora(e.sesion?.horaInicio || "—"),
+          horaFin: formatearHora(e.sesion?.horaFin || "—"),
           tecnica: e.tecnica ?? "—",
           tactica: e.tactica ?? "—",
           actitudinal: e.actitudinal ?? "—",
           fisica: e.fisica ?? "—",
           promedio: promedio,
-          fechaRegistro: e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"
+          fechaRegistro: formatearFecha(e.fechaRegistro|| "—")
         });
       });
     }
@@ -320,9 +321,9 @@ Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString
       } else {
         doc.fontSize(12).font("Helvetica-Bold").text(e.sesion?.tipoSesion || e.sesion?.nombre || "Sesión Desconocida");
 
-        const fechaSesion = e.sesion?.fecha || "—";
-        const horaInicio = e.sesion?.horaInicio || "—";
-        const horaFin = e.sesion?.horaFin || "—";
+        const fechaSesion = formatearFecha(e.sesion?.fecha || "—");
+        const horaInicio = formatearHora(e.sesion?.horaInicio || "—");
+        const horaFin = formatearHora(e.sesion?.horaFin || "—");
         const notas = [e.tecnica, e.tactica, e.actitudinal, e.fisica].filter(n => n !== null && n !== undefined);
         const promedio = notas.length > 0 ? (notas.reduce((acc, val) => acc + val, 0) / notas.length).toFixed(2) : "—";
 
@@ -333,7 +334,7 @@ Táctica: ${e.tactica ?? "—"}
 Actitudinal: ${e.actitudinal ?? "—"}
 Física: ${e.fisica ?? "—"}
 Promedio: ${promedio}
-Fecha Registro: ${e.fechaRegistro ? new Date(e.fechaRegistro).toLocaleDateString('es-CL') : "—"}
+Fecha Registro: ${ formatearFecha(e.fechaRegistro|| "—")}
         `);
       }
 
