@@ -310,14 +310,14 @@ export const insertarUsuarioEnEquipo = async ({
 
     if (!usuario.anioIngresoUniversidad) {
       throw new Error(
-        `El usuario ${usuario.nombre} no tiene registrado su año de ingreso a la carrera`
+        `El usuario ${usuario.nombre || ''} ${usuario.apellido || ''} no tiene registrado su año de ingreso a la carrera`
       );
     }
 
     if (usuario.anioIngresoUniversidad !== anioActual) {
       throw new Error(
         `Este campeonato es solo para mechones del año ${anioActual}. ` +
-        `El usuario ${usuario.nombre} ingresó en ${usuario.anioIngresoUniversidad}`
+        `El usuario ${usuario.nombre || ''} ${usuario.apellido || ''} ingresó en ${usuario.anioIngresoUniversidad}`
       );
     }
   } else if (campeonato.tipoCampeonato === 'intercarrera') {

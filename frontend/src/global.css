@@ -17,3 +17,13 @@ input:focus,
   -ms-overflow-style: none;  /* IE y Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Ocultar scrollbar solo en el menú */
+.menu-scroll-hidden::-webkit-scrollbar {
+  display: none;               /* Chrome, Safari, Edge (Chromium) */
+}
+
+.menu-scroll-hidden {
+  -ms-overflow-style: none;    /* IE y Edge Legacy */
+  scrollbar-width: none;       /* Firefox */
+}

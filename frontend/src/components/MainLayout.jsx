@@ -61,41 +61,57 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
   // ============================================
 
   const entrenadorItems = [
-    getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
-      getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
-      ...(campeonatoActivo
-        ? [
-            { type: 'divider', key: 'divider-campeonato' },
-            getItem(`★ ${campeonatoActivo.nombre}`, 'sub_campeonato_activo', <StarOutlined />, [
-              getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
-              getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
-              getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
-              getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
-              getItem('Estadísticas', `campeonato-${campeonatoActivo.id}-estadisticas`, <BarChartOutlined />),
-            ])
-          ]
-        : [])
-    ]),
-    getItem('Ojeador', 'ojeador', <SearchOutlined />),
-    getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
-      getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
-      getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
-    ]),
-    getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
-      getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
-      getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
-    ]),
-    getItem('Asistencias', 'asistencias', <CheckCircleOutlined />),
-    getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
-    getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
-    getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
-      getItem('Ver Jugadores', 'jugadores', <EyeOutlined />),
-      getItem('Ver Lesiones', 'lesiones', <MedicineBoxOutlined />),
-      getItem('Ver Evaluaciones', 'evaluaciones', <TrophyOutlined />),
-      getItem('Ver Estadísticas', 'estadisticas', <BarChartOutlined />),
-    ]),
-    getItem('Grupos', 'grupos', <TeamOutlined />),
-  ];
+  // 1. SESIONES
+  getItem('Sesiones', 'sub_sesiones', <CalendarOutlined />, [
+    getItem('Ver Sesiones', 'sesiones', <EyeOutlined />),
+    getItem('Nueva Sesión', 'sesiones-nueva', <PlusOutlined />),
+  getItem('Entrenamientos', 'entrenamientos', <FileTextOutlined />),
+
+  ]),
+
+  // 2. JUGADORES
+  getItem('Jugadores', 'sub_jugadores', <UserOutlined />, [
+    getItem(' Ver Jugadores', 'jugadores', <EyeOutlined />),
+    getItem('Asistencias', 'asistencias', <CheckCircleOutlined />),          
+    getItem('Lesiones', 'lesiones', <MedicineBoxOutlined />),
+    getItem('Evaluaciones', 'evaluaciones', <TrophyOutlined />),
+    getItem('Estadísticas', 'estadisticas', <BarChartOutlined />),
+  ]),
+
+  // 3. GRUPOS
+  getItem('Grupos', 'grupos', <TeamOutlined />),
+
+  // 4. CANCHAS
+  getItem('Canchas', 'sub_canchas', <FieldTimeOutlined />, [
+    getItem('Gestionar', 'canchas-gestion', <EditOutlined />),
+    getItem('Ver Canchas', 'canchas-ver', <EyeOutlined />),
+  ]),
+
+  // 5. GESTIÓN RESERVAS
+  getItem('Gestión reservas', 'aprobar-reservas', <CheckCircleOutlined />),
+
+  // 6. ENTRENAMIENTOS
+
+  // 7. CAMPEONATOS
+  getItem('Campeonatos', 'sub_campeonatos', <TrophyOutlined />, [
+    getItem('Ver todos', 'campeonatos-lista', <UnorderedListOutlined />),
+    ...(campeonatoActivo
+      ? [
+          { type: 'divider', key: 'divider-campeonato' },
+          getItem(`★ ${campeonatoActivo.nombre}`, 'sub_campeonato_activo', <StarOutlined />, [
+            getItem('Información', `campeonato-${campeonatoActivo.id}-info`, <InfoCircleOutlined />),
+            getItem('Equipos', `campeonato-${campeonatoActivo.id}-equipos`, <TeamOutlined />),
+            getItem('Fixture', `campeonato-${campeonatoActivo.id}-fixture`, <CalendarOutlined />),
+            getItem('Tabla', `campeonato-${campeonatoActivo.id}-tabla`, <BarChartOutlined />),
+            getItem('Estadísticas', `campeonato-${campeonatoActivo.id}-estadisticas`, <BarChartOutlined />),
+          ])
+        ]
+      : [])
+  ]),
+
+  // 8. OJEADOR
+  getItem('Ojeador', 'ojeador', <SearchOutlined />),
+];
 
   const estudianteItems = [
     getItem('Campeonatos', 'campeonatos-publico', <TrophyOutlined />),
@@ -297,15 +313,21 @@ const MainLayout = ({ children, breadcrumb, selectedKeyOverride }) => {
             {collapsed ? '⚽' : 'SPORTUBB'}
           </div>
 
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            openKeys={openKeys}
-            onOpenChange={setOpenKeys}
-            onClick={onMenuClick}
-            items={itemsByRole[userRole]}
-          />
+         <Menu
+  theme="dark"
+  mode="inline"
+  selectedKeys={[selectedKey]}
+  openKeys={openKeys}
+  onOpenChange={setOpenKeys}
+  onClick={onMenuClick}
+  items={itemsByRole[userRole]}
+  className="menu-scroll-hidden"
+  style={{
+    height: 'calc(100vh - 50px)',  // tu ajuste
+    overflowY: 'auto',
+    paddingBottom: '50px',
+  }}
+/>
         </Sider>
 
         <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
