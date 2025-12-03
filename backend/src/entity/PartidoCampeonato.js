@@ -7,16 +7,16 @@ const PartidoCampeonatoSchema = new EntitySchema({
     id: { type: "int", primary: true, generated: true },
 
     campeonatoId: { type: "int", nullable: false },
-    canchaId: { type: "int", nullable: true },
+    canchaId: { type: "int", nullable: false },
 
     // Participantes neutros (sin local/visita)
     equipoAId: { type: "int", nullable: false },
     equipoBId: { type: "int", nullable: false },
-    arbitroId: { type: "int", nullable: true }, // FALSE en produccion
+    arbitroId: { type: "int", nullable: false }, // FALSE en produccion
     ronda: { type: "varchar", length: 20 }, // ej: "cuartos", "semifinal", "final"
     fecha: { type: "date", nullable: true },
-    horaInicio: { type: "time", nullable: true },
-    horaFin: { type: "time", nullable: true },
+    horaInicio: { type: "time", nullable: false },
+    horaFin: { type: "time", nullable: false },
 
     golesA: { type: "int", default: null },
     golesB: { type: "int", default: null },

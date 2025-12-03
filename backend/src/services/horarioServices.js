@@ -1,9 +1,9 @@
 
 import { AppDataSource } from '../config/config.db.js';
 import  CanchaSchema  from '../entity/Cancha.js';
-import  SesionEntrenamientoSchema  from '../entity/sesionEntrenamiento.js';
-import  PartidoCampeonatoSchema  from '../entity/partidoCampeonato.js';
-import  ReservaCanchaSchema  from '../entity/reservaCancha.js';
+import  SesionEntrenamientoSchema  from '../entity/SesionEntrenamiento.js';
+import  PartidoCampeonatoSchema  from '../entity/PartidoCampeonato.js';
+import  ReservaCanchaSchema  from '../entity/ReservaCancha.js';
 import { LessThanOrEqual, Between, MoreThan,In } from 'typeorm';
 import { HORARIO_RESERVAS, HORARIO_SESIONES } from '../validations/validationsSchemas.js';
 

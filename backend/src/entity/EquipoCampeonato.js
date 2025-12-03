@@ -9,7 +9,7 @@ const EquipoCampeonatoSchema = new EntitySchema({
     campeonatoId: { type: "int", nullable: false },
     fechaActualizacion: { type: "timestamp", updateDate: true },
 
-    carreraId: { type: "int", nullable: true },
+    carreraId: { type: "int", nullable: false },
 
     nombre: { type: "varchar", length: 100 },
     tipo: { type: "varchar", length: 20 },

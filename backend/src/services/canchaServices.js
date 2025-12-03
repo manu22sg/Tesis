@@ -2,7 +2,7 @@ import { AppDataSource } from '../config/config.db.js';
 import CanchaSchema from '../entity/Cancha.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
-import PartidoCampeonatoSchema from '../entity/partidoCampeonato.js';
+import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js';
 import { In, MoreThanOrEqual } from 'typeorm';
 
 
