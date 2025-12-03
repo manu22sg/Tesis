@@ -186,8 +186,8 @@ export async function registerService(userData) {
       rol: userRole,
       sexo: (sexo),
       carreraId: carreraId || null,
-      estado: 'pendiente',
-      verificado: false,
+      estado: 'activo',
+      verificado: true,
       anioIngresoUniversidad: anioIngresoUniversidad || null
     });
 
@@ -212,6 +212,7 @@ export async function registerService(userData) {
     // -----------------------------
     // 7. Envío de correo
     // -----------------------------
+    /*
     try {
       await sendMail({
         to: savedUser.email,
@@ -239,7 +240,7 @@ export async function registerService(userData) {
         null,
         'Error al enviar el correo de verificación. Intente nuevamente.'
       ];
-    }
+    }*/
 
     // -----------------------------
     // 8. Limpiar objeto antes de devolverlo
