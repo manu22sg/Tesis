@@ -27,7 +27,7 @@ async function createUsers() {
     console.log(" CONTRASEÑAS GENERADAS1:");
     console.log(`   Entrenador (alex@ubiobio.cl): ${entrenadorPassword}`);
     console.log(`   admin (admin@ubiobio.cl): ${admin}`);
-    console.log("     GUARDA ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
+    console.log("     GUARDE ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
     console.log("");
 
     await Promise.all([

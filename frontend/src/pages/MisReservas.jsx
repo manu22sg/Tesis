@@ -38,6 +38,8 @@ import MainLayout from '../components/MainLayout.jsx';
 import ModalEditarParticipantes from '../components/ModalEditarParticipantes.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
 dayjs.locale('es');
+import ModalDetalleReserva from '../components/ModalDetalleReserva';
+import { useAuth } from '../context/AuthContext'; 
 
 const estadoConfig = {
   pendiente: { color: 'gold', text: 'Pendiente' },
@@ -49,6 +51,8 @@ const estadoConfig = {
 };
 
 export default function MisReservas() {
+  const { usuario } = useAuth(); // obtener usuario actual
+
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -412,127 +416,15 @@ const calcularTiempoRestante = (fechaReserva, horaInicio) => {
           </Card>
 
           {/* Modal de detalle */}
-          <Modal
-            title="Detalle de la Reserva"
-            open={detalleModal}
-            onCancel={() => {
-              setDetalleModal(false);
-              setReservaDetalle(null);
-            }}
-            footer={[
-              <Button key="close" onClick={() => setDetalleModal(false)}>
-                Cerrar
-              </Button>,
-            ]}
-            width={700}
-          >
-            {loadingDetalle ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Spin size="large" />
-              </div>
-            ) : reservaDetalle ? (
-              <div>
-                {/* Información general */}
-                <div style={{ marginBottom: 24 }}>
-                  <h3>Información General</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div>
-                      <strong>Fecha:</strong>{' '}
-                      {formatearFecha(reservaDetalle.fechaReserva)}
-                    </div>
-                    <div>
-                      <strong>Horario:</strong> {formatearHora(reservaDetalle.horaInicio)} -{' '}
-                      {formatearHora(reservaDetalle.horaFin)}
-                    </div>
-                    <div>
-                      <strong>Cancha:</strong> {reservaDetalle.cancha?.nombre}
-                    </div>
-                    <div>
-                      <strong>Estado:</strong>{' '}
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        border: '1px solid #B9BBBB',
-                        backgroundColor: '#f5f5f5'
-                      }}>
-                        {estadoConfig[reservaDetalle.estado]?.text}
-                      </span>
-                    </div>
-                  </div>
-                  {reservaDetalle.motivo && (
-                    <div style={{ marginTop: 12 }}>
-                      <strong>Motivo:</strong> {reservaDetalle.motivo}
-                    </div>
-                  )}
-                </div>
-
-                {/* Participantes */}
-                <div style={{ marginBottom: 24 }}>
-                  <h3>Participantes ({reservaDetalle.participantes?.length || 0})</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {reservaDetalle.participantes?.map((p, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          padding: '8px 12px',
-                          background: '#f6ffed',
-                          border: '1px solid #b7eb8f',
-                          borderRadius: 6,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span>
-                          <UserOutlined style={{ marginRight: 8, color: '#006B5B' }} />
-                          {p.usuario?.nombre || p.nombreOpcional || 'N/A'} {p.usuario.apellido}
-                        </span>
-                        <span style={{ color: '#666', fontSize: 12 }}>{p.rut}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Historial */}
-                {reservaDetalle.historial && reservaDetalle.historial.length > 0 && (
-                  <div>
-                    <h3>Historial</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {reservaDetalle.historial.map((h, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            padding: '8px 12px',
-                            background: '#f5f5f5',
-                            borderRadius: 6,
-                            fontSize: 13,
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <strong>{h.accion}</strong>
-                            <span style={{ color: '#999' }}>
-                              {dayjs(h.fecha).format('DD/MM/YYYY HH:mm')}
-                            </span>
-                          </div>
-                          {h.observacion && (
-                            <div style={{ marginTop: 4, color: '#666' }}>{h.observacion}</div>
-                          )}
-                          {h.usuario && (
-                            <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
-                              Por: {h.usuario.nombre} {h.usuario.apellido}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </Modal>
-
+         <ModalDetalleReserva
+        visible={detalleModal}
+        reserva={reservaDetalle}
+        onClose={() => {
+          setDetalleModal(false);
+          setReservaDetalle(null);
+        }}
+        usuarioActual={usuario} // 👈 Pasar usuario actual
+      />
           <ModalEditarParticipantes
             visible={editarModal}
             onCancel={() => {

@@ -69,7 +69,7 @@ function CampeonatoFixtureContent() {
             <CalendarOutlined style={{ fontSize: 24, color: '#006B5B' }} />
             <div>
               <h2 style={{ margin: 0 }}>Fixture - {campeonato.nombre}</h2>
-              <span style={{ color: '#666' }}>Gestiona el fixture y programa los partidos</span>
+              <span style={{ color: '#666' }}>Gestione el fixture y programe los partidos</span>
             </div>
           </Space>
         </Space>

@@ -321,7 +321,7 @@ export default function ReservaNueva() {
   const handleSubmit = async (values) => {
     // Validar disponibilidad antes de enviar
     if (disponibilidadStatus?.type !== 'success') {
-      message.error('Por favor verifica que el horario esté disponible');
+      message.error('Por favor verifique que el horario esté disponible');
       return;
     }
 
@@ -352,7 +352,7 @@ export default function ReservaNueva() {
       navigate('/reservas/mis-reservas');
     } catch (err) {
       console.error(err.response?.data || err);
-      const msg = err.response?.data?.message || 'Error al crear la reserva. Verifica los datos.';
+      const msg = err.response?.data?.message || 'Error al crear la reserva. Verifique los datos.';
       message.error(msg);
     } finally {
       setLoading(false);

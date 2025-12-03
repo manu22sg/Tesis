@@ -125,7 +125,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         <Form.Item
           name="jugadorId"
           label="Jugador"
-          rules={[{ required: true, message: 'Selecciona un jugador' }]}
+          rules={[{ required: true, message: 'Seleccione un jugador' }]}
         >
           <Select
             showSearch
@@ -164,14 +164,14 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
         <Form.Item
           name="sesionId"
           label="Sesión"
-          rules={[{ required: true, message: 'Selecciona una sesión' }]}
+          rules={[{ required: true, message: 'Seleccione una sesión' }]}
         >
           <Select
             showSearch
             placeholder={
               jugadorSeleccionado
-                ? 'Selecciona una sesión del jugador'
-                : 'Primero selecciona un jugador'
+                ? 'Seleccione una sesión del jugador'
+                : 'Primero seleccione un jugador'
             }
             disabled={!jugadorSeleccionado}
             notFoundContent={
@@ -180,7 +180,7 @@ export default function EvaluacionForm({ initialValues, onSuccess }) {
               ) : jugadorSeleccionado && sesiones.length === 0 ? (
                 'No hay sesiones disponibles para este jugador'
               ) : (
-                'Selecciona un jugador primero'
+                'Seleccione un jugador primero'
               )
             }
             filterOption={(input, option) => {

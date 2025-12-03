@@ -122,7 +122,7 @@ export default function LoginScreen({ navigation }) {
     } catch (error) {
       Alert.alert(
         'Error',
-        'No se pudo reenviar el correo. Verifica que el email sea correcto.'
+        'No se pudo reenviar el correo. Verifique que el email sea correcto.'
       );
     }
   };

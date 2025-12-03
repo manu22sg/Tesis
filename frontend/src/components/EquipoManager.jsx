@@ -586,7 +586,7 @@ useEffect(() => {
               label="Carrera"
               rules={[{ required: true, message: 'La carrera es obligatoria' }]}
             >
-              <Select placeholder="Selecciona una carrera">
+              <Select placeholder="Seleccione una carrera">
                 {carreras.map(c => (
                   <Option key={c.id} value={c.id}>{c.nombre}</Option>
                 ))}
@@ -792,7 +792,7 @@ useEffect(() => {
             <Form.Item
               name="usuarioId"
               label="Jugador"
-              rules={[{ required: true, message: 'Selecciona un jugador' }]}
+              rules={[{ required: true, message: 'Seleccione un jugador' }]}
             >
               <Select
                 showSearch
@@ -868,7 +868,7 @@ useEffect(() => {
                   name="posicion"
                   label="Posición (Opcional)"
                 >
-                  <Select allowClear placeholder="Selecciona una posición">
+                  <Select allowClear placeholder="Seleccione una posición">
                     {[
                       'Portero', 'Defensa Central', 'Defensa Central Izquierdo', 'Defensa Central Derecho',
                       'Lateral Derecho', 'Lateral Izquierdo', 'Mediocampista Defensivo',

@@ -107,7 +107,7 @@ export default function NuevaReservaScreen({ navigation }) {
 
   const removerParticipante = (rut) => {
     if (usuario && usuario.rut === rut) {
-      Alert.alert('Aviso', 'No puedes removerte como solicitante');
+      Alert.alert('Aviso', 'No puede removerse como solicitante');
       return;
     }
     setParticipantes(participantes.filter(p => p !== rut));

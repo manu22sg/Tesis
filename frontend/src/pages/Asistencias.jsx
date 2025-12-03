@@ -447,7 +447,7 @@ const handleEditarAsistencia = (asistencia) => {
                         value={jugadorId}
                         onChange={onSeleccionarJugador}
                         style={{ width: '100%', marginTop: 6 }}
-                        placeholder="Busca por nombre o RUT..."
+                        placeholder="Buscar por nombre o RUT..."
                         loading={loadingBase || loadingBusquedaJugador}
                         allowClear
                         showSearch

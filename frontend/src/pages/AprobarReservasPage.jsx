@@ -33,7 +33,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import locale from 'antd/locale/es_ES';
-
+import { useAuth } from '../context/AuthContext'; 
 import {
   obtenerEstadisticas,
   obtenerReservasPendientes, 
@@ -47,13 +47,16 @@ import { buscarUsuarios } from '../services/auth.services.js';
 import MainLayout from '../components/MainLayout.jsx';
 import ModalDetalleReserva from '../components/ModalDetalleReserva.jsx';
 import { formatearFecha, formatearRangoHoras } from '../utils/formatters.js';
-
+import { obtenerReservaPorId } from '../services/reserva.services.js';
 dayjs.locale('es');
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 const AprobarReservasPage = () => {
+  const { usuario } = useAuth(); 
+  const [loadingDetalleModal, setLoadingDetalleModal] = useState(false);
+
   const { message } = App.useApp(); 
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -174,7 +177,7 @@ const [exportando, setExportando] = useState(false);
     if (data?.success) {
       setReservas(data.data.reservas);
       setPagination({
-        current: page, // usamos la que pedimos para evitar desfase
+        current: page,
         pageSize: data.data.pagination.itemsPerPage,
         total: data.data.pagination.totalItems
       });
@@ -226,65 +229,66 @@ const [exportando, setExportando] = useState(false);
     setPagination((p) => ({ ...p, current: page, pageSize }));
     cargarReservas(page, pageSize);
   };
+  
   const handleExportExcel = async () => {
-  try {
-    const params = {};
-    if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
-    if (filtros.canchaId) params.canchaId = filtros.canchaId;
-    if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
-    if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
+    try {
+      const params = {};
+      if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
+      if (filtros.canchaId) params.canchaId = filtros.canchaId;
+      if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
+      if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
 
-    const blob = await exportarReservasExcel(params);
-    descargarArchivo(blob, `reservas_${Date.now()}.xlsx`);
-    message.success("Excel descargado correctamente");
-  } catch (error) {
-    console.error("Error al exportar Excel:", error);
-    message.error(error.message || "Error al exportar Excel");
+      const blob = await exportarReservasExcel(params);
+      descargarArchivo(blob, `reservas_${Date.now()}.xlsx`);
+      message.success("Excel descargado correctamente");
+    } catch (error) {
+      console.error("Error al exportar Excel:", error);
+      message.error(error.message || "Error al exportar Excel");
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const params = {};
+      if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
+      if (filtros.canchaId) params.canchaId = filtros.canchaId;
+      if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
+      if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
+
+      const blob = await exportarReservasPDF(params);
+      descargarArchivo(blob, `reservas_${Date.now()}.pdf`);
+      message.success("PDF descargado correctamente");
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+      message.error(error.message || "Error al exportar PDF");
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
-};
 
-const handleExportPDF = async () => {
-  try {
-    const params = {};
-    if (filtros.fecha) params.fecha = filtros.fecha.format('YYYY-MM-DD');
-    if (filtros.canchaId) params.canchaId = filtros.canchaId;
-    if (filtros.estado && filtros.estado !== 'todas') params.estado = filtros.estado;
-    if (filtros.usuarioId) params.usuarioId = filtros.usuarioId;
-
-    const blob = await exportarReservasPDF(params);
-    descargarArchivo(blob, `reservas_${Date.now()}.pdf`);
-    message.success("PDF descargado correctamente");
-  } catch (error) {
-    console.error("Error al exportar PDF:", error);
-    message.error(error.message || "Error al exportar PDF");
-  }
-};
-
-function descargarArchivo(blob, nombre) {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  window.URL.revokeObjectURL(url);
-}
-const menuExportar = {
-  items: [
-    {
-      key: 'excel',
-      label: 'Exportar a Excel',
-      icon: <FileExcelOutlined />,
-      onClick: handleExportExcel,
-    },
-    {
-      key: 'pdf',
-      label: 'Exportar a PDF',
-      icon: <FilePdfOutlined />,
-      onClick: handleExportPDF,
-    },
-  ],
-};
-
+  const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportPDF,
+      },
+    ],
+  };
 
   // Limpiar filtros
   const limpiarFiltros = () => {
@@ -297,8 +301,55 @@ const menuExportar = {
     setUsuarios([]);
     setPagination((p) => ({ ...p, current: 1 })); 
   };
+  
   const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
 
+  // ✅ FUNCIÓN CORREGIDA
+  const verDetalleReserva = async (reserva) => {
+    setModalDetalle({ visible: true, reserva: null });
+    setLoadingDetalleModal(true);
+    
+    try {
+      const response = await obtenerReservaPorId(reserva.id);
+      
+      // Manejar diferentes formatos de respuesta
+      let data, error;
+      
+      if (Array.isArray(response)) {
+        // Formato: [data, error]
+        [data, error] = response;
+      } else if (response?.data) {
+        // Formato: { data, error } o { success, data }
+        data = response.data;
+        error = response.error;
+      } else {
+        // Formato directo: la respuesta ES la data
+        data = response;
+      }
+      
+      if (error) {
+        message.error(error);
+        setModalDetalle({ visible: false, reserva: null });
+        return;
+      }
+      
+      if (!data) {
+        message.error('No se encontró la reserva');
+        setModalDetalle({ visible: false, reserva: null });
+        return;
+      }
+      
+    
+      setModalDetalle({ visible: true, reserva: data });
+      
+    } catch (error) {
+      console.error('❌ Error al cargar detalle:', error);
+      message.error(error?.message || 'Error al cargar el detalle');
+      setModalDetalle({ visible: false, reserva: null });
+    } finally {
+      setLoadingDetalleModal(false);
+    }
+  };
 
   // Efecto: recargar al cambiar filtros
   useEffect(() => {
@@ -347,8 +398,7 @@ const menuExportar = {
       dataIndex: 'estado',
       key: 'estado',
       render: (estado) => {
-        
-       return <span>{ucfirst(estado || '')}</span>;
+        return <span>{ucfirst(estado || '')}</span>;
       },
       width: 130,
       align: 'center',
@@ -373,7 +423,7 @@ const menuExportar = {
             <Button
               size="middle"
               icon={<EyeOutlined />}
-              onClick={() => setModalDetalle({ visible: true, reserva: record })}
+              onClick={() => verDetalleReserva(record)}
             />
           </Tooltip>
 
@@ -412,46 +462,42 @@ const menuExportar = {
             title={<span><FilterOutlined /> Filtros</span>}
             style={{ marginBottom: '1rem', backgroundColor: '#f5f5f5' }}
             extra={
-    <Space>
-      <Dropdown menu={menuExportar} trigger={['hover']}>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={exportando}
-        >
-          Exportar
-        </Button>
-      </Dropdown>
-      <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
-      
-    </Space>
-  }
-
-
-            
+              <Space>
+                <Dropdown menu={menuExportar} trigger={['hover']}>
+                  <Button
+                    icon={<DownloadOutlined />}
+                    loading={exportando}
+                  >
+                    Exportar
+                  </Button>
+                </Dropdown>
+                <Button onClick={limpiarFiltros}>Limpiar Filtros</Button>
+              </Space>
+            }
           >
-            
             <Row gutter={12} align="middle">
               <Col xs={24} sm={6}>
                 <Select
-  showSearch
-  allowClear
-  placeholder=" Buscar por nombre o RUT"
-  filterOption={false}
-  onSearch={handleBuscarUsuarios}
-  loading={buscandoUsuarios}
-  value={filtros.usuarioId || null}
-  onChange={(value) => {
-    setFiltros({ ...filtros, usuarioId: value });
-    setPagination((p) => ({ ...p, current: 1 }));
-  }}
-  notFoundContent={buscandoUsuarios ? 'Buscando...' : (usuarios.length === 0 ? null : 'Sin resultados')}
-  style={{ width: '100%' }}
-  size="medium"
-  suffixIcon={null}  // <-- Agregar esta línea
->
+                  showSearch
+                  allowClear
+                  placeholder=" Buscar por nombre o RUT"
+                  filterOption={false}
+                  onSearch={handleBuscarUsuarios}
+                  loading={buscandoUsuarios}
+                  value={filtros.usuarioId || null}
+                  onChange={(value) => {
+                    setFiltros({ ...filtros, usuarioId: value });
+                    setPagination((p) => ({ ...p, current: 1 }));
+                  }}
+                  notFoundContent={buscandoUsuarios ? 'Buscando...' : (usuarios.length === 0 ? null : 'Sin resultados')}
+                  style={{ width: '100%' }}
+                  size="medium"
+                  suffixIcon={null}
+                >
                   {usuarios.map((user) => (
                     <Option key={user.id} value={user.id}>
-          {user.nombre} {user.apellido} <span>- {user.rut}</span></Option>
+                      {user.nombre} {user.apellido} <span>- {user.rut}</span>
+                    </Option>
                   ))}
                 </Select>
               </Col>
@@ -648,6 +694,8 @@ const menuExportar = {
             visible={modalDetalle.visible}
             reserva={modalDetalle.reserva}
             onClose={() => setModalDetalle({ visible: false, reserva: null })}
+            usuarioActual={usuario}
+            loading={loadingDetalleModal}
           />
         </Card>
       </ConfigProvider>

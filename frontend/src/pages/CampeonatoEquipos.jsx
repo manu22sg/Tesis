@@ -61,7 +61,7 @@ function CampeonatoEquiposContent() {
             <TeamOutlined style={{ fontSize: 24, color: '#014898' }} />
             <div>
               <h2 style={{ margin: 0 }}>Equipos - {campeonato.nombre}</h2>
-              <span style={{ color: '#666' }}>Gestiona los equipos del campeonato</span>
+              <span style={{ color: '#666' }}>Gestione los equipos del campeonato</span>
             </div>
           </Space>
         </Space>
