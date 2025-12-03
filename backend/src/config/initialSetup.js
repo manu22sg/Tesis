@@ -20,8 +20,10 @@ async function createUsers() {
     if (count > 0) return;
 
     // Generar contraseñas para usuarios especiales
-    const entrenadorPassword = "TuDUsnXqPWtO"();
-    const admin = "User1234#"();
+    const entrenadorPassword = "TuDUsnXqPWtO"
+    const admin = "User1234#"
+//const entrenadorPassword = generateRandomPassword();
+  //  const admin = generateRandomPassword();
 
     // Mostrar contraseñas en consola
     console.log(" CONTRASEÑAS GENERADAS1:");
