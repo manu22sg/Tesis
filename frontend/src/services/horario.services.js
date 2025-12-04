@@ -1,6 +1,6 @@
 import api from './root.services.js';
 
-export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 5, extra = {}) {
+export async function getDisponibilidadPorFecha(fecha, page = 1, limit = 10, extra = {}) {
   try {
     const response = await api.get('/horario/disponibilidad', {
       params: { fecha, page, limit, ...extra } 
@@ -37,6 +37,7 @@ export async function verificarDisponibilidadSesion(
     }
 
     const response = await api.get('/horario/verificar-sesion', { params });
+    console.log(response)
     return response.data;  
   } catch (error) {
     if (error.response?.status === 409) {

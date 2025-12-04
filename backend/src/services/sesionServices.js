@@ -379,7 +379,6 @@ export async function actualizarSesion(id, datos) {
         }
       }
 
-      // 🆕 VALIDAR: No puede haber reservas o partidos en NINGUNA división
       const divisiones = await obtenerDivisiones();
 
       for (const div of divisiones) {

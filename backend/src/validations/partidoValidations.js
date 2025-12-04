@@ -1,7 +1,6 @@
 import Joi from "joi";
 import { validationError } from "../utils/responseHandler.js";
 import { parseDateLocal } from "../utils/dateLocal.js";
-import { HORARIO_SESIONES } from './validationsSchemas.js';
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const ESTADOS_VALIDOS = ["pendiente", "programado", "en_juego", "finalizado", "cancelado"];
@@ -13,6 +12,13 @@ const getLocalDate = () => {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+};
+
+ const HORARIO_PARTIDOS = { 
+  horaInicio: '09:00', 
+  horaFin: '17:00',
+  duracionMinima: 30,
+  duracionMaxima: 180
 };
 
 export const programarPartidoBody = Joi.object({
@@ -78,12 +84,12 @@ export const programarPartidoBody = Joi.object({
   const dur = f - i;
 
   // ✅ VALIDACIÓN: Horario de sesiones (08:00-24:00)
-  const minInicio = toMin(HORARIO_SESIONES.horainicio); // 08:00 = 480 min
-  const maxFin = toMin(HORARIO_SESIONES.horafin); // 24:00 = 1440 min
+  const minInicio = toMin(HORARIO_PARTIDOS.horaInicio); // 08:00 = 480 min
+  const maxFin = toMin(HORARIO_PARTIDOS.horaFin); // 24:00 = 1440 min
 
   if (i < minInicio || f > maxFin) {
     return helpers.error("any.invalid", {
-      message: `Los partidos deben programarse entre ${HORARIO_SESIONES.horainicio} y 00:00 (medianoche)`
+      message: `Los partidos deben programarse entre ${HORARIO_PARTIDOS.horaInicio} y ${HORARIO_PARTIDOS.horaFin} `
     });
   }
 
@@ -91,9 +97,9 @@ export const programarPartidoBody = Joi.object({
     return helpers.error("any.invalid", { message: "horaFin debe ser posterior a horaInicio" });
 
   // ✅ VALIDACIÓN: Duración mínima
-  if (dur < HORARIO_SESIONES.duracionMinima) {
+  if (dur < HORARIO_PARTIDOS.duracionMinima) {
     return helpers.error("any.invalid", {
-      message: `La duración mínima de un partido es ${HORARIO_SESIONES.duracionMinima} minutos`
+      message: `La duración mínima de un partido es ${HORARIO_PARTIDOS.duracionMinima} minutos`
     });
   }
 

@@ -11,6 +11,7 @@ import {
   verificarDisponibilidadReservaQuery,
   verificarDisponibilidadSesionQuery
 } from '../validations/validationsSchemas.js';
+import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ const router = Router();
 router.get(
   '/disponibilidad',
   validateQuery(disponibilidadPorFechaQuery),
+  authenticateToken,
   getDisponibilidadPorFecha
 );
 
@@ -27,6 +29,7 @@ router.get(
 router.get(
   '/verificar-reserva',
   validateQuery(verificarDisponibilidadReservaQuery),
+  authenticateToken,
   verificarDisponibilidadReserva
 );
 
@@ -35,6 +38,7 @@ router.get(
 router.get(
   '/verificar-sesion',
   validateQuery(verificarDisponibilidadSesionQuery),
+  authenticateToken,
   verificarDisponibilidadSesion
 );
 

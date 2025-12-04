@@ -50,5 +50,25 @@ export const partidoService = {
       console.error("Error al registrar resultado:", error);
       throw error;
     }
+  },
+  verificarDisponibilidad: async (params) => {
+    try {
+      const response = await api.get('/partidos/disponibilidad', {
+        params: {
+          canchaId: params.canchaId,
+          fecha: params.fecha,
+          horaInicio: params.horaInicio,
+          horaFin: params.horaFin,
+          partidoId: params.partidoId ?? undefined
+        }
+      });
+
+      return response.data; // { disponible, message }
+
+    } catch (error) {
+      console.error("Error verificando disponibilidad:", error);
+      throw error;
+    }
   }
+
 };

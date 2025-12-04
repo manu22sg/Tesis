@@ -38,12 +38,13 @@ export default function EditarSesion() {
   const [saving, setSaving] = useState(false);
   const [canchas, setCanchas] = useState([]);
   const [grupos, setGrupos] = useState([]);
-  const [tipoUbicacion, setTipoUbicacion] = useState('cancha'); // 'cancha' o 'externa'
+  const [tipoUbicacion, setTipoUbicacion] = useState('cancha');
 
   // 🔎 Estado para verificación en vivo (debounced)
   const [checkingDisp, setCheckingDisp] = useState(false);
-  const [dispOk, setDispOk] = useState(null); // true | false | null
-  const [duracionExcedida, setDuracionExcedida] = useState(false); // ✅ Nuevo estado separado
+  const [dispOk, setDispOk] = useState(null);
+  const [dispMessage, setDispMessage] = useState(''); // 🆕 Guardar mensaje específico
+  const [duracionExcedida, setDuracionExcedida] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -51,7 +52,6 @@ export default function EditarSesion() {
       try {
         setLoading(true);
 
-        // Obtener sesión existente
         const sesion = await obtenerSesionPorId(Number(id));
         if (!sesion) {
           message.error('Sesión no encontrada');
@@ -59,21 +59,21 @@ export default function EditarSesion() {
           return;
         }
 
-        // Determinar tipo de ubicación según los datos de la sesión
         const tipoInicial = sesion.ubicacionExterna ? 'externa' : 'cancha';
         setTipoUbicacion(tipoInicial);
 
-        // Obtener canchas disponibles
         const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
-        const listaCanchas = (canchasRes.canchas || []).map((c) => ({
-          label: c.nombre,
-          value: Number(c.id),
-          capacidad: c.capacidadMaxima,
-          descripcion: c.descripcion,
-        }));
-        setCanchas(listaCanchas);
+        const listaCanchas = (canchasRes.canchas || [])
+  .filter(c => c.capacidadMaxima === 64) // 👈 SOLO la principal
+  .map((c) => ({
+    label: c.nombre,
+    value: Number(c.id),
+    capacidad: c.capacidadMaxima,
+    descripcion: c.descripcion,
+  }));
 
-        // Obtener grupos
+setCanchas(listaCanchas);
+
         const gruposRes = await obtenerGrupos();
         const listaGrupos = (gruposRes?.data?.grupos || gruposRes?.grupos || []).map((g) => ({
           label: g.nombre,
@@ -81,7 +81,6 @@ export default function EditarSesion() {
         }));
         setGrupos(listaGrupos);
 
-        // Precargar formulario
         form.setFieldsValue({
           canchaId: sesion.cancha?.id || undefined,
           ubicacionExterna: sesion.ubicacionExterna || undefined,
@@ -113,8 +112,8 @@ export default function EditarSesion() {
     } else {
       form.setFieldValue('canchaId', undefined);
     }
-    // al cambiar el modo de ubicación, reseteamos el indicador de disponibilidad
     setDispOk(null);
+    setDispMessage(''); // 🆕 Limpiar mensaje
     setDuracionExcedida(false);
   }, [tipoUbicacion, form]);
 
@@ -124,9 +123,9 @@ export default function EditarSesion() {
   const horario = Form.useWatch('horario', form);
 
   useEffect(() => {
-    // Solo aplica para sesión en cancha
     if (tipoUbicacion !== 'cancha') {
       setDispOk(null);
+      setDispMessage(''); // 🆕 Limpiar mensaje
       setDuracionExcedida(false);
       return;
     }
@@ -136,6 +135,7 @@ export default function EditarSesion() {
 
     if (!canCheck) {
       setDispOk(null);
+      setDispMessage(''); // 🆕 Limpiar mensaje
       setDuracionExcedida(false);
       return;
     }
@@ -145,26 +145,27 @@ export default function EditarSesion() {
         setCheckingDisp(true);
         const [h1, h2] = horario;
 
-        // Validación local simple por si eligen horas iguales o invertidas
         if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
           setDispOk(null);
+          setDispMessage(''); // 🆕 Limpiar mensaje
           setDuracionExcedida(false);
           setCheckingDisp(false);
           return;
         }
 
-        // ✅ Validación de duración máxima (3 horas) - NO afecta dispOk
+        // ✅ Validación de duración máxima (3 horas)
         const duracionMinutos = h2.diff(h1, 'minutes');
         if (duracionMinutos > 180) {
           setDuracionExcedida(true);
-          setDispOk(null); // No verificamos disponibilidad si la duración es inválida
+          setDispOk(null);
+          setDispMessage(''); // 🆕 Limpiar mensaje
           setCheckingDisp(false);
           return;
         } else {
           setDuracionExcedida(false);
         }
 
-        // 🔥 Llamada al API solo si la duración es válida
+        // 🔥 Llamada al API
         const res = await verificarDisponibilidadSesion(
           Number(canchaId),
           fecha.format('YYYY-MM-DD'),
@@ -172,14 +173,18 @@ export default function EditarSesion() {
           h2.format('HH:mm'),
           Number(id) // Excluir la sesión actual
         );
+
         setDispOk(!!res?.disponible);
+        setDispMessage(res?.message || ''); // 🆕 Guardar mensaje específico
+        
       } catch (e) {
         console.error('Error verificando disponibilidad en vivo:', e);
         setDispOk(false);
+        setDispMessage('Error al verificar disponibilidad'); // 🆕 Mensaje de error
       } finally {
         setCheckingDisp(false);
       }
-    }, 500); // ⏱️ debounce 500 ms
+    }, 500);
 
     return () => clearTimeout(t);
   }, [tipoUbicacion, canchaId, fecha, horario, id]);
@@ -191,14 +196,12 @@ export default function EditarSesion() {
 
       const [horaInicio, horaFin] = values.horario;
 
-      // Validación de orden de horas
       if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
         message.error('La hora de inicio debe ser anterior a la hora de fin');
         setSaving(false);
         return;
       }
 
-      // ✅ Validación de duración máxima
       const duracionMinutos = horaFin.diff(horaInicio, 'minutes');
       if (duracionMinutos > 180) {
         message.error('La duración máxima permitida es de 3 horas (180 minutos)');
@@ -215,18 +218,16 @@ export default function EditarSesion() {
         horaFin: horaFin.format('HH:mm'),
       };
 
-      // Agregar cancha o ubicación externa según el tipo
       if (tipoUbicacion === 'cancha') {
         payload.canchaId = Number(values.canchaId);
         payload.ubicacionExterna = null;
 
-        // ✅ Verificar disponibilidad antes de guardar
         const disponibilidad = await verificarDisponibilidadSesion(
           payload.canchaId,
           payload.fecha,
           payload.horaInicio,
           payload.horaFin,
-          Number(id) // Excluir sesión actual
+          Number(id)
         );
 
         if (!disponibilidad.disponible) {
@@ -245,13 +246,11 @@ export default function EditarSesion() {
     } catch (error) {
       console.error('Error actualizando sesión:', error);
 
-      // ✅ Manejo mejorado de errores
       let errorMsg = 'Error al actualizar la sesión';
 
       if (error.response?.data) {
         const data = error.response.data;
 
-        // Extraer mensaje de diferentes formatos de error
         if (data.errors) {
           if (Array.isArray(data.errors)) {
             errorMsg = data.errors[0]?.msg || errorMsg;
@@ -329,7 +328,6 @@ export default function EditarSesion() {
                 </Radio.Group>
               </Form.Item>
 
-              {/* Cancha (solo si tipo === 'cancha') */}
               {tipoUbicacion === 'cancha' && (
                 <Form.Item
                   name="canchaId"
@@ -347,7 +345,6 @@ export default function EditarSesion() {
                 </Form.Item>
               )}
 
-              {/* Ubicación Externa (solo si tipo === 'externa') */}
               {tipoUbicacion === 'externa' && (
                 <Form.Item
                   name="ubicacionExterna"
@@ -365,7 +362,6 @@ export default function EditarSesion() {
                 </Form.Item>
               )}
 
-              {/* Grupo */}
               <Form.Item name="grupoId" label="Grupo (opcional)">
                 <Select
                   allowClear
@@ -377,7 +373,6 @@ export default function EditarSesion() {
                 />
               </Form.Item>
 
-              {/* Fecha */}
               <Form.Item
                 name="fecha"
                 label="Fecha"
@@ -395,20 +390,79 @@ export default function EditarSesion() {
                 />
               </Form.Item>
 
-              {/* Horario */}
               <Form.Item
                 name="horario"
                 label="Horario"
-                rules={[{ required: true, message: 'Seleccione el horario' }]}
+                rules={[
+  { required: true, message: 'Seleccione el horario' },
+  {
+    validator(_, value) {
+      if (!value || !value[0] || !value[1]) return Promise.resolve();
+
+      const inicio = value[0];
+      const fin = value[1];
+
+      // ❌ Bloquear inicio = 22:00
+      if (inicio.hour() === 22) {
+        return Promise.reject(
+          new Error("La sesión no puede comenzar a las 22:00")
+        );
+      }
+
+      // ❌ No permitir que termine después de 22:00
+      if (fin.hour() > 22 || (fin.hour() === 22 && fin.minute() > 0)) {
+        return Promise.reject(
+          new Error("La sesión no puede terminar después de las 22:00")
+        );
+      }
+
+      return Promise.resolve();
+    }
+  }
+]}
+
               >
                 <TimePicker.RangePicker
                   format="HH:mm"
                   style={{ width: '100%' }}
                   minuteStep={30}
                   disabledTime={() => ({
-                    disabledHours: () => [0, 1, 2, 3, 4, 5, 6, 7],
-                    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-                  })}
+  disabledHours: () => {
+    const disabled = [];
+
+    // ❌ Bloquear horas 0–7 (antes de 08:00)
+    for (let h = 0; h < 8; h++) disabled.push(h);
+
+    // ❌ Bloquear hora 22 para inicio, pero permitida solo para FIN
+    // Para que el usuario NO pueda elegir 22 como hora de inicio
+    // → Esto se bloquea con validator, sigue abajo.
+
+    // ❌ Bloquear hora 23
+    disabled.push(23);
+
+    return disabled;
+  },
+
+  disabledMinutes: (selectedHour, selectedType) => {
+    // selectedType = "start" | "end"
+    // solo en RangePicker
+
+    // 🛑 Si es FIN y la hora es 22 → permitir SOLO 00
+    if (selectedType === "end" && selectedHour === 22) {
+      return Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0);
+    }
+
+    // 🛑 Si es INICIO y la hora es 22 → bloquear TODOS los minutos
+    if (selectedType === "start" && selectedHour === 22) {
+      return Array.from({ length: 60 }, (_, i) => i); // todos bloqueados
+    }
+
+    // 🛑 Todas las demás horas → solo permitir :00 y :30
+    return Array.from({ length: 60 }, (_, i) => i).filter(
+      (m) => m !== 0 && m !== 30
+    );
+  },
+})}
                   hideDisabledOptions
                   showNow={false}
                   placeholder={['Hora inicio', 'Hora fin']}
@@ -416,7 +470,7 @@ export default function EditarSesion() {
                 />
               </Form.Item>
 
-              {/* ✅ Alertas de validación separadas */}
+              {/* ✅ Alertas de validación separadas con mensajes dinámicos */}
               {tipoUbicacion === 'cancha' && (
                 <>
                   {/* Alerta de duración excedida */}
@@ -443,7 +497,7 @@ export default function EditarSesion() {
 
                       {!checkingDisp && dispOk === true && (
                         <Alert
-                          message="Cancha disponible"
+                          message=" Cancha disponible"
                           type="success"
                           showIcon
                           style={{ marginBottom: 16 }}
@@ -452,7 +506,7 @@ export default function EditarSesion() {
 
                       {!checkingDisp && dispOk === false && (
                         <Alert
-                          message="❌ Cancha NO disponible en este horario"
+                          message={dispMessage || 'Cancha NO disponible en este horario'} // 🆕 MENSAJE DINÁMICO
                           type="error"
                           showIcon
                           style={{ marginBottom: 16 }}
@@ -463,7 +517,6 @@ export default function EditarSesion() {
                 </>
               )}
 
-              {/* Tipo de sesión */}
               <Form.Item
                 name="tipoSesion"
                 label="Tipo de sesión"
@@ -477,12 +530,10 @@ export default function EditarSesion() {
                 </Select>
               </Form.Item>
 
-              {/* Objetivos */}
               <Form.Item name="objetivos" label="Objetivos (opcional)">
                 <Input.TextArea rows={3} placeholder="Describe los objetivos de la sesión" />
               </Form.Item>
 
-              {/* Botones */}
               <Form.Item>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                   <Button onClick={() => navigate(-1)}>Cancelar</Button>

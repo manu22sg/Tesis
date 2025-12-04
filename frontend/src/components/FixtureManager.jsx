@@ -16,7 +16,6 @@ import { buscarUsuarios } from '../services/auth.services.js';
 import RegistrarResultadoModal from './RegistrarResultadoModal.jsx';
 import EstadisticasPartidoModal from './EstadisticasPartidoModal.jsx';
 import ProgramarPartidoModal from './ProgramarPartidoModal.jsx';
-import { verificarDisponibilidadSesion} from '../services/horario.services.js';
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -86,6 +85,17 @@ const FixtureManager = ({ campeonatoId, onUpdate }) => {
       setCanchas([]);
     }
   };
+
+  const verificarDisponibilidad = async (params) => {
+  try {
+    const resp = await partidoService.verificarDisponibilidad(params);
+    return resp; // <<--- el modal espera un objeto con { disponible: true/false, message: ... }
+  } catch (error) {
+    console.error("Error al verificar disponibilidad:", error);
+    throw error;
+  }
+};
+
 
 const handleSortearPrimeraRonda = async () => {
   Modal.confirm({
@@ -857,7 +867,7 @@ function descargarArchivo(blob, nombre) {
         formatearFecha={formatearFecha}
         formatearRangoHoras={formatearRangoHoras}
         getRondaNombre={getRondaNombre}
-        verificarDisponibilidadSesion={verificarDisponibilidadSesion}
+        verificarDisponibilidad={verificarDisponibilidad}
       />
 
       {/* Modal de estadísticas */}

@@ -10,7 +10,8 @@ import {
   esCanchaPrincipal, 
   esDivision, 
   obtenerCanchaPrincipal,
-  obtenerDivisiones 
+  obtenerDivisiones,
+  CAPACIDAD_CANCHA_PRINCIPAL
 } from './canchaHierarchyservices.js';
 
 
@@ -96,9 +97,15 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
 
     // Filtros de canchas
     const whereCanchas = { estado: 'disponible' };
+
+     if (filtros.usuarioRol === 'estudiante' || filtros.usuarioRol === 'academico') {
+  whereCanchas.capacidadMaxima = Not(CAPACIDAD_CANCHA_PRINCIPAL);
+}
+
+
     if (capacidad === 'pequena') whereCanchas.capacidadMaxima = LessThanOrEqual(8);
     else if (capacidad === 'mediana') whereCanchas.capacidadMaxima = Between(9, 15);
-    else if (capacidad === 'grande') whereCanchas.capacidadMaxima = MoreThan(15);
+    else if (capacidad === 'grande') whereCanchas.capacidadMaxima = MoreThan(14);
 
     // Paginación / cancha específica
     let totalCanchas = 0;
@@ -171,7 +178,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
         for (const blk of bloques) {
           if (hayConflictoHorario(blk, r)) { 
             blk.disponible = false; 
-            if (!blk.motivo) blk.motivo = 'Ya reservado'; 
+            if (!blk.motivo) blk.motivo = 'Reservado'; 
           }
         }
       }
@@ -189,7 +196,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
         for (const blk of bloques) {
           if (hayConflictoHorario(blk, p)) { 
             blk.disponible = false; 
-            if (!blk.motivo) blk.motivo = 'Partido de campeonato'; 
+            if (!blk.motivo) blk.motivo = 'Partido de campeonato '; 
           }
         }
       }
@@ -206,7 +213,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
             for (const blk of bloques) {
               if (hayConflictoHorario(blk, r)) {
                 blk.disponible = false;
-                if (!blk.motivo) blk.motivo = `División ${div.nombre} reservada`;
+                if (!blk.motivo) blk.motivo = `${div.nombre} reservada`;
               }
             }
           }
@@ -215,7 +222,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
             for (const blk of bloques) {
               if (hayConflictoHorario(blk, p)) {
                 blk.disponible = false;
-                if (!blk.motivo) blk.motivo = `Partido en ${div.nombre}`;
+                if (!blk.motivo) blk.motivo = `Partido de campeonato `;
               }
             }
           }
@@ -254,7 +261,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
             for (const blk of bloques) {
               if (hayConflictoHorario(blk, p)) {
                 blk.disponible = false;
-                if (!blk.motivo) blk.motivo = `Partido de campeonato en ${otraCancha.nombre}`;
+                if (!blk.motivo) blk.motivo = `Partido de campeonato`;
               }
             }
           }
@@ -286,13 +293,15 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     return [null, 'Error interno del servidor'];
   }
 }
+
+
+
 export async function verificarDisponibilidadSesion(
   canchaId, 
   fechaISO, 
   horaInicio, 
   horaFin, 
   sesionIdExcluir = null,
-  partidoIdExcluir = null
 ) {
   try {
     const fecha = toISODateSafe(fechaISO);
@@ -341,7 +350,6 @@ export async function verificarDisponibilidadSesion(
     });
     
     for (const p of partidos) {
-      if (partidoIdExcluir && p.id === partidoIdExcluir) continue;
       if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
         return [false, `Ya existe un partido de campeonato en el horario ${p.horaInicio || ''} - ${p.horaFin || ''}`];
       }
@@ -377,7 +385,7 @@ export async function verificarDisponibilidadSesion(
       
       for (const r of reservasDiv) {
         if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-          return [false, `Hay una reserva activa en ${div.nombre || ''} desde ${r.horaInicio || ''} a ${r.horaFin || ''}`];
+          return [false, `Hay una reserva activa en ${div.nombre || ''} de ${r.horaInicio || ''} a ${r.horaFin || ''}`];
         }
       }
 
@@ -441,7 +449,7 @@ export async function verificarDisponibilidadReserva(
     
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-        return [false, `Ya existe una reserva en ese horario `];
+        return [false, `Ya existe una reserva en el horario ${r.horaInicio ||''} - ${r.horaFin || ''} `];
       }
     }
 

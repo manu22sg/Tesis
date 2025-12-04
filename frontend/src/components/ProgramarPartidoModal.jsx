@@ -9,6 +9,8 @@ import {
 import dayjs from 'dayjs';
 import locale from 'antd/locale/es_ES';
 import 'dayjs/locale/es';
+import { partidoService } from '../services/partido.services.js';
+
 
 dayjs.locale('es');
 
@@ -38,7 +40,7 @@ const ProgramarPartidoModal = ({
   formatearFecha,
   formatearRangoHoras,
   getRondaNombre,
-  verificarDisponibilidadSesion
+  verificarDisponibilidad
 }) => {
   const [form] = Form.useForm();
   
@@ -129,14 +131,16 @@ const ProgramarPartidoModal = ({
       }
 
       // Verificar disponibilidad inicial si tiene todos los datos
-      if (partido.canchaId && partido.fecha && partido.horaInicio && partido.horaFin) {
-        verificarDisponibilidad(
-          partido.canchaId,
-          dayjs(partido.fecha),
-          toTimeDayjs(partido.horaInicio),
-          toTimeDayjs(partido.horaFin)
-        );
-      }
+     if (partido.canchaId && partido.fecha && partido.horaInicio && partido.horaFin) {
+  verificarDisponibilidadLocal({
+    canchaId: partido.canchaId,
+    fecha: dayjs(partido.fecha).format("YYYY-MM-DD"),
+    horaInicio: toTimeDayjs(partido.horaInicio).format("HH:mm"),
+    horaFin: toTimeDayjs(partido.horaFin).format("HH:mm"),
+    partidoId: partido.id
+  });
+}
+
     }
   }, [visible, partido]);
 
@@ -177,102 +181,76 @@ const ProgramarPartidoModal = ({
     buscarArbitros();
   }, [valorDebounced, buscarUsuarios]);
 
-  // Verificar disponibilidad en tiempo real
-  const verificarDisponibilidad = async (canchaId, fecha, horaInicio, horaFin) => {
-    if (!canchaId || !fecha || !horaInicio || !horaFin || !verificarDisponibilidadSesion) {
-      setDisponibilidadStatus(null);
-      return;
-    }
 
-    setVerificandoDisponibilidad(true);
-    try {
-      const response = await verificarDisponibilidadSesion(
-        canchaId,
-        fecha.format('YYYY-MM-DD'),
-        horaInicio.format('HH:mm'),
-        horaFin.format('HH:mm'),
-        null,
-        partido?.id || null
-      );
+const verificarDisponibilidadLocal = async ({
+  canchaId,
+  fecha,
+  horaInicio,
+  horaFin,
+  partidoId
+}) => {
+  if (!canchaId || !fecha || !horaInicio || !horaFin) {
+    setDisponibilidadStatus(null);
+    return;
+  }
 
-      if (response.disponible === true) {
-        setDisponibilidadStatus({
-          type: 'success',
-          message: ' Horario disponible para el partido'
-        });
-      } else if (response.disponible === false) {
-        const motivo = response.message || response.motivo || 'El horario no está disponible';
-        setDisponibilidadStatus({
-          type: 'error',
-          message: `❌ ${motivo}`
-        });
-      } else {
-        console.warn('Respuesta inesperada del servidor:', response);
-        setDisponibilidadStatus({
-          type: 'warning',
-          message: '⚠️ No se pudo verificar la disponibilidad'
-        });
-      }
-    } catch (error) {
-      console.log('Errores de validación:', error.response?.data?.errors);
-      console.error('Error verificando disponibilidad:', error);
-      
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
-        
-        if (status === 409) {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${data.message || 'El horario está ocupado'}`
-          });
-        } else if (status === 400) {
-          let errorMsg = 'Horario inválido';
-          
-          if (data.errors && typeof data.errors === 'object') {
-            errorMsg = Object.values(data.errors)[0];
-          } else if (data.message) {
-            errorMsg = data.message;
-          }
-          
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${errorMsg}`
-          });
-        } else {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: '❌ Error al verificar disponibilidad'
-          });
-        }
-      } else {
-        setDisponibilidadStatus({
-          type: 'warning',
-          message: '⚠️ No se pudo conectar con el servidor'
-        });
-      }
-    } finally {
-      setVerificandoDisponibilidad(false);
+  setVerificandoDisponibilidad(true);
+
+  try {
+    const resp = await verificarDisponibilidad({ // <-- esta es la que viene por props
+      canchaId,
+      fecha,
+      horaInicio,
+      horaFin,
+      partidoId
+    });
+
+    if (resp.disponible) {
+      setDisponibilidadStatus({
+        type: "success",
+        message: "Horario disponible para el partido"
+      });
+    } else {
+      setDisponibilidadStatus({
+        type: "error",
+        message: resp.message || "Horario no disponible"
+      });
     }
-  };
+    
+  } catch (err) {
+    setDisponibilidadStatus({
+      type: "error",
+      message: "Error al verificar disponibilidad."
+    });
+  }
+
+  setVerificandoDisponibilidad(false);
+};
+
 
   // Re-verificar cuando cambia fecha, cancha o horas
   const watchedValues = Form.useWatch([], form);
 
-  useEffect(() => {
-    if (!visible) return;
-    
-    const values = form.getFieldsValue(['canchaId', 'fecha', 'horaInicio', 'horaFin']);
-    const { canchaId, fecha, horaInicio, horaFin } = values;
-    
-    if (canchaId && fecha && horaInicio && horaFin) {
-      const timer = setTimeout(() => {
-        verificarDisponibilidad(canchaId, fecha, horaInicio, horaFin);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [watchedValues, visible]);
+useEffect(() => {
+  if (!visible) return;
+
+  const values = form.getFieldsValue(["canchaId", "fecha", "horaInicio", "horaFin"]);
+  const { canchaId, fecha, horaInicio, horaFin } = values;
+
+  if (canchaId && fecha && horaInicio && horaFin) {
+    const timer = setTimeout(() => {
+      verificarDisponibilidadLocal({
+        canchaId,
+        fecha: fecha.format("YYYY-MM-DD"),
+        horaInicio: horaInicio.format("HH:mm"),
+        horaFin: horaFin.format("HH:mm"),
+        partidoId: partido?.id || null
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }
+}, [watchedValues, visible]);
 
   const seleccionarArbitro = (value, option) => {
     if (option) {
@@ -310,16 +288,28 @@ const ProgramarPartidoModal = ({
   };
 
   // ✅ Horario de 08:00 a 20:00 para partidos
-  const disabledTime = () => ({
-    disabledHours: () => {
-      const hours = [];
-      // Deshabilitar 00:00 - 07:00
-      for (let i = 0; i < 8; i++) hours.push(i);
-      // Deshabilitar 21:00 - 23:00
-      for (let i = 21; i < 24; i++) hours.push(i);
-      return hours;
-    },
-  });
+const disabledTime = (current) => {
+  const disabledHours = [];
+  
+  // ❌ deshabilitar 00–08
+  for (let h = 0; h < 9; h++) disabledHours.push(h);
+
+  // ❌ deshabilitar 18–23
+  for (let h = 18; h < 24; h++) disabledHours.push(h);
+
+  return {
+    disabledHours: () => disabledHours,
+
+    // ⛔ Si la hora es 17, solo permitir :00
+    disabledMinutes: (hour) => {
+      if (hour === 17) {
+        return [15, 30, 45]; // solo deja :00
+      }
+      return [];
+    }
+  };
+};
+
 
   const equipoA = equipos?.find(e => e.id === partido?.equipoAId);
   const equipoB = equipos?.find(e => e.id === partido?.equipoBId);
@@ -485,7 +475,8 @@ const ProgramarPartidoModal = ({
                   placeholder="Seleccionar cancha"
                   onChange={() => setDisponibilidadStatus(null)}
                 >
-                  {canchas.map(cancha => (
+                  {canchas.filter(c => c.estado === 'disponible').map(cancha => (
+
                     <Option key={cancha.id} value={cancha.id}>
                       <Space>
                         {cancha.nombre}
@@ -533,8 +524,8 @@ const ProgramarPartidoModal = ({
                         validator: (_, value) => {
                           if (!value) return Promise.resolve();
                           const hour = value.hour();
-                          if (hour < 8 || hour >= 20) {
-                            return Promise.reject(new Error('La hora debe estar entre 08:00 y 20:00'));
+                          if (hour < 9 || hour >= 18) {
+                            return Promise.reject(new Error('La hora debe estar entre 09:00 y 18:00'));
                           }
                           return Promise.resolve();
                         }
@@ -545,7 +536,7 @@ const ProgramarPartidoModal = ({
                       style={{ width: '100%' }}
                       format="HH:mm"
                       minuteStep={15}
-                      placeholder="Entre 08:00 y 20:00"
+                      placeholder="Entre 09:00 y 17:00"
                       disabledTime={disabledTime}
                       hideDisabledOptions
                       showNow={false}
@@ -568,8 +559,8 @@ const ProgramarPartidoModal = ({
                           if (!horaInicio) return Promise.resolve();
 
                           const hour = value.hour();
-                          if (hour < 8 || hour > 20) {
-                            return Promise.reject(new Error('La hora debe estar entre 08:00 y 20:00'));
+                          if (hour < 9 || hour > 17) {
+                            return Promise.reject(new Error('La hora debe estar entre 09:00 y 17:00'));
                           }
 
                           if (value.isBefore(horaInicio) || value.isSame(horaInicio)) {
@@ -591,7 +582,7 @@ const ProgramarPartidoModal = ({
                       style={{ width: '100%' }}
                       format="HH:mm"
                       minuteStep={15}
-                      placeholder="Entre 08:00 y 20:00"
+                      placeholder="Entre 09:00 y 17:00"
                       disabledTime={disabledTime}
                       hideDisabledOptions
                       showNow={false}

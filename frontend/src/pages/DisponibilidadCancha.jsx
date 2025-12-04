@@ -14,7 +14,7 @@ import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout';
 
 dayjs.locale('es');
-const DEFAULT_PAGE_SIZE = 5;
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function DisponibilidadCancha() {
   const navigate = useNavigate();
@@ -102,11 +102,14 @@ export default function DisponibilidadCancha() {
       setLoading(true);
       const fechaStr = fecha.format('YYYY-MM-DD');
 
-      const extra = {};
+      const extra = {
+        usuarioRol: usuario?.rol
+      };
       if (canchaSeleccionada) extra.canchaId = Number(canchaSeleccionada);
       if (filtroCapacidad) extra.capacidad = filtroCapacidad;
 
       const resp = await getDisponibilidadPorFecha(fechaStr, page, pageSize, extra);
+
       if (controller.signal.aborted) return;
 
       setItems(resp.data || []);
@@ -167,28 +170,36 @@ export default function DisponibilidadCancha() {
 
   // Reconsulta al cambiar filtros + restaurar paginación al limpiar
   useEffect(() => {
-    const hayFiltros = Boolean(filtroCapacidad || canchaSeleccionada);
-    const antesHabiaFiltros = prevFiltrosRef.current;
+  const hayFiltros = Boolean(filtroCapacidad || canchaSeleccionada);
+  const antesHabiaFiltros = prevFiltrosRef.current;
 
-    if (hayFiltros && !antesHabiaFiltros) {
-      // activando filtros
-      lastPageRef.current = pagination.current;
-      lastPageSizeRef.current = pagination.pageSize || DEFAULT_PAGE_SIZE;
-      setFiltrosActivos(true);
-      handleBuscar(1, 1); // en filtrado por cancha suele volver 1
-    } else if (!hayFiltros && antesHabiaFiltros) {
-      // limpiando filtros
-      setFiltrosActivos(false);
-      handleBuscar(lastPageRef.current || 1, lastPageSizeRef.current || DEFAULT_PAGE_SIZE);
-    } else if (hayFiltros && antesHabiaFiltros) {
-      // cambiaron valores en modo filtrado
-      handleBuscar(1, 1);
-    }
+  if (hayFiltros && !antesHabiaFiltros) {
+    // Activando filtros
+    lastPageRef.current = pagination.current;
+    lastPageSizeRef.current = pagination.pageSize || DEFAULT_PAGE_SIZE;
+    setFiltrosActivos(true);
 
-    prevFiltrosRef.current = hayFiltros;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroCapacidad, canchaSeleccionada]);
+    // ❗ Antes ponías handleBuscar(1, 1) → limit=1 → backend devolvía SOLO 1 cancha
+    handleBuscar(1, DEFAULT_PAGE_SIZE);
 
+  } else if (!hayFiltros && antesHabiaFiltros) {
+    // Limpiando filtros
+    setFiltrosActivos(false);
+
+    handleBuscar(
+      lastPageRef.current || 1,
+      lastPageSizeRef.current || DEFAULT_PAGE_SIZE
+    );
+
+  } else if (hayFiltros && antesHabiaFiltros) {
+    // Cambiaron valores mientras ya había filtros
+    // ❗ Antes también ponías handleBuscar(1, 1)
+    handleBuscar(1, DEFAULT_PAGE_SIZE);
+  }
+
+  prevFiltrosRef.current = hayFiltros;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [filtroCapacidad, canchaSeleccionada]);
   const handlePageChange = (page, pageSize) => {
     if (!filtrosActivos) {
       lastPageRef.current = page;
@@ -281,7 +292,7 @@ export default function DisponibilidadCancha() {
                   filterOption={false}
                   options={canchasDisponibles}
                   style={{ width: 260 }}
-                  onDropdownVisibleChange={(open) => { setSelectAbierto(open); if (!open) setSearchCancha(''); }}
+                  onOpenChange={(open) => { setSelectAbierto(open); if (!open) setSearchCancha(''); }}
                 />
 
                 <Select

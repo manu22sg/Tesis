@@ -8,6 +8,7 @@ import {
  * GET /api/horario/disponibilidad?fecha=2025-11-30&tipoUso=reserva
  * Consulta disponibilidad de canchas para una fecha
  */
+
 export async function getDisponibilidadPorFecha(req, res) {
   try {
     const { fecha, canchaId, capacidad } = req.query;
@@ -20,22 +21,20 @@ export async function getDisponibilidadPorFecha(req, res) {
 
     // 🆕 Obtener rol del usuario autenticado (ajusta según tu estructura)
     const usuarioRol = req.usuario?.rol || req.user?.rol || 'usuario';
-
     const [resultado, error] = await obtenerDisponibilidadPorFecha(
       fecha,
       page,
       limit,
       { 
         canchaId: canchaId ? Number(canchaId) : undefined, 
-        capacidad
+        capacidad,
+        usuarioRol
       },
-      usuarioRol // 🆕 Pasar el rol
     );
 
     if (error) {
       return res.status(500).json({ message: error });
     }
-
     return res.status(200).json(resultado);
   } catch (err) {
     console.error(err);
@@ -91,7 +90,7 @@ export async function verificarDisponibilidadReserva(req, res) {
  */
 export async function verificarDisponibilidadSesion(req, res) {
   try {
-    const { canchaId, fecha, inicio, fin, sesionIdExcluir,partidoIdExcluir } = req.query;
+    const { canchaId, fecha, inicio, fin, sesionIdExcluir } = req.query;
 
     if (!canchaId || !fecha || !inicio || !fin) {
       return res.status(400).json({ 
@@ -105,7 +104,6 @@ export async function verificarDisponibilidadSesion(req, res) {
       inicio, 
       fin,
       sesionIdExcluir ? parseInt(sesionIdExcluir) : null,
-      partidoIdExcluir ? parseInt(partidoIdExcluir): null
     );
 
     if (!disponible) {

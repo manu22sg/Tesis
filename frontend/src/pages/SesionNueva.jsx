@@ -50,13 +50,16 @@ const [dispMessage, setDispMessage] = useState('');
         setLoading(true);
 
         const canchasRes = await obtenerCanchas({ estado: 'disponible', limit: 100 });
-        const listaCanchas = (canchasRes?.canchas || []).map((c) => ({
-          label: c.nombre,
-          value: Number(c.id),
-          capacidad: c.capacidadMaxima,
-          descripcion: c.descripcion,
-        }));
-        setCanchas(listaCanchas);
+        const listaCanchas = (canchasRes.canchas || [])
+  .filter(c => c.capacidadMaxima === 64) // 👈 SOLO la principal
+  .map((c) => ({
+    label: c.nombre,
+    value: Number(c.id),
+    capacidad: c.capacidadMaxima,
+    descripcion: c.descripcion,
+  }));
+
+setCanchas(listaCanchas);
 
         const gruposRes = await obtenerGrupos({ limit: 100 });
         const listaGrupos = (gruposRes?.data?.grupos || []).map((g) => ({
@@ -194,6 +197,7 @@ const mensajeDuracion = verificarDuracionExcedida();
       setDispMessage(res?.message || '');
       
     } catch (e) {
+
       console.error('Error verificando disponibilidad en vivo:', e);
       setDispOk(null);
       setDispMessage(''); // 🆕 Limpiar mensaje
@@ -531,7 +535,34 @@ const mensajeDuracion = verificarDuracionExcedida();
               <Form.Item
   name="horario"
   label="Horario"
-  rules={[{ required: true, message: 'Seleccione el horario' }]}
+  rules={[
+  { required: true, message: 'Seleccione el horario' },
+  {
+    validator(_, value) {
+      if (!value || !value[0] || !value[1]) return Promise.resolve();
+
+      const inicio = value[0];
+      const fin = value[1];
+
+      // ❌ Bloquear inicio = 22:00
+      if (inicio.hour() === 22) {
+        return Promise.reject(
+          new Error("La sesión no puede comenzar a las 22:00")
+        );
+      }
+
+      // ❌ No permitir que termine después de 22:00
+      if (fin.hour() > 22 || (fin.hour() === 22 && fin.minute() > 0)) {
+        return Promise.reject(
+          new Error("La sesión no puede terminar después de las 22:00")
+        );
+      }
+
+      return Promise.resolve();
+    }
+  }
+]}
+
   extra={
     <>
       {tipoUbicacion === 'cancha' && !esRecurrente && (

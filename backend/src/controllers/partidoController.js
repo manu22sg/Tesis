@@ -1,4 +1,4 @@
-import { programarPartido,registrarResultado, obtenerPartidosPorCampeonato } from "../services/partidoServices.js";
+import { programarPartido,registrarResultado, obtenerPartidosPorCampeonato,verificarDisponibilidadPartido } from "../services/partidoServices.js";
 import { success, error } from "../utils/responseHandler.js";
 
 export const asignarPartido = async (req, res) => {
@@ -44,3 +44,29 @@ export const getPartidosPorCampeonato = async (req, res) => {
   }
 };
 
+export async function ctrlVerificarDisponibilidadPartido(req, res) {
+  try {
+    const { canchaId, fecha, horaInicio, horaFin, partidoId } = req.query;
+
+    if (!canchaId || !fecha || !horaInicio || !horaFin) {
+      return error(res, "Faltan parámetros requeridos", 400);
+    }
+
+    const result = await verificarDisponibilidadPartido(
+      Number(canchaId),
+      fecha,
+      horaInicio,
+      horaFin,
+      partidoId ? Number(partidoId) : null
+    );
+
+    // ⚠️ Mantengo el formato que espera tu frontend:
+    // { disponible: boolean, message: string }
+    return res.json(result);
+
+  } catch (e) {
+    console.error("Error en ctrlVerificarDisponibilidadPartido:", e);
+
+    return error(res, "Error interno del servidor", 500);
+  }
+}

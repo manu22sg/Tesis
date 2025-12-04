@@ -335,8 +335,15 @@ function descargarArchivo(blob, nombre) {
       title: 'Posición',
       dataIndex: 'posicion',
       key: 'posicion',
-      render: (posicion) => posicion || '—',
-      width: 120,
+      render: (posicion) => {
+        if (!posicion) return <Text type="secondary">—</Text>;
+        return (
+          <Tooltip title={posicion}>
+            <span>{posicion}</span>
+          </Tooltip>
+        );
+      },
+      width: 180,
       ellipsis: true,
     },
     {
