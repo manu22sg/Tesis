@@ -21,6 +21,7 @@ const UsuarioSchema = new EntitySchema({
     apellido: {
       type: "varchar",
       length: 100,
+      nullable:true //false en prod
     },
     email: {
       type: "varchar",
@@ -37,7 +38,7 @@ const UsuarioSchema = new EntitySchema({
     sexo: {
       type: "varchar",
       length: 10,
-      nullable: false,
+      nullable: true, //false
     },
     estado: {
       type: "varchar",

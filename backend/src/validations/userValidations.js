@@ -216,6 +216,7 @@ export function validateRegistrationData(data) {
     abortEarly: false,
     stripUnknown: true 
   });
+  
 
   if (error) {
     const formattedErrors = error.details.map(detail => ({

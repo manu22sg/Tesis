@@ -33,7 +33,7 @@ const EstadisticaBasicaSchema = new EntitySchema({
     //  Generales
     tarjetasAmarillas: { type: "int", default: 0 },
     tarjetasRojas: { type: "int", default: 0 },
-    minutosJugados: { type: "int", default: 0 },  // ✅ Ya lo tenías
+    minutosJugados: { type: "int", default: 0 },  
     
     fechaRegistro: { type: "timestamp", createDate: true },
   },

@@ -3,24 +3,27 @@ import { validateRegistrationData, validateLoginData,validateResetPasswordData,
   validateSolicitarRestablecimiento
 } from '../validations/userValidations.js';
 import { validationError } from '../utils/responseHandler.js';
-
 export const validateRegistration = (req, res, next) => {
-  const { isValid, errors } = validateRegistrationData(req.body);
+  const { isValid, errors, data } = validateRegistrationData(req.body);
+  //                              
   
   if (!isValid) {
     return validationError(res, errors, 'Error de validación en el registro');
   }
   
+  req.body = data; // ✅ Reemplaza req.body con los datos validados (email en minúsculas)
   next();
 };
 
 export const validateLogin = (req, res, next) => {
-  const { isValid, errors } = validateLoginData(req.body);
+  const { isValid, errors, data } = validateLoginData(req.body);
+  //                              
   
   if (!isValid) {
     return validationError(res, errors, 'Error de validación en el login');
   }
   
+  req.body = data;
   next();
 };
 

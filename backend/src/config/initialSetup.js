@@ -21,14 +21,14 @@ async function createUsers() {
 
     // Generar contraseñas para usuarios especiales
     const entrenadorPassword = "TuDUsnXqPWtO"
-    const admin = "User1234#"
+    //const admin = "User1234#"
 //const entrenadorPassword = generateRandomPassword();
   //  const admin = generateRandomPassword();
 
     // Mostrar contraseñas en consola
     console.log(" CONTRASEÑAS GENERADAS1:");
     console.log(`   Entrenador (alex@ubiobio.cl): ${entrenadorPassword}`);
-    console.log(`   admin (admin@ubiobio.cl): ${admin}`);
+  //  console.log(`   admin (admin@ubiobio.cl): ${admin}`);
     console.log("     GUARDE ESTAS CONTRASEÑAS EN UN LUGAR SEGURO");
     console.log("");
 
@@ -46,38 +46,7 @@ async function createUsers() {
           sexo: "Masculino",
           verificado: true
         }),
-      ),
-      userRepository.save(
-        userRepository.create({
-          rut: "98.765.432-1",
-          nombre: "Administrador",
-          email: "admin@ubiobio.cl",
-          password: await hashPassword(admin),
-          rol: "administrador",
-          estado: "activo",
-        }),
-      ),
-      // Usuarios de prueba con contraseña fija
-      userRepository.save(
-        userRepository.create({
-          rut: "20.111.111-1",
-          nombre: "Estudiante Prueba",
-          email: "estudiante@alumnos.ubiobio.cl",
-          password: await hashPassword("user1234"),
-          rol: "estudiante",
-          estado: "activo",
-        }),
-      ),
-      userRepository.save(
-        userRepository.create({
-          rut: "20.222.222-2",
-          nombre: "Academico Prueba",
-          email: "academico@ubiobio.cl",
-          password: await hashPassword("user1234"),
-          rol: "academico",
-          estado: "activo",
-        }),
-      ),
+      )
     ]);
     
     console.log("* => Usuarios creados exitosamente");
