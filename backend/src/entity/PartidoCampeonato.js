@@ -12,7 +12,7 @@ const PartidoCampeonatoSchema = new EntitySchema({
     // Participantes neutros (sin local/visita)
     equipoAId: { type: "int", nullable: false },
     equipoBId: { type: "int", nullable: false },
-    arbitroId: { type: "int", nullable: true }, // FALSE en produccion
+    arbitroId: { type: "int", nullable: true }, /// FALSE en produccion
     ronda: { type: "varchar", length: 20 }, // ej: "cuartos", "semifinal", "final"
     fecha: { type: "date", nullable: true },
     horaInicio: { type: "time", nullable: true },
