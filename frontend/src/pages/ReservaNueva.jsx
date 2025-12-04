@@ -57,6 +57,10 @@ export default function ReservaNueva() {
   const [verificandoDisponibilidad, setVerificandoDisponibilidad] = useState(false);
   const [disponibilidadStatus, setDisponibilidadStatus] = useState(null);
 
+  // 🆕 Usar Form.useWatch para evitar loops infinitos
+  const canchaId = Form.useWatch('canchaId', form);
+  const fechaReserva = Form.useWatch('fecha', form);
+
   // Agregar automáticamente al usuario que reserva
   useEffect(() => {
     if (usuario && usuario.rut && !participantes.includes(usuario.rut)) {
@@ -120,7 +124,6 @@ export default function ReservaNueva() {
     const buscarSugerencias = async () => {
       const valorTrim = valorBusqueda.trim();
       
-      // Mostrar mensaje de mínimo 2 caracteres (incluso si está vacío)
       if (valorTrim.length < 2) {
         setOpcionesAutoComplete([
           {
@@ -163,10 +166,10 @@ export default function ReservaNueva() {
     return () => clearTimeout(timer);
   }, [valorBusqueda, participantes]);
 
-  // ✅ Generar horas válidas según el patrón de bloques (1h uso + 10min limpieza)
+  // Generar horas válidas según el patrón de bloques (1h uso + 10min limpieza)
   const generarHorasValidas = () => {
     const horas = [];
-    let inicio = 8 * 60; // 08:00 en minutos
+    let inicio = 9 * 60; // 09:00 en minutos
     const fin = 17 * 60; // 17:00 en minutos
     const bloque = 70; // 1h 10min por bloque
     
@@ -180,15 +183,13 @@ export default function ReservaNueva() {
     return horas;
   };
 
-  // ✅ CORREGIDO: Duración de 1 hora (60 minutos de uso)
-  // El backend considera bloques de 1h + 10min de limpieza = 1h 10min total
+  // Duración de 1 hora
   const handleHoraInicioChange = (time) => {
     if (time) {
-      const nuevaHoraFin = time.add(1, 'hour'); // Solo 1 hora de uso
+      const nuevaHoraFin = time.add(1, 'hour');
       setHoraFin(nuevaHoraFin);
       form.setFieldsValue({ horaFin: nuevaHoraFin });
       
-      // Verificar disponibilidad automáticamente
       verificarDisponibilidad(time, nuevaHoraFin);
     } else {
       setHoraFin(null);
@@ -197,12 +198,12 @@ export default function ReservaNueva() {
     }
   };
 
-  // ✅ NUEVO: Verificar disponibilidad en tiempo real
+  // ✅ Verificar disponibilidad en tiempo real (CORREGIDO)
   const verificarDisponibilidad = async (horaInicio, horaFin) => {
-    const canchaId = form.getFieldValue('canchaId');
-    const fecha = form.getFieldValue('fecha');
+    const canchaIdActual = form.getFieldValue('canchaId');
+    const fechaActual = form.getFieldValue('fecha');
 
-    if (!canchaId || !fecha || !horaInicio || !horaFin) {
+    if (!canchaIdActual || !fechaActual || !horaInicio || !horaFin) {
       setDisponibilidadStatus(null);
       return;
     }
@@ -210,30 +211,24 @@ export default function ReservaNueva() {
     setVerificandoDisponibilidad(true);
     try {
       const response = await verificarDisponibilidadReserva(
-        canchaId,
-        fecha.format('YYYY-MM-DD'),
+        canchaIdActual,
+        fechaActual.format('YYYY-MM-DD'),
         horaInicio.format('HH:mm'),
         horaFin.format('HH:mm')
       );
 
-      console.log('Respuesta de disponibilidad:', response);
-
-      // Verificar si la respuesta indica disponibilidad
       if (response.disponible === true) {
         setDisponibilidadStatus({
           type: 'success',
-          message: ' Horario disponible para reserva'
+          message: '✅ Horario disponible para reserva'
         });
       } else if (response.disponible === false) {
-        // Mostrar el motivo específico del rechazo
         const motivo = response.message || response.motivo || 'El horario no está disponible';
         setDisponibilidadStatus({
           type: 'error',
-          message: ` ${motivo}`
+          message: `❌ ${motivo}`
         });
       } else {
-        // Respuesta inesperada
-        console.warn('Respuesta inesperada del servidor:', response);
         setDisponibilidadStatus({
           type: 'warning',
           message: '⚠️ No se pudo verificar la disponibilidad'
@@ -242,53 +237,38 @@ export default function ReservaNueva() {
     } catch (error) {
       console.error('Error verificando disponibilidad:', error);
       
-      // Manejar errores HTTP específicos
-      if (error.response) {
-        const status = error.response.status;
-        const data = error.response.data;
-        
-        if (status === 409) {
-          // Conflicto - horario ocupado
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${data.message || 'El horario está ocupado'}`
-          });
-        } else if (status === 400) {
-          // Validación fallida
-          setDisponibilidadStatus({
-            type: 'error',
-            message: `❌ ${data.message || 'Horario inválido'}`
-          });
-        } else {
-          setDisponibilidadStatus({
-            type: 'error',
-            message: '❌ Error al verificar disponibilidad'
-          });
-        }
-      } else {
-        setDisponibilidadStatus({
-          type: 'warning',
-          message: '⚠️ No se pudo conectar con el servidor'
-        });
+      let errorMsg = '❌ Error al verificar disponibilidad';
+      
+      if (error.response?.data?.message) {
+        errorMsg = `❌ ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMsg = `❌ ${error.message}`;
       }
+      
+      setDisponibilidadStatus({
+        type: 'error',
+        message: errorMsg
+      });
     } finally {
       setVerificandoDisponibilidad(false);
     }
   };
 
-  // ✅ NUEVO: Re-verificar cuando cambia fecha o cancha
+  // ✅ Re-verificar cuando cambia fecha o cancha (CORREGIDO)
   useEffect(() => {
     const horaInicio = form.getFieldValue('horaInicio');
     const horaFin = form.getFieldValue('horaFin');
     
-    if (horaInicio && horaFin) {
+    if (horaInicio && horaFin && canchaId && fechaReserva) {
       verificarDisponibilidad(horaInicio, horaFin);
+    } else {
+      setDisponibilidadStatus(null);
     }
-  }, [form.getFieldValue('canchaId'), form.getFieldValue('fecha')]);
+  }, [canchaId, fechaReserva]);
 
   const agregarParticipante = (rut, option) => {
     if (participantes.length >= capacidadMaxima) {
-      message.warning(`Ya tiene ${capacidadMaxima} participantes (capacidad máxima de la cancha)`);
+      message.warning(`Ya tiene ${capacidadMaxima} participantes (capacidad máxima)`);
       return;
     }
 
@@ -318,15 +298,18 @@ export default function ReservaNueva() {
     setParticipantes(nuevosParticipantes);
   };
 
+  // ✅ Mejorar manejo de errores (CORREGIDO)
   const handleSubmit = async (values) => {
-    // Validar disponibilidad antes de enviar
-    if (disponibilidadStatus?.type !== 'success') {
+    if (!disponibilidadStatus || disponibilidadStatus.type !== 'success') {
       message.error('Por favor verifique que el horario esté disponible');
       return;
     }
 
     if (participantes.length !== capacidadMaxima) {
-      message.error(`Se requieren exactamente ${capacidadMaxima} participantes para esta cancha. Actualmente tiene ${participantes.length}`);
+      message.error(
+        `Se requieren exactamente ${capacidadMaxima} participantes. ` +
+        `Actualmente tiene ${participantes.length}`
+      );
       return;
     }
 
@@ -334,7 +317,7 @@ export default function ReservaNueva() {
       setLoading(true);
 
       const participantesCompletos = [...participantes];
-      if (usuario && usuario.rut && !participantesCompletos.includes(usuario.rut)) {
+      if (usuario?.rut && !participantesCompletos.includes(usuario.rut)) {
         participantesCompletos.unshift(usuario.rut);
       }
 
@@ -351,9 +334,27 @@ export default function ReservaNueva() {
       message.success('Reserva creada correctamente');
       navigate('/reservas/mis-reservas');
     } catch (err) {
-      console.error(err.response?.data || err);
-      const msg = err.response?.data?.message || 'Error al crear la reserva. Verifique los datos.';
-      message.error(msg);
+      console.error('Error al crear reserva:', err);
+      
+      // 🆕 EXTRACCIÓN MEJORADA DE MENSAJES DE ERROR
+      let errorMsg = 'Error al crear la reserva';
+      
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        
+        if (typeof errors === 'object' && !Array.isArray(errors)) {
+          const mensajes = Object.values(errors).filter(Boolean);
+          errorMsg = mensajes.length > 0 ? mensajes[0] : errorMsg;
+        } else if (Array.isArray(errors) && errors.length > 0) {
+          errorMsg = errors[0];
+        } else if (typeof errors === 'string') {
+          errorMsg = errors;
+        }
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -459,7 +460,6 @@ export default function ReservaNueva() {
                       }
                     }
                     
-                    // Re-verificar disponibilidad con nueva cancha
                     const horaInicio = form.getFieldValue('horaInicio');
                     const horaFin = form.getFieldValue('horaFin');
                     if (horaInicio && horaFin) {
@@ -501,7 +501,6 @@ export default function ReservaNueva() {
                   style={{ width: '100%' }}
                   placeholder="Seleccione una fecha"
                   onChange={() => {
-                    // Re-verificar disponibilidad con nueva fecha
                     const horaInicio = form.getFieldValue('horaInicio');
                     const horaFin = form.getFieldValue('horaFin');
                     if (horaInicio && horaFin) {
@@ -524,7 +523,7 @@ export default function ReservaNueva() {
                 label="Hora de inicio"
                 name="horaInicio"
                 rules={[{ required: true, message: 'Seleccione la hora de inicio' }]}
-                extra="Bloques disponibles: 08:00, 09:10, 10:20, 11:30, 12:40, 13:50, 15:00, 16:10"
+                extra="Bloques disponibles: 09:00, 10:10, 11:20, 12:30, 13:40, 14:50, 16:00"
               >
                 <TimePicker
                   format="HH:mm"
@@ -566,7 +565,6 @@ export default function ReservaNueva() {
                 <TimePicker format="HH:mm" value={horaFin} disabled style={{ width: '100%' }} />
               </Form.Item>
 
-              {/* ✅ NUEVO: Indicador de disponibilidad */}
               {disponibilidadStatus && (
                 <Alert
                   message={disponibilidadStatus.message}

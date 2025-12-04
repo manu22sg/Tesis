@@ -8,6 +8,10 @@ import CanchaSchema from '../entity/Cancha.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js'; // 
 import { parseDateLocal, formatYMD } from '../utils/dateLocal.js';
+import { 
+  esCanchaPrincipal, 
+  obtenerCanchaPrincipal 
+} from './canchaHierarchyservices.js';
 
 // Crear una nueva reserva con participantes
 
@@ -131,7 +135,6 @@ function hayConflictoHorario(a, b) {
   return !(f1 <= i2 || f2 <= i1);
 }
 
-
 export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fechaISO, horaInicio, horaFin) {
   try {
     const fecha = formatYMD(parseDateLocal(fechaISO));
@@ -139,37 +142,72 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
     const canchaRepo  = manager.getRepository(CanchaSchema);
     const sesionRepo  = manager.getRepository(SesionEntrenamientoSchema);
     const reservaRepo = manager.getRepository(ReservaCanchaSchema);
-    const partidoRepo = manager.getRepository(PartidoCampeonatoSchema); //  AGREGAR
+    const partidoRepo = manager.getRepository(PartidoCampeonatoSchema);
 
-    //  Cancha debe existir y estar disponible
+    // 1. Cancha debe existir y estar disponible
     const cancha = await canchaRepo.findOne({ where: { id: canchaId, estado: 'disponible' } });
     if (!cancha) return [false, 'Cancha inexistente o no disponible'];
 
-    // Conflictos con sesiones de entrenamiento
-    const sesiones = await sesionRepo.find({ where: { canchaId, fecha } });
-    for (const s of sesiones) {
-      if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-        return [false, `Conflicto con sesión ( ${s.horaInicio} - ${s.horaFin})`];
-      }
+    // 🆕 2. VALIDAR: Las reservas NO pueden usar la Principal
+    if (esCanchaPrincipal(cancha)) {
+      return [false, 'La Cancha Principal no está disponible para reservas de usuarios'];
     }
 
-    //  Conflictos con reservas pendientes/aprobadas
+    // 3. Conflictos con otras reservas en ESTA división
     const reservas = await reservaRepo.find({
-      where: { canchaId, fechaReserva: fecha, estado: In([ 'aprobada']) }
+      where: { canchaId, fechaReserva: fecha, estado: In(['aprobada']) }
     });
     for (const r of reservas) {
       if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-        return [false, `Ya existe una reserva (${r.estado}) en ese horario`];
+        return [false, `Ya existe una reserva en ese horario`];
       }
     }
 
-    // Conflictos con partidos de campeonato 
-    const partidos = await partidoRepo.find({
-      where: { canchaId, fecha, estado: In(['programado', 'en_juego']) }
-    });
-    for (const p of partidos) {
-      if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-        return [false, `Ya existe un partido de campeonato en ese horario`];
+    // 🆕 4. Verificar sesiones en la Principal (bloquean todas las divisiones)
+    const todasCanchas = await canchaRepo.find({ where: { estado: 'disponible' } });
+    const canchaPrincipal = todasCanchas.find(c => esCanchaPrincipal(c));
+    
+    if (canchaPrincipal) {
+      const sesiones = await sesionRepo.find({ 
+        where: { canchaId: canchaPrincipal.id, fecha } 
+      });
+      
+      for (const s of sesiones) {
+        if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
+          return [false, `Hay una sesión de entrenamiento programada en ese horario`];
+        }
+      }
+
+      // Verificar partidos en la Principal
+      const partidosPrincipal = await partidoRepo.find({
+        where: { 
+          canchaId: canchaPrincipal.id, 
+          fecha, 
+          estado: In(['programado', 'en_juego']) 
+        }
+      });
+      
+      for (const p of partidosPrincipal) {
+        if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+          return [false, `Hay un partido de campeonato en ese horario`];
+        }
+      }
+    }
+
+    // 🆕 5. Verificar partidos en CUALQUIER cancha (bloquean TODO)
+    for (const otraCancha of todasCanchas) {
+      const partidos = await partidoRepo.find({
+        where: { 
+          canchaId: otraCancha.id, 
+          fecha, 
+          estado: In(['programado', 'en_juego']) 
+        }
+      });
+      
+      for (const p of partidos) {
+        if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+          return [false, `Hay un partido de campeonato programado en ese horario`];
+        }
       }
     }
 
@@ -180,6 +218,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
   }
 }
 
+
 export async function crearReserva(datosReserva, usuarioId) {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
@@ -189,14 +228,21 @@ export async function crearReserva(datosReserva, usuarioId) {
     const { canchaId, fecha, horaInicio, horaFin, motivo, participantes } = datosReserva;
 
     const canchaRepo = queryRunner.manager.getRepository(CanchaSchema);
-    const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
-    
-    if (!cancha) {
-      await queryRunner.rollbackTransaction();
-      return [null, 'Cancha no encontrada'];
-    }
+const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
 
-    const capacidadMaxima = cancha.capacidadMaxima;
+if (!cancha) {
+  await queryRunner.rollbackTransaction();
+  return [null, 'Cancha no encontrada'];
+}
+
+// 🆕 VALIDAR: Las reservas NO pueden usar la Principal
+if (esCanchaPrincipal(cancha)) {
+  await queryRunner.rollbackTransaction();
+  return [null, 'La Cancha Principal no está disponible para reservas de usuarios. Por favor elija una de las canchas divisionales.'];
+}
+
+const capacidadMaxima = cancha.capacidadMaxima;
+
 
     // Verificar disponibilidad
     const [ok, errDisp] = await verificarDisponibilidadEspecificaTx(

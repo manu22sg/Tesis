@@ -43,7 +43,7 @@ export default function SesionNueva() {
   // 🔎 Estado para verificación en vivo (debounced)
   const [checkingDisp, setCheckingDisp] = useState(false);
   const [dispOk, setDispOk] = useState(null); // true | false | null
-
+const [dispMessage, setDispMessage] = useState('');
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -102,30 +102,29 @@ export default function SesionNueva() {
   }, []);
 
   // Limpiar campos cuando cambia el tipo de ubicación
-  useEffect(() => {
-    if (!form) return;
-    if (tipoUbicacion === 'cancha') {
-      form.setFieldValue('ubicacionExterna', undefined);
-    } else {
-      form.setFieldValue('canchaId', undefined);
-    }
-    // al cambiar el modo de ubicación, reseteamos el indicador de disponibilidad
-    setDispOk(null);
-  }, [tipoUbicacion, form]);
+ useEffect(() => {
+  if (!form) return;
+  if (tipoUbicacion === 'cancha') {
+    form.setFieldValue('ubicacionExterna', undefined);
+  } else {
+    form.setFieldValue('canchaId', undefined);
+  }
+  setDispOk(null);
+  setDispMessage(''); // 🆕 Agregar esta línea
+}, [tipoUbicacion, form]);
 
-  // Limpiar campos según modo (única vs recurrente)
-  useEffect(() => {
-    if (!form) return;
-    if (esRecurrente) {
-      form.setFieldValue('fecha', undefined);
-    } else {
-      form.setFieldValue('fechaInicio', undefined);
-      form.setFieldValue('fechaFin', undefined);
-      form.setFieldValue('diasSemana', undefined);
-    }
-    // cambiar modo también resetea indicador
-    setDispOk(null);
-  }, [esRecurrente, form]);
+useEffect(() => {
+  if (!form) return;
+  if (esRecurrente) {
+    form.setFieldValue('fecha', undefined);
+  } else {
+    form.setFieldValue('fechaInicio', undefined);
+    form.setFieldValue('fechaFin', undefined);
+    form.setFieldValue('diasSemana', undefined);
+  }
+  setDispOk(null);
+  setDispMessage(''); // 🆕 Agregar esta línea
+}, [esRecurrente, form]);
 
   // ====== Debounce de verificación en vivo ======
   const canchaId = Form.useWatch('canchaId', form);
@@ -155,75 +154,96 @@ const mensajeDuracion = verificarDuracionExcedida();
 
 
   useEffect(() => {
-    // Solo aplica para sesión única en cancha
-    if (esRecurrente || tipoUbicacion !== 'cancha') {
-      setDispOk(null);
-      return;
-    }
+  // Solo aplica para sesión única en cancha
+  if (esRecurrente || tipoUbicacion !== 'cancha') {
+    setDispOk(null);
+    setDispMessage(''); // 🆕 Limpiar mensaje
+    return;
+  }
 
-    const canCheck =
-      canchaId && fecha && Array.isArray(horario) && horario[0] && horario[1];
+  const canCheck =
+    canchaId && fecha && Array.isArray(horario) && horario[0] && horario[1];
 
-    if (!canCheck) {
-      setDispOk(null);
-      return;
-    }
+  if (!canCheck) {
+    setDispOk(null);
+    setDispMessage(''); // 🆕 Limpiar mensaje
+    return;
+  }
 
-    const t = setTimeout(async () => {
-      try {
-        setCheckingDisp(true);
-        const [h1, h2] = horario;
-        // Validación local simple por si eligen horas iguales o invertidas
-        if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
-          setDispOk(null);
-          setCheckingDisp(false);
-          return;
-        }
-console.log('🔍 Verificando disponibilidad:');
-      console.log('  canchaId:', canchaId, typeof canchaId);
-      console.log('  fecha:', fecha?.format('YYYY-MM-DD'));
-      console.log('  h1:', h1?.format('HH:mm'));
-      console.log('  h2:', h2?.format('HH:mm'));
-
-        const res = await verificarDisponibilidadSesion(
-          Number(canchaId),
-          fecha.format('YYYY-MM-DD'),
-          h1.format('HH:mm'),
-          h2.format('HH:mm')
-        );
-       // console.log('✅ Respuesta backend:', res);
-
-        setDispOk(!!res?.disponible);
-      } catch (e) {
-        console.error('Error verificando disponibilidad en vivo:', e);
+  const t = setTimeout(async () => {
+    try {
+      setCheckingDisp(true);
+      const [h1, h2] = horario;
+      
+      if (!h1 || !h2 || h1.isSame(h2) || h1.isAfter(h2)) {
         setDispOk(null);
-      } finally {
+        setDispMessage(''); // 🆕 Limpiar mensaje
         setCheckingDisp(false);
+        return;
       }
-    }, 500); // ⏱️ debounce 500 ms
 
-    return () => clearTimeout(t);
-  }, [esRecurrente, tipoUbicacion, canchaId, fecha, horario]);
+      const res = await verificarDisponibilidadSesion(
+        Number(canchaId),
+        fecha.format('YYYY-MM-DD'),
+        h1.format('HH:mm'),
+        h2.format('HH:mm')
+      );
+
+      setDispOk(!!res?.disponible);
+      // 🆕 Guardar el mensaje específico del backend
+      setDispMessage(res?.message || '');
+      
+    } catch (e) {
+      console.error('Error verificando disponibilidad en vivo:', e);
+      setDispOk(null);
+      setDispMessage(''); // 🆕 Limpiar mensaje
+    } finally {
+      setCheckingDisp(false);
+    }
+  }, 500);
+
+  return () => clearTimeout(t);
+}, [esRecurrente, tipoUbicacion, canchaId, fecha, horario]);
+
+
 
 
   
   const onFinish = async (values) => {
-  try {
-    setSaving(true);
+    try {
+      setSaving(true);
 
-    const [horaInicio, horaFin] = values.horario;
+      const [horaInicio, horaFin] = values.horario;
 
-    if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
-      message.error('La hora de inicio debe ser anterior a la hora de fin');
-      setSaving(false);
-      return;
-    }
-    const duracionHoras = horaFin.diff(horaInicio, 'hour', true);
-    if (duracionHoras > 3) {
-      message.error('La sesión no puede durar más de 3 horas');
-      setSaving(false);
-      return;
-    }
+      if (horaInicio.isAfter(horaFin) || horaInicio.isSame(horaFin)) {
+        message.error('La hora de inicio debe ser anterior a la hora de fin');
+        setSaving(false);
+        return;
+      }
+
+      // 🆕 VALIDAR HORARIO PERMITIDO 08:00 - 22:00
+      const horaComienzo = horaInicio.hour() + horaInicio.minute() / 60;
+      const horaTermino = horaFin.hour() + horaFin.minute() / 60;
+
+      if (horaComienzo < 8) {
+        message.error('Las sesiones no pueden comenzar antes de las 08:00');
+        setSaving(false);
+        return;
+      }
+
+      if (horaTermino > 22) {
+        message.error('Las sesiones no pueden terminar después de las 22:00');
+        setSaving(false);
+        return;
+      }
+
+      const duracionHoras = horaFin.diff(horaInicio, 'hour', true);
+      if (duracionHoras > 3) {
+        message.error('La sesión no puede durar más de 3 horas');
+        setSaving(false);
+        return;
+      }
+
 
 
     let payload = {
@@ -520,7 +540,7 @@ console.log('🔍 Verificando disponibilidad:');
           : dispOk === true
             ? '✅ Cancha disponible'
             : dispOk === false
-              ? '❌ Cancha NO disponible en este horario'
+              ? `❌ ${dispMessage || 'Cancha NO disponible en este horario'}` // 🆕 Mostrar mensaje específico
               : null
       )}
       {mensajeDuracion && (
@@ -535,21 +555,20 @@ console.log('🔍 Verificando disponibilidad:');
     </>
   }
 >
-  <TimePicker.RangePicker
-    format="HH:mm"
-    style={{ width: '100%' }}
-    minuteStep={30}
-    disabledTime={() => ({
-      disabledHours: () => [0,1,2,3,4,5,6,7], 
-      disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
-    })}
-    hideDisabledOptions
-    showNow={false}
-    placeholder={['Hora inicio', 'Hora fin']}
-    classNames={{ popup: { root: 'timepicker-academico' } }}
-  />
-</Form.Item>
-
+                <TimePicker.RangePicker
+                  format="HH:mm"
+                  style={{ width: '100%' }}
+                  minuteStep={30}
+                  disabledTime={() => ({
+                    disabledHours: () => [0,1,2,3,4,5,6,7,23], // ✅ Bloquea antes de 8 y después de 22
+                    disabledMinutes: () => Array.from({ length: 60 }, (_, i) => i).filter(m => m !== 0 && m !== 30),
+                  })}
+                  hideDisabledOptions
+                  showNow={false}
+                  placeholder={['Hora inicio', 'Hora fin']}
+                  classNames={{ popup: { root: 'timepicker-academico' } }}
+                />
+              </Form.Item>
               {/* Tipo de sesión */}
             <Form.Item
                 name="tipoSesion"

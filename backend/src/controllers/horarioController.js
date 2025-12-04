@@ -10,7 +10,7 @@ import {
  */
 export async function getDisponibilidadPorFecha(req, res) {
   try {
-    const { fecha, canchaId, capacidad, tipoUso } = req.query;
+    const { fecha, canchaId, capacidad } = req.query;
     const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
 
@@ -18,15 +18,18 @@ export async function getDisponibilidadPorFecha(req, res) {
       return res.status(400).json({ message: 'Falta el parámetro fecha' });
     }
 
+    // 🆕 Obtener rol del usuario autenticado (ajusta según tu estructura)
+    const usuarioRol = req.usuario?.rol || req.user?.rol || 'usuario';
+
     const [resultado, error] = await obtenerDisponibilidadPorFecha(
       fecha,
       page,
       limit,
       { 
         canchaId: canchaId ? Number(canchaId) : undefined, 
-        capacidad,
-        tipoUso: tipoUso || 'reserva' // Por defecto 'reserva'
-      }
+        capacidad
+      },
+      usuarioRol // 🆕 Pasar el rol
     );
 
     if (error) {

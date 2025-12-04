@@ -7,45 +7,39 @@ const toMin = t => {
 
 /**
  * Valida horarios según configuración
- * @param {Object} value - Objeto con horaInicio y horaFin
- * @param {Object} helpers - Helpers de Joi para errores
- * @param {Object} cfg - Configuración del horario
- * @param {string} cfg.inicio - Hora de inicio (ej: '08:00')
- * @param {string} cfg.fin - Hora de fin (ej: '17:00' o '24:00')
- * @param {number} [cfg.duracionBloque] - Si se especifica, duración exacta requerida
- * @param {number} [cfg.duracionMinima] - Duración mínima (por defecto 30)
- * @param {number} [cfg.duracionMaxima] - Duración máxima (por defecto 180)
- * @param {boolean} [cfg.validarBloques] - Si true, valida bloques de reserva (08:00, 09:10, etc.)
+ * Solo reservas con bloques:
+ * 09:00-10:00
+ * 10:10-11:10
+ * 11:20-12:20
+ * 12:30-13:30
+ * 13:40-14:40
+ * 14:50-15:50
+ * 16:00-17:00
  */
 export default function validaHorario(value, helpers, cfg) {
   const { 
     inicio, 
     fin, 
     duracionBloque, 
-    duracionMinima = 30, 
-    duracionMaxima = 180,
     validarBloques = false 
   } = cfg;
   
-const horaInicio = value.horaInicio || value.inicio;
+  const horaInicio = value.horaInicio || value.inicio;
   const horaFin = value.horaFin || value.fin;
-
 
   const i = toMin(horaInicio);
   const f = toMin(horaFin);
   const minInicio = toMin(inicio);
   const minFin = toMin(fin);
 
-
-  // Validación: dentro del horario de funcionamiento
+  // 1️⃣ Validar rango horario general
   if (i < minInicio || f > minFin) {
-    const finDisplay = fin === '24:00' ? '00:00 (medianoche)' : fin;
     return helpers.error('any.invalid', { 
-      message: `Horario fuera del funcionamiento (${inicio} - ${finDisplay})` 
+      message: `Horario fuera del funcionamiento (${inicio} - ${fin})` 
     });
   }
 
-  // Validación: hora fin mayor a hora inicio
+  // 2️⃣ Fin > inicio
   if (f <= i) {
     return helpers.error('any.invalid', { 
       message: 'La hora fin debe ser mayor a la hora inicio' 
@@ -54,36 +48,33 @@ const horaInicio = value.horaInicio || value.inicio;
 
   const dur = f - i;
 
-  // Si se especifica duración exacta (RESERVAS)
-  if (duracionBloque) {
-    if (dur !== duracionBloque) {
-      return helpers.error('any.invalid', { 
-        message: `La duración debe ser exactamente ${duracionBloque} minutos` 
-      });
-    }
+  // 3️⃣ Validar duración exacta (1 hora)
+  if (duracionBloque && dur !== duracionBloque) {
+    return helpers.error('any.invalid', { 
+      message: `La duración debe ser exactamente ${duracionBloque} minutos` 
+    });
+  }
 
-    // Validar bloques específicos de reserva (08:00, 09:10, 10:20, etc.)
-    if (validarBloques) {
-      const minutosDesdeLas8 = i - toMin('08:00');
-      // Bloques válidos: 0, 70, 140, 210, 280, 350, 420, 490 (08:00, 09:10, 10:20, 11:30, 12:40, 13:50, 15:00, 16:10)
-      if (minutosDesdeLas8 < 0 || minutosDesdeLas8 % 70 !== 0) {
-        return helpers.error('any.invalid', { 
-          message: 'Horarios válidos: 08:00, 09:10, 10:20, 11:30, 12:40, 13:50, 15:00, 16:10' 
-        });
-      }
-    }
-  } 
-  // Si no hay duración exacta, validar min/max (SESIONES)
-  else {
-    if (dur < duracionMinima) {
-      return helpers.error('any.invalid', { 
-        message: `La sesión debe durar al menos ${duracionMinima} minutos` 
-      });
-    }
+  // 4️⃣ BLOQUES exactos (para reservas)
+  if (validarBloques) {
+    const bloquesValidos = [
+      ['09:00', '10:00'],
+      ['10:10', '11:10'],
+      ['11:20', '12:20'],
+      ['12:30', '13:30'],
+      ['13:40', '14:40'],
+      ['14:50', '15:50'],
+      ['16:00', '17:00']
+    ];
 
-    if (dur > duracionMaxima) {
+    const esValido = bloquesValidos.some(([hIni, hFin]) =>
+      horaInicio === hIni && horaFin === hFin
+    );
+
+    if (!esValido) {
       return helpers.error('any.invalid', { 
-        message: `La sesión no puede durar más de ${duracionMaxima} minutos` 
+        message: 
+          'Horarios válidos: 09:00-10:00, 10:10-11:10, 11:20-12:20, 12:30-13:30, 13:40-14:40, 14:50-15:50, 16:00-17:00'
       });
     }
   }

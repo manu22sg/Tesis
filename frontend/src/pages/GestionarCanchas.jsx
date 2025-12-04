@@ -504,7 +504,7 @@ function descargarArchivo(blob, nombre) {
               form={form}
               layout="vertical"
               onFinish={handleSubmit}
-              initialValues={{ estado: 'disponible', capacidadMaxima: 12 }}
+              initialValues={{ estado: 'disponible', capacidadMaxima: 16 }}
             >
               <Form.Item label="Nombre de la Cancha" name="nombre" rules={[{ required: true, message: 'El nombre es obligatorio' }]}>
                 <Input placeholder="Ej: Cancha de Fútbol Principal" />
@@ -529,7 +529,7 @@ function descargarArchivo(blob, nombre) {
               {modalMode === 'editar' && (
                 <Alert
                   message="Nota importante"
-                  description="No podrás pasar a mantenimiento o fuera de servicio si hay reservas activas o sesiones programadas."
+                  description="No podrá pasar a mantenimiento o fuera de servicio si hay reservas activas o sesiones programadas."
                   type="info"
                   showIcon
                   style={{ marginBottom: 16 }}

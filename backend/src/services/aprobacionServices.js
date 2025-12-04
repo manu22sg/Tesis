@@ -2,7 +2,21 @@ import { AppDataSource } from '../config/config.db.js';
 import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import HistorialReservaSchema from '../entity/HistorialReserva.js';
 import UsuarioSchema from '../entity/Usuario.js';
+import CanchaSchema from '../entity/Cancha.js';
+import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
+import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js';
+import { In } from 'typeorm';
+import { esCanchaPrincipal, obtenerCanchaPrincipal } from './canchaHierarchyservices.js';
 
+function hayConflictoHorario(a, b) {
+  const toMin = t => { 
+    const [h, m] = t.split(':').map(Number); 
+    return h * 60 + m; 
+  };
+  const i1 = toMin(a.horaInicio), f1 = toMin(a.horaFin);
+  const i2 = toMin(b.horaInicio), f2 = toMin(b.horaFin);
+  return !(f1 <= i2 || f2 <= i1);
+}
 
  // Aprobar una reserva
  
@@ -14,27 +28,99 @@ export async function aprobarReserva(reservaId, entrenadorId, observacion = null
   try {
     const reservaRepo = queryRunner.manager.getRepository(ReservaCanchaSchema);
     const historialRepo = queryRunner.manager.getRepository(HistorialReservaSchema);
+    const sesionRepo = queryRunner.manager.getRepository(SesionEntrenamientoSchema);
+    const partidoRepo = queryRunner.manager.getRepository(PartidoCampeonatoSchema);
+    const canchaRepo = queryRunner.manager.getRepository(CanchaSchema);
 
-    // Buscar la reserva
+    // 1. Buscar la reserva
     const reserva = await reservaRepo.findOne({
       where: { id: reservaId },
       relations: ['usuario', 'cancha']
     });
 
     if (!reserva) {
+      await queryRunner.rollbackTransaction();
       return [null, 'Reserva no encontrada'];
     }
 
-    // Verificar que esté en estado pendiente
+    // 2. Verificar que esté en estado pendiente
     if (reserva.estado !== 'pendiente') {
+      await queryRunner.rollbackTransaction();
       return [null, `No se puede aprobar una reserva en estado '${reserva.estado}'. Solo reservas pendientes pueden ser aprobadas.`];
     }
 
-    // Actualizar estado a aprobada
+    // 🆕 3. VALIDAR que no haya conflictos con sesiones en la Principal
+    const todasCanchas = await canchaRepo.find({ where: { estado: 'disponible' } });
+    const canchaPrincipal = todasCanchas.find(c => esCanchaPrincipal(c));
+    
+    if (canchaPrincipal) {
+      const sesiones = await sesionRepo.find({ 
+        where: { canchaId: canchaPrincipal.id, fecha: reserva.fechaReserva } 
+      });
+      
+      for (const s of sesiones) {
+        if (hayConflictoHorario(reserva, s)) {
+          await queryRunner.rollbackTransaction();
+          return [null, `Hay una sesión programada en ese horario (${s.horaInicio} - ${s.horaFin})`];
+        }
+      }
+
+      // Verificar partidos en la Principal
+      const partidosPrincipal = await partidoRepo.find({
+        where: { 
+          canchaId: canchaPrincipal.id, 
+          fecha: reserva.fechaReserva, 
+          estado: In(['programado', 'en_juego']) 
+        }
+      });
+      
+      for (const p of partidosPrincipal) {
+        if (hayConflictoHorario(reserva, p)) {
+          await queryRunner.rollbackTransaction();
+          return [null, `Hay un partido de campeonato en ese horario (${p.horaInicio || ''} - ${p.horaFin || ''})`];
+        }
+      }
+    }
+
+    // 🆕 4. VALIDAR que no haya partidos en NINGUNA cancha (bloquean TODO)
+    for (const otraCancha of todasCanchas) {
+      const partidos = await partidoRepo.find({
+        where: { 
+          canchaId: otraCancha.id, 
+          fecha: reserva.fechaReserva, 
+          estado: In(['programado', 'en_juego']) 
+        }
+      });
+      
+      for (const p of partidos) {
+        if (hayConflictoHorario(reserva, p)) {
+          await queryRunner.rollbackTransaction();
+          return [null, `Hay un partido de campeonato en ${otraCancha.nombre} en el horario ${p.horaInicio || ''} - ${p.horaFin || ''}`];
+        }
+      }
+    }
+
+    // 🆕 5. VALIDAR que no haya conflicto con otra reserva YA APROBADA
+    const reservasAprobadas = await reservaRepo.find({
+      where: { 
+        canchaId: reserva.canchaId, 
+        fechaReserva: reserva.fechaReserva, 
+        estado: 'aprobada' 
+      }
+    });
+    
+    for (const r of reservasAprobadas) {
+      if (r.id !== reserva.id && hayConflictoHorario(reserva, r)) {
+        await queryRunner.rollbackTransaction();
+        return [null, `Ya existe otra reserva aprobada en ese horario`];
+      }
+    }
+
+    // 6. Actualizar estado a aprobada
     reserva.estado = 'aprobada';
     const reservaAprobada = await reservaRepo.save(reserva);
 
-    // Registrar en historial
+    // 7. Registrar en historial
     await historialRepo.save(historialRepo.create({
       reservaId: reserva.id,
       accion: 'aprobada',
@@ -44,7 +130,7 @@ export async function aprobarReserva(reservaId, entrenadorId, observacion = null
 
     await queryRunner.commitTransaction();
 
-    // Obtener reserva completa con relaciones actualizadas
+    // 8. Obtener reserva completa con relaciones actualizadas
     const reservaCompleta = await AppDataSource.getRepository(ReservaCanchaSchema).findOne({
       where: { id: reserva.id },
       relations: ['usuario', 'cancha', 'participantes', 'participantes.usuario', 'historial', 'historial.usuario']
@@ -60,6 +146,7 @@ export async function aprobarReserva(reservaId, entrenadorId, observacion = null
     await queryRunner.release();
   }
 }
+
 
  // Rechazar una reserva
 export async function rechazarReserva(reservaId, entrenadorId, motivoRechazo) {

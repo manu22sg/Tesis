@@ -91,8 +91,6 @@ export default function Grupos() {
         page,
         limit,
         nombre: nombre || undefined,
-       page,
-        limit,
         q: nombre || undefined,
       };
 

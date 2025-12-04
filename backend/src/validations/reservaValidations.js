@@ -3,19 +3,31 @@ import { validationError } from '../utils/responseHandler.js';
 import { parseDateLocal } from '../utils/dateLocal.js';
 import validaHorario from '../utils/validaHorario.js';
 
-// 🔧 CONFIGURACIÓN ACTUALIZADA PARA RESERVAS
-const HORARIO_RESERVAS = { 
-  inicio: '08:00', 
+/* ============================================================
+   CONFIGURACIÓN DE RESERVAS Y VALIDACIONES
+============================================================ */
+
+export const HORARIO_RESERVAS = { 
+  inicio: '09:00', 
   fin: '17:00', 
-  duracionBloque: 60    // 1 hora exacta
+  duracionBloque: 60    // 1 hora
 };
 
 const ANTICIPACION_MAXIMA_DIAS = 14;
+
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const TIME_HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const RUT_PATTERN = /^\d{7,8}-[\dK]$/;
 
-const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+/* ============================================================
+   FUNCIONES DE FECHAS SIN DESFASES UTC
+============================================================ */
+
+const startOfDay = (date) => {
+  // 100% seguro contra desfases
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
 const getLocalDate = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -24,42 +36,68 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
+/* ============================================================
+   SCHEMA: FECHA DE RESERVA (desde mañana + máximo 14 días)
+============================================================ */
+
 const fechaReservaSchema = Joi.string().pattern(DATE_YYYY_MM_DD)
   .required()
   .custom((value, helpers) => {
     const hoyStr = getLocalDate();
-    const hoy = startOfDay(new Date(hoyStr));
+    const hoy = startOfDay(parseDateLocal(hoyStr));
     const mañana = new Date(hoy); mañana.setDate(mañana.getDate() + 1);
 
-    const fecha = startOfDay(parseDateLocal(value)); 
-    const max = new Date(hoy); max.setDate(max.getDate() + ANTICIPACION_MAXIMA_DIAS);
+    const fecha = startOfDay(parseDateLocal(value));
+    const max = new Date(hoy); 
+    max.setDate(max.getDate() + ANTICIPACION_MAXIMA_DIAS);
 
     if (Number.isNaN(fecha.getTime())) {
       return helpers.error('any.invalid', { message: 'Fecha inválida' });
     }
+
     const diaSemana = fecha.getDay();
     if (diaSemana === 0 || diaSemana === 6) {
       return helpers.error('any.invalid', { message: 'Solo se pueden hacer reservas de lunes a viernes' });
     }
+
     if (fecha < mañana) {
-      return helpers.error('any.invalid', { message: `Solo se puede reservar desde mañana en adelante. Hoy es ${hoyStr}` });
+      return helpers.error('any.invalid', { 
+        message: `Solo se puede reservar desde mañana. Hoy es ${hoyStr}` 
+      });
     }
+
     if (fecha > max) {
-      return helpers.error('any.invalid', { message: `No se puede reservar con más de ${ANTICIPACION_MAXIMA_DIAS} días de anticipación` });
+      return helpers.error('any.invalid', { 
+        message: `No se puede reservar con más de ${ANTICIPACION_MAXIMA_DIAS} días de anticipación` 
+      });
     }
+
     return value;
   })
-  .messages({ 'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD (ej: 2025-09-24)' });
+  .messages({
+    'string.pattern.base': 'La fecha debe tener formato YYYY-MM-DD (ej: 2025-09-24)',
+  });
+
+/* ============================================================
+   SCHEMAS DE CAMPOS BÁSICOS
+============================================================ */
 
 const rutSchema = Joi.string().pattern(RUT_PATTERN)
   .required()
-  .messages({ 'string.pattern.base': 'RUT debe tener formato XXXXXXXX-X (ej: 20694718-7)' });
+  .messages({
+    'string.pattern.base': 'RUT inválido. Formato: XXXXXXXX-X'
+  });
 
 const horaSchema = Joi.string().pattern(TIME_HH_MM)
   .required()
-  .messages({ 'string.pattern.base': 'La hora debe tener formato HH:mm (ej: 09:00)' });
+  .messages({
+    'string.pattern.base': 'La hora debe tener formato HH:mm (ej: 09:00)'
+  });
 
-// 🔥 VALIDACIÓN ACTUALIZADA CON validaHorario
+/* ============================================================
+   BODY: CREAR RESERVA
+============================================================ */
+
 export const crearReservaBody = Joi.object({
   canchaId: Joi.number().integer().positive().required(),
   fecha: fechaReservaSchema,
@@ -67,26 +105,29 @@ export const crearReservaBody = Joi.object({
   horaFin: horaSchema,
   motivo: Joi.string().trim().max(500).optional().allow(''),
   participantes: Joi.array().items(rutSchema).max(22).unique().required()
-}).custom((value, helpers) => {
-  // Usar validaHorario con configuración de RESERVAS
+})
+.custom((value, helpers) => {
+
   const resultado = validaHorario(value, helpers, {
     inicio: HORARIO_RESERVAS.inicio,
     fin: HORARIO_RESERVAS.fin,
     duracionBloque: HORARIO_RESERVAS.duracionBloque,
-    validarBloques: true  // ✅ Valida que sean horarios válidos (08:00, 09:10, etc.)
+    validarBloques: true
   });
-  
+
   return resultado === true ? value : resultado;
 });
 
-// GET /api/reservas (usuario)
+/* ============================================================
+   QUERIES
+============================================================ */
+
 export const obtenerReservasUsuarioQuery = Joi.object({
   estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada', 'expirada').optional(),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(50).default(10)
 });
 
-// GET /api/reservas/todas (entrenador)
 export const obtenerTodasReservasQuery = Joi.object({
   estado: Joi.string().valid('pendiente', 'aprobada', 'rechazada', 'cancelada', 'completada', 'expirada').optional(),
   fecha: Joi.string().pattern(DATE_YYYY_MM_DD).optional(),
@@ -95,11 +136,13 @@ export const obtenerTodasReservasQuery = Joi.object({
   limit: Joi.number().integer().min(1).max(50).default(10)
 });
 
-// POST /api/reservas/detalle
 export const obtenerReservaPorIdBody = Joi.object({
   id: Joi.number().integer().positive().required()
 });
 
+/* ============================================================
+   EDITAR PARTICIPANTES
+============================================================ */
 
 export const editarParticipantesBody = Joi.object({
   participantes: Joi.array()
@@ -108,19 +151,15 @@ export const editarParticipantesBody = Joi.object({
     .max(22)
     .unique()
     .required()
-    .messages({
-      'array.base': 'participantes debe ser un array',
-      'array.min': 'Debe haber al menos 1 participante',
-      'array.max': 'No se pueden agregar más de 22 participantes',
-      'array.unique': 'No se pueden repetir RUTs',
-      'any.required': 'participantes es requerido'
-    })
 });
 
+/* ============================================================
+   MIDDLEWARES DE VALIDACIÓN
+============================================================ */
 
-// middlewares
 export const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+
   if (error) {
     const errores = error.details.reduce((acc, detail) => {
       const field = detail.path.join('.');
@@ -130,12 +169,14 @@ export const validate = (schema) => (req, res, next) => {
     }, {});
     return validationError(res, errores);
   }
+
   req.body = value;
   next();
 };
 
 export const validateQuery = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.query, { abortEarly: false, stripUnknown: true });
+
   if (error) {
     const errores = error.details.reduce((acc, detail) => {
       const field = detail.path.join('.');
@@ -145,6 +186,7 @@ export const validateQuery = (schema) => (req, res, next) => {
     }, {});
     return validationError(res, errores);
   }
+
   Object.assign(req.query, value);
   next();
 };

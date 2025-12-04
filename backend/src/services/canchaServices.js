@@ -4,6 +4,11 @@ import ReservaCanchaSchema from '../entity/ReservaCancha.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
 import PartidoCampeonatoSchema from '../entity/PartidoCampeonato.js';
 import { In, MoreThanOrEqual } from 'typeorm';
+import { 
+  esCanchaPrincipal,
+  CAPACIDAD_CANCHA_PRINCIPAL,  // ✅
+  obtenerDivisiones
+} from './canchaHierarchyservices.js';
 
 
 const hoyYMD = () => {
@@ -14,13 +19,14 @@ const hoyYMD = () => {
   return `${y}-${m}-${day}`;
 };
 
- // Crear una nueva cancha
+
+// Crear una nueva cancha
 export async function crearCancha(datosCancha) {
   try {
-    const canchaRepository = AppDataSource.getRepository(CanchaSchema);
-
-    // Verificar que el nombre no esté en uso
-    const canchaExistente = await canchaRepository.findOne({
+    const canchaRepo = AppDataSource.getRepository(CanchaSchema);
+    
+    // 1️⃣ Verificar que el nombre no esté en uso
+    const canchaExistente = await canchaRepo.findOne({
       where: { nombre: datosCancha.nombre }
     });
 
@@ -28,15 +34,47 @@ export async function crearCancha(datosCancha) {
       return [null, 'Ya existe una cancha con ese nombre'];
     }
 
-    // Crear la cancha
-    const nuevaCancha = canchaRepository.create({
+    // 2️⃣ VALIDACIÓN: Si es cancha principal, verificar que no exista otra
+    if (datosCancha.capacidadMaxima === CAPACIDAD_CANCHA_PRINCIPAL) {
+      const principalExistente = await canchaRepo.findOne({
+        where: { capacidadMaxima: CAPACIDAD_CANCHA_PRINCIPAL, estado: 'disponible' }
+      });
+      
+      if (principalExistente) {
+        return [null, 'Ya existe la cancha principal del complejo. Solo puede haber una cancha con capacidad de 64 personas.'];
+      }
+    }
+    
+    // 3️⃣ VALIDACIÓN: Si es división, verificar que no exceda capacidad total
+    if (datosCancha.capacidadMaxima < CAPACIDAD_CANCHA_PRINCIPAL) {
+      const divisiones = await obtenerDivisiones();
+      
+      const capacidadTotalDivisiones = divisiones.reduce(
+        (sum, c) => sum + c.capacidadMaxima, 
+        0
+      );
+      
+      const nuevaCapacidadTotal = capacidadTotalDivisiones + datosCancha.capacidadMaxima;
+      
+      if (nuevaCapacidadTotal > CAPACIDAD_CANCHA_PRINCIPAL) {
+        const disponible = CAPACIDAD_CANCHA_PRINCIPAL - capacidadTotalDivisiones;
+        return [null, 
+          `No se puede crear esta cancha. La capacidad total de divisiones (${nuevaCapacidadTotal}) ` +
+          `excedería la capacidad de la cancha principal (${CAPACIDAD_CANCHA_PRINCIPAL}). ` +
+          `Capacidad disponible: ${disponible} personas.`
+        ];
+      }
+    }
+
+    // 4️⃣ Crear la cancha
+    const nuevaCancha = canchaRepo.create({
       nombre: datosCancha.nombre,
       descripcion: datosCancha.descripcion || null,
-      capacidadMaxima: datosCancha.capacidadMaxima ,
+      capacidadMaxima: datosCancha.capacidadMaxima,
       estado: datosCancha.estado || 'disponible'
     });
       
-    const canchaGuardada = await canchaRepository.save(nuevaCancha);
+    const canchaGuardada = await canchaRepo.save(nuevaCancha);
     return [canchaGuardada, null];
 
   } catch (error) {
@@ -45,7 +83,7 @@ export async function crearCancha(datosCancha) {
   }
 }
 
- // Obtener todas las canchas con paginación
+// Obtener todas las canchas con paginación
 export async function obtenerCanchas(filtros = {}) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
@@ -96,7 +134,8 @@ export async function obtenerCanchas(filtros = {}) {
     return [null, 'Error interno del servidor'];
   }
 }
- // Obtener una cancha por ID
+
+// Obtener una cancha por ID
 export async function obtenerCanchaPorId(id) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);
@@ -117,13 +156,13 @@ export async function obtenerCanchaPorId(id) {
   }
 }
 
- //Actualizar una cancha
+// Actualizar una cancha
 export async function actualizarCancha(id, datosActualizacion) {
   try {
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
     const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
-    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema); // ✅ AGREGAR
+    const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema);
 
     // 1) Verificar que la cancha existe
     const cancha = await canchaRepository.findOne({ where: { id } });
@@ -160,7 +199,7 @@ export async function actualizarCancha(id, datosActualizacion) {
         return [null, 'No se puede cambiar el estado: la cancha tiene sesiones programadas'];
       }
 
-      // ✅ NUEVO: Partidos de campeonato programados o en juego
+      // ✅ Partidos de campeonato programados o en juego
       const partidosFuturos = await partidoRepository.count({
         where: { 
           canchaId: id, 
@@ -193,7 +232,6 @@ export async function actualizarCancha(id, datosActualizacion) {
 export async function eliminarCancha(id) {
   try {
     const canchaRepository  = AppDataSource.getRepository(CanchaSchema);
-    const reservaRepository = AppDataSource.getRepository(ReservaCanchaSchema);
     const sesionRepository  = AppDataSource.getRepository(SesionEntrenamientoSchema);
     const partidoRepository = AppDataSource.getRepository(PartidoCampeonatoSchema); 
 
@@ -201,15 +239,7 @@ export async function eliminarCancha(id) {
     const cancha = await canchaRepository.findOne({ where: { id } });
     if (!cancha) return [null, 'Cancha no encontrada'];
 
-    // 2) Bloquear si tiene reservas activas
-    const reservasActivas = await reservaRepository.count({
-      where: { canchaId: id, estado: In(['aprobada']) }
-    });
-    if (reservasActivas > 0) {
-      return [null, 'No se puede eliminar la cancha porque tiene reservas activas'];
-    }
-
-    // 3) Bloquear si tiene sesiones de entrenamiento programadas (desde hoy en adelante)
+    // 2) Bloquear si tiene sesiones de entrenamiento programadas (desde hoy en adelante)
     const hoy = hoyYMD();
     const sesionesFuturas = await sesionRepository.count({
       where: { canchaId: id, fecha: MoreThanOrEqual(hoy) }
@@ -218,7 +248,7 @@ export async function eliminarCancha(id) {
       return [null, 'No se puede eliminar la cancha porque tiene sesiones programadas'];
     }
 
-    // ✅ 4) NUEVO: Bloquear si tiene partidos de campeonato programados o en juego
+    // 3) Bloquear si tiene partidos de campeonato programados o en juego
     const partidosFuturos = await partidoRepository.count({
       where: { 
         canchaId: id, 
@@ -230,7 +260,7 @@ export async function eliminarCancha(id) {
       return [null, 'No se puede eliminar la cancha porque tiene partidos de campeonato programados'];
     }
 
-    // 5) Soft-delete: poner fuera de servicio
+    // 4) Soft-delete: poner fuera de servicio
     cancha.estado = 'fuera_servicio';
     const canchaEliminada = await canchaRepository.save(cancha);
     return [canchaEliminada, null];
@@ -241,9 +271,7 @@ export async function eliminarCancha(id) {
   }
 }
 
-
-
- // Reactivar una cancha (cambiar de fuera_servicio a disponible)
+// Reactivar una cancha (cambiar de fuera_servicio a disponible)
 export async function reactivarCancha(id) {
   try {
     const canchaRepository = AppDataSource.getRepository(CanchaSchema);

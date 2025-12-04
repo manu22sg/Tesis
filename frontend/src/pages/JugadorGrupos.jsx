@@ -195,7 +195,7 @@ export default function JugadorGrupos() {
             <UserOutlined style={{ fontSize: 32, color: '#014898' }} />
             <div>
               <Title level={4} style={{ margin: 0 }}>
-                {jugador.usuario?.nombre || 'Jugador'}
+                {jugador.usuario?.nombre || 'Jugador'} {jugador.usuario?.apellido || ''}
               </Title>
               <Text type="secondary">
                 {jugador.usuario?.rut} • {jugador.posicion || 'Sin posición'} • {jugador.usuario?.carrera?.nombre}

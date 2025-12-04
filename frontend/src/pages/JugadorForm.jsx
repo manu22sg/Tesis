@@ -181,7 +181,7 @@ nombre: `${jugador.usuario.nombre} ${jugador.usuario.apellido || ''}`.trim(),
         message.success('Jugador actualizado correctamente');
       } else {
         await crearJugador(datosFormulario);
-        message.success('Jugador creado correctamente');
+        message.success('Jugador agregado correctamente');
       }
 
       navigate('/jugadores');

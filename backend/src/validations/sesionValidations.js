@@ -8,7 +8,7 @@ const TIPOS_SESION = ['Entrenamiento', 'Partido', 'Partido Amistoso', 'Charla T�
 // 🔧 CONFIGURACIÓN ACTUALIZADA PARA SESIONES
 const HORARIO_SESIONES = { 
   inicio: '08:00', 
-  fin: '24:00'  // Hasta medianoche
+  fin: '22:00'  
 };
 
 const DATE_YYYY_MM_DD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
