@@ -16,7 +16,7 @@ export async function enviarRecordatoriosSesiones() {
       .createQueryBuilder(SesionEntrenamientoSchema, 'sesion')
       .leftJoinAndSelect('sesion.grupo', 'grupo')
       .leftJoinAndSelect('sesion.cancha', 'cancha')
-      .leftJoinAndSelect('grupo.jugadores', 'jugadorGrupo')
+      .leftJoinAndSelect('grupo.jugadorGrupos', 'jugadorGrupo')
       .leftJoinAndSelect('jugadorGrupo.jugador', 'jugador')
       .leftJoinAndSelect('jugador.usuario', 'usuario')
       .where('sesion.fecha = :fecha', { fecha: manana })
@@ -36,7 +36,8 @@ export async function enviarRecordatoriosSesiones() {
       if (!grupo) continue;
 
       // Recolectar destinatarios
-      const destinatarios = sesion.grupo.jugadores
+      const destinatarios = sesion.grupo.jugadorGrupos
+
         ?.map(jg => jg?.jugador?.usuario)
         .filter(u => u && u.estado === 'activo' && u.email)
         .map(u => u.email) || [];
