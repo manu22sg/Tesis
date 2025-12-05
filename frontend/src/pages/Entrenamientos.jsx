@@ -47,6 +47,31 @@ function useDebounced(value, delay = 400) {
   return v;
 }
 
+// Función auxiliar para renderizar texto con enlaces clickeables
+const renderizarTextoConEnlaces = (texto) => {
+  if (!texto) return null;
+  
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = texto.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#1890ff', textDecoration: 'underline' }}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 // Fila arrastrable con dnd-kit + antd
 function SortableRow({ id, children, ...props }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -284,9 +309,7 @@ const menuExportar = {
   };
 
   const handleSubmit = async (values) => {
-  console.log('📝 Values del formulario:', values);
-  console.log('🎯 sesionId de URL:', sesionId);
-  console.log('✏️ Editando:', editando);
+ 
 
   try {
     setLoadingModal(true);
@@ -478,11 +501,17 @@ const menuExportar = {
       title: 'Descripción',
       dataIndex: 'descripcion',
       key: 'descripcion',
-      render: (desc) => (
-        <Text type="secondary" ellipsis={{ tooltip: desc }}>
-          {desc || '—'}
-        </Text>
-      ),
+      render: (desc) => {
+        if (!desc) return <Text type="secondary">—</Text>;
+        
+        return (
+          <div style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <Text type="secondary">
+              {renderizarTextoConEnlaces(desc)}
+            </Text>
+          </div>
+        );
+      },
     },
     {
       title: 'Duración',
@@ -767,8 +796,9 @@ const menuExportar = {
       name="descripcion"
       label="Descripción"
       rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
+      tooltip="Puedes incluir enlaces (https://...) que serán clickeables"
     >
-      <TextArea rows={4} placeholder="Describe el entrenamiento..." />
+      <TextArea rows={4} placeholder="Describe el entrenamiento... (puedes incluir enlaces)" />
     </Form.Item>
 
     <Space style={{ width: '100%' }} size="large">

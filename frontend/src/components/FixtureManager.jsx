@@ -736,7 +736,7 @@ function descargarArchivo(blob, nombre) {
       {campeonato.estado === 'creado' && totalPartidos === 0 && hayEquiposSuficientes && (
         <Alert
           message="Campeonato sin fixture"
-          description={`Este campeonato tiene ${cantidadEquipos} equipos inscritos. Haz clic en "Sortear Primera Ronda" para generar el fixture automáticamente.`}
+          description={`Este campeonato tiene ${cantidadEquipos} equipos inscritos. Haga clic en "Sortear Primera Ronda" para generar el fixture automáticamente.`}
           type="info"
           showIcon
           icon={<ThunderboltOutlined />}

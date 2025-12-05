@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Table, Button, Modal, Form, Input, DatePicker, Space, Tag,
   App, Popconfirm, Card, Select, Tooltip, Avatar, Empty,
-  Pagination, ConfigProvider, Input as AntInput, Dropdown
+  Pagination, ConfigProvider, Input as AntInput, Dropdown, Spin
 } from 'antd';
 import locale from 'antd/locale/es_ES';
 import {
@@ -53,6 +53,12 @@ export default function GestionLesiones() {
   const [filtroJugadorId, setFiltroJugadorId] = useState(null);
   const [rangoFechas, setRangoFechas] = useState(null);
 
+  // Estados para búsqueda de jugadores en modal
+  const [busquedaJugador, setBusquedaJugador] = useState('');
+  const [jugadoresModal, setJugadoresModal] = useState([]);
+  const [loadingJugadoresModal, setLoadingJugadoresModal] = useState(false);
+  const searchTimeout = useRef(null);
+
   const [form] = Form.useForm();
 
   const esEstudiante = rolUsuario === 'estudiante';
@@ -65,7 +71,12 @@ export default function GestionLesiones() {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => { 
+      mountedRef.current = false;
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
   }, []);
 
   // Debounce de búsqueda (500 ms)
@@ -105,9 +116,9 @@ export default function GestionLesiones() {
 
     try {
       const params = {
-  page: page,
-  limit: pageSize,
-};
+        page: page,
+        limit: pageSize,
+      };
 
       if (q) params.q = q;
       if (jugador) params.jugadorId = jugador;
@@ -156,6 +167,42 @@ export default function GestionLesiones() {
     }
   };
 
+  // Búsqueda de jugadores en modal
+  const handleBuscarJugadoresModal = (value) => {
+    setBusquedaJugador(value);
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    if (!value || value.trim().length < 2) {
+      setJugadoresModal([]);
+      setLoadingJugadoresModal(false);
+      return;
+    }
+
+    setLoadingJugadoresModal(true);
+
+    searchTimeout.current = setTimeout(() => {
+      buscarJugadoresModal(value.trim());
+    }, 500);
+  };
+
+  const buscarJugadoresModal = async (q) => {
+    setLoadingJugadoresModal(true);
+    try {
+      const data = await obtenerJugadores({ q, limit: 100 });
+      setJugadoresModal(Array.isArray(data.jugadores) ? data.jugadores : 
+                        Array.isArray(data.data?.jugadores) ? data.data.jugadores : []);
+    } catch (error) {
+      console.error('Error buscando jugadores:', error);
+      message.error('Error al buscar los jugadores');
+      setJugadoresModal([]);
+    } finally {
+      setLoadingJugadoresModal(false);
+    }
+  };
+
   const handleCrear = async (values) => {
     try {
       const payload = {
@@ -170,6 +217,8 @@ export default function GestionLesiones() {
       message.success('Lesión registrada');
       setModalVisible(false);
       form.resetFields();
+      setBusquedaJugador('');
+      setJugadoresModal([]);
       cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
       console.error(error);
@@ -302,6 +351,13 @@ export default function GestionLesiones() {
     ],
   };
 
+  const abrirModalCrear = () => {
+    form.resetFields();
+    setBusquedaJugador('');
+    setJugadoresModal([]);
+    setModalVisible(true);
+  };
+
   const abrirModalEditar = (record) => {
     setLesionActual(record);
     form.setFieldsValue({
@@ -312,6 +368,15 @@ export default function GestionLesiones() {
       jugadorId: record.jugador?.id,
     });
     setModalEditando(true);
+  };
+
+  const cerrarModal = () => {
+    setModalVisible(false);
+    setModalEditando(false);
+    setLesionActual(null);
+    form.resetFields();
+    setBusquedaJugador('');
+    setJugadoresModal([]);
   };
 
   const limpiarFiltros = () => {
@@ -490,7 +555,7 @@ export default function GestionLesiones() {
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    onClick={() => setModalVisible(true)}
+                    onClick={abrirModalCrear}
                   >
                     Nueva Lesión
                   </Button>
@@ -545,7 +610,7 @@ export default function GestionLesiones() {
                       <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={() => setModalVisible(true)}
+                        onClick={abrirModalCrear}
                       >
                         Registrar primera lesión
                       </Button>
@@ -575,16 +640,17 @@ export default function GestionLesiones() {
           <Modal
             title={modalEditando ? 'Editar Lesión' : 'Nueva Lesión'}
             open={modalVisible || modalEditando}
-            onCancel={() => {
-              setModalVisible(false);
-              setModalEditando(false);
-              setLesionActual(null);
-              form.resetFields();
-            }}
+            onCancel={cerrarModal}
             footer={null}
             width={600}
+            destroyOnClose
           >
-            <Form form={form} layout="vertical" onFinish={modalEditando ? handleEditar : handleCrear}>
+            <Form 
+              form={form} 
+              layout="vertical" 
+              onFinish={modalEditando ? handleEditar : handleCrear}
+              style={{ marginTop: 16 }}
+            >
               {!modalEditando && !esEstudiante && (
                 <Form.Item
                   label="Jugador"
@@ -593,10 +659,38 @@ export default function GestionLesiones() {
                 >
                   <Select
                     showSearch
-                    placeholder="Seleccione un jugador"
-                    options={opcionesJugadores}
-                    optionFilterProp="label"
-                  />
+                    placeholder="Buscar jugador por nombre o RUT..."
+                    filterOption={false}
+                    searchValue={busquedaJugador}
+                    onSearch={handleBuscarJugadoresModal}
+                    loading={loadingJugadoresModal}
+                    notFoundContent={
+                      loadingJugadoresModal ? (
+                        <div style={{ padding: '8px 12px', textAlign: 'center' }}>
+                          <Spin size="small" />
+                          <span style={{ marginLeft: 8 }}>Buscando...</span>
+                        </div>
+                      ) : busquedaJugador.trim().length > 0 && busquedaJugador.trim().length < 2 ? (
+                        <div style={{ padding: '8px 12px', color: '#8c8c8c', textAlign: 'center' }}>
+                          Escriba al menos 2 caracteres
+                        </div>
+                      ) : busquedaJugador.trim().length >= 2 && jugadoresModal.length === 0 ? (
+                        <div style={{ padding: '8px 12px', color: '#8c8c8c', textAlign: 'center' }}>
+                          No se encontraron jugadores
+                        </div>
+                      ) : jugadoresModal.length === 0 ? (
+                        <div style={{ padding: '8px 12px', color: '#8c8c8c', textAlign: 'center' }}>
+                          Escriba para buscar...
+                        </div>
+                      ) : null
+                    }
+                  >
+                    {jugadoresModal.map((j) => (
+                      <Select.Option key={j.id} value={j.id}>
+                        {`${j.usuario?.nombre || 'Sin nombre'} ${j.usuario?.apellido || ''} — ${j.usuario?.rut || 'Sin RUT'}`}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               )}
 
@@ -627,20 +721,13 @@ export default function GestionLesiones() {
                 <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
               </Form.Item>
 
-              <Form.Item>
-                <Space>
+              <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
+                <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                  <Button onClick={cerrarModal}>
+                    Cancelar
+                  </Button>
                   <Button type="primary" htmlType="submit">
                     {modalEditando ? 'Actualizar' : 'Registrar'}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setModalVisible(false);
-                      setModalEditando(false);
-                      setLesionActual(null);
-                      form.resetFields();
-                    }}
-                  >
-                    Cancelar
                   </Button>
                 </Space>
               </Form.Item>

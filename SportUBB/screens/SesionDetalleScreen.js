@@ -50,7 +50,7 @@ const handleActivarToken = async (params) => {
 const handleDesactivarToken = () => {
   Alert.alert(
     "Desactivar Token",
-    "¿Estás seguro de que deseas desactivar este token?",
+    "¿Está seguro de que deseas desactivar este token?",
     [
       { text: "Cancelar", style: "cancel" },
       {
@@ -276,7 +276,7 @@ const handleDesactivarToken = () => {
           style={[styles.bottomButton, styles.deleteButton]}
           onPress={() => Alert.alert(
             'Eliminar Sesión',
-            '¿Estás seguro de eliminar esta sesión?',
+            '¿Está seguro de eliminar esta sesión?',
             [
               { text: 'Cancelar', style: 'cancel' },
               { text: 'Eliminar', style: 'destructive' }

@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { Avatar, Tooltip, Button, Space, Switch, App, Popconfirm, Alert } from 'antd';
-import { UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { Avatar, Tooltip, Button, Space, Switch, App, Popconfirm, Alert, Segmented, ColorPicker, Slider } from 'antd';
+import { 
+  UserOutlined, SaveOutlined, UndoOutlined, LockOutlined, UnlockOutlined,
+  EditOutlined, DeleteOutlined, BgColorsOutlined, HighlightOutlined
+} from '@ant-design/icons';
 
 const CampoAlineacion = ({ 
-  titulares = [],  // Solo recibe titulares
+  titulares = [],
   onActualizarPosiciones, 
-  onEliminarJugador 
+  onEliminarJugador,
+  alineacionId // Necesitamos el ID para localStorage
 }) => {
   const [jugadoresConPosicion, setJugadoresConPosicion] = useState([]);
   const [jugadorArrastrado, setJugadorArrastrado] = useState(null);
@@ -14,7 +18,19 @@ const CampoAlineacion = ({
   const [zonaEliminacionActiva, setZonaEliminacionActiva] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [jugadorParaEliminar, setJugadorParaEliminar] = useState(null);
+  
+  // Estados para el sistema de dibujo
+  const [modoDibujo, setModoDibujo] = useState(false);
+  const [lineas, setLineas] = useState([]);
+  const [puntosActuales, setPuntosActuales] = useState([]);
+  const [dibujando, setDibujando] = useState(false);
+  const [colorLinea, setColorLinea] = useState('#000000'); // 🆕 Negro por defecto
+  const [grosorLinea, setGrosorLinea] = useState(4);
+  const [conFlecha, setConFlecha] = useState(true);
+  const [tipoLinea, setTipoLinea] = useState('curva'); // 🆕 'curva', 'recta', 'punteada'
+  
   const campoRef = useRef(null);
+  const svgRef = useRef(null);
   const { message } = App.useApp();
 
   const posicionesDefecto = {
@@ -54,20 +70,239 @@ const CampoAlineacion = ({
     setJugadoresConPosicion(jugadoresInicializados);
   }, [titulares]);
 
+  // 🆕 Cargar líneas desde localStorage cuando se monta o cambia la alineación
+  useEffect(() => {
+    if (!alineacionId) return;
+    
+    try {
+      const clave = `lineas-alineacion-${alineacionId}`;
+      const lineasGuardadas = localStorage.getItem(clave);
+      
+      if (lineasGuardadas) {
+        const lineasParseadas = JSON.parse(lineasGuardadas);
+        setLineas(lineasParseadas);
+        console.log(`✅ ${lineasParseadas.length} líneas cargadas desde localStorage`);
+      }
+    } catch (error) {
+      console.error('Error al cargar líneas desde localStorage:', error);
+    }
+  }, [alineacionId]);
+
+  // Funciones para dibujo tipo pincel
+  const obtenerPosicionRelativa = (e) => {
+    if (!campoRef.current) return null;
+    const rect = campoRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+  };
+
+  const handleMouseDownDibujo = (e) => {
+    if (!modoDibujo) return;
+    e.preventDefault();
+    const pos = obtenerPosicionRelativa(e);
+    if (!pos) return;
+    
+    setDibujando(true);
+    setPuntosActuales([pos]);
+  };
+
+  const handleMouseMoveDibujo = (e) => {
+    if (!modoDibujo || !dibujando) return;
+    e.preventDefault();
+    const pos = obtenerPosicionRelativa(e);
+    if (!pos) return;
+    
+    setPuntosActuales(prev => [...prev, pos]);
+  };
+
+  const handleMouseUpDibujo = (e) => {
+    if (!modoDibujo || !dibujando) return;
+    e.preventDefault();
+    
+    if (puntosActuales.length > 3) {
+      const nuevaLinea = {
+        id: Date.now(),
+        puntos: simplificarPuntos(puntosActuales, 2),
+        color: colorLinea,
+        grosor: grosorLinea,
+        conFlecha: conFlecha,
+        tipoLinea: tipoLinea // 🆕 Guardar el tipo de línea
+      };
+      setLineas(prev => [...prev, nuevaLinea]);
+      setCambiosPendientes(true);
+    }
+    
+    setDibujando(false);
+    setPuntosActuales([]);
+  };
+
+  // Simplificar puntos para hacer la línea más suave
+  const simplificarPuntos = (puntos, tolerancia) => {
+    if (puntos.length <= 2) return puntos;
+    
+    const resultado = [puntos[0]];
+    let ultimoPunto = puntos[0];
+    
+    for (let i = 1; i < puntos.length; i++) {
+      const punto = puntos[i];
+      const distancia = Math.sqrt(
+        Math.pow(punto.x - ultimoPunto.x, 2) + 
+        Math.pow(punto.y - ultimoPunto.y, 2)
+      );
+      
+      if (distancia > tolerancia) {
+        resultado.push(punto);
+        ultimoPunto = punto;
+      }
+    }
+    
+    resultado.push(puntos[puntos.length - 1]);
+    return resultado;
+  };
+
+  // Convertir puntos a path SVG suave (curva Catmull-Rom)
+  const puntosAPath = (puntos) => {
+    if (puntos.length < 2) return '';
+    if (puntos.length === 2) {
+      return `M ${puntos[0].x} ${puntos[0].y} L ${puntos[1].x} ${puntos[1].y}`;
+    }
+    
+    let path = `M ${puntos[0].x} ${puntos[0].y}`;
+    
+    for (let i = 0; i < puntos.length - 1; i++) {
+      const p0 = puntos[Math.max(i - 1, 0)];
+      const p1 = puntos[i];
+      const p2 = puntos[i + 1];
+      const p3 = puntos[Math.min(i + 2, puntos.length - 1)];
+      
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+    
+    return path;
+  };
+
+  const calcularAngulo = (p1, p2) => {
+    return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+  };
+
+  const eliminarLinea = (id) => {
+    setLineas(prev => prev.filter(l => l.id !== id));
+    setCambiosPendientes(true); // Marcar cambios pendientes
+  };
+
+  const limpiarTodasLineas = () => {
+    setLineas([]);
+    setPuntosActuales([]);
+    setDibujando(false);
+    setCambiosPendientes(true);
+    
+    // 🆕 Limpiar también de localStorage
+    if (alineacionId) {
+      const clave = `lineas-alineacion-${alineacionId}`;
+      localStorage.removeItem(clave);
+      console.log('🗑️ Líneas eliminadas de localStorage');
+    }
+    
+    message.success('Todas las líneas eliminadas');
+  };
+
+  const renderLineaCurva = (linea, temporal = false) => {
+    const { puntos, color, grosor, conFlecha, tipoLinea: tipo, id } = linea;
+    if (puntos.length < 2) return null;
+    
+    // 🆕 Determinar el path según el tipo de línea
+    let path;
+    let strokeDasharray = 'none';
+    
+    if (tipo === 'recta') {
+      // Línea recta del primer al último punto
+      path = `M ${puntos[0].x} ${puntos[0].y} L ${puntos[puntos.length - 1].x} ${puntos[puntos.length - 1].y}`;
+    } else if (tipo === 'punteada') {
+      // Línea curva con estilo punteado
+      path = puntosAPath(puntos);
+      strokeDasharray = '5,5';
+    } else {
+      // Línea curva suave (por defecto)
+      path = puntosAPath(puntos);
+    }
+    
+    const ultimoPunto = puntos[puntos.length - 1];
+    const penultimoPunto = puntos[puntos.length - 2] || puntos[0];
+    const angulo = calcularAngulo(penultimoPunto, ultimoPunto);
+
+    return (
+      <g key={temporal ? 'temporal' : id}>
+        <path
+          d={path}
+          stroke={color}
+          strokeWidth={grosor / 10}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={strokeDasharray}
+          fill="none"
+        />
+        
+        {conFlecha && (
+          <polygon
+            points="0,-2 3,0 0,2"
+            fill={color}
+            transform={`translate(${ultimoPunto.x},${ultimoPunto.y}) rotate(${angulo})`}
+          />
+        )}
+        
+        {!temporal && (
+          <g
+            onClick={() => eliminarLinea(id)}
+            style={{ cursor: 'pointer' }}
+            opacity="0"
+            className="linea-eliminar"
+          >
+            <circle
+              cx={puntos[Math.floor(puntos.length / 2)].x}
+              cy={puntos[Math.floor(puntos.length / 2)].y}
+              r="3"
+              fill="white"
+              stroke={color}
+              strokeWidth="0.3"
+            />
+            <text
+              x={puntos[Math.floor(puntos.length / 2)].x}
+              y={puntos[Math.floor(puntos.length / 2)].y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="3"
+              fill={color}
+              fontWeight="bold"
+            >
+              ✕
+            </text>
+          </g>
+        )}
+      </g>
+    );
+  };
+
+  // Funciones originales de jugadores
   const handleDragStart = (e, jugador) => {
-    if (!modoEdicion) return;
+    if (!modoEdicion || modoDibujo) return;
     setJugadorArrastrado(jugador);
     setZonaEliminacionActiva(true);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragOver = (e) => {
-    if (!modoEdicion) return;
+    if (!modoEdicion || modoDibujo) return;
     e.preventDefault();
   };
 
   const handleDrop = (e) => {
-    if (!modoEdicion || !jugadorArrastrado) return;
+    if (!modoEdicion || !jugadorArrastrado || modoDibujo) return;
     e.preventDefault();
     const rect = campoRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -114,9 +349,23 @@ const CampoAlineacion = ({
       return;
     }
     try {
+      // Guardar posiciones de jugadores en BD
       await onActualizarPosiciones(jugadoresConPosicion);
+      
+      // 🆕 Guardar líneas en localStorage
+      if (alineacionId) {
+        const clave = `lineas-alineacion-${alineacionId}`;
+        localStorage.setItem(clave, JSON.stringify(lineas));
+       // console.log(`✅ ${lineas.length} líneas guardadas en localStorage`);
+      }
+      
       setCambiosPendientes(false);
-      message.success('Posiciones guardadas correctamente');
+      
+      if (lineas.length > 0) {
+        message.success('Posiciones y dibujos guardados correctamente.');
+      } else {
+        message.success('Posiciones guardadas correctamente');
+      }
     } catch (e) {
       console.error(e);
       message.error('Error al guardar posiciones');
@@ -140,24 +389,25 @@ const CampoAlineacion = ({
     return (
       <div
         key={jugador.jugadorId}
-        draggable={modoEdicion}
+        draggable={modoEdicion && !modoDibujo}
         onDragStart={(e) => handleDragStart(e, jugador)}
         onDragEnd={handleDragEnd}
-        className={`jugador-interactivo ${modoEdicion ? 'draggable' : ''}`}
+        className={`jugador-interactivo ${modoEdicion && !modoDibujo ? 'draggable' : ''}`}
         style={{
           position: 'absolute',
           left: `${jugador.x}%`,
           top: `${jugador.y}%`,
           transform: 'translate(-50%, -50%)',
-          cursor: modoEdicion ? 'move' : 'default',
-          zIndex: 10
+          cursor: modoEdicion && !modoDibujo ? 'move' : 'default',
+          zIndex: 10,
+          pointerEvents: modoDibujo ? 'none' : 'auto'
         }}
       >
         <Tooltip
           title={
             <div>
               <div><strong>{nombre}</strong></div>
-              <div>  #{jugador.orden} {jugador.posicion} </div>
+              <div>#{jugador.orden} {jugador.posicion}</div>
               {jugador.comentario && (
                 <div style={{ fontSize: 11, marginTop: 4 }}>{jugador.comentario}</div>
               )}
@@ -179,7 +429,6 @@ const CampoAlineacion = ({
             </Avatar>
             <div className="jugador-info-overlay">
               <div className="jugador-nombre-campo">{nombre}</div>
-           
             </div>
           </div>
         </Tooltip>
@@ -210,6 +459,10 @@ const CampoAlineacion = ({
           border: 4px solid #1a4d2e;
         }
 
+        .campo-futbol-interactivo.modo-dibujo {
+          cursor: crosshair;
+        }
+
         .campo-futbol-interactivo::before {
           content: '';
           position: absolute;
@@ -235,48 +488,47 @@ const CampoAlineacion = ({
           z-index: 1;
         }
 
-        .area-grande {
+        .area-grande, .area-pequena, .punto-penal, .punto-central, 
+        .circulo-esquina, .lineas-svg {
           position: absolute;
+          z-index: 1;
+        }
+
+        .area-grande {
           left: 50%;
           transform: translateX(-50%);
           width: 50%;
           height: 18%;
           border: 3px solid rgba(255, 255, 255, 0.4);
-          z-index: 1;
         }
 
         .area-grande.top { top: 0; border-top: none; }
         .area-grande.bottom { bottom: 0; border-bottom: none; }
 
         .area-pequena {
-          position: absolute;
           left: 50%;
           transform: translateX(-50%);
           width: 25%;
           height: 8%;
           border: 3px solid rgba(255, 255, 255, 0.4);
-          z-index: 1;
         }
 
         .area-pequena.top { top: 0; border-top: none; }
         .area-pequena.bottom { bottom: 0; border-bottom: none; }
 
         .punto-penal {
-          position: absolute;
           left: 50%;
           width: 8px;
           height: 8px;
           background: rgba(255, 255, 255, 0.7);
           border-radius: 50%;
           transform: translateX(-50%);
-          z-index: 2;
         }
 
         .punto-penal.top { top: 12%; }
         .punto-penal.bottom { bottom: 12%; }
 
         .punto-central {
-          position: absolute;
           top: 50%;
           left: 50%;
           width: 8px;
@@ -284,26 +536,40 @@ const CampoAlineacion = ({
           background: rgba(255, 255, 255, 0.7);
           border-radius: 50%;
           transform: translate(-50%, -50%);
-          z-index: 2;
         }
 
         .lineas-svg {
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+
+        .lineas-dibujo-svg {
           position: absolute;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
           pointer-events: none;
-          z-index: 1;
+          z-index: 15;
+        }
+
+        .lineas-dibujo-svg g.linea-eliminar {
+          transition: opacity 0.2s;
+          pointer-events: all;
+        }
+
+        .lineas-dibujo-svg g:hover .linea-eliminar {
+          opacity: 1 !important;
         }
 
         .circulo-esquina {
-          position: absolute;
           width: 18px;
           height: 18px;
           border: 3px solid rgba(255, 255, 255, 0.4);
           border-radius: 50%;
-          z-index: 1;
         }
 
         .circulo-esquina.top-left { top: -9px; left: -9px; }
@@ -366,13 +632,37 @@ const CampoAlineacion = ({
 
         .campo-controles {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
+          flex-direction: column;
+          gap: 12px;
           margin-bottom: 16px;
-          padding: 12px;
+          padding: 16px;
           background: white;
           border-radius: 8px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .controles-fila {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        .panel-dibujo {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          align-items: center;
+          padding: 12px;
+          background: #f5f5f5;
+          border-radius: 6px;
+          border: 2px dashed #d9d9d9;
+        }
+
+        .panel-dibujo.activo {
+          border-color: #1890ff;
+          background: #e6f7ff;
         }
 
         @keyframes pulse {
@@ -383,59 +673,173 @@ const CampoAlineacion = ({
 
       <div className="campo-interactivo-container">
         {titulares.length < 11 && (
-         <Alert
-  message={`${11 - titulares.length === 1 ? 'Falta' : 'Faltan'} ${
-    11 - titulares.length
-  } ${11 - titulares.length === 1 ? 'titular' : 'titulares'}`}
-  description="Solo se muestran los jugadores con dorsal 1-11 en la cancha"
-  type="info"
-  showIcon
-  style={{ marginBottom: 16 }}
-/>
+          <Alert
+            message={`${11 - titulares.length === 1 ? 'Falta' : 'Faltan'} ${11 - titulares.length} ${11 - titulares.length === 1 ? 'titular' : 'titulares'}`}
+            description="Solo se muestran los jugadores con dorsal 1-11 en la cancha"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
         )}
 
         <div className="campo-controles">
-          <Space>
-            <Switch
-              checked={modoEdicion}
-              onChange={setModoEdicion}
-              checkedChildren={<UnlockOutlined />}
-              unCheckedChildren={<LockOutlined />}
-            />
-            <span style={{ fontWeight: 500 }}>
-              {modoEdicion ? 'Modo Edición' : 'Modo Vista'}
-            </span>
-          </Space>
+          <div className="controles-fila">
+            <Space>
+              <Switch
+                checked={modoEdicion}
+                onChange={setModoEdicion}
+                checkedChildren={<UnlockOutlined />}
+                unCheckedChildren={<LockOutlined />}
+              />
+              <span style={{ fontWeight: 500 }}>
+                {modoEdicion ? 'Modo Edición' : 'Modo Vista'}
+              </span>
+            </Space>
 
-          {cambiosPendientes && (
-            <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '8px 12px', borderRadius: 4 }}>
-              ⚠️ Tiene cambios sin guardar
+            {cambiosPendientes && (
+              <div style={{ background: '#fff7e6', border: '1px solid #ffd591', padding: '8px 12px', borderRadius: 4 }}>
+                ⚠️ Tiene cambios sin guardar
+              </div>
+            )}
+
+            <Space>
+              <Button 
+                icon={<UndoOutlined />} 
+                onClick={handleResetearPosiciones} 
+                disabled={!modoEdicion}
+              >
+                Resetear
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<SaveOutlined />} 
+                onClick={handleGuardarPosiciones} 
+                disabled={!cambiosPendientes}
+              >
+                Guardar Posiciones
+              </Button>
+            </Space>
+          </div>
+
+          {modoEdicion && (
+            <div className={`panel-dibujo ${modoDibujo ? 'activo' : ''}`}>
+              <Space wrap align="center">
+                <Switch
+                  checked={modoDibujo}
+                  onChange={(checked) => {
+                    setModoDibujo(checked);
+                    if (checked) {
+                      message.info('🎨 Modo dibujo activado. Arrastra para dibujar líneas curvas.');
+                    } else {
+                      setPuntosActuales([]);
+                      setDibujando(false);
+                    }
+                  }}
+                  checkedChildren={<HighlightOutlined />}
+                  unCheckedChildren={<EditOutlined />}
+                />
+                <span style={{ fontWeight: 500 }}>Dibujo Libre</span>
+              </Space>
+
+              {modoDibujo && (
+                <>
+                  <Segmented
+                    value={tipoLinea}
+                    onChange={setTipoLinea}
+                    options={[
+                      { label: '〰️ Curva', value: 'curva' },
+                      { label: '─ Recta', value: 'recta' },
+                      { label: '- - Punteada', value: 'punteada' }
+                    ]}
+                  />
+
+                  <Space align="center">
+                    <span>Flecha al final:</span>
+                    <Switch
+                      checked={conFlecha}
+                      onChange={setConFlecha}
+                      checkedChildren="Sí"
+                      unCheckedChildren="No"
+                    />
+                  </Space>
+
+                  <Space align="center">
+                    <BgColorsOutlined />
+                    <ColorPicker 
+                      value={colorLinea}
+                      onChange={(color) => setColorLinea(color.toHexString())}
+                      presets={[
+                        {
+                          label: 'Colores',
+                          colors: ['#000000', '#ffffff', '#ff4d4f', '#1890ff', '#52c41a', '#faad14', '#722ed1']
+                        }
+                      ]}
+                    />
+                  </Space>
+
+                  <Space align="center" style={{ minWidth: 150 }}>
+                    <span>Grosor:</span>
+                    <Slider
+                      min={2}
+                      max={10}
+                      value={grosorLinea}
+                      onChange={setGrosorLinea}
+                      style={{ width: 100 }}
+                    />
+                    <span>{grosorLinea}px</span>
+                  </Space>
+
+                  <Space>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={limpiarTodasLineas}
+                      disabled={lineas.length === 0}
+                    >
+                      Limpiar Todo ({lineas.length})
+                    </Button>
+                  </Space>
+                </>
+              )}
             </div>
           )}
-
-          <Space>
-            <Button 
-              icon={<UndoOutlined />} 
-              onClick={handleResetearPosiciones} 
-              disabled={!modoEdicion}
-            >
-              Resetear
-            </Button>
-            <Button 
-              type="primary" 
-              icon={<SaveOutlined />} 
-              onClick={handleGuardarPosiciones} 
-              disabled={!cambiosPendientes}
-            >
-              Guardar Posiciones
-            </Button>
-          </Space>
         </div>
 
-        <div ref={campoRef} className="campo-futbol-interactivo" onDragOver={handleDragOver} onDrop={handleDrop}>
+        <div 
+          ref={campoRef} 
+          className={`campo-futbol-interactivo ${modoDibujo ? 'modo-dibujo' : ''}`}
+          onDragOver={handleDragOver} 
+          onDrop={handleDrop}
+          onMouseDown={handleMouseDownDibujo}
+          onMouseMove={handleMouseMoveDibujo}
+          onMouseUp={handleMouseUpDibujo}
+          onMouseLeave={() => {
+            if (dibujando) {
+              setDibujando(false);
+              setPuntosActuales([]);
+            }
+          }}
+        >
           <svg className="lineas-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path d="M 42 18 A 8 6 0 0 0 58 18" fill="none" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.3" />
             <path d="M 42 82 A 8 6 0 0 1 58 82" fill="none" stroke="rgba(255, 255, 255, 0.4)" strokeWidth="0.3" />
+          </svg>
+          
+          <svg 
+            ref={svgRef}
+            className="lineas-dibujo-svg" 
+            viewBox="0 0 100 100" 
+            preserveAspectRatio="none"
+          >
+            {lineas.map(linea => renderLineaCurva(linea))}
+            
+            {dibujando && puntosActuales.length > 1 && renderLineaCurva({
+              puntos: puntosActuales,
+              color: colorLinea,
+              grosor: grosorLinea,
+              conFlecha: conFlecha,
+              tipoLinea: tipoLinea
+            }, true)}
           </svg>
           
           <div className="punto-central" />
@@ -453,9 +857,15 @@ const CampoAlineacion = ({
           {jugadoresConPosicion.map(renderJugador)}
         </div>
 
-        {modoEdicion && (
+        {modoEdicion && !modoDibujo && (
           <div style={{ marginTop: 16, padding: 12, background: '#e6f7ff', border: '1px solid #91d5ff', borderRadius: 8 }}>
-            ℹ️ <strong>Instrucciones:</strong> Arrastra jugadores para reposicionarlos. Arrastra hacia la papelera para eliminarlos.
+            ℹ️ <strong>Instrucciones:</strong> Arrastre a los jugadores para reposicionarlos. Arrastre hacia la papelera para eliminarlos.
+          </div>
+        )}
+
+        {modoDibujo && (
+          <div style={{ marginTop: 16, padding: 12, background: '#fff7e6', border: '1px solid #faad14', borderRadius: 8 }}>
+            🖌️ <strong>Modo Dibujo Libre:</strong> Haga clic y arrastre sobre el campo para dibujar. Tipo: <strong>{tipoLinea === 'curva' ? 'Curva suave' : tipoLinea === 'recta' ? 'Línea recta' : 'Línea punteada'}</strong>. {conFlecha && 'Se agregará una flecha automáticamente al final.'} Pase el mouse sobre una línea para eliminarla.
           </div>
         )}
 
@@ -463,7 +873,7 @@ const CampoAlineacion = ({
           title="¿Eliminar jugador de la alineación?"
           description={
             <span>
-              ¿Estás seguro de quitar a{' '}
+              ¿Está seguro de quitar a{' '}
               <strong>
                 {jugadorParaEliminar?.jugador?.usuario?.nombre || ''}{' '}
                 {jugadorParaEliminar?.jugador?.usuario?.apellido || ''}

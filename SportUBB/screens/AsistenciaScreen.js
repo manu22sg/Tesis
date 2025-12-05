@@ -103,7 +103,7 @@ export default function AsistenciasScreen({ route, navigation }) {
   const handleEliminar = (asistenciaId) => {
     Alert.alert(
       'Eliminar Asistencia',
-      '¿Estás seguro de eliminar esta asistencia?',
+      '¿Está seguro de eliminar esta asistencia?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {

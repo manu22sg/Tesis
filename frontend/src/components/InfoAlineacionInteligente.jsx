@@ -203,7 +203,7 @@ export default function InfoAlineacionInteligente({ alineacion }) {
       <Row>
         <Col span={24}>
           <Space size={16} wrap>
-               <Tooltip title="Se seleccionaron los mejores jugadores según sus estadísticas">
+               <Tooltip title="Se seleccionaron los mejores jugadores según sus estadísticas registradas en las ultimas 10 sesiones">
               <Space>
                 <UserOutlined style={{ color: 'rgba(255,255,255,0.85)' }} />
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
@@ -232,7 +232,7 @@ export default function InfoAlineacionInteligente({ alineacion }) {
                   color: '#fff'
                 }}
               >
-                Algoritmo IA
+                Algoritmo
               </Tag>
             </Tooltip>
           </Space>

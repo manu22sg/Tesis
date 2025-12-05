@@ -8,7 +8,7 @@ import CampeonatoSchema from "../entity/Campeonato.js";
 import { parseDateLocal, formatYMD } from "../utils/dateLocal.js";
 import UsuarioSchema from "../entity/Usuario.js";
 import { obtenerTodasCanchasComplejo,obtenerDivisiones} from './canchaHierarchyservices.js';
-
+import dayjs from 'dayjs';
   const PartidoRepo = () => AppDataSource.getRepository(PartidoCampeonatoSchema);
 
 async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInicio, horaFin, partidoIdExcluir = null) {
@@ -128,20 +128,19 @@ export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFi
     const nuevaHoraFin = horaFin ?? partido.horaFin;
     partido.arbitroId = arbitroId ?? partido.arbitroId;
 
-    const fechaLocal = formatYMD(parseDateLocal(nuevaFecha));
-    const hoy = formatYMD(new Date());
-    const ahora = new Date();
+const fechaLocal = dayjs(nuevaFecha).format('YYYY-MM-DD');
+const hoy = dayjs().format('YYYY-MM-DD');
 
-    if (fechaLocal < hoy)
-      return [null, "No se puede programar un partido en una fecha pasada"];
+if (fechaLocal < hoy)
+  return [null, "No se puede programar un partido en una fecha pasada"];
 
-    if (fechaLocal === hoy) {
-      const [h, m] = nuevaHoraInicio.split(":").map(Number);
-      const horaActualMin = ahora.getHours() * 60 + ahora.getMinutes();
-      const horaPartidoMin = h * 60 + m;
-      if (horaPartidoMin <= horaActualMin)
-        return [null, "No se puede programar un partido en una hora ya pasada"];
-    }
+if (fechaLocal === hoy) {
+  const horaPartido = dayjs(`${fechaLocal} ${nuevaHoraInicio}`);
+  const ahora = dayjs();
+  
+  if (horaPartido.isBefore(ahora) || horaPartido.isSame(ahora))
+    return [null, "No se puede programar un partido en una hora ya pasada"];
+}
 
     //Verificar disponibilidad excluyendo el partido actual
     const [ok, err] = await verificarDisponibilidadCancha(

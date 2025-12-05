@@ -17,7 +17,7 @@ export default function HomeScreen({ navigation }) {
   const handleLogout = async () => {
     Alert.alert(
       'Cerrar Sesión',
-      '¿Estás seguro que deseas cerrar sesión?',
+      '¿Está seguro que deseas cerrar sesión?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {

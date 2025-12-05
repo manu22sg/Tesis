@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/config.db.js';
 import EntrenamientoSesionSchema from '../entity/EntrenamientoSesion.js';
 import SesionEntrenamientoSchema from '../entity/SesionEntrenamiento.js';
+import dayjs from 'dayjs';
 
 // Crear un nuevo EntrenamientoSesion (bloque de entrenamiento)
 export async function crearEntrenamiento(datos) {
@@ -21,14 +22,13 @@ export async function crearEntrenamiento(datos) {
       const sesion = await sesionRepo.findOne({ where: { id: sesionId } });
       if (!sesion) return [null, 'Sesión no encontrada'];
 
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      const fechaSesion = new Date(sesion.fecha);
-      fechaSesion.setHours(0, 0, 0, 0);
+      const hoy = dayjs().startOf('day');
+const fechaSesion = dayjs(sesion.fecha).startOf('day');
 
-      if (fechaSesion < hoy) {
-        return [null, 'No se pueden agregar entrenamientos a sesiones pasadas'];
-      }
+if (fechaSesion.isBefore(hoy)) {
+  return [null, 'No se pueden agregar entrenamientos a sesiones pasadas'];
+}
+
 
       // ✅ Si no se proporciona orden, calcular el siguiente automáticamente
       if (orden === null || orden === undefined) {

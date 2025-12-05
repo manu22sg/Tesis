@@ -652,7 +652,7 @@ export async function restablecerPasswordService(token, newPassword) {
           <!DOCTYPE html>
           <html>
             <body style="font-family: Arial, sans-serif; padding: 20px;">
-              <h2>Hola ${usuario.nombre}!</h2>
+              <h2>Hola ${usuario.nombre} ${usuario.apellido}!</h2>
               <p>Su contraseña ha sido restablecida exitosamente.</p>
               <p>Si no realizó este cambio, contacte inmediatamente al administrador.</p>
               <p style="margin-top: 20px;">

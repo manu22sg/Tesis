@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/config.db.js';
 import LesionSchema from '../entity/Lesion.js';
 import JugadorSchema from '../entity/Jugador.js';
+import dayjs from 'dayjs';
 
 // 🔥 Helper para actualizar estado del jugador según lesiones activas
 async function actualizarEstadoJugador(jugadorId) {
@@ -11,7 +12,7 @@ async function actualizarEstadoJugador(jugadorId) {
     const jugador = await jugadorRepo.findOne({ where: { id: jugadorId } });
     if (!jugador) return;
 
-    const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const hoy = dayjs().format('YYYY-MM-DD');
 
     // Buscar si tiene alguna lesión activa
     // Una lesión está activa si:

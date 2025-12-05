@@ -706,22 +706,23 @@ const puedeAgregarJugador = () => {
                     children: (
                       <Row gutter={16}>
                         <Col xs={24} lg={17}>
-                          <CampoAlineacion
-                            titulares={alineacion.titulares || []}
-                            onActualizarPosiciones={async (jugadoresActualizados) => {
-                              try {
-                                const response = await actualizarPosicionesJugadores(
-                                  alineacion.id, 
-                                  jugadoresActualizados
-                                );
-                                setAlineacion(response.data);
-                              } catch (error) {
-                                console.error('Error al guardar posiciones:', error);
-                                message.error(error.response?.data?.message || 'Error al guardar posiciones');
-                              }
-                            }}
-                            onEliminarJugador={handleQuitarJugador}
-                          />
+                         <CampoAlineacion
+  titulares={alineacion.titulares || []}
+  alineacionId={alineacion.id} // 🆕 AGREGAR ESTA LÍNEA
+  onActualizarPosiciones={async (jugadoresActualizados) => {
+    try {
+      const response = await actualizarPosicionesJugadores(
+        alineacion.id, 
+        jugadoresActualizados
+      );
+      setAlineacion(response.data);
+    } catch (error) {
+      console.error('Error al guardar posiciones:', error);
+      message.error(error.response?.data?.message || 'Error al guardar posiciones');
+    }
+  }}
+  onEliminarJugador={handleQuitarJugador}
+/>
                         </Col>
                         <Col xs={24} lg={7}>
                           <PanelSuplentes

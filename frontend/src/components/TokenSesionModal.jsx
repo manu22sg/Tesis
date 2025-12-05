@@ -295,7 +295,7 @@ const TokenSesionModal = memo(function TokenSesionModal({
                     </div>
                   ) : (
                     <Alert
-                      message="Haz clic en 'Obtener ubicación' para fijar el punto de referencia"
+                      message="Haga clic en 'Obtener ubicación' para fijar el punto de referencia"
                       type="info"
                       showIcon
                     />
