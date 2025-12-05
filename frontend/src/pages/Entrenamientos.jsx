@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Card, Table, Button, Space, Empty, Tooltip,
   Modal, Popconfirm, Input, Pagination, ConfigProvider,
-  InputNumber, Form, Typography, Divider, Tag, Statistic, Row, Col, Select, Spin,App,Dropdown
+  InputNumber, Form, Typography, Divider, Select, Spin, App, Dropdown
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
   SearchOutlined, FileTextOutlined, ClockCircleOutlined,
   OrderedListOutlined, ArrowLeftOutlined, CopyOutlined,
-  BarChartOutlined, SortAscendingOutlined, LinkOutlined,DownloadOutlined,FileExcelOutlined,
-  FilePdfOutlined
+  BarChartOutlined, SortAscendingOutlined, LinkOutlined, DownloadOutlined,
+  FileExcelOutlined, FilePdfOutlined
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -21,19 +21,19 @@ import {
   actualizarEntrenamiento,
   eliminarEntrenamiento,
   duplicarEntrenamiento,
-  reordenarEntrenamientos,
   obtenerEstadisticas,
   asignarEntrenamientosASesion,
 } from '../services/entrenamientoSesion.services.js';
-import { obtenerSesionPorId, obtenerSesiones } from '../services/sesion.services.js'; 
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { obtenerSesionPorId, obtenerSesiones } from '../services/sesion.services.js';
 import locale from 'antd/locale/es_ES';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import MainLayout from '../components/MainLayout.jsx';
 import { formatearFecha, formatearHora } from '../utils/formatters.js';
+import ModalEstadisticas from '../components/ModalEstadisticas.jsx';
+import ModalAsignarSesion from '../components/ModalAsignarSesion.jsx';
+import ModalReordenar from '../components/ModalReordenar.jsx';
+
 const { TextArea } = Input;
 const { Text } = Typography;
 dayjs.locale('es');
@@ -72,35 +72,29 @@ const renderizarTextoConEnlaces = (texto) => {
   });
 };
 
-// Fila arrastrable con dnd-kit + antd
-function SortableRow({ id, children, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style = {
-    ...props.style,
-    transform: CSS.Transform.toString(transform),
-    transition,
-    cursor: 'grab',
-    touchAction: 'none',
-    ...(isDragging ? { background: '#e6f7ff', opacity: 0.6 } : {}),
-  };
-
-  return (
-    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
-    </tr>
-  );
-}
-
 export default function Entrenamientos() {
   const [exportando, setExportando] = useState(false);
-
   const navigate = useNavigate();
   const { sesionId } = useParams();
-const { message } = App.useApp(); 
+  const { message } = App.useApp();
+  
   const [entrenamientos, setEntrenamientos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  
+  // ✅ Inicializar paginación desde sessionStorage
+  const [pagination, setPagination] = useState(() => {
+    if (!sesionId) {
+      const saved = sessionStorage.getItem('entrenamientos_pagination');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return { current: 1, pageSize: 10, total: 0 };
+        }
+      }
+    }
+    return { current: 1, pageSize: 10, total: 0 };
+  });
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -112,7 +106,6 @@ const { message } = App.useApp();
   const [estadisticasVisible, setEstadisticasVisible] = useState(false);
 
   const [modoReordenar, setModoReordenar] = useState(false);
-  const [entrenamientosTemp, setEntrenamientosTemp] = useState([]);
 
   const [query, setQuery] = useState('');
   const debouncedQ = useDebounced(query, 400);
@@ -122,30 +115,31 @@ const { message } = App.useApp();
   const [entrenamientoAsignar, setEntrenamientoAsignar] = useState(null);
   const [sesionesDisponibles, setSesionesDisponibles] = useState([]);
   const [loadingSesiones, setLoadingSesiones] = useState(false);
-  const [sesionSeleccionada, setSesionSeleccionada] = useState(null);
-  const [sesionSeleccionadaManual, setSesionSeleccionadaManual] = useState(null);
-  const [loadingAsignar, setLoadingAsignar] = useState(false);
-
-  // Sensor sin distancia mínima (mejor con antd table)
-  const sensors = useSensors(useSensor(PointerSensor));
 
   const cargarEntrenamientos = async (page = 1, pageSize = 10) => {
     try {
       setLoading(true);
       if (sesionId) {
+        // ✅ Vista de sesión: mostrar todos sin afectar paginación guardada
         const data = await obtenerEntrenamientosPorSesion(parseInt(sesionId));
         setEntrenamientos(data);
-        setEntrenamientosTemp(data);
-        setPagination({ current: 1, pageSize: data.length, total: data.length });
+        // ✅ NO actualizar pagination aquí para no sobrescribir el guardado
       } else {
+        // ✅ Vista general: usar paginación normal
         const filtros = { q: debouncedQ, page, limit: pageSize };
         const { entrenamientos: data, pagination: p } = await obtenerEntrenamientos(filtros);
         setEntrenamientos(data);
-        setPagination({
+        
+        const newPagination = {
           current: p.currentPage,
           pageSize: p.itemsPerPage,
           total: p.totalItems,
-        });
+        };
+        
+        setPagination(newPagination);
+        
+        // ✅ Guardar en sessionStorage solo para vista general
+        sessionStorage.setItem('entrenamientos_pagination', JSON.stringify(newPagination));
       }
     } catch (error) {
       console.error('Error cargando entrenamientos:', error);
@@ -156,95 +150,89 @@ const { message } = App.useApp();
   };
 
   const handleExportarExcel = async () => {
-  setExportando(true); 
-  try {
-    const filtros = {
-      q: query || undefined,
-      sesionId: sesionId || undefined,
-    };
-    
-    const result = await exportarEntrenamientosExcel(filtros);
+    setExportando(true);
+    try {
+      const filtros = {
+        q: query || undefined,
+        sesionId: sesionId || undefined,
+      };
+      
+      const result = await exportarEntrenamientosExcel(filtros);
 
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("Excel descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("Excel descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error('Error exportando a Excel:', error);
+      message.error(error.message || 'Error al exportar entrenamientos a Excel');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportarPDF = async () => {
+    setExportando(true);
+    try {
+      const filtros = {
+        q: query || undefined,
+        sesionId: sesionId || undefined,
+      };
+      
+      const result = await exportarEntrenamientosPDF(filtros);
+
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("PDF descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error('Error exportando a PDF:', error);
+      message.error(error.message || 'Error al exportar entrenamientos a PDF');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+      console.error('createObjectURL no disponible');
+      return;
     }
 
-  } catch (error) {
-    console.error('Error exportando a Excel:', error);
-    message.error(error.message || 'Error al exportar entrenamientos a Excel');
-  } finally {
-    setExportando(false);
-  }
-};
-
-const handleExportarPDF = async () => {
-  setExportando(true);
-  try {
-    const filtros = {
-      q: query || undefined,
-      sesionId: sesionId || undefined,
-    };
-    
-    const result = await exportarEntrenamientosPDF(filtros);
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("PDF descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
+    try {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar archivo:', error);
     }
-
-  } catch (error) {
-    console.error('Error exportando a PDF:', error);
-    message.error(error.message || 'Error al exportar entrenamientos a PDF');
-  } finally {
-    setExportando(false);
-  }
-};
-
-function descargarArchivo(blob, nombre) {
-  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
-    console.error('createObjectURL no disponible');
-    return;
   }
 
-  try {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombre;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error al descargar archivo:', error);
-  }
-}
-
-const menuExportar = {
-  items: [
-    {
-      key: 'excel',
-      label: 'Exportar a Excel',
-      icon: <FileExcelOutlined />,
-      onClick: handleExportarExcel,
-    },
-    {
-      key: 'pdf',
-      label: 'Exportar a PDF',
-      icon: <FilePdfOutlined />,
-      onClick: handleExportarPDF,
-    },
-  ],
-};
-
-
+  const menuExportar = {
+    items: [
+      {
+        key: 'excel',
+        label: 'Exportar a Excel',
+        icon: <FileExcelOutlined />,
+        onClick: handleExportarExcel,
+      },
+      {
+        key: 'pdf',
+        label: 'Exportar a PDF',
+        icon: <FilePdfOutlined />,
+        onClick: handleExportarPDF,
+      },
+    ],
+  };
 
   const cargarInfoSesion = async () => {
     if (sesionId) {
@@ -268,26 +256,45 @@ const menuExportar = {
     }
   };
 
-  // Cargar sesiones una sola vez (para Selects) – opcional
   const cargarSesionesDisponibles = async () => {
-  setLoadingSesiones(true);
-  try {
-    const resultado = await obtenerSesiones({ limit: 50, page: 1 });
-    setSesionesDisponibles(resultado?.sesiones || []);
-  } catch (err) {
-    console.error('Error cargando sesiones:', err);
-    message.error('Error al cargar sesiones activas');
-  } finally {
-    setLoadingSesiones(false);
-  }
-};
+    setLoadingSesiones(true);
+    try {
+      const resultado = await obtenerSesiones({ limit: 50, page: 1 });
+      setSesionesDisponibles(resultado?.sesiones || []);
+    } catch (err) {
+      console.error('Error cargando sesiones:', err);
+      message.error('Error al cargar sesiones activas');
+    } finally {
+      setLoadingSesiones(false);
+    }
+  };
 
+  const calcularSiguienteOrden = () => {
+    if (!sesionId || entrenamientos.length === 0) return 1;
+    
+    const ordenesExistentes = entrenamientos
+      .filter(e => e.orden !== null)
+      .map(e => e.orden);
+    
+    if (ordenesExistentes.length === 0) return 1;
+    
+    const maxOrden = Math.max(...ordenesExistentes);
+    return maxOrden + 1;
+  };
 
   useEffect(() => {
-    cargarEntrenamientos(1, pagination.pageSize);
+    if (sesionId) {
+      // ✅ En vista de sesión: cargar todos (sin página/límite)
+      cargarEntrenamientos();
+    } else {
+      // ✅ En vista general: usar página y tamaño guardados
+      const savedPage = pagination.current || 1;
+      const savedPageSize = pagination.pageSize || 10;
+      cargarEntrenamientos(savedPage, savedPageSize);
+    }
+    
     cargarInfoSesion();
     if (!sesionId) {
-      // En vista general me sirve tener las sesiones cargadas para crear/asignar
       cargarSesionesDisponibles();
     }
   }, [debouncedQ, sesionId]);
@@ -295,7 +302,16 @@ const menuExportar = {
   const abrirModalCrear = () => {
     setEditando(null);
     form.resetFields();
-    if (sesionId) form.setFieldsValue({ sesionId: parseInt(sesionId) });
+    
+    const siguienteOrden = calcularSiguienteOrden();
+    
+    if (sesionId) {
+      form.setFieldsValue({ 
+        sesionId: parseInt(sesionId),
+        orden: siguienteOrden
+      });
+    }
+    
     setModalVisible(true);
   };
 
@@ -309,52 +325,57 @@ const menuExportar = {
   };
 
   const handleSubmit = async (values) => {
- 
-
-  try {
-    setLoadingModal(true);
-    
-    let payload = { ...values };
-    
-    // Si estamos en la vista de una sesión específica (URL tiene sesionId)
-    if (sesionId) {
-      payload.sesionId = parseInt(sesionId);
-    } else {
-      // ✅ En vista general: convertir undefined a null explícitamente
-      payload.sesionId = values.sesionId !== undefined ? values.sesionId : null;
+    try {
+      setLoadingModal(true);
       
-      // ✅ Si sesionId es null, también limpiar el orden
-      if (payload.sesionId === null) {
-        payload.orden = null;
+      let payload = { ...values };
+      
+      if (sesionId) {
+        payload.sesionId = parseInt(sesionId);
+      } else {
+        payload.sesionId = values.sesionId !== undefined ? values.sesionId : null;
+        
+        if (payload.sesionId === null) {
+          payload.orden = null;
+        }
       }
-    }
-    
 
-    if (editando) {
-      await actualizarEntrenamiento(editando.id, payload);
-      message.success('Entrenamiento actualizado correctamente');
-    } else {
-      await crearEntrenamiento(payload);
-      message.success('Entrenamiento creado correctamente');
+      if (editando) {
+        await actualizarEntrenamiento(editando.id, payload);
+        message.success('Entrenamiento actualizado correctamente');
+      } else {
+        await crearEntrenamiento(payload);
+        message.success('Entrenamiento creado correctamente');
+      }
+      
+      setModalVisible(false);
+      form.resetFields();
+      
+      // ✅ Recargar con los parámetros correctos según el contexto
+      if (sesionId) {
+        cargarEntrenamientos();
+      } else {
+        cargarEntrenamientos(pagination.current, pagination.pageSize);
+      }
+    } catch (error) {
+      console.error('Error guardando entrenamiento:', error);
+      message.error(error.response?.data?.message || 'Error al guardar el entrenamiento');
+    } finally {
+      setLoadingModal(false);
     }
-    
-    setModalVisible(false);
-    form.resetFields();
-    cargarEntrenamientos(pagination.current, pagination.pageSize);
-  } catch (error) {
-    console.error('Error guardando entrenamiento:', error);
-    message.error(error.response?.data?.message || 'Error al guardar el entrenamiento');
-  } finally {
-    setLoadingModal(false);
-  }
-};
-
+  };
 
   const handleEliminar = async (id) => {
     try {
       await eliminarEntrenamiento(id);
       message.success('Entrenamiento eliminado correctamente');
-      cargarEntrenamientos(pagination.current, pagination.pageSize);
+      
+      // ✅ Recargar con parámetros correctos
+      if (sesionId) {
+        cargarEntrenamientos();
+      } else {
+        cargarEntrenamientos(pagination.current, pagination.pageSize);
+      }
     } catch (error) {
       console.error('Error eliminando entrenamiento:', error);
       message.error(error.response?.data?.message || 'Error al eliminar el entrenamiento');
@@ -364,8 +385,19 @@ const menuExportar = {
   const handleDuplicar = async (id) => {
     try {
       await duplicarEntrenamiento(id, sesionId ? parseInt(sesionId) : null);
-      message.success('Entrenamiento duplicado correctamente');
-      cargarEntrenamientos(pagination.current, pagination.pageSize);
+      
+      const mensaje = sesionId 
+        ? 'Entrenamiento duplicado en esta sesión'
+        : 'Entrenamiento duplicado como global. Puede asignarlo usando el botón de asignar.';
+      
+      message.success(mensaje);
+      
+      // ✅ Recargar con parámetros correctos
+      if (sesionId) {
+        cargarEntrenamientos();
+      } else {
+        cargarEntrenamientos(pagination.current, pagination.pageSize);
+      }
     } catch (error) {
       console.error('Error duplicando entrenamiento:', error);
       message.error(error.response?.data?.message || 'Error al duplicar el entrenamiento');
@@ -374,74 +406,15 @@ const menuExportar = {
 
   const abrirModalAsignar = async (entrenamiento) => {
     setEntrenamientoAsignar(entrenamiento);
-    setSesionSeleccionada(null);
-    setSesionSeleccionadaManual(null);
     setModalAsignarVisible(true);
   };
 
-  const handleAsignar = async () => {
-    try {
-      setLoadingAsignar(true);
-      const destino =
-        sesionSeleccionada ??
-        (sesionSeleccionadaManual ? parseInt(sesionSeleccionadaManual) : null);
-
-      if (!destino) {
-        message.warning('Seleccione');
-        setLoadingAsignar(false);
-        return;
-      }
-
-      await asignarEntrenamientosASesion(destino, [entrenamientoAsignar.id]);
-      message.success('Entrenamiento asignado correctamente');
-      setModalAsignarVisible(false);
-      setEntrenamientoAsignar(null);
-      setSesionSeleccionada(null);
-      setSesionSeleccionadaManual(null);
-      cargarEntrenamientos(pagination.current, pagination.pageSize);
-    } catch (e) {
-      console.error(e);
-      message.error('No se pudo asignar el entrenamiento');
-    } finally {
-      setLoadingAsignar(false);
-    }
-  };
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    if (active.id !== over.id) {
-      setEntrenamientosTemp((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
-
-  const guardarReordenamiento = async () => {
-    try {
-      setLoading(true);
-      const nuevosOrdenes = entrenamientosTemp.map((e, index) => ({
-        id: e.id,
-        orden: index + 1,
-      }));
-      await reordenarEntrenamientos(parseInt(sesionId), nuevosOrdenes);
-      message.success('Entrenamientos reordenados correctamente');
-      setModoReordenar(false);
-      cargarEntrenamientos(pagination.current, pagination.pageSize);
-    } catch (error) {
-      console.error('Error reordenando:', error);
-      message.error('Error al reordenar los entrenamientos');
-      setEntrenamientosTemp(entrenamientos);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cancelarReordenamiento = () => {
-    setModoReordenar(false);
-    setEntrenamientosTemp(entrenamientos);
+  const handleAsignar = async (sesionIdDestino) => {
+    await asignarEntrenamientosASesion(sesionIdDestino, [entrenamientoAsignar.id]);
+    message.success('Entrenamiento asignado correctamente');
+    setModalAsignarVisible(false);
+    setEntrenamientoAsignar(null);
+    cargarEntrenamientos(pagination.current, pagination.pageSize);
   };
 
   const handlePageChange = (page, pageSize) => {
@@ -456,30 +429,30 @@ const menuExportar = {
       render: (orden, record) => (
         <Space direction="vertical" size={0}>
           <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px'
-}}>
-  <OrderedListOutlined />
-  {orden || '—'}
-</span>
+            padding: '2px 8px',
+            borderRadius: 4,
+            fontSize: '12px',
+            fontWeight: 500,
+            border: '1px solid #B9BBBB',
+            backgroundColor: '#f5f5f5',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <OrderedListOutlined />
+            {orden || '—'}
+          </span>
           {!record.sesionId && (
-           <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  Global
-</span>
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: '12px',
+              fontWeight: 500,
+              border: '1px solid #B9BBBB',
+              backgroundColor: '#f5f5f5'
+            }}>
+              Global
+            </span>
           )}
         </Space>
       ),
@@ -574,8 +547,6 @@ const menuExportar = {
     },
   ];
 
-  const dataSource = modoReordenar ? entrenamientosTemp : entrenamientos;
-
   return (
     <MainLayout>
       <ConfigProvider locale={locale}>
@@ -598,14 +569,11 @@ const menuExportar = {
                     Volver
                   </Button>
                 )}
-                 <Dropdown menu={menuExportar} trigger={['hover']}>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={exportando}
-        >
-          Exportar
-        </Button>
-      </Dropdown>
+                <Dropdown menu={menuExportar} trigger={['hover']}>
+                  <Button icon={<DownloadOutlined />} loading={exportando}>
+                    Exportar
+                  </Button>
+                </Dropdown>
                 <Button icon={<BarChartOutlined />} onClick={cargarEstadisticas}>
                   Estadísticas
                 </Button>
@@ -651,57 +619,24 @@ const menuExportar = {
               </div>
             )}
 
-            {modoReordenar && (
-              <div style={{ marginBottom: 16, padding: 12, background: '#e6f7ff', borderRadius: 8, border: '1px solid #91d5ff' }}>
-                <Space>
-                  <Text strong>Modo Reordenar:</Text>
-                  <Text>Arrastra las filas para cambiar el orden</Text>
-                  <Button type="primary" size="small" onClick={guardarReordenamiento}>
-                    Guardar Orden
-                  </Button>
-                  <Button size="small" onClick={cancelarReordenamiento}>
-                    Cancelar
-                  </Button>
-                </Space>
-              </div>
-            )}
-
-            {modoReordenar && sesionId ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={entrenamientosTemp.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'block' }}>
-                    <Table
-                      columns={columns.filter(col => !col.hidden)}
-                      dataSource={dataSource}
-                      rowKey="id"
-                      loading={loading}
-                      pagination={false}
-                      components={{ body: { row: SortableRow } }}
-                      onRow={(record) => ({ id: record.id })}
-                    />
-                  </div>
-                </SortableContext>
-              </DndContext>
-            ) : (
-              <Table
-                columns={columns.filter(col => !col.hidden)}
-                dataSource={dataSource}
-                rowKey="id"
-                loading={loading}
-                pagination={false}
-                locale={{
-                  emptyText: (
-                    <Empty
-                      description={query ? 'No se encontraron entrenamientos' : 'No hay entrenamientos registrados'}
-                    >
-                      <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalCrear}>
-                        Crear primer entrenamiento
-                      </Button>
-                    </Empty>
-                  ),
-                }}
-              />
-            )}
+            <Table
+              columns={columns.filter(col => !col.hidden)}
+              dataSource={entrenamientos}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              locale={{
+                emptyText: (
+                  <Empty
+                    description={query ? 'No se encontraron entrenamientos' : 'No hay entrenamientos registrados'}
+                  >
+                    <Button type="primary" icon={<PlusOutlined />} onClick={abrirModalCrear}>
+                      Crear primer entrenamiento
+                    </Button>
+                  </Empty>
+                ),
+              }}
+            />
 
             {entrenamientos.length > 0 && !sesionId && !modoReordenar && (
               <div style={{ textAlign: 'center', marginTop: 24 }}>
@@ -721,255 +656,161 @@ const menuExportar = {
 
           {/* Modal Crear/Editar */}
           <Modal
-  title={editando ? 'Editar Entrenamiento' : 'Nuevo Entrenamiento'}
-  open={modalVisible}
-  onCancel={() => {
-    setModalVisible(false);
-    form.resetFields();
-    setEditando(null);
-  }}
-  footer={null}
-  width={600}
->
-  <Form
-    form={form}
-    layout="vertical"
-    onFinish={handleSubmit}
-    initialValues={{
-      duracionMin: 30,
-      orden: sesionId ? 1 : null,
-      ...(sesionId && { sesionId: parseInt(sesionId) })
-    }}
-  >
-    {/* ✅ CAMBIO: Mostrar selector de sesión en vista general (crear Y editar) */}
-    {!sesionId && (
-      <>
-        {loadingSesiones ? (
-          <Spin style={{ marginBottom: 12 }} />
-        ) : sesionesDisponibles.length > 0 ? (
-          <Form.Item
-            name="sesionId"
-            label="Asignar a sesión (opcional)"
-            tooltip="Puede dejarlo vacío para crear un entrenamiento global"
-          >
-            <Select
-              allowClear
-              placeholder="Sin sesión (global)"
-              options={sesionesDisponibles.map((s) => ({
-                value: s.id,
-                label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre || 'Sin grupo'}`
-              }))}
-            />
-          </Form.Item>
-        ) : (
-          <Form.Item
-            name="sesionId"
-            label="Asignar a sesión (opcional)"
-            tooltip="Puede dejarlo vacío para crear un entrenamiento global"
-          >
-            <InputNumber style={{ width: '100%' }} min={1} placeholder="ID de la sesión (opcional)" />
-          </Form.Item>
-        )}
-      </>
-    )}
-
-    {/* Campo oculto cuando estás dentro de una sesión específica */}
-    {sesionId && (
-      <Form.Item name="sesionId" hidden>
-        <InputNumber />
-      </Form.Item>
-    )}
-
-    <Form.Item
-      name="titulo"
-      label="Título"
-      rules={[
-        { required: true, message: 'El título es obligatorio' },
-        { min: 3, message: 'Mínimo 3 caracteres' },
-        { max: 100, message: 'Máximo 100 caracteres' },
-      ]}
-    >
-      <Input placeholder="Ej: Calentamiento general" />
-    </Form.Item>
-
-    <Form.Item
-      name="descripcion"
-      label="Descripción"
-      rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
-      tooltip="Puedes incluir enlaces (https://...) que serán clickeables"
-    >
-      <TextArea rows={4} placeholder="Describe el entrenamiento... (puedes incluir enlaces)" />
-    </Form.Item>
-
-    <Space style={{ width: '100%' }} size="large">
-      <Form.Item
-        name="duracionMin"
-        label="Duración (minutos)"
-        rules={[
-          { type: 'number', min: 1, message: 'Mínimo 1 minuto' },
-          { type: 'number', max: 300, message: 'Máximo 300 minutos' },
-        ]}
-      >
-        <InputNumber style={{ width: 150 }} min={1} max={300} placeholder="30" />
-      </Form.Item>
-
-      {/* ✅ CAMBIO: Mostrar campo orden solo si está asignado a una sesión */}
-      {(sesionId || (editando && editando.sesionId)) && (
-        <Form.Item
-          name="orden"
-          label="Orden"
-          tooltip="El orden se asigna automáticamente. Puede cambiarlo manualmente si lo necesita."
-          rules={[
-            { type: 'number', min: 1, message: 'Mínimo 1' },
-            { type: 'number', max: 99, message: 'Máximo 99' },
-          ]}
-        >
-          <InputNumber style={{ width: 150 }} min={1} max={99} placeholder="Auto" />
-        </Form.Item>
-      )}
-    </Space>
-
-    <Divider />
-
-    <Form.Item>
-      <Space>
-        <Button type="primary" htmlType="submit" loading={loadingModal}>
-          {editando ? 'Actualizar' : 'Crear'}
-        </Button>
-        <Button
-          onClick={() => {
-            setModalVisible(false);
-            form.resetFields();
-            setEditando(null);
-          }}
-        >
-          Cancelar
-        </Button>
-      </Space>
-    </Form.Item>
-  </Form>
-</Modal>
-
-          {/* Modal Estadísticas */}
-          <Modal
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BarChartOutlined />
-                <span>Estadísticas de Entrenamientos</span>
-              </div>
-            }
-            open={estadisticasVisible}
-            onCancel={() => setEstadisticasVisible(false)}
-            footer={[
-              <Button key="close" onClick={() => setEstadisticasVisible(false)}>
-                Cerrar
-              </Button>
-            ]}
+            title={editando ? 'Editar Entrenamiento' : 'Nuevo Entrenamiento'}
+            open={modalVisible}
+            onCancel={() => {
+              setModalVisible(false);
+              form.resetFields();
+              setEditando(null);
+            }}
+            footer={null}
             width={600}
           >
-              
-            {estadisticas ? (
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Statistic
-                    title="Total Entrenamientos"
-                    value={estadisticas.totalEntrenamientos}
-                    prefix={<FileTextOutlined />}
-                  />
-                </Col>
-                
-                <Col span={12}>
-                  <Statistic
-                    title="Duración Total"
-                    value={estadisticas.duracionTotalMinutos}
-                    suffix="min"
-                  />
-                </Col>
-                <Col span={12}>
-                  <Statistic
-                    title="Duración Promedio"
-                    value={estadisticas.duracionPromedioMinutos}
-                    suffix="min"
-                    precision={1}
-                  />
-                </Col>
-              </Row>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 24 }}>
-                <Text type="secondary">Cargando estadísticas...</Text>
-              </div>
-            )}
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSubmit}
+              initialValues={{
+                duracionMin: 30,
+                orden: null,
+              }}
+            >
+              {!sesionId && (
+                <>
+                  {loadingSesiones ? (
+                    <Spin style={{ marginBottom: 12 }} />
+                  ) : sesionesDisponibles.length > 0 ? (
+                    <Form.Item
+                      name="sesionId"
+                      label="Asignar a sesión (opcional)"
+                      tooltip="Puede dejarlo vacío para crear un entrenamiento global"
+                    >
+                      <Select
+                        allowClear
+                        placeholder="Sin sesión (global)"
+                        options={sesionesDisponibles.map((s) => ({
+                          value: s.id,
+                          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre || 'Sin grupo'}`
+                        }))}
+                      />
+                    </Form.Item>
+                  ) : (
+                    <Form.Item
+                      name="sesionId"
+                      label="Asignar a sesión (opcional)"
+                      tooltip="Puede dejarlo vacío para crear un entrenamiento global"
+                    >
+                      <InputNumber style={{ width: '100%' }} min={1} />
+                    </Form.Item>
+                  )}
+                </>
+              )}
+
+              {sesionId && (
+                <Form.Item name="sesionId" hidden>
+                  <InputNumber />
+                </Form.Item>
+              )}
+
+              <Form.Item
+                name="titulo"
+                label="Título"
+                rules={[
+                  { required: true, message: 'El título es obligatorio' },
+                  { min: 3, message: 'Mínimo 3 caracteres' },
+                  { max: 100, message: 'Máximo 100 caracteres' },
+                ]}
+              >
+                <Input placeholder="Ej: Calentamiento general" />
+              </Form.Item>
+
+              <Form.Item
+                name="descripcion"
+                label="Descripción"
+                rules={[{ max: 1000, message: 'Máximo 1000 caracteres' }]}
+                tooltip="Puede incluir enlaces (https://...) que serán clickeables"
+              >
+                <TextArea rows={4} placeholder="Describa el entrenamiento... (puede incluir enlaces)" />
+              </Form.Item>
+
+              <Space style={{ width: '100%' }} size="large">
+                <Form.Item
+                  name="duracionMin"
+                  label="Duración (minutos)"
+                  rules={[
+                    { type: 'number', min: 1, message: 'Mínimo 1 minuto' },
+                    { type: 'number', max: 300, message: 'Máximo 300 minutos' },
+                  ]}
+                >
+                  <InputNumber style={{ width: 150 }} min={1} max={300} placeholder="30" />
+                </Form.Item>
+
+                {(sesionId || (editando && editando.sesionId)) && (
+                  <Form.Item
+                    name="orden"
+                    label="Orden"
+                    tooltip="Se asigna automáticamente el siguiente disponible"
+                    rules={[
+                      { type: 'number', min: 1, message: 'Mínimo 1' },
+                      { type: 'number', max: 99, message: 'Máximo 99' },
+                    ]}
+                  >
+                    <InputNumber style={{ width: 150 }} min={1} max={99} />
+                  </Form.Item>
+                )}
+              </Space>
+
+              <Divider />
+
+              <Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit" loading={loadingModal}>
+                    {editando ? 'Actualizar' : 'Crear'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setModalVisible(false);
+                      form.resetFields();
+                      setEditando(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
           </Modal>
 
-          {/* Modal Asignar entrenamiento global a sesión */}
-         <Modal
-  title={
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <LinkOutlined />
-      <span>Asignar entrenamiento a sesión</span>
-    </div>
-  }
-  open={modalAsignarVisible}
-  onCancel={() => {
-    setModalAsignarVisible(false);
-    setEntrenamientoAsignar(null);
-    setSesionSeleccionada(null);
-  }}
-  footer={[
-    <Button key="cancel" onClick={() => setModalAsignarVisible(false)}>
-      Cancelar
-    </Button>,
-    <Button
-      key="ok"
-      type="primary"
-      loading={loadingAsignar}
-      onClick={handleAsignar}
-      disabled={!sesionSeleccionada}
-    >
-      Asignar
-    </Button>,
-  ]}
-  width={600}
->
-  {entrenamientoAsignar && (
-    <>
-      <p>
-        <Text strong>Entrenamiento:</Text> {entrenamientoAsignar.titulo}
-      </p>
-      <p style={{ marginBottom: 12 }}>
-        <Text type="secondary">
-          Seleccione la sesión activa a la que deseas asignarlo:
-        </Text>
-      </p>
+          {/* Modal Estadísticas */}
+          <ModalEstadisticas
+            visible={estadisticasVisible}
+            onClose={() => setEstadisticasVisible(false)}
+            estadisticas={estadisticas}
+          />
 
-      <Select
-        showSearch
-        style={{ width: '100%' }}
-        placeholder="Seleccione una sesión activa"
-        allowClear
-        value={sesionSeleccionada}
-        onChange={setSesionSeleccionada}
-        loading={loadingSesiones}
-        optionFilterProp="children"
-        filterOption={(input, option) =>
-          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-        }
-        options={sesionesDisponibles.map((s) => ({
-          value: s.id,
-          label: `${formatearFecha(s.fecha)} - ${formatearHora(s.horaInicio)} - ${formatearHora(s.horaFin)} - ${s.grupo?.nombre}`,
-        }))}
-      />
+          {/* Modal Asignar Sesión */}
+          <ModalAsignarSesion
+            visible={modalAsignarVisible}
+            onClose={() => {
+              setModalAsignarVisible(false);
+              setEntrenamientoAsignar(null);
+            }}
+            entrenamiento={entrenamientoAsignar}
+            sesionesDisponibles={sesionesDisponibles}
+            loadingSesiones={loadingSesiones}
+            onAsignar={handleAsignar}
+          />
 
-      {!loadingSesiones && sesionesDisponibles.length === 0 && (
-        <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <Text type="secondary">
-            No se encontraron sesiones activas para asignar.
-          </Text>
-        </div>
-      )}
-    </>
-  )}
-</Modal>
+          {/* Modal Reordenar */}
+          {sesionId && (
+            <ModalReordenar
+              visible={modoReordenar}
+              onClose={() => setModoReordenar(false)}
+              entrenamientos={entrenamientos}
+              sesionId={sesionId}
+              onSuccess={() => cargarEntrenamientos()}
+            />
+          )}
         </div>
       </ConfigProvider>
     </MainLayout>

@@ -180,15 +180,15 @@ export async function reordenarEntrenamientosController(req, res) {
     return error(res, 'Error interno del servidor', 500);
   }
 }
-
 export async function duplicarEntrenamientoController(req, res) {
   try {
     const { id } = req.params;
-    const { nuevaSesionId } = req.body;
+    const { sesionIdDestino } = req.body;
+    
 
     const [duplicado, errorMsg] = await duplicarEntrenamiento(
       parseInt(id),
-      nuevaSesionId ? parseInt(nuevaSesionId) : null
+      sesionIdDestino ? parseInt(sesionIdDestino) : null
     );
 
     if (errorMsg) {
@@ -198,12 +198,19 @@ export async function duplicarEntrenamientoController(req, res) {
       return error(res, errorMsg, 400);
     }
 
-    return success(res, duplicado, 'Entrenamiento duplicado correctamente', 201);
+    const mensaje = sesionIdDestino 
+      ? 'Entrenamiento duplicado en la sesión correctamente'
+      : 'Entrenamiento duplicado como global correctamente';
+
+    return success(res, duplicado, mensaje, 201);
   } catch (err) {
     console.error('Error en duplicarEntrenamientoController:', err);
     return error(res, 'Error interno del servidor', 500);
   }
 }
+
+
+
 export async function obtenerEstadisticasController(req, res) {
   try {
     const { sesionId } = req.query;

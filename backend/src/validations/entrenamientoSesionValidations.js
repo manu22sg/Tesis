@@ -162,12 +162,13 @@ export const reordenarEntrenamientosBody = Joi.object({
 });
 
 export const duplicarEntrenamientoBody = Joi.object({
-  nuevaSesionId: Joi.number().integer().positive().optional()
+  sesionIdDestino: Joi.number().integer().positive().optional()
     .messages({
-      'number.base': 'nuevaSesionId debe ser un número',
-      'number.positive': 'nuevaSesionId debe ser positivo'
+      'number.base': 'sesionIdDestino debe ser un número',
+      'number.positive': 'sesionIdDestino debe ser positivo'
     })
-}).allow({}); 
+}).allow({});
+
 
 export const obtenerEstadisticasQuery = Joi.object({
   sesionId: Joi.number().integer().positive().optional()

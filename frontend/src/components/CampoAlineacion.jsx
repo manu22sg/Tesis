@@ -187,9 +187,26 @@ const CampoAlineacion = ({
     return path;
   };
 
-  const calcularAngulo = (p1, p2) => {
-    return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-  };
+const calcularAnguloMejorado = (puntos) => {
+  if (puntos.length < 2) return 0;
+  
+  // Tomar los últimos 3-5 puntos para calcular dirección promedio
+  const numPuntos = Math.min(5, puntos.length);
+  const puntosFinales = puntos.slice(-numPuntos);
+  
+  // Calcular vector promedio
+  let deltaX = 0;
+  let deltaY = 0;
+  
+  for (let i = 1; i < puntosFinales.length; i++) {
+    deltaX += puntosFinales[i].x - puntosFinales[i - 1].x;
+    deltaY += puntosFinales[i].y - puntosFinales[i - 1].y;
+  }
+  
+  return Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+};
+
+
 
   const eliminarLinea = (id) => {
     setLineas(prev => prev.filter(l => l.id !== id));
@@ -212,41 +229,56 @@ const CampoAlineacion = ({
     message.success('Todas las líneas eliminadas');
   };
 
-  const renderLineaCurva = (linea, temporal = false) => {
-    const { puntos, color, grosor, conFlecha, tipoLinea: tipo, id } = linea;
-    if (puntos.length < 2) return null;
-    
-    // 🆕 Determinar el path según el tipo de línea
-    let path;
-    let strokeDasharray = 'none';
-    
-    if (tipo === 'recta') {
-      // Línea recta del primer al último punto
-      path = `M ${puntos[0].x} ${puntos[0].y} L ${puntos[puntos.length - 1].x} ${puntos[puntos.length - 1].y}`;
-    } else if (tipo === 'punteada') {
-      // Línea curva con estilo punteado
-      path = puntosAPath(puntos);
-      strokeDasharray = '5,5';
-    } else {
-      // Línea curva suave (por defecto)
-      path = puntosAPath(puntos);
-    }
-    
-    const ultimoPunto = puntos[puntos.length - 1];
-    const penultimoPunto = puntos[puntos.length - 2] || puntos[0];
-    const angulo = calcularAngulo(penultimoPunto, ultimoPunto);
+const renderLineaCurva = (linea, temporal = false) => {
+  const { puntos, color, grosor, conFlecha, tipoLinea: tipo, id } = linea;
+  if (puntos.length < 2) return null;
+  
+  let path;
+  let strokeDasharray = 'none';
+  
+  if (tipo === 'recta') {
+    path = `M ${puntos[0].x} ${puntos[0].y} L ${puntos[puntos.length - 1].x} ${puntos[puntos.length - 1].y}`;
+  } else if (tipo === 'punteada') {
+    path = puntosAPath(puntos);
+    strokeDasharray = '5,5';
+  } else {
+    path = puntosAPath(puntos);
+  }
+  
+  const ultimoPunto = puntos[puntos.length - 1];
+  
+  // ✅ Usar el método mejorado según el tipo de línea
+  let angulo;
+  if (tipo === 'recta') {
+    // Para líneas rectas, usar primer y último punto
+    angulo = Math.atan2(
+      puntos[puntos.length - 1].y - puntos[0].y,
+      puntos[puntos.length - 1].x - puntos[0].x
+    ) * 180 / Math.PI;
+  } else {
+    // Para curvas, usar método mejorado
+    angulo = calcularAnguloMejorado(puntos);
+  }
 
-    return (
-      <g key={temporal ? 'temporal' : id}>
-        <path
-          d={path}
-          stroke={color}
-          strokeWidth={grosor / 10}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={strokeDasharray}
-          fill="none"
+  return (
+    <g key={temporal ? 'temporal' : id}>
+      <path
+        d={path}
+        stroke={color}
+        strokeWidth={grosor / 10}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={strokeDasharray}
+        fill="none"
+      />
+      
+      {conFlecha && (
+        <polygon
+          points="0,-2 3,0 0,2"
+          fill={color}
+          transform={`translate(${ultimoPunto.x},${ultimoPunto.y}) rotate(${angulo})`}
         />
+      )}
         
         {conFlecha && (
           <polygon
@@ -729,7 +761,7 @@ const CampoAlineacion = ({
                   onChange={(checked) => {
                     setModoDibujo(checked);
                     if (checked) {
-                      message.info('🎨 Modo dibujo activado. Arrastra para dibujar líneas curvas.');
+                      message.info('🎨 Modo dibujo activado. Arrastre para dibujar líneas curvas.');
                     } else {
                       setPuntosActuales([]);
                       setDibujando(false);

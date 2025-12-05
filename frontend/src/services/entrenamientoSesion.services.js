@@ -93,9 +93,15 @@ export async function reordenarEntrenamientos(sesionId, entrenamientos) {
 }
 
 // Duplicar entrenamiento
-export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
+export async function duplicarEntrenamiento(id, sesionIdDestino = null) {
   try {
-    const payload = nuevaSesionId ? { nuevaSesionId } : {};
+    const payload = sesionIdDestino ? { sesionIdDestino } : {};
+    
+    console.log('🔍 DEBUG FRONTEND SERVICE:');
+    console.log('  - ID entrenamiento:', id);
+    console.log('  - sesionIdDestino:', sesionIdDestino);
+    console.log('  - Payload a enviar:', payload);
+    
     const res = await api.post(`/entrenamientos/${id}/duplicar`, payload);
     return res.data.data;
   } catch (error) {
@@ -103,6 +109,7 @@ export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
     throw error;
   }
 }
+
 
 // Obtener estadísticas
 export async function obtenerEstadisticas(sesionId = null) {

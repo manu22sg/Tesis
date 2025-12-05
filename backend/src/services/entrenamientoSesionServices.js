@@ -289,36 +289,46 @@ export async function reordenarEntrenamientos(sesionId, nuevosOrdenes) {
   }
 }
 
-export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
+export async function duplicarEntrenamiento(id, sesionIdDestino = null) {
   try {
     const entrenamientoRepo = AppDataSource.getRepository(EntrenamientoSesionSchema);
     
+ 
     const original = await entrenamientoRepo.findOne({ where: { id } });
     if (!original) return [null, 'Entrenamiento no encontrado'];
 
-    // ✅ Calcular el siguiente orden si hay sesión destino
     let nuevoOrden = null;
-    const sesionDestino = nuevaSesionId || original.sesionId;
-    
-    if (sesionDestino) {
+    let sesionFinal = null;
+
+    // ✅ Si se proporciona sesionIdDestino, usar esa sesión
+    if (sesionIdDestino) {
+      sesionFinal = sesionIdDestino;
+      
+      
+      // Calcular siguiente orden en esa sesión
       const maxOrdenResult = await entrenamientoRepo
         .createQueryBuilder("e")
         .select("MAX(e.orden)", "maxOrden")
-        .where("e.sesionId = :sesionId", { sesionId: sesionDestino })
+        .where("e.sesionId = :sesionId", { sesionId: sesionFinal })
         .getRawOne();
       
       nuevoOrden = (maxOrdenResult?.maxOrden || 0) + 1;
+    } else {
     }
 
     const duplicado = entrenamientoRepo.create({
-      sesionId: sesionDestino,
+      sesionId: sesionFinal,
       titulo: `${original.titulo} (Copia)`,
       descripcion: original.descripcion,
       duracionMin: original.duracionMin,
-      orden: nuevoOrden, // ✅ Ahora se asigna correctamente
+      orden: nuevoOrden,
     });
 
+   
+
     const guardado = await entrenamientoRepo.save(duplicado);
+    
+    
     
     const completo = await entrenamientoRepo.findOne({
       where: { id: guardado.id },
@@ -327,10 +337,13 @@ export async function duplicarEntrenamiento(id, nuevaSesionId = null) {
 
     return [completo, null];
   } catch (error) {
-    console.error('Error duplicando entrenamiento:', error);
+    console.error('❌ Error duplicando entrenamiento:', error);
     return [null, 'Error interno del servidor'];
   }
 }
+
+
+
 
 
 export async function obtenerEstadisticasEntrenamientos(sesionId = null) {
