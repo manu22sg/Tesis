@@ -100,10 +100,9 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     // Filtros de canchas
     const whereCanchas = { estado: 'disponible' };
 
-     if (filtros.usuarioRol === 'estudiante' || filtros.usuarioRol === 'academico') {
-  whereCanchas.capacidadMaxima = Not(CAPACIDAD_CANCHA_PRINCIPAL);
-}
-
+    if (filtros.usuarioRol === 'estudiante' || filtros.usuarioRol === 'academico') {
+      whereCanchas.capacidadMaxima = Not(CAPACIDAD_CANCHA_PRINCIPAL);
+    }
 
     if (capacidad === 'pequena') whereCanchas.capacidadMaxima = LessThanOrEqual(8);
     else if (capacidad === 'mediana') whereCanchas.capacidadMaxima = Between(9, 15);
@@ -198,7 +197,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
         for (const blk of bloques) {
           if (hayConflictoHorario(blk, p)) { 
             blk.disponible = false; 
-            if (!blk.motivo) blk.motivo = 'Partido de campeonato '; 
+            if (!blk.motivo) blk.motivo = 'Partido de campeonato'; 
           }
         }
       }
@@ -224,7 +223,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
             for (const blk of bloques) {
               if (hayConflictoHorario(blk, p)) {
                 blk.disponible = false;
-                if (!blk.motivo) blk.motivo = `Partido de campeonato `;
+                if (!blk.motivo) blk.motivo = `Partido en ${div.nombre}`;
               }
             }
           }
@@ -254,20 +253,8 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
           }
         }
 
-        // Si es división, también bloquear si HAY PARTIDO en CUALQUIER otra cancha
-        for (const otraCancha of todasCanchas) {
-          if (otraCancha.id === cancha.id) continue; // Skip self
-          
-          const partidosOtra = partidosBy.get(otraCancha.id) || [];
-          for (const p of partidosOtra) {
-            for (const blk of bloques) {
-              if (hayConflictoHorario(blk, p)) {
-                blk.disponible = false;
-                if (!blk.motivo) blk.motivo = `Partido de campeonato`;
-              }
-            }
-          }
-        }
+        // ✅ CAMBIO: Ya NO bloquear por partidos en otras divisiones
+        // Los partidos pueden coexistir en diferentes divisiones
       }
 
       disponibilidadPorCancha.push({
@@ -295,6 +282,7 @@ export async function obtenerDisponibilidadPorFecha(fechaISO, page = 1, limit = 
     return [null, 'Error interno del servidor'];
   }
 }
+
 
 
 
@@ -482,25 +470,19 @@ export async function verificarDisponibilidadReserva(
     }
 
     // ======================
-    // 3. Partidos en TODAS las divisiones (OPTIMIZADO)
+    // 3. ✅ CAMBIO: Partidos solo en ESTA cancha específica
     // ======================
-    const divisiones = await obtenerDivisiones();
-    const divisionesIds = divisiones.map(d => d.id);
+    const partidosCancha = await partidoRepository.find({
+      where: {
+        canchaId, // Solo validar en la cancha actual
+        fecha,
+        estado: In(['programado', 'en_juego'])
+      }
+    });
 
-    if (divisionesIds.length > 0) {
-      const partidosDivisiones = await partidoRepository.find({
-        where: {
-          canchaId: In(divisionesIds),
-          fecha,
-          estado: In(['programado', 'en_juego'])
-        }
-      });
-
-      for (const p of partidosDivisiones) {
-        if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-          const div = divisiones.find(d => d.id === p.canchaId);
-          return [false, `Hay un partido programado en ${div?.nombre || ''} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
-        }
+    for (const p of partidosCancha) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+        return [false, `Hay un partido programado en esta cancha en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
       }
     }
 
@@ -511,3 +493,4 @@ export async function verificarDisponibilidadReserva(
     return [false, 'Error interno del servidor'];
   }
 }
+

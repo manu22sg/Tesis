@@ -148,7 +148,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
     const cancha = await canchaRepo.findOne({ where: { id: canchaId, estado: 'disponible' } });
     if (!cancha) return [false, 'Cancha inexistente o no disponible'];
 
-    // 🆕 2. VALIDAR: Las reservas NO pueden usar la Principal
+    // 2. VALIDAR: Las reservas NO pueden usar la Principal
     if (esCanchaPrincipal(cancha)) {
       return [false, 'La Cancha Principal no está disponible para reservas de usuarios'];
     }
@@ -163,7 +163,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
       }
     }
 
-    // 🆕 4. Verificar sesiones en la Principal (bloquean todas las divisiones)
+    // 4. Verificar sesiones y partidos en la Principal (bloquean todas las divisiones)
     const todasCanchas = await canchaRepo.find({ where: { estado: 'disponible' } });
     const canchaPrincipal = todasCanchas.find(c => esCanchaPrincipal(c));
     
@@ -194,20 +194,18 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
       }
     }
 
-    // 🆕 5. Verificar partidos en CUALQUIER cancha (bloquean TODO)
-    for (const otraCancha of todasCanchas) {
-      const partidos = await partidoRepo.find({
-        where: { 
-          canchaId: otraCancha.id, 
-          fecha, 
-          estado: In(['programado', 'en_juego']) 
-        }
-      });
-      
-      for (const p of partidos) {
-        if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-          return [false, `Hay un partido de campeonato programado en ese horario`];
-        }
+    // ✅ CAMBIO: 5. Verificar partidos solo en ESTA cancha específica
+    const partidosCancha = await partidoRepo.find({
+      where: { 
+        canchaId, // Solo la cancha actual
+        fecha, 
+        estado: In(['programado', 'en_juego']) 
+      }
+    });
+    
+    for (const p of partidosCancha) {
+      if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+        return [false, `Hay un partido de campeonato programado en esta cancha en ese horario`];
       }
     }
 
@@ -217,6 +215,7 @@ export async function verificarDisponibilidadEspecificaTx(manager, canchaId, fec
     return [false, 'Error interno del servidor'];
   }
 }
+
 
 
 export async function crearReserva(datosReserva, usuarioId) {

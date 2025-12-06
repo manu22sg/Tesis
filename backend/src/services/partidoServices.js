@@ -32,35 +32,108 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     const cancha = await canchaRepo.findOne({ where: { id: canchaId, estado: "disponible" } });
     if (!cancha) return [false, "Cancha inexistente o no disponible"];
 
-    // 3. Obtener divisiones (misma lógica que sesiones)
-    const divisiones = await obtenerDivisiones();
-    const canchasARevisar = [cancha, ...divisiones];
+    // ✅ CAMBIO CRÍTICO: Determinar si es Principal o División
+    const { esCanchaPrincipal, esDivision } = await import('./canchaHierarchyservices.js');
+    const esLaPrincipal = esCanchaPrincipal(cancha);
+    const esUnaDiv = esDivision(cancha);
 
-    for (const c of canchasARevisar) {
-
-      // Sesiones
-      const sesiones = await sesionRepo.find({
-        where: { canchaId: c.id, fecha: fechaLocal }
-      });
-      for (const s of sesiones) {
-        if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-          return [false, `Conflicto con una sesión en ${c.nombre} en el horario ${formatearHorario(s.horaInicio, s.horaFin)}`];
+    // ======================
+    // 3. VALIDAR SESIONES
+    // ======================
+    if (esLaPrincipal) {
+      // Si es Principal, revisar sesiones en Principal + divisiones
+      const divisiones = await obtenerDivisiones();
+      const todasCanchas = [cancha, ...divisiones];
+      
+      for (const c of todasCanchas) {
+        const sesiones = await sesionRepo.find({
+          where: { canchaId: c.id, fecha: fechaLocal }
+        });
+        for (const s of sesiones) {
+          if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
+            return [false, `Conflicto con una sesión en ${c.nombre} en el horario ${formatearHorario(s.horaInicio, s.horaFin)}`];
+          }
         }
       }
+    } else if (esUnaDiv) {
+      // Si es división, solo revisar sesiones EN LA PRINCIPAL (bloquean divisiones)
+      const todasCanchas = await canchaRepo.find({ where: { estado: "disponible" } });
+      const canchaPrincipal = todasCanchas.find(c => esCanchaPrincipal(c));
+      
+      if (canchaPrincipal) {
+        const sesiones = await sesionRepo.find({
+          where: { canchaId: canchaPrincipal.id, fecha: fechaLocal }
+        });
+        for (const s of sesiones) {
+          if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
+            return [false, `Conflicto con una sesión en ${canchaPrincipal.nombre} en el horario ${formatearHorario(s.horaInicio, s.horaFin)}`];
+          }
+        }
+      }
+    }
 
-      // Reservas
+    // ======================
+    // 4. VALIDAR RESERVAS
+    // ======================
+    if (esLaPrincipal) {
+      // Si es Principal, revisar reservas en Principal + divisiones
+      const divisiones = await obtenerDivisiones();
+      const todasCanchas = [cancha, ...divisiones];
+      
+      for (const c of todasCanchas) {
+        const reservas = await reservaRepo.find({
+          where: { canchaId: c.id, fechaReserva: fechaLocal, estado: In(["aprobada"]) }
+        });
+        for (const r of reservas) {
+          if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
+            return [false, `Conflicto con una reserva en ${c.nombre} en el horario ${formatearHorario(r.horaInicio, r.horaFin)}`];
+          }
+        }
+      }
+    } else if (esUnaDiv) {
+      // Si es división, revisar:
+      // 1) Reservas en ESTA división
       const reservas = await reservaRepo.find({
-        where: { canchaId: c.id, fechaReserva: fechaLocal, estado: In(["aprobada"]) }
+        where: { canchaId, fechaReserva: fechaLocal, estado: In(["aprobada"]) }
       });
       for (const r of reservas) {
         if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-          return [false, `Conflicto con una reserva en ${c.nombre} en el horario ${formatearHorario(r.horaInicio, r.horaFin)}`];
+          return [false, `Conflicto con una reserva en ${cancha.nombre} en el horario ${formatearHorario(r.horaInicio, r.horaFin)}`];
         }
       }
+    }
 
-      // Partidos
+    // ======================
+    // 5. VALIDAR PARTIDOS
+    // ======================
+    if (esLaPrincipal) {
+      // Si es Principal, revisar partidos en Principal + divisiones
+      const divisiones = await obtenerDivisiones();
+      const todasCanchas = [cancha, ...divisiones];
+      
+      for (const c of todasCanchas) {
+        const filter = {
+          canchaId: c.id,
+          fecha: fechaLocal,
+          estado: In(["programado", "en_juego"])
+        };
+        if (partidoIdExcluir) filter.id = Not(partidoIdExcluir);
+
+        const partidos = await partidoRepo.find({ where: filter });
+        for (const p of partidos) {
+          if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+            return [false, `Conflicto con otro partido en ${c.nombre} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
+          }
+        }
+      }
+    } else if (esUnaDiv) {
+      // ✅ CAMBIO CLAVE: Si es división, solo revisar:
+      // 1) Partidos en ESTA división específica
+      // 2) Partidos en la Principal (bloquean divisiones)
+      
+      // 1) Partidos en esta división
       const filter = {
-        canchaId: c.id,
+        canchaId,
         fecha: fechaLocal,
         estado: In(["programado", "en_juego"])
       };
@@ -69,7 +142,27 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       const partidos = await partidoRepo.find({ where: filter });
       for (const p of partidos) {
         if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-          return [false, `Conflicto con otro partido en ${c.nombre} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
+          return [false, `Conflicto con otro partido en ${cancha.nombre} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
+        }
+      }
+
+      // 2) Partidos en la Principal
+      const todasCanchas = await canchaRepo.find({ where: { estado: "disponible" } });
+      const canchaPrincipal = todasCanchas.find(c => esCanchaPrincipal(c));
+      
+      if (canchaPrincipal) {
+        const filterPrincipal = {
+          canchaId: canchaPrincipal.id,
+          fecha: fechaLocal,
+          estado: In(["programado", "en_juego"])
+        };
+        if (partidoIdExcluir) filterPrincipal.id = Not(partidoIdExcluir);
+
+        const partidosPrincipal = await partidoRepo.find({ where: filterPrincipal });
+        for (const p of partidosPrincipal) {
+          if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
+            return [false, `Conflicto con un partido en ${canchaPrincipal.nombre} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
+          }
         }
       }
     }
@@ -81,6 +174,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
     return [false, "Error interno al verificar disponibilidad"];
   }
 }
+
 
  // Programar un partido: asignar cancha, fecha y hora con validaciones temporales
 export async function programarPartido(id, { canchaId, fecha, horaInicio, horaFin, arbitroId }) {
