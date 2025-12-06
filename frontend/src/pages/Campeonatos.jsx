@@ -349,7 +349,6 @@ function descargarArchivo(blob, nombre) {
       creado: 'blue',
       en_juego: 'green',
       finalizado: 'default',
-      cancelado: 'red'
     };
     return colors[estado] || 'default';
   };
@@ -359,7 +358,6 @@ function descargarArchivo(blob, nombre) {
       'creado': 'Creado',
       'en_juego': 'En Juego',
       'finalizado': 'Finalizado',
-      'cancelado': 'Cancelado'
     };
     return map[estado] || estado;
   };
@@ -576,7 +574,6 @@ function descargarArchivo(blob, nombre) {
               <Option value="creado">Creado</Option>
               <Option value="en_juego">En Juego</Option>
               <Option value="finalizado">Finalizado</Option>
-              <Option value="cancelado">Cancelado</Option>
             </Select>
           </Space>
         </Card>
