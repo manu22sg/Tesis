@@ -238,7 +238,7 @@ if (!cancha) {
 // 🆕 VALIDAR: Las reservas NO pueden usar la Principal
 if (esCanchaPrincipal(cancha)) {
   await queryRunner.rollbackTransaction();
-  return [null, 'La Cancha Principal no está disponible para reservas de usuarios. Por favor elija una de las canchas divisionales.'];
+  return [null, 'La Cancha Principal no está disponible para reservas de usuarios. Por favor elija una de las canchas con menos participantes.'];
 }
 
 const capacidadMaxima = cancha.capacidadMaxima;

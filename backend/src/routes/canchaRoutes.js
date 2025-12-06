@@ -16,7 +16,7 @@ const router = Router();
 // Todas requieren autenticación y rol administrador
 router.post('/', authenticateToken, requireRole(['entrenador']), postCrearCancha);
 router.get('/',authenticateToken, getCanchas);
-router.post('/detalle', authenticateToken, requireRole(['superadmin', 'entrenador']), getCanchaPorId);
+router.post('/detalle', authenticateToken, requireRole(['entrenador']), getCanchaPorId);
 router.patch('/', authenticateToken, requireRole(['entrenador']), patchActualizarCancha);
 router.delete('/eliminar', authenticateToken, requireRole(['entrenador']), deleteCancha);
 router.patch('/reactivar', authenticateToken, requireRole(['entrenador']), patchReactivarCancha);

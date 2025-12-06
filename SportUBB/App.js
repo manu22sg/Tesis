@@ -50,7 +50,6 @@ function AppContent() {
         // Fallback si el rol no está definido o es inválido
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>⚠️ Rol de usuario no reconocido</Text>
-          <Text style={styles.errorSubtext}>Por favor, contacta al administrador</Text>
         </View>
       )}
     </NavigationContainer>

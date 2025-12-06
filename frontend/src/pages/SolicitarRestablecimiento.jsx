@@ -34,7 +34,7 @@ export default function SolicitarRestablecimiento() {
       } else if (errorMessage.includes("verificar su cuenta")) {
         message.error("Debe verificar su cuenta antes de restablecer la contraseña");
       } else if (errorMessage.includes("no está activa")) {
-        message.error("Su cuenta no está activa. Contacte al administrador");
+        message.error("Su cuenta no está activa.");
       } else {
         message.error(errorMessage);
       }

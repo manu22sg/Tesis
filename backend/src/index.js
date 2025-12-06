@@ -12,7 +12,7 @@ import { iniciarCronJobs } from './utils/jobCron.js';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = 3000; //80
 app.use((req, res, next) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.charset = "utf-8";

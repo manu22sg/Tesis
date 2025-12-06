@@ -458,7 +458,7 @@ export async function loginService(loginData) {
 
     // 4. Verificar si está activo
     if (user.estado !== 'activo') {
-      return [null, createErrorMessage('estado', 'Usuario inactivo. Contacte al administrador')];
+      return [null, createErrorMessage('estado', 'Usuario inactivo.')];
     }
 
     // 5. Comparar la contraseña
@@ -531,7 +531,7 @@ export async function solicitarRestablecimientoService(email) {
     }
 
     if (usuario.estado !== 'activo') {
-      return [null, 'Esta cuenta no está activa. Contacte al administrador'];
+      return [null, 'Esta cuenta no está activa.'];
     }
 
     // 4. Crear token con purpose específico
@@ -556,7 +556,7 @@ export async function solicitarRestablecimientoService(email) {
           <!DOCTYPE html>
           <html>
             <body style="font-family: Arial, sans-serif; padding: 20px;">
-              <h2>Hola ${usuario.nombre}!</h2>
+              <h2>Hola ${usuario.nombre} ${usuario.apellido}!</h2>
               <p>Recibimos una solicitud para restablecer su contraseña.</p>
               <p>Si no solicitó esto, puede ignorar este correo.</p>
               <p>Para restablecer su contraseña, haga clic en el siguiente enlace:</p>
@@ -620,7 +620,7 @@ export async function restablecerPasswordService(token, newPassword) {
     // 3. Buscar usuario
     const usuario = await userRepository.findOne({ 
       where: { id: decoded.id },
-      select: ['id', 'email', 'nombre', 'password', 'estado', 'verificado']
+      select: ['id', 'email', 'nombre', 'password', 'estado', 'verificado', 'apellido']
     });
 
     if (!usuario) {
@@ -654,7 +654,6 @@ export async function restablecerPasswordService(token, newPassword) {
             <body style="font-family: Arial, sans-serif; padding: 20px;">
               <h2>Hola ${usuario.nombre} ${usuario.apellido}!</h2>
               <p>Su contraseña ha sido restablecida exitosamente.</p>
-              <p>Si no realizó este cambio, contacte inmediatamente al administrador.</p>
               <p style="margin-top: 20px;">
                 <a href="${FRONTEND_URL}/login">Iniciar sesión</a>
               </p>
@@ -677,10 +676,6 @@ export async function restablecerPasswordService(token, newPassword) {
     return [null, 'Error interno del servidor'];
   }
 }
-
-
-
-
 
 export async function buscarUsuariosPorTermino(termino, opciones = {}) {
   try {

@@ -9,6 +9,8 @@ import { parseDateLocal, formatYMD } from "../utils/dateLocal.js";
 import UsuarioSchema from "../entity/Usuario.js";
 import { obtenerTodasCanchasComplejo,obtenerDivisiones} from './canchaHierarchyservices.js';
 import dayjs from 'dayjs';
+import {formatearHorario } from '../utils/emailHelpers.js';
+
   const PartidoRepo = () => AppDataSource.getRepository(PartidoCampeonatoSchema);
 
 async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInicio, horaFin, partidoIdExcluir = null) {
@@ -42,7 +44,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       });
       for (const s of sesiones) {
         if (hayConflictoHorario({ horaInicio, horaFin }, s)) {
-          return [false, `Conflicto con una sesión en ${c.nombre} ${s.horaInicio} - ${s.horaFin}`];
+          return [false, `Conflicto con una sesión en ${c.nombre} en el horario ${formatearHorario(s.horaInicio, s.horaFin)}`];
         }
       }
 
@@ -52,7 +54,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       });
       for (const r of reservas) {
         if (hayConflictoHorario({ horaInicio, horaFin }, r)) {
-          return [false, `Conflicto con una reserva en ${c.nombre} ${r.horaInicio} - ${r.horaFin}`];
+          return [false, `Conflicto con una reserva en ${c.nombre} en el horario ${formatearHorario(r.horaInicio, r.horaFin)}`];
         }
       }
 
@@ -67,7 +69,7 @@ async function verificarDisponibilidadCancha(manager, canchaId, fecha, horaInici
       const partidos = await partidoRepo.find({ where: filter });
       for (const p of partidos) {
         if (hayConflictoHorario({ horaInicio, horaFin }, p)) {
-          return [false, `Conflicto con otro partido en ${c.nombre} ${p.horaInicio} - ${p.horaFin}`];
+          return [false, `Conflicto con otro partido en ${c.nombre} en el horario ${formatearHorario(p.horaInicio, p.horaFin)}`];
         }
       }
     }
