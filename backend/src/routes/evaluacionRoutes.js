@@ -29,14 +29,14 @@ const router = Router();
 
 router.get('/excel', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarEvaluacionesQuerySchema), 
   exportarEvaluacionesExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarEvaluacionesQuerySchema), 
   exportarEvaluacionesPDF
 );
@@ -54,7 +54,7 @@ router.get(
 router.post(
   '/', 
   authenticateToken, 
-  requireRole(['entrenador','superadmin']), 
+  requireRole(['entrenador']), 
   validarBody(crearEvaluacionBody), 
   postCrearEvaluacion
 );
@@ -62,7 +62,7 @@ router.post(
 router.get(
   '/', 
   authenticateToken, 
-  requireRole(['entrenador','superadmin']), 
+  requireRole(['entrenador']), 
   validarQuery(paginacionEvaluacionesSchema), 
   getEvaluaciones
 );
@@ -71,7 +71,7 @@ router.get(
 router.get(
   '/jugador/:jugadorId',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarParams(jugadorIdParamSchema),
   validarQuery(paginacionEvaluacionesSchema),
   getEvaluacionesPorJugador
@@ -80,7 +80,7 @@ router.get(
 router.get(
   '/:id', 
   authenticateToken, 
-  requireRole(['entrenador','superadmin']), 
+  requireRole(['entrenador']), 
   validarParams(idParamSchema), 
   getEvaluacionPorId
 );
@@ -88,7 +88,7 @@ router.get(
 router.patch(
   '/:id', 
   authenticateToken, 
-  requireRole(['entrenador','superadmin']), 
+  requireRole(['entrenador']), 
   validarParams(idParamSchema),
   validarBody(actualizarEvaluacionBody), 
   patchEvaluacion
@@ -97,7 +97,7 @@ router.patch(
 router.delete(
   '/:id', 
   authenticateToken, 
-  requireRole(['entrenador','superadmin']), 
+  requireRole(['entrenador']), 
   validarParams(idParamSchema), 
   deleteEvaluacion
 );

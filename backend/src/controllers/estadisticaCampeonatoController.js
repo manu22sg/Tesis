@@ -30,6 +30,7 @@ export const listarEstadisticas = async (req, res) => {
     const data = await service.listarEstadisticas(req.query);
     return success(res, data, "Listado de estadísticas");
   } catch (err) {
+    console.log(error)
     return error(res, err.message);
   }
 };

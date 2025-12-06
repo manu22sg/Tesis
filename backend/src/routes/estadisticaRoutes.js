@@ -26,14 +26,14 @@ const router = Router();
 
 router.get('/excel', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarEstadisticasQuerySchema), 
   exportarEstadisticasExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarEstadisticasQuerySchema), 
   exportarEstadisticasPDF
 );

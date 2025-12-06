@@ -24,7 +24,7 @@ const router = Router();
 
 router.get('/pendientes',
    authenticateToken,
-   requireRole(['entrenador', 'superadmin']),
+   requireRole(['entrenador']),
   validate(obtenerReservasPendientesBody),
   getReservasPendientes
 );
@@ -32,7 +32,7 @@ router.get('/pendientes',
 
 router.patch('/aprobar',
    authenticateToken,
-   requireRole(['entrenador', 'superadmin']),
+   requireRole(['entrenador']),
   validate(aprobarReservaBody),
   patchAprobarReserva
 );
@@ -40,7 +40,7 @@ router.patch('/aprobar',
 
 router.patch('/rechazar',
    authenticateToken,
-   requireRole(['entrenador', 'superadmin']),
+   requireRole(['entrenador']),
   validate(rechazarReservaBody),
   patchRechazarReserva
 );
@@ -49,7 +49,7 @@ router.patch('/rechazar',
 
 router.post('/estadisticas',
    authenticateToken,
-   requireRole(['entrenador', 'superadmin']),
+   requireRole(['entrenador']),
   validate(obtenerEstadisticasBody),
   getEstadisticasReservas
 );
@@ -57,13 +57,13 @@ router.post('/estadisticas',
 
 router.get('/excel', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']), 
+  requireRole(['entrenador']), 
   exportarReservasExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']), 
+  requireRole(['entrenador']), 
   exportarReservasPDF
 );
 

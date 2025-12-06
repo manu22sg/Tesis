@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Table, Button, Space, Tag, Tooltip, Popconfirm,App,
-  Row, Col, Empty, Breadcrumb, Input, Select, Alert, Pagination, ConfigProvider,Dropdown
+  Card, Table, Button, Space, Tooltip, Popconfirm, App,
+  Row, Col, Empty, Breadcrumb, Input, Select, Alert, Pagination, ConfigProvider, Dropdown
 } from 'antd';
 import esES from 'antd/locale/es_ES';
 import {
   DeleteOutlined, UserOutlined, ThunderboltOutlined, FilterOutlined,
   ReloadOutlined, TeamOutlined, ArrowLeftOutlined, SearchOutlined,
-  FileExcelOutlined,FilePdfOutlined,DownloadOutlined     
-
+  FileExcelOutlined, FilePdfOutlined, DownloadOutlined
 } from '@ant-design/icons';
 import MainLayout from '../components/MainLayout';
 import * as estadisticaService from '../services/estadisticaCampeonato.services';
@@ -18,76 +17,91 @@ import { equipoService } from '../services/equipo.services';
 function EstadisticasContent() {
   const { id: campeonatoId } = useParams();
   const navigate = useNavigate();
-  const { message } = App.useApp(); 
+  const { message } = App.useApp();
 
   const [estadisticas, setEstadisticas] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [todosLosJugadores, setTodosLosJugadores] = useState([]);
   const [loading, setLoading] = useState(false);
-const [exportando, setExportando] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [jugadoresCargados, setJugadoresCargados] = useState(false);
 
   const [filtros, setFiltros] = useState({ busqueda: '', equipoId: null });
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // === Cargar equipos del campeonato
+  // === 1️⃣ Cargar equipos del campeonato
   useEffect(() => {
     (async () => {
       try {
-        const lista = await equipoService.listarPorCampeonato(campeonatoId);
+        console.log('🏆 Cargando equipos del campeonato:', campeonatoId);
+        const response = await equipoService.listarPorCampeonato(campeonatoId);
+        console.log('📦 Response completa:', response);
+        
+        // ✅ Unwrap la respuesta (puede venir como {data: [...]} o directamente [...])
+        const lista = response?.data || response;
+        console.log('✅ Equipos cargados:', lista);
+        
         setEquipos(Array.isArray(lista) ? lista : []);
       } catch (err) {
-        console.error('Error cargando equipos:', err);
+        console.error('❌ Error cargando equipos:', err);
         message.error('No se pudieron cargar los equipos');
       }
     })();
   }, [campeonatoId]);
 
+  // === 2️⃣ Cargar jugadores de todos los equipos
   useEffect(() => {
     (async () => {
-      if (!equipos.length) return;
+      if (!equipos.length) {
+        console.log('⏳ Esperando equipos...');
+        return;
+      }
+      
       try {
+        console.log('👥 Cargando jugadores de', equipos.length, 'equipos');
         const prom = equipos.map(async (eq) => {
-  const response = await equipoService.listarJugadores(eq.id);
-  
-  // Unwrap la respuesta igual que en EquipoManager
-  const data = response.data?.data || response.data || response;
-  const jugadores = Array.isArray(data) ? data : data.jugadores || [];
-  
-  return jugadores.map((j) => ({
-    id: j.id,
-    usuario: { 
-      nombre: j.nombre ?? j.usuario?.nombre ?? '', 
-      apellido: j.apellido ?? j.usuario?.apellido ?? '', 
-      rut: j.rut ?? j.usuario?.rut ?? '' 
-    },
-    equipo: { id: eq.id, nombre: eq.nombre },
-  }));
-});
+          const response = await equipoService.listarJugadores(eq.id);
+          const data = response.data?.data || response.data || response;
+          const jugadores = Array.isArray(data) ? data : data.jugadores || [];
+          
+          return jugadores.map((j) => ({
+            id: j.id,
+            usuario: {
+              nombre: j.nombre ?? j.usuario?.nombre ?? '',
+              apellido: j.apellido ?? j.usuario?.apellido ?? '',
+              rut: j.rut ?? j.usuario?.rut ?? ''
+            },
+            equipo: { id: eq.id, nombre: eq.nombre },
+          }));
+        });
 
         const result = await Promise.all(prom);
-        setTodosLosJugadores(result.flat());
+        const jugadoresFlat = result.flat();
+        console.log('✅ Jugadores cargados:', jugadoresFlat.length);
+        setTodosLosJugadores(jugadoresFlat);
+        setJugadoresCargados(true);
       } catch (err) {
-        console.error('Error cargando jugadores:', err);
+        console.error('❌ Error cargando jugadores:', err);
         message.error('No se pudieron cargar los jugadores');
+        setJugadoresCargados(true); // ✅ Marcar como cargado aunque falle
       }
     })();
   }, [equipos]);
 
-  // helper: id -> nombre equipo
-  const getEquipoNombreById = useCallback((id) => {
-    if (!id) return null;
-    const eq = equipos.find((e) => Number(e.id) === Number(id));
-    return eq?.nombre || null;
-  }, [equipos]);
-
-  // === Cargar estadísticas y enriquecer
+  // === 3️⃣ Cargar estadísticas (independiente de jugadores)
   const cargarEstadisticas = useCallback(async () => {
+    console.log('📊 Iniciando carga de estadísticas...');
     setLoading(true);
     try {
       const data = await estadisticaService.listarEstadisticas({ campeonatoId });
+      console.log('📥 Respuesta del servicio:', data);
+      
+      // ✅ El servicio devuelve { total, items }
+      const items = data?.items || [];
+      console.log('📋 Items recibidos:', items.length);
 
-      const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+      // ✅ Enriquecer con información de jugadores
       const enriched = items.map((est) => {
         const jugador = todosLosJugadores.find((j) => j.id === est.jugadorCampeonatoId);
         return {
@@ -100,19 +114,26 @@ const [exportando, setExportando] = useState(false);
           partidoInfo: est.partido || est.partidoInfo || {},
         };
       });
+
+      console.log('✅ Estadísticas enriquecidas:', enriched.length);
       setEstadisticas(enriched);
       setCurrent(1);
     } catch (err) {
-      console.error('Error al cargar estadísticas:', err);
+      console.error('❌ Error al cargar estadísticas:', err);
       message.error('Error al cargar estadísticas');
+      setEstadisticas([]);
     } finally {
       setLoading(false);
     }
-  }, [todosLosJugadores]);
+  }, [campeonatoId, todosLosJugadores]);
 
+  // === 4️⃣ Cargar estadísticas cuando los jugadores estén listos
   useEffect(() => {
-    if (todosLosJugadores.length > 0) cargarEstadisticas();
-  }, [todosLosJugadores, cargarEstadisticas]);
+    if (jugadoresCargados) {
+      console.log('🚀 Jugadores listos, cargando estadísticas...');
+      cargarEstadisticas();
+    }
+  }, [jugadoresCargados, cargarEstadisticas]);
 
   const handleEliminar = useCallback(async (id) => {
     try {
@@ -128,77 +149,82 @@ const [exportando, setExportando] = useState(false);
     setFiltros({ busqueda: '', equipoId: null });
     setCurrent(1);
   };
-const handleExportarExcel = async () => {
-  setExportando(true);
-  try {
-    const result = await estadisticaService.exportarExcel(
-      campeonatoId, 
-      filtros.equipoId, 
-      filtros.busqueda
-    );
 
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("Excel descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
+  const handleExportarExcel = async () => {
+    setExportando(true);
+    try {
+      const result = await estadisticaService.exportarExcel(
+        campeonatoId,
+        filtros.equipoId,
+        filtros.busqueda
+      );
+
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("Excel descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error('Error exportando a Excel:', error);
+      message.error(error.message || 'Error al exportar estadísticas a Excel');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportarPDF = async () => {
+    setExportando(true);
+    try {
+      const result = await estadisticaService.exportarPDF(
+        campeonatoId,
+        filtros.equipoId,
+        filtros.busqueda
+      );
+
+      if (result.modo === "web" && result.blob) {
+        descargarArchivo(result.blob, result.nombre);
+        message.success("PDF descargado correctamente");
+      } else if (result.modo === "mobile" && result.base64) {
+        console.log("BASE64 recibido:", result.base64);
+        message.success("Archivo generado (mobile)");
+      }
+    } catch (error) {
+      console.error('Error exportando a PDF:', error);
+      message.error(error.message || 'Error al exportar estadísticas a PDF');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  function descargarArchivo(blob, nombre) {
+    if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
+      console.error('createObjectURL no disponible');
+      return;
     }
 
-  } catch (error) {
-    console.error('Error exportando a Excel:', error);
-    message.error(error.message || 'Error al exportar estadísticas a Excel');
-  } finally {
-    setExportando(false);
-  }
-};
-
-const handleExportarPDF = async () => {
-  setExportando(true);
-  try {
-    const result = await estadisticaService.exportarPDF(
-      campeonatoId, 
-      filtros.equipoId, 
-      filtros.busqueda
-    );
-
-    if (result.modo === "web" && result.blob) {
-      descargarArchivo(result.blob, result.nombre);
-      message.success("PDF descargado correctamente");
-    } else if (result.modo === "mobile" && result.base64) {
-      console.log("BASE64 recibido:", result.base64);
-      message.success("Archivo generado (mobile)");
-      // TODO: Implementar descarga móvil con expo-sharing
+    try {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar archivo:', error);
     }
-
-  } catch (error) {
-    console.error('Error exportando a PDF:', error);
-    message.error(error.message || 'Error al exportar estadísticas a PDF');
-  } finally {
-    setExportando(false);
-  }
-};
-
-function descargarArchivo(blob, nombre) {
-  if (typeof window === 'undefined' || !window.URL?.createObjectURL) {
-    console.error('createObjectURL no disponible');
-    return;
   }
 
-  try {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombre;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error al descargar archivo:', error);
-  }
-}
+  // helper: id -> nombre equipo
+  const getEquipoNombreById = useCallback((id) => {
+    if (!id) return null;
+    const eq = equipos.find((e) => Number(e.id) === Number(id));
+    return eq?.nombre || null;
+  }, [equipos]);
+
   // === Filtrado
   const estadisticasFiltradas = useMemo(() => {
     const texto = filtros.busqueda?.toLowerCase().trim();
@@ -336,13 +362,12 @@ function descargarArchivo(blob, nombre) {
 
       <Alert
         message="Las estadísticas se gestionan desde cada partido"
-        description="Para agregar o editar estadísticas, ve a la sección de Partidos y usa el botón de estadísticas en cada partido."
+        description="Para agregar o editar estadísticas, vaya a la sección de Partidos y usa el botón de estadísticas en cada partido."
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
       />
 
-      {/* Filtros (mismo look&feel que Evaluaciones) */}
       <Card
         title={<Space><FilterOutlined /><span>Filtros</span></Space>}
         style={{ marginBottom: 16, backgroundColor: '#f5f5f5' }}
@@ -385,64 +410,63 @@ function descargarArchivo(blob, nombre) {
         </Row>
       </Card>
 
-      {/* Tabla */}
       <Card
-  title={
-    <Space>
-      <ThunderboltOutlined />
-      <span>Estadísticas del Campeonato</span>
-      <span style={{
-  padding: '2px 8px',
-  borderRadius: 4,
-  fontSize: '12px',
-  fontWeight: 500,
-  border: '1px solid #B9BBBB',
-  backgroundColor: '#f5f5f5'
-}}>
-  {estadisticasFiltradas.length} registros
-</span>
-     {hayFiltrosActivos && (
-  <span style={{
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontSize: '12px',
-    fontWeight: 500,
-    border: '1px solid #B9BBBB',
-    backgroundColor: '#f5f5f5'
-  }}>
-    Filtrado
-  </span>
-)}
-    </Space>
-  }
-  extra={
-    estadisticas.length > 0 && (
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: 'excel',
-              icon: <FileExcelOutlined />,
-              label: 'Exportar a Excel',
-              onClick: handleExportarExcel,
-            },
-            {
-              key: 'pdf',
-              icon: <FilePdfOutlined />,
-              label: 'Exportar a PDF',
-              onClick: handleExportarPDF,
-            },
-          ],
-        }}
-        placement="bottomRight"
+        title={
+          <Space>
+            <ThunderboltOutlined />
+            <span>Estadísticas del Campeonato</span>
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: '12px',
+              fontWeight: 500,
+              border: '1px solid #B9BBBB',
+              backgroundColor: '#f5f5f5'
+            }}>
+              {estadisticasFiltradas.length} registros
+            </span>
+            {hayFiltrosActivos && (
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: 4,
+                fontSize: '12px',
+                fontWeight: 500,
+                border: '1px solid #B9BBBB',
+                backgroundColor: '#f5f5f5'
+              }}>
+                Filtrado
+              </span>
+            )}
+          </Space>
+        }
+        extra={
+          estadisticas.length > 0 && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'excel',
+                    icon: <FileExcelOutlined />,
+                    label: 'Exportar a Excel',
+                    onClick: handleExportarExcel,
+                  },
+                  {
+                    key: 'pdf',
+                    icon: <FilePdfOutlined />,
+                    label: 'Exportar a PDF',
+                    onClick: handleExportarPDF,
+                  },
+                ],
+              }}
+              placement="bottomRight"
+            >
+              <Button icon={<DownloadOutlined />} loading={exportando}>
+                Exportar
+              </Button>
+            </Dropdown>
+          )
+        }
       >
-        <Button icon={<DownloadOutlined />}>
-          Exportar
-        </Button>
-      </Dropdown>
-    )
-  }
->
         <Table
           columns={columns}
           dataSource={paginatedData}

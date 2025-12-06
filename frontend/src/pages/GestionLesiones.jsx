@@ -221,10 +221,26 @@ export default function GestionLesiones() {
       setJugadoresModal([]);
       cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
-      console.error(error);
+    console.error(error);
+    
+    // 🔥 Manejar errores de validación del backend
+    if (error.errors && Array.isArray(error.errors)) {
+      // Mostrar errores en los campos del formulario
+      const fieldErrors = error.errors.map(err => ({
+        name: err.field,
+        errors: [err.message]
+      }));
+      form.setFields(fieldErrors);
+      
+      // Mostrar el primer error como mensaje
+      message.error(error.errors[0].message);
+    } else {
+      // Error genérico
       message.error(error.message || 'Error al crear lesión');
     }
-  };
+  }
+};
+
 
   const handleEditar = async (values) => {
     try {
@@ -242,10 +258,21 @@ export default function GestionLesiones() {
       form.resetFields();
       cargarLesiones(paginaActual, tamañoPagina);
     } catch (error) {
-      console.error(error);
+    console.error(error);
+    
+    // 🔥 Manejar errores de validación del backend
+    if (error.errors && Array.isArray(error.errors)) {
+      const fieldErrors = error.errors.map(err => ({
+        name: err.field,
+        errors: [err.message]
+      }));
+      form.setFields(fieldErrors);
+      message.error(error.errors[0].message);
+    } else {
       message.error(error.message || 'Error al actualizar lesión');
     }
-  };
+  }
+};
 
   const handleEliminar = async (id) => {
     try {

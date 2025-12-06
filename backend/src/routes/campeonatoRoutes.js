@@ -13,24 +13,26 @@ import {
   crearCampeonatoBody, 
   actualizarCampeonatoBody 
 } from "../validations/campeonatoValidations.js";
+import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
 // CRUD básico
-router.post("/", validate(crearCampeonatoBody), postCampeonato);
-router.get("/", getCampeonatos);
-router.get("/excel", exportarCampeonatosExcel);
-router.get("/pdf", exportarCampeonatosPDF);
+router.post("/",authenticateToken,   requireRole(["entrenador"]),
+ validate(crearCampeonatoBody), postCampeonato);
+router.get("/",  getCampeonatos);
+router.get("/excel", authenticateToken,   requireRole(["entrenador"]), exportarCampeonatosExcel);
+router.get("/pdf", authenticateToken,   requireRole(["entrenador"]),exportarCampeonatosPDF);
 
-router.get("/:id", getCampeonato);
-router.patch("/:id", validate(actualizarCampeonatoBody), putCampeonato);
-router.delete("/:id", deleteCampeonato);
+router.get("/:id", authenticateToken, getCampeonato);
+router.patch("/:id", authenticateToken,   requireRole(["entrenador"]),validate(actualizarCampeonatoBody), putCampeonato);
+router.delete("/:id", authenticateToken,   requireRole(["entrenador"]), deleteCampeonato);
 
 // Fixture
-router.post("/:id/sortear", postSortearPrimeraRonda);
-router.post("/:id/siguiente-ronda", postGenerarSiguienteRonda);
-router.get("/:id/fixture/excel", exportarFixtureExcel);
-router.get("/:id/fixture/pdf", exportarFixturePDF);
+router.post("/:id/sortear", authenticateToken,   requireRole(["entrenador"]), postSortearPrimeraRonda);
+router.post("/:id/siguiente-ronda", authenticateToken,  requireRole(["entrenador"]),  postGenerarSiguienteRonda);
+router.get("/:id/fixture/excel", authenticateToken,  requireRole(["entrenador"]),  exportarFixtureExcel);
+router.get("/:id/fixture/pdf", authenticateToken,   requireRole(["entrenador"]),exportarFixturePDF);
 
 
 

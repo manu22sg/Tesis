@@ -14,6 +14,7 @@ export const listarEstadisticas = async (filtros = {}) => {
     if (filtros.q) params.q = filtros.q;
 
     const res = await api.get('/estadisticaCampeonato', { params });
+    console.log(res)
     return res.data.data;
   } catch (error) {
     throw error.response?.data?.message || 'Error al obtener estadísticas';

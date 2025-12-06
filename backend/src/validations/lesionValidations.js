@@ -21,24 +21,26 @@ export const crearLesionBody = Joi.object({
       'any.required': 'diagnóstico es requerido'
     }),
   
-  fechaInicio: Joi.date()
+ fechaInicio: Joi.date()
     .iso()
+    .max('now')
     .required()
     .messages({
-      'date.base': 'fechaInicio debe ser una fecha válida',
-      'date.format': 'fechaInicio debe tener formato ISO (YYYY-MM-DD)',
-      'any.required': 'fechaInicio es requerida'
+      'date.base': 'fecha de Inicio debe ser una fecha válida',
+      'date.format': 'fecha de Inicio debe tener formato ISO (YYYY-MM-DD)',
+      'date.max': 'fecha de Inicio no puede ser una fecha futura',
+      'any.required': 'fecha deInicio es requerida'
     }),
-  
+
   fechaAltaEstimada: Joi.date()
     .iso()
     .greater(Joi.ref('fechaInicio'))
     .optional()
     .allow(null)
     .messages({
-      'date.base': 'fechaAltaEstimada debe ser una fecha válida',
-      'date.format': 'fechaAltaEstimada debe tener formato ISO (YYYY-MM-DD)',
-      'date.greater': 'fechaAltaEstimada debe ser posterior a fechaInicio'
+      'date.base': 'fecha Alta Estimada debe ser una fecha válida',
+      'date.format': 'fecha Alta Estimada debe tener formato ISO (YYYY-MM-DD)',
+      'date.greater': 'fecha Alta Estimada debe ser posterior a fecha de Inicio'
     }),
   
   fechaAltaReal: Joi.date()
@@ -47,9 +49,9 @@ export const crearLesionBody = Joi.object({
     .optional()
     .allow(null)
     .messages({
-      'date.base': 'fechaAltaReal debe ser una fecha válida',
-      'date.format': 'fechaAltaReal debe tener formato ISO (YYYY-MM-DD)',
-      'date.greater': 'fechaAltaReal debe ser posterior a fechaInicio'
+      'date.base': 'fecha Alta Real debe ser una fecha válida',
+      'date.format': 'fecha Alta Real debe tener formato ISO (YYYY-MM-DD)',
+      'date.greater': 'fecha Alta Real debe ser posterior a fechaInicio'
     })
 });
 
@@ -64,10 +66,13 @@ export const actualizarLesionBody = Joi.object({
   
   fechaInicio: Joi.date()
     .iso()
-    .optional()
+    .max('now')
+    .required()
     .messages({
-      'date.base': 'fechaInicio debe ser una fecha válida',
-      'date.format': 'fechaInicio debe tener formato ISO (YYYY-MM-DD)'
+      'date.base': 'fecha de Inicio debe ser una fecha válida',
+      'date.format': 'fecha de Inicio debe tener formato ISO (YYYY-MM-DD)',
+      'date.max': 'fecha de Inicio no puede ser una fecha futura',
+      'any.required': 'fecha deInicio es requerida'
     }),
   
   fechaAltaEstimada: Joi.date()

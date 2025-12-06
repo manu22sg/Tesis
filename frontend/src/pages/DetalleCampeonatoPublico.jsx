@@ -177,7 +177,9 @@ export default function DetalleCampeonatoPublico() {
   const cargarJugadoresYEstadisticas = async () => {
     try {
       // --- cargar jugadores
-      const equipos = await equipoService.listarPorCampeonato(id);
+      const response = await equipoService.listarPorCampeonato(id);
+      const equipos = response?.data || response;
+      
       const jugadoresFinal = [];
 
       for (const eq of equipos) {

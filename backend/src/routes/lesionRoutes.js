@@ -27,14 +27,14 @@ const router = Router();
 // ✅ Rutas específicas PRIMERO
 router.get('/excel', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarLesionesQuerySchema), // ✅ Validación
   exportarLesionesExcel
 );
 
 router.get('/pdf', 
   authenticateToken, 
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarQuery(exportarLesionesQuerySchema), // ✅ Validación
   exportarLesionesPDF
 );

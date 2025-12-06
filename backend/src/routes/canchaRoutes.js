@@ -15,11 +15,11 @@ const router = Router();
 
 // Todas requieren autenticación y rol administrador
 router.post('/', authenticateToken, requireRole(['entrenador']), postCrearCancha);
-router.get('/', getCanchas);
+router.get('/',authenticateToken, getCanchas);
 router.post('/detalle', authenticateToken, requireRole(['superadmin', 'entrenador']), getCanchaPorId);
-router.patch('/', authenticateToken, requireRole(['entrenador', 'superadmin']), patchActualizarCancha);
-router.delete('/eliminar', authenticateToken, requireRole(['entrenador', 'superadmin']), deleteCancha);
-router.patch('/reactivar', authenticateToken, requireRole(['entrenador', 'superadmin']), patchReactivarCancha);
+router.patch('/', authenticateToken, requireRole(['entrenador']), patchActualizarCancha);
+router.delete('/eliminar', authenticateToken, requireRole(['entrenador']), deleteCancha);
+router.patch('/reactivar', authenticateToken, requireRole(['entrenador']), patchReactivarCancha);
 router.get('/excel', authenticateToken, requireRole('entrenador'), exportarCanchasExcel);
 router.get('/pdf', authenticateToken, requireRole('entrenador'), exportarCanchasPDF);
 

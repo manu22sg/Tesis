@@ -32,14 +32,14 @@ const router = Router();
 router.post(
   '/',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   validarBody(crearAlineacionBody),
   postCrearAlineacion
 );
 router.get(
   '/excel/:sesionId',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarParams(sesionIdParamSchema),
   exportarAlineacionExcel
 );
@@ -47,7 +47,7 @@ router.get(
 router.get(
   '/pdf/:sesionId',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarParams(sesionIdParamSchema),
   exportarAlineacionPDF
 );
@@ -56,7 +56,6 @@ router.get(
 router.get(
   '/sesion/:sesionId',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
   validarParams(sesionIdParamSchema), // sesionId
   getAlineacionPorSesion
 );
@@ -64,7 +63,7 @@ router.get(
 router.post(
   '/jugador',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   validarBody(agregarJugadorBody),
   postAgregarJugador
 );
@@ -72,7 +71,7 @@ router.post(
 router.patch(
   '/jugador',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   validarBody(actualizarJugadorAlineacionBody),
   patchAlineacionJugador
 );
@@ -80,7 +79,7 @@ router.patch(
 router.delete(
   '/jugador/:alineacionId/:jugadorId',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   validarParams(quitarJugadorParams),
   deleteAlineacionJugador
 );
@@ -88,7 +87,7 @@ router.delete(
 router.delete(
   '/:id',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   validarParams(idParamSchema),
   deleteAlineacion
 );
@@ -97,14 +96,14 @@ router.delete(
 router.patch(
   '/posiciones',
   authenticateToken,
-  requireRole(['entrenador','superadmin']),
+  requireRole(['entrenador']),
   patchActualizarPosiciones
 );
 
 router.post(
   '/inteligente',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validarBody(generarAlineacionInteligenteSchema),  
   postGenerarAlineacionInteligente
 );
@@ -113,7 +112,7 @@ router.post(
 router.get(
   '/formaciones/:tipo',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   getFormacionesDisponibles
 );
 

@@ -7,35 +7,96 @@ import {
   eliminarEstadisticaBody,
 } from "../validations/estadisticaCampeonatoValidations.js";
 import * as ctrl from "../controllers/estadisticaCampeonatoController.js";
+import { authenticateToken, requireRole } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Crear
-router.post("/", validate(crearEstadisticaBody), ctrl.crearEstadistica);
+// ============================================
+// ORDEN CORRECTO DE RUTAS
+// ============================================
+// REGLA: Las rutas más específicas SIEMPRE van primero
+// Las rutas con parámetros dinámicos (:id) van AL FINAL
 
-// Actualizar
-router.patch("/:id", validate(actualizarEstadisticaBody), ctrl.actualizarEstadistica);
+// 1️⃣ RUTAS DE EXPORTACIÓN (más específicas, tienen /campeonato/:id/excel|pdf)
+router.get(
+  "/campeonato/:campeonatoId/excel", 
+  authenticateToken,  
+  requireRole(["entrenador"]), 
+  ctrl.exportarEstadisticasCampeonatoExcel
+);
 
-// Listar
-router.get("/", validateQuery(obtenerEstadisticasQuery), ctrl.listarEstadisticas);
+router.get(
+  "/campeonato/:campeonatoId/pdf", 
+  authenticateToken,  
+  requireRole(["entrenador"]), 
+  ctrl.exportarEstadisticasCampeonatoPDF
+);
 
-// Obtener una estadística por ID
-router.get("/:id", ctrl.obtenerEstadisticaPorId);
+// 2️⃣ RUTAS DE CONSULTA POR JUGADOR/USUARIO/EQUIPO (específicas)
+router.get(
+  "/jugadorcampeonato/:jugadorCampId/campeonato/:campId", 
+  authenticateToken, 
+  ctrl.getEstadisticasPorJugadorCampeonato
+);
 
-// Eliminar
-router.delete("/:id", validate(eliminarEstadisticaBody), ctrl.eliminarEstadistica);
+router.get(
+  "/usuario/:usuarioId/campeonato/:campId", 
+  authenticateToken, 
+  ctrl.getEstadisticasPorUsuarioEnCampeonato
+);
 
-router.get("/jugadorcampeonato/:jugadorCampId/campeonato/:campId", ctrl.getEstadisticasPorJugadorCampeonato);
-
-router.get("/usuario/:usuarioId/campeonato/:campId", ctrl.getEstadisticasPorUsuarioEnCampeonato);
-
-router.get("/equipo/:equipoId/campeonato/:campeonatoId", 
+router.get(
+  "/equipo/:equipoId/campeonato/:campeonatoId",  
+  authenticateToken,
   ctrl.listarJugadoresPorEquipoYCampeonato
 );
 
-router.get("/campeonato/:campeonatoId/excel", ctrl.exportarEstadisticasCampeonatoExcel);
-router.get("/campeonato/:campeonatoId/pdf", ctrl.exportarEstadisticasCampeonatoPDF);
+// 3️⃣ CREAR (POST sin parámetros en la ruta)
+router.post(
+  "/", 
+  authenticateToken,   
+  requireRole(["entrenador"]),
+  validate(crearEstadisticaBody), 
+  ctrl.crearEstadistica
+);
 
+// 4️⃣ LISTAR TODAS (GET sin parámetros, usa query params)
+// ⚠️ CRÍTICO: Esta debe ir ANTES de GET /:id
+router.get(
+  "/",  
+  authenticateToken, 
+  validateQuery(obtenerEstadisticasQuery), 
+  ctrl.listarEstadisticas
+);
 
+// 5️⃣ RUTAS CON /:id (SIEMPRE AL FINAL)
+// ⚠️ Estas rutas capturan cualquier cosa después de /estadisticas/
+// Por eso DEBEN ir al final
+
+// Obtener por ID
+router.get(
+  "/:id", 
+  authenticateToken,   
+  requireRole(["entrenador"]),
+  ctrl.obtenerEstadisticaPorId
+);
+
+// Actualizar
+router.patch(
+  "/:id", 
+  authenticateToken,   
+  requireRole(["entrenador"]),
+  validate(actualizarEstadisticaBody), 
+  ctrl.actualizarEstadistica
+);
+
+// Eliminar
+router.delete(
+  "/:id",  
+  authenticateToken,  
+  requireRole(["entrenador"]), 
+  validate(eliminarEstadisticaBody), 
+  ctrl.eliminarEstadistica
+);
 
 export default router;

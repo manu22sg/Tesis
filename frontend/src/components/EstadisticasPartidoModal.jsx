@@ -67,9 +67,7 @@ const EstadisticasPartidoModal = ({
     try {
       
       const data = await estadisticaService.listarEstadisticas({ partidoId: partido.id });
-      
-  
-      
+      console.log(data)
       setEstadisticas(data.items || []);
       await cargarJugadoresDisponibles(data.items || []);
     } catch (error) {

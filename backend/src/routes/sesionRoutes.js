@@ -28,7 +28,7 @@ const router = Router();
 
 router.post('/',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(crearSesionBody),
   postCrearSesion
 );
@@ -36,35 +36,35 @@ router.post('/',
 //GET usa validateQuery
 router.get('/',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validateQuery(obtenerSesionesQuery),  
   getSesiones
 );
 
 router.post('/detalle',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(obtenerSesionPorIdBody),
   getSesionPorId
 );
 
 router.patch('/',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(actualizarSesionBody),
   patchActualizarSesion
 );
 
 router.delete('/eliminar',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(eliminarSesionBody),
   deleteSesion
 );
 
 router.post('/recurrente',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(crearSesionesRecurrentesBody),
   postSesionesRecurrentes
 );

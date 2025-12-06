@@ -45,7 +45,7 @@ router.get(
 router.post(
   '/reordenar',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(reordenarEntrenamientosBody),
   reordenarEntrenamientosController
 );
@@ -62,7 +62,7 @@ router.get(
 router.post(
   '/',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validate(crearEntrenamientoBody),
   crearEntrenamientoController
 );
@@ -71,7 +71,7 @@ router.post(
 router.post(
   '/:id/duplicar',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validateParams(obtenerEntrenamientoPorIdParams),
   validate(duplicarEntrenamientoBody),
   duplicarEntrenamientoController
@@ -81,7 +81,7 @@ router.post(
 router.patch(
   '/:id',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validateParams(obtenerEntrenamientoPorIdParams),
   validate(actualizarEntrenamientoBody),
   actualizarEntrenamientoController
@@ -91,7 +91,7 @@ router.patch(
 router.delete(
   '/:id',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validateParams(eliminarEntrenamientoParams),
   eliminarEntrenamientoController
 );

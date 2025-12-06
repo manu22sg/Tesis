@@ -46,7 +46,6 @@ router.get("/pdf",
 // Rutas por jugador
 router.get("/jugador/:jugadorId",
   authenticateToken,
-  requireRole(["entrenador"]),
   validarParams(jugadorIdParamSchema), 
   validarQuery(paginacionAsistenciasSchema), //  Usa schema de common
   listarAsistenciasDeJugadorController

@@ -551,9 +551,11 @@ const [exportando, setExportando] = useState(false);
                   <Option value="todas">Todos los estados</Option>
                   <Option value="pendiente">Pendiente</Option>
                   <Option value="aprobada">Aprobada</Option>
+                  
                   <Option value="rechazada">Rechazada</Option>
                   <Option value="completada">Completada</Option>
                   <Option value="expirada">Expirada</Option>
+                  <Option value="cancelada"> Cancelada</Option>
                 </Select>
               </Col>
             </Row>
@@ -678,6 +680,7 @@ const [exportando, setExportando] = useState(false);
                     maxLength={500}
                     showCount
                     status={motivoRechazo.length > 0 && motivoRechazo.length < 10 ? 'error' : ''}
+                    style={{ marginBottom: 8 }}
                   />
                   {motivoRechazo.length > 0 && motivoRechazo.length < 10 && (
                     <div style={{ color: '#ff4d4f', fontSize: 12, marginTop: 4 }}>

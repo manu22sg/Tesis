@@ -40,7 +40,7 @@ router.get('/',
 // GET /api/reservas/todas - Obtener todas las reservas (entrenadores)
 router.get('/todas',
   authenticateToken,
-  requireRole(['entrenador', 'superadmin']),
+  requireRole(['entrenador']),
   validateQuery(obtenerTodasReservasQuery),
   getTodasLasReservas
 );
